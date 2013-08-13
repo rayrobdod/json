@@ -1,0 +1,108 @@
+<project name="JSON" default="classes" basedir="C:/Users/Raymond/Documents/Programming/Java">
+	<description />
+	
+	<property name="classfiles" value="**/*.class META-INF/** releaseNotes.txt rayrobdod?license.txt **/*.png" />
+	<property name="sourcefiles" value="**/*.java **/*.scala build.xml **/*.proguard" />
+	
+	<property name="tmp" value="C:/Users/Raymond/AppData/Local/Temp" />
+	<property name="scala-lib" location="C:/Program Files/Scala/scala-2.9.1.final/lib/scala-library.jar" />
+	<property name="scala-comp" location="C:/Program Files/Scala/scala-2.9.1.final/lib/scala-compiler.jar" />
+	<!-- property name="anonFunReduce" value="-Xplugin:C:/Users/Raymond/Documents/Programming/Java/ScalaParserPlugin/CommonAnonFuns.zip" / -->
+	<property name="anonFunReduce" value="" />
+	
+	<property name="version" value="..." />
+	<!-- property name="myClasses" location="classes" / -->
+	<!-- property name="jarNamePattern" location="C:/Users/Raymond/Documents/website/programming/java/libraries/.../${version}/...-${version}-" / -->
+	
+	<property name="myClasses" location="${tmp}/antBuild/classes/" />
+	<property name="jarNamePattern" value="${tmp}/antBuild/jars/" />
+	
+	<path id="myClasspath">
+		<pathelement location="${scala-lib}" />
+		<pathelement location="${myClasses}"/>
+	</path>
+	
+	<target name="init" >
+		<!-- set up scala commands -->
+		<taskdef resource="scala/tools/ant/antlib.xml">
+			<classpath>
+				<pathelement location="${scala-comp}"   />
+				<pathelement location="${scala-lib}"   />
+			</classpath>
+		</taskdef>
+		
+		<!-- set up pack200 commands -->
+		<!-- taskdef name="p200ant"
+				classname="de.matthiasmann.p200ant.P200AntTask"
+				classpath="C:\Users\Raymond\Documents\Programming\Java\Imported JAR Files\p200ant.jar" / -->
+		<taskdef name="pack200"
+				classname="de.matthiasmann.p200ant.P200AntTask"		
+				classpath="classes" />
+		
+		<!-- set up proguard command -->
+		<taskdef resource="proguard/ant/task.properties"
+			classpath="C:\Users\Raymond\Downloads\proguard4.8\lib\proguard.jar" />
+		
+		<!-- create desitination directory -->
+		<mkdir dir="${myClasses}"/>
+	</target>
+	
+	<!-- making classes -->
+	<target name="class-json" description="compile JSON files" depends="class-utilities,init" >
+	
+		<scalac destdir="${myClasses}" srcdir="File Formats/JSON/src/main"
+					classpathref="myClasspath" encoding="UTF-8"
+					addparams="${anonFunReduce}">
+			<include name="**/*.scala" />
+			<exclude name="**/testing/**" />
+		</scalac>
+		<javac destdir="${myClasses}" srcdir="File Formats/JSON/src/main"
+					classpathref="myClasspath" encoding="UTF-8"
+					includeAntRuntime="false">
+			<!-- compilerarg value="-Xlint:deprecation" / -->
+			<include name="**/*.java" />
+			<exclude name="com/rayrobdod/javaScriptObjectNotation/parser/listeners/ToSeqJSONParseListener.java" />
+			<exclude name="com/rayrobdod/javaScriptObjectNotation/parser/decoders/ToScalaCollectionJSONDecoder.java" />
+			<exclude name="com/rayrobdod/javaScriptObjectNotation/parser/decoders/ToScalaCollectionJSONDecoder$.java" />
+			<exclude name="com - Copy/*" />
+		</javac>
+		<scalac destdir="${myClasses}" srcdir="File Formats/JSON/src/main"
+					classpathref="myClasspath" encoding="UTF-8"
+					addparams="${anonFunReduce}">
+			<include name="**/*.scala" />
+			<exclude name="**/testing/**" />
+		</scalac>
+		
+		<copy todir="${myClasses}" >
+			<fileset dir="File Formats/JSON/src/main">
+				<exclude name="**/testing/**" />
+			</fileset>
+		</copy>
+	</target>
+		
+	<target name="class-utilities" description="compile helper files" depends="init" >
+		<javac destdir="${myClasses}" sourcepath="Utilities"
+				srcdir="Utilities" classpathref="myClasspath"
+				encoding="UTF-8" includeAntRuntime="false">
+			<compilerarg value="-Xlint:deprecation" />
+			<include name="com/rayrobdod/util/WrappedObject.java" />
+		</javac>
+		
+		<copy todir="${myClasses}" >
+			<fileset dir="Utilities">
+				<include name="com/rayrobdod/util/WrappedObject.java" />
+			</fileset>
+		</copy>
+	</target>
+	
+	<target name="classes" description="make all class files" depends="class-json,class-utilities" />
+
+	
+	
+	<!-- clean -->
+	<target name="clean" description="remove built files">
+		<!-- remove contents of myClasses, but leave myClasses behind -->
+		<delete dir="${myClasses}"/>
+		<mkdir dir="${myClasses}"/>
+	</target>
+</project>

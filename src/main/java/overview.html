@@ -1,0 +1,74 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+	<head>
+		<title>com.rayrobdod.javaScriptObjectNotation.*</title>
+	</head>
+	<body>
+		<p>
+			Another <a href="http://json.org">Java Script Object Notation</a>
+			processing unit, which acts in a way similar to SAX.
+		</p>
+		<h3>The Simple Method</h3>
+		<p>
+			The simplest way to use this is to take a String in memory and one
+			of the classes in the
+			{@link com.rayrobdod.javaScriptObjectNotation.parser.decoders}
+			package, and pass the string into one of the decoder's
+			"decode(String)" methods. The result will be a Collection object of
+			the specified type.
+		</p>
+		<h3>The More Through Explanation</h3>
+		<h4>JSONParser and JSONParseListener</h4>
+		<p>
+			The intended way of working with this is closer to SAX. The main
+			class to be aware of is the static-only class {@link
+			com.rayrobdod.javaScriptObjectNotation.parser.JSONParser JSONParser}.
+			This is the class that does the parsing into tokens. The class has
+			an overloaded parse method. The second parameter is the Reader to
+			take input from, or a String which will immediately be turned into a
+			StringReader. The first parameter is something that implements
+			{@link com.rayrobdod.javaScriptObjectNotation.parser.JSONParseListener JSONParseListener}.
+			There are plenty available in the
+			{@link com.rayrobdod.javaScriptObjectNotation.parser.listeners}
+			package, and of course you can create your own. Basically, the
+			Parser reads characters, makes tokens, and calls methods in the
+			JSONParseListener when it finds certain tokens. So, like I said,
+			very similar to SAX.
+			
+			The built-in listeners vary from finding attributes of a JSONObject
+			to making something out of one.
+		</p>
+		<h4>JSONDecoder</h4>
+		<p>
+			These were basically created by necessity to allow JSONListeners to
+			make stuff recursively, as JSONParser can only run one layer at a
+			time.
+			
+			They turn a String into an X, where an X is anything that can be put
+			inside a JSONObject or JSONArray. Number, String, Boolean, Array,
+			Object, null. the main difference between them is what they return
+			is response to an Array or an Object. For example, one will turn
+			Arrays into {@link java.util.ArrayList}s and one will turn Arrays
+			int {@link scala.collection.immutable.Vector}. Using one of the
+			appropriate JSONListeners, of course. But the main thing is that it
+			filters the strings into the right object for you. And for the
+			recursive JSONListeners.
+		</p>
+		<h4>Java Collections</h4>
+		<p>
+			There is also the {@link
+			com.rayrobdod.javaScriptObjectNotation.javaCollection} package. If
+			the Scala Collection Heirarchy weren't so hard to enter I'd have one
+			for scala too, but, anyway. These are classes that implement
+			interfaces in the Java Collections Heirarchy. The thing about them
+			is that the JSON formatted String is stored inside the Array. As
+			such they are probably unsuitable for a lot of what you'd want to do
+			with a collection in memory. However, iteration is not naive, and I
+			think I accidentally made these the only way to actually
+			<em>write</em> a JSON String to an output stream, so far.
+			
+			Basically, if there is a part that doesn't work quite as well as it
+			should, this is it.
+		</p>
+	</body>
+</html>
