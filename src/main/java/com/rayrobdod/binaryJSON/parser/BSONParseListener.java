@@ -32,15 +32,18 @@ import java.text.ParseException;
 import java.io.IOException;
 
 /**
- * Modified and extracted ParseListener from JSONArray
+ * A style listener for Parse events. Much simpler than the JSON one, as
+ * this only has one 'data' event, #newKeyValue.
  * 
  * @author Raymond Dodge
- * @version 2013 Aug 03
+ * @version 2013 Aug 03 - modified from BSONParseListener
+ * @see BSONParser
  */
 public interface BSONParseListener
 {	
 	/**
-	 * A character has been read
+	 * Parses a value of type typeOfValue from reader, treats that as a value, and then
+	 * does whatever with the key-value pair.
 	 * @param typeOfValue 
 	 * @param key the pair's key
 	 * @param reader the input values, to obtain a value from

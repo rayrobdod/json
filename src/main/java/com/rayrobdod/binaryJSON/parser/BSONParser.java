@@ -33,7 +33,7 @@ import java.io.IOException;
 import java.text.ParseException;
 
 /**
- * This is the class that parses Strings and calls functions in JSONParseListeners based on what it finds.
+ * This is the class that parses DataInput and calls functions in BSONParseListeners based on what it finds.
  * 
  * @author Raymond Dodge
  * @version 2013 Aug 03

@@ -6,4 +6,4 @@
  * @see com.rayrobdod.binaryJSON.parser.BSONParseListener
  * @see com.rayrobdod.binaryJSON.parser the code sample
  */
- package com.rayrobdod.binaryJSON.parser.listeners;
+package com.rayrobdod.binaryJSON.parser.listeners;

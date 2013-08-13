@@ -14,12 +14,10 @@
 			one of the parse methods. The results can then be obtained form the JSONParseListener.
 		</p>
 		<code style="white-space:pre;">
-// create a parser.
-JSONParser parser = new JSONParser();
 // initiate an instance of a JSONParseListener
-SizeJSONParseListener l = new SizeJSONParseListener();
+SizeBSONParseListener l = new SizeBSONParseListener();
 // run <a href="JSONParser.html#parse(JSONParseListener, Reader)">JSONParser#parse(JSONParseListener, Reader)</a> using the just-made JSONParseListener and a previously created reader.
-parser.parse(l, reader);
+JSONParser.parse(l, reader);
 // obtain results from the JSONParseListener
 int size = l.getCount();
 		</code>
