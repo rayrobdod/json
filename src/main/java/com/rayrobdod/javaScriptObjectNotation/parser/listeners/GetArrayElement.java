@@ -8,6 +8,8 @@ import java.text.ParseException;
 /**
  * A JSONParseListener that extracts the nth item from an array
  * 
+ * @note assumes that empty elements cannot be parsed into a useful value.
+ * 
  * @author Raymond Dodge
  * @version Sep 9, 2010
  * @version Oct 14, 2010 - now implements JSONParseListener instead of extending adapter
@@ -72,7 +74,7 @@ public final class GetArrayElement implements JSONParseListener
 	public void ended() throws IllegalStateException, ParseException
 	{
 		currentIndex++;
-		if (currentIndex <= getIndex) 
+		if (currentIndex <= getIndex || builder.toString().trim().length() == 0) 
 		{
 			ParseException e = new ParseException("Could not find specified element", 0);
 			e.initCause(new java.lang.IndexOutOfBoundsException("Tried to get element " + getIndex
