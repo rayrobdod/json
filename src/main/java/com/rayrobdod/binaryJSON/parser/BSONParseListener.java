@@ -39,7 +39,7 @@ import java.io.IOException;
  * @version 2013 Aug 03 - modified from BSONParseListener
  * @see BSONParser
  */
-public interface BSONParseListener
+public interface BSONParseListener extends java.util.EventListener
 {	
 	/**
 	 * Parses a value of type typeOfValue from reader, treats that as a value, and then

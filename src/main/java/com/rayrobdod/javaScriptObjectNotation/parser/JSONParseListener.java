@@ -36,7 +36,7 @@ import java.text.ParseException;
  * @version Sep 1, 2010 - Sept 7, 2010
  * @version 15 Dec 2011 - moved from {@code net.verizon.rayrobdod.javaScriptObjectNotation} to {@code com.rayrobdod.javaScriptObjectNotation;}
  */
-public interface JSONParseListener
+public interface JSONParseListener extends java.util.EventListener
 {	
 	/**
 	 * A character has been read
