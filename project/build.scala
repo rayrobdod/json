@@ -30,5 +30,6 @@ object JsonBuild extends Build {
 			settings = Defaults.defaultSettings 
 	//			++ javadocSettings
 	)
+	// TODO: a java-only compilation
 }
 
