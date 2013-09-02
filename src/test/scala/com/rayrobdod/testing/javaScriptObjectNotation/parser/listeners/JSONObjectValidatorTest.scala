@@ -150,7 +150,7 @@ class JSONObjectValidatorTest extends FunSpec
 			intercept[ParseException] { JSONParser.parse(l, "{") }
 		}
 		
-		ignore ("should accept an empty object") {
+		it ("should accept an empty object") {
 			val l = new JSONObjectValidator;
 			JSONParser.parse(l, "{}")
 		}

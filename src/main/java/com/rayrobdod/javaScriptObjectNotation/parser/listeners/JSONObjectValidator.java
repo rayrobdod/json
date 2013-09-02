@@ -24,11 +24,11 @@ public final class JSONObjectValidator implements JSONParseListener
 	private boolean isParsing;
 	private boolean reachedOpeningBracket;
 	private boolean reachedEndingBracket;
-
+	
 	private static final Pattern beginChar = Pattern.compile("[{]");
 	private static final Pattern endChar = Pattern.compile("[}]");
 	private static final ToJavaCollectionJSONDecoder decoder = new ToJavaCollectionJSONDecoder();
-
+	
 	public boolean abort()
 	{
 		return false;
@@ -58,34 +58,41 @@ public final class JSONObjectValidator implements JSONParseListener
 				"Call .started() first.");
 		if (currentKey == null) throw new IllegalStateException(
 				"elemEnded called before elemStarted called");
-		if (currentKey.length() == 0) throw new ParseException(
-				"empty key", commaIndex);
-		if (currentValue == null) throw new IllegalStateException(
-				"elemEnded called before keyValueSeparation called");
-		if (currentValue.length() == 0) throw new ParseException(
-				"empty value", commaIndex);
-		
-		try
-		{
-			Object key = decoder.decode(currentKey.toString());
-			decoder.decode(currentValue.toString());
+		if (currentValue == null &&  currentKey.length() == 0) {
+			// empty element; possibly because empty object
+			// two wrongs make a right?
+		} else {
+			if (currentKey.length() == 0) throw new ParseException(
+					"empty key", commaIndex);
+			if (currentValue == null) throw new IllegalStateException(
+					"elemEnded called before keyValueSeparation called");
+			if (currentValue.length() == 0) throw new ParseException(
+					"empty value", commaIndex);
 			
-			if (! (key instanceof JSONString))
+			try
 			{
-				ParseException e1 = new ParseException("key was not a JSONString", commaIndex);
-				e1.initCause(new ClassCastException("key was not a JSONString"));
+				Object key = decoder.decode(currentKey.toString());
+				decoder.decode(currentValue.toString());
+				
+				if (! (key instanceof JSONString))
+				{
+					ParseException e1 = new ParseException("key was not a JSONString", commaIndex);
+					e1.initCause(new ClassCastException("key was not a JSONString"));
+					throw e1;
+				}
+				
+				currentKey = null;
+				currentValue = null;
+			}
+			catch (ClassCastException e)
+			{
+				ParseException e1 = new ParseException("Object contined invalid item", commaIndex);
+				e1.initCause(e);
 				throw e1;
 			}
-
-			currentKey = null;
-			currentValue = null;
 		}
-		catch (ClassCastException e)
-		{
-			ParseException e1 = new ParseException("Object contined invalid item", commaIndex);
-			e1.initCause(e);
-			throw e1;
-		}
+		
+		
 	}
 	
 	public void elemStarted(int commaIndex, char character) throws IllegalStateException
@@ -115,7 +122,7 @@ public final class JSONObjectValidator implements JSONParseListener
 		
 		currentValue = new StringBuilder();
 	}
-
+	
 	public void started() throws IllegalStateException
 	{
 		if (isParsing) throw new IllegalStateException("This is already parsing");
@@ -135,7 +142,7 @@ public final class JSONObjectValidator implements JSONParseListener
 		
 		isParsing = false;
 	}
-
+	
 	public void endingBracket(int index, char character)
 			throws IllegalStateException, ParseException
 	{
@@ -150,7 +157,7 @@ public final class JSONObjectValidator implements JSONParseListener
 		
 		reachedEndingBracket = true;
 	}
-
+	
 	public void openingBracket(int index, char character)
 			throws IllegalStateException, ParseException
 	{
