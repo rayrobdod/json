@@ -52,6 +52,9 @@ public final class JSONContentHandler extends java.net.ContentHandler
 		return reader;
 	}
 	
+	/**
+	 * returns the contents of a URLConnection as either java.util.List[_] or a java.util.Map[_,_]
+	 */
 	public Object getContent(URLConnection urlc) throws IOException {
 		Reader reader = this.makeReader(urlc);
 		
@@ -95,8 +98,8 @@ public final class JSONContentHandler extends java.net.ContentHandler
 	
 	public Object getContent(URLConnection urlc, Class[] classes) throws IOException {
 		
-		for (Class c : classes) {
-			if (c == java.util.ArrayList.class || c == java.util.List.class) {
+		for (Class<?> c : classes) {
+			if (c.isAssignableFrom(java.util.ArrayList.class)) {
 				Reader reader = new java.io.StringReader("");
 				try {
 					reader = this.makeReader(urlc);
@@ -108,7 +111,7 @@ public final class JSONContentHandler extends java.net.ContentHandler
 					reader.close();
 				}
 			}
-			if (c == java.util.HashMap.class || c == java.util.Map.class) {
+			if (c.isAssignableFrom(java.util.HashMap.class)) {
 				Reader reader = new java.io.StringReader("");
 				try {
 					reader = this.makeReader(urlc);
