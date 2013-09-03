@@ -28,6 +28,7 @@ class JSONContentHandlerTest extends FunSpec
 	val handler = new JSONContentHandler();
 	val listClass = Array[java.lang.Class[_]](classOf[java.util.List[_]]);
 	val mapClass  = Array[java.lang.Class[_]](classOf[java.util.Map[_,_]]);
+	val bothClass = Array[java.lang.Class[_]](classOf[java.util.List[_]], classOf[java.util.Map[_,_]]);
 	
 	
 	describe ("JSONContentHandler") {
@@ -106,6 +107,39 @@ class JSONContentHandlerTest extends FunSpec
 				val result = handler.getContent(new FakeURLConnection(thingToTest), mapClass);
 				
 				assert( result == null )
+			}
+			it ("should parse an empty object"){
+				val thingToTest = "{}"
+				val result = handler.getContent(new FakeURLConnection(thingToTest), mapClass);
+				
+				assert( result.isInstanceOf[java.util.Map[_,_]] )
+				assert( result.asInstanceOf[java.util.Map[_,_]].size == 0 )
+			}
+			it ("should parse an nonempty object"){
+				val thingToTest = "{\"hello\":\"world\"}"
+				val result = handler.getContent(new FakeURLConnection(thingToTest), mapClass);
+				
+				assert( result.isInstanceOf[java.util.Map[_,_]] )
+				assert( result.asInstanceOf[java.util.Map[_,_]].size == 1 )
+				assert( result.asInstanceOf[java.util.Map[_,_]].get("hello").toString == "world" )
+			}
+		}
+		
+		describe ("getContent(URLConnection, bothClass)") {
+			it ("should parse an empty array"){
+				val thingToTest = "[]"
+				val result = handler.getContent(new FakeURLConnection(thingToTest), listClass);
+				
+				assert( result.isInstanceOf[java.util.List[_]] )
+				assert( result.asInstanceOf[java.util.List[_]].size == 0 )
+			}
+			it ("should parse an nonempty array"){
+				val thingToTest = "[1,2,3]"
+				val result = handler.getContent(new FakeURLConnection(thingToTest), listClass);
+				
+				assert( result.isInstanceOf[java.util.List[_]] )
+				assert( result.asInstanceOf[java.util.List[_]].size == 3 )
+				assert( result.asInstanceOf[java.util.List[_]].get(1) == 2 )
 			}
 			it ("should parse an empty object"){
 				val thingToTest = "{}"
