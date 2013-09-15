@@ -18,6 +18,9 @@ import static com.rayrobdod.javaScriptObjectNotation.javaCollection.JSONObject.e
 /**
  * <p>
  * This is an Object in the JSON language.
+ * </p><p>
+ * Note that things put into the JSONObject may not be the things taken
+ * out of the object; integer numbers will be taken out as Longs, for example.
  * </p>
  * 
  * @author Raymond Dodge
@@ -84,31 +87,6 @@ public final class JSONObject extends AbstractMap<JSONString, Object>
 		
 		JSONParser.parse(new JSONObjectValidator(), unparsed); // error throwing
 	}
-	
-	/**
-	 * Reads a JSONObject from a file. This is disassociated from the file after 
-	 * 
-	 * @param file the file to read a JSONObject from
-	 * @throws FileNotFoundException
-	 * @throws IOException
-	 * @throws NullPointerException
-	 * @throws ParseException
-	 *
-	public JSONObject(File file) throws FileNotFoundException, IOException,
-			NullPointerException, ParseException
-	{
-		StringBuilder buffer = new StringBuilder();
-		FileReader reader = new FileReader(file);
-		while (reader.ready())
-		{
-			buffer.append((char) reader.read()); 
-		}
-		reader.close();
-		
-		this.unparsed = buffer;
-		
-		this.parse(new ParseAdapter()); // error throwing
-	} /* */
 	
 	/**
 	 * returns a charsequence containing the unparsed verion of this object
@@ -217,77 +195,6 @@ public final class JSONObject extends AbstractMap<JSONString, Object>
 		}
 		
 		return l.getCount();
-	}
-	
-	/**
-	 * This returns a valid decoding of a CharSequence into a Java Object
-	 * @param c the CharSequence to decode
-	 * @return a JSONObject, JSONArray, JSONString, Number, Boolean or null
-	 * @throws NullPointerException if c is null
-	 * @throws ClassCastException if the string is does not match any associate types
-	 * @deprecated use {@link com.rayrobdod.javaScriptObjectNotation.parser.decoders.ToJavaObjectJSONDecoder} instead
-	 */
-	public static Object decode(String c) throws NullPointerException, ClassCastException
-	{
-		if (c == null) throw new NullPointerException();
-		
-		c = c.trim();
-		
-		if (c.equalsIgnoreCase("null")) return null;
-		if (c.equalsIgnoreCase("true")) return true;
-		if (c.equalsIgnoreCase("false")) return false;
-		else if (JSONString.isValid(c))
-		{
-			try
-			{
-				return JSONString.generateUnparsed(c);
-			}
-			catch (ParseException e)
-			{
-				throw new AssertionError(e);
-			}
-		}
-		else if (JSONArray.isValid(c))
-		{
-			try
-			{
-				return new JSONArray(c);
-			}
-			catch (ParseException e)
-			{
-				throw new AssertionError(e);
-			}
-		}
-		else if (JSONObject.isValid(c))
-		{
-			try
-			{
-				return new JSONObject(c);
-			}
-			catch (ParseException e)
-			{
-				throw new AssertionError(e);
-			}
-		}
-		else
-		{
-			try
-			{
-				return Long.decode(c.toString());
-			}
-			catch (NumberFormatException e)
-			{
-				try
-				{
-					return Double.parseDouble(c.toString());
-				}
-				catch (NumberFormatException e1)
-				{
-					throw new ClassCastException("the object does not fit any of" +
-							" the supported types: " + c + ".");
-				}
-			}
-		}
 	}
 	
 	/**

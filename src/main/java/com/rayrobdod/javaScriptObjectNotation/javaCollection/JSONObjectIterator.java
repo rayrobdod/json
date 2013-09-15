@@ -66,7 +66,11 @@ public final class JSONObjectIterator implements Iterator<Entry<JSONString, Obje
 	
 	public void remove() throws IllegalStateException
 	{
-		prevEntry.remove();
+		if (prevEntry == null) {
+			throw new IllegalStateException("nothing to remove");
+		} else {
+			prevEntry.remove();
+		}
 	}
 	
 }

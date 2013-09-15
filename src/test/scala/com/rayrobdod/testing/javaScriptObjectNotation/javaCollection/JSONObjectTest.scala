@@ -8,7 +8,8 @@ import java.text.ParseException;
 
 /**
  * @author Raymond Dodge
- * @version 2013 Jun 25
+ * @since 2013 Jun 25
+ * @version 2013 Sept 15
  */
 class JSONObjectTest extends FunSpec
 {
@@ -34,7 +35,7 @@ class JSONObjectTest extends FunSpec
 		
 		describe ("with a single value added") {
 			
-			val value = 4
+			val value:Long = 4
 			val key = JSONString.generateParsed("a")
 			def singleValueSeq = {
 				val seq = new JSONObject();
@@ -104,7 +105,7 @@ class JSONObjectTest extends FunSpec
 		}
 		
 		// This collection does not support remove, apparently
-		describe ("with many values added, then a remove") {
+		ignore ("with many values added, then a remove") {
 			
 			def size = 20
 			def keyToRemove:JSONString = 10
@@ -118,13 +119,13 @@ class JSONObjectTest extends FunSpec
 				seq
 			}
 			
-			ignore ("claims to be not empty") {
+			it ("claims to be not empty") {
 				assert(! manyValueSeq.isEmpty() )
 			}
-			ignore ("has a size of size-1") {
+			it ("has a size of size-1") {
 				expectResult(size-1)( manyValueSeq.size() )
 			}
-			ignore ("returns the value when getting 0") {
+			it ("returns the value when getting 0") {
 				(0 until 20).foreach{ i => 
 					val key = intToJSONString(i)
 					if (key == keyToRemove) {
@@ -137,7 +138,7 @@ class JSONObjectTest extends FunSpec
 		}
 		
 		// or replace...
-		describe ("with many values added, then a replacement") {
+		ignore ("with many values added, then a replacement") {
 			
 			def size = 20
 			def keyToReplace:JSONString = 10
@@ -152,13 +153,13 @@ class JSONObjectTest extends FunSpec
 				seq
 			}
 			
-			ignore ("claims to be not empty") {
+			it ("claims to be not empty") {
 				assert(! manyValueSeq.isEmpty() )
 			}
-			ignore ("has a size of size") {
+			it ("has a size of size") {
 				expectResult(size)( manyValueSeq.size() )
 			}
-			ignore ("returns the value when getting 0") {
+			it ("returns the value when getting 0") {
 				(0 until 20).foreach{ i => 
 					val key = intToJSONString(i)
 					if (key == keyToReplace) {
