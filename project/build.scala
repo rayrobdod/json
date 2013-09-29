@@ -30,6 +30,15 @@ object JsonBuild extends Build {
 			settings = Defaults.defaultSettings 
 	//			++ javadocSettings
 	)
-	// TODO: a java-only compilation
+	lazy val javaOnly = Project(
+			id = "json-java",
+			base = file("."),
+			settings = Defaults.defaultSettings
+				++ Seq( 
+					target ~= (_ / "java-only"),
+					scalaSource in Compile ~= (_ / "hahano"),
+					crossPaths := false
+				)
+	)
 }
 
