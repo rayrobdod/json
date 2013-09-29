@@ -275,7 +275,7 @@ public final class JSONArray extends AbstractSequentialList<Object>
 		if (index < 0 || index >= size()) throw new IndexOutOfBoundsException(
 				index + "is not in range of [0," + size() + ")");
 		
-		GetArrayElement l = new GetArrayElement(index); 
+		GetArrayElement<Object> l = GetArrayElement.apply(index); 
 		
 		try
 		{

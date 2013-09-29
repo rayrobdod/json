@@ -45,26 +45,28 @@ import java.text.ParseException;
  * @version 2013 Jun 23 - renamed from GetArrayElement to GetJSONArrayParseListener
  * @version 2013 Jun 23 - adding #ToArrayList(int, JSONDecoder)
  */
-public final class GetArrayElement implements JSONParseListener
+public final class GetArrayElement<E> implements JSONParseListener
 {
 	private final int getIndex;
 	private int currentIndex;
 	private StringBuilder builder;
 	private final JSONDecoder decoder;
 	
-	public GetArrayElement(int index, JSONDecoder decoder) {
+	public GetArrayElement(int index, JSONDecoder<E> decoder) {
 		getIndex = index;
 		currentIndex = Integer.MIN_VALUE;
 		this.decoder = decoder;
 	}
 	
 	/**
-	 * Constructs a GetJSONArrayParseListener that finds the specified index
-	 * @param index the index to look for
+	* Creates a ToHashMap using a {@link ToJavaCollectionJSONDecoder} decoder
 	 */
-	public GetArrayElement(int index) {
-		// TODO: ToJavaObjectJSONDecoder
-		this(index, new ToJavaCollectionJSONDecoder());
+	public static GetArrayElement<Object> apply(int index) {
+		return new GetArrayElement<Object>(index, new ToJavaCollectionJSONDecoder());
+	}
+	
+	public static <E> GetArrayElement<E> apply(int index, JSONDecoder<E> decoder) {
+		return new GetArrayElement<E>(index, decoder);
 	}
 	
 	
