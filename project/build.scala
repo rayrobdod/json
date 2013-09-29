@@ -28,7 +28,7 @@ object JsonBuild extends Build {
 			id = "json",
 			base = file("."),
 			settings = Defaults.defaultSettings 
-	//			++ javadocSettings
+				++ javadocSettings
 	)
 	lazy val javaOnly = Project(
 			id = "json-java",

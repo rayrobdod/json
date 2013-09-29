@@ -40,7 +40,7 @@ import java.text.ParseException;
  * 
  * @author Raymond Dodge
  * @version 2013 Aug 03
- * @see BSONWriter
+ * @see com.rayrobdod.binaryJSON.BSONWriter
  */
 public final class JSONWriter
 {

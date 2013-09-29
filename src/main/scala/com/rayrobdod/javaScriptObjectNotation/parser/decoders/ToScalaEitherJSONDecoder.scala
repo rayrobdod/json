@@ -44,9 +44,9 @@ object ToScalaEitherJSONDecoder extends JSONDecoder[JSONEither]
 {
 	/**
 	 * This returns a valid decoding of a CharSequence into a Scala Object
-	 * @param c the CharSequence to decode
+	 * @param c1 the CharSequence to decode
 	 * @return a Seq, JSONString, Number, Boolean or null
-	 * @throws NullPointerException if c is null
+	 * @throws NullPointerException if c1 is null
 	 * @throws ClassCastException if the string is does not match any associate types
 	 */
 	def decode(c1:String):JSONEither =

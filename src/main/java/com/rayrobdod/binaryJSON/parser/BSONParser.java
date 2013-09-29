@@ -45,16 +45,15 @@ public final class BSONParser
 	private BSONParser() {}
 	
 	/**
-	 * This starts by firing <var>l</var>'s {@link JSONParseListener#started() started()}
+	 * This starts by firing <var>l</var>'s {@link com.rayrobdod.binaryJSON.parser.BSONParseListener#started() started()}
 	 * method. It then reads the length <small>then discards the value</small>, then repeatedly
 	 * reads key names and tells the listener to read values, until either it runs out of values
-	 * or the listener tells the parser to stop. It then calls {@link JSONParseListener#ended() ended()}.
-	 * <p>
+	 * or the listener tells the parser to stop. It then calls {@link com.rayrobdod.binaryJSON.parser.BSONParseListener#ended() ended()}.
+	 * 
 	 * 
 	 * 
 	 * @param l the ParseListener that recieves events from this parser
-	 * @param reader the reader that this will read chars from. It is assumed to be at the beginning of the stream
-	 * @param skipChars the number of characters to skip in the reader before starting. This assumes any value after zero is after the initial '{' or '['.
+	 * @param input the DataInput that this will read values from.
 	 * @throws NullPointerException if either l or reader is null
 	 * @throws ParseException if the parsing fails
 	 * @throws IOException if the reader could not be read from
@@ -77,6 +76,10 @@ public final class BSONParser
 		l.ended();
 	}
 	
+	/**
+	 * Reads a c-style string from the DataInput.
+	 * Basically, reads things until it reaches a '0x00' and then throws what it read into a String.
+	 */
 	private static String readCString(DataInput input) throws IOException {
 		java.io.ByteArrayOutputStream data = new java.io.ByteArrayOutputStream();
 		

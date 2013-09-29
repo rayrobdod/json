@@ -50,7 +50,6 @@ import com.rayrobdod.binaryJSON.parser.decoders.{
  * @author Raymond Dodge
  * @version 2013 Aug 04
  * 
- * @see HashMap
  * @see com.rayrobdod.javaScriptObjectNotation.parser.listeners.ToHashMap
  */
 final class ToScalaCollection[A <: Object](decoder:BSONDecoder[A]) extends BSONParseListener

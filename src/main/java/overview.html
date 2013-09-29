@@ -24,7 +24,7 @@
 		On the BSON side, given that you're not dealing with a String but a ByteStream:
 	</p>
 	<pre><code>DataInput di = new DataInputStream(new ByteArrayInputStream(
-	{ 16, 00, 00, 00, 02, 'h', 'e', 'l', 'l', 'o', 00, 
+	{ 0x16, 00, 00, 00, 02, 'h', 'e', 'l', 'l', 'o', 00, 
 		06, 00, 00, 00, 'w', 'o', 'r', 'l', 'd', 00, 00 }
 ));
 new {@link com.rayrobdod.binaryJSON.parser.decoders.ToJavaCollectionBSONDecoder}.decode(di);</code></pre>

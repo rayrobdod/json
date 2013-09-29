@@ -36,7 +36,7 @@ import java.text.ParseException;
 
 /**
  * This will determine the size of a BSONArray or BSONObject
- * when used in a {@link JSONParser}.
+ * when used in a {@link BSONParser}.
  * <p>
  * This class performs a minimal amount of error checking.
  * 

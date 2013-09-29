@@ -38,7 +38,7 @@ import java.util.HashMap;
  * This is preferable to <code>new HashMap(new JSONObject(string))</code>
  * if a {@link java.io.Reader Reader} has to be used in the parser, for example,
  * due to a huge file that would cause an {@link OutOfMemoryError} if
- * attempted to turned into a String. Or, just because the {@link JSONObject} is
+ * attempted to turned into a String. Or, just because the {@link com.rayrobdod.javaScriptObjectNotation.javaCollection.JSONObject} is
  * just unwanted.
  * 
  * @author Raymond Dodge

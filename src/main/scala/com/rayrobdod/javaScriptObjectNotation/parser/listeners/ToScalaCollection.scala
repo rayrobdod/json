@@ -43,7 +43,7 @@ import com.rayrobdod.javaScriptObjectNotation.parser.decoders.{
  * for example - but if there is nested arrays, the decoder may have a problem
  * with invalid JSONObjects - in fact the default one does.
  * 
- * @param decoder - the object used to turn unparsed JSON objects into an appropriate class. 
+ * @param decoder - the object used to turn unparsed JSON objects into an appropriate class.
  * @author Raymond Dodge
  * @version 03 Aug 2011
  * @version 15 Dec 2011 - moved from {@code net.verizon.rayrobdod.javaScriptObjectNotation.parser} to {@code com.rayrobdod.javaScriptObjectNotation.parser}

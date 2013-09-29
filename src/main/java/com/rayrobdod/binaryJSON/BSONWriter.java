@@ -42,7 +42,7 @@ import java.text.ParseException;
  * @author Raymond Dodge
  * @version 2013 Aug 03
  * @version 2013 Aug 05 - forgot a break
- * @see BSONParser
+ * @see com.rayrobdod.binaryJSON.parser.BSONParser
  */
 public final class BSONWriter
 {
