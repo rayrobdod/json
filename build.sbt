@@ -8,7 +8,7 @@ version := "1.0.1-SNAPSHOT"
 
 scalaVersion := "2.10.2"
 
-crossScalaVersions ++= Seq("2.9.0", "2.9.1", "2.9.2", "2.9.3", "2.11.0-M4")
+crossScalaVersions ++= Seq("2.9.0", "2.9.1", "2.9.2", "2.9.3", "2.10.2", "2.11.0-M4")
 
 compileOrder := CompileOrder.JavaThenScala
 
@@ -23,6 +23,6 @@ scalacOptions ++= Seq("-unchecked", "-deprecation" )
 
 scalaVersion in Test := "2.9.3"
 
-libraryDependencies += "org.scalatest" % "scalatest_2.9.3" % "1.9.1" % "test"
+libraryDependencies += "org.scalatest" % "scalatest_2.10" % "1.9.2" % "test"
 
 // testOptions in Test += Tests.Argument("-oS")
