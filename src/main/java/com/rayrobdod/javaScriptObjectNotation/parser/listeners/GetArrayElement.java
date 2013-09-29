@@ -37,13 +37,7 @@ import java.text.ParseException;
  * @note assumes that empty elements cannot be parsed into a useful value.
  * 
  * @author Raymond Dodge
- * @version Sep 9, 2010
- * @version Oct 14, 2010 - now implements JSONParseListener instead of extending adapter
- * @version 15 Dec 2011 - moved from {@code net.verizon.rayrobdod.javaScriptObjectNotation} to {@code com.rayrobdod.javaScriptObjectNotation;}
- * @version 15 Jan 2011 - moved from {@code com.rayrobdod.javaScriptObjectNotation.parser}
-		to {@code com.rayrobdod.javaScriptObjectNotation.parser.listeners}
- * @version 2013 Jun 23 - renamed from GetArrayElement to GetJSONArrayParseListener
- * @version 2013 Jun 23 - adding #ToArrayList(int, JSONDecoder)
+ * @version 1.0.1
  */
 public final class GetArrayElement<E> implements JSONParseListener
 {

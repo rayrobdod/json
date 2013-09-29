@@ -37,7 +37,7 @@ import java.io.DataOutputStream;
 import java.text.ParseException;
 
 /**
- * 
+ * Writes a data structure to a file in BSON format
  * 
  * @author Raymond Dodge
  * @version 2013 Aug 03

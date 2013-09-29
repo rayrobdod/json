@@ -38,6 +38,7 @@ import java.text.ParseException;
 
 /**
  * Reads a URLConnection, and turns it either into an ArrayList or a HashMap via JSON Parsing. 
+ * @since 1.0.1 
  */
 public final class BSONContentHandler extends java.net.ContentHandler
 {

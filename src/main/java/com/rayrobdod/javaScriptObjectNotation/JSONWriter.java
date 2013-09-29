@@ -24,7 +24,6 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
 package com.rayrobdod.javaScriptObjectNotation;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -37,7 +36,7 @@ import java.io.DataOutputStream;
 import java.text.ParseException;
 
 /**
- * 
+ * Writes a data structure to a file in JSON format
  * 
  * @author Raymond Dodge
  * @version 2013 Aug 03

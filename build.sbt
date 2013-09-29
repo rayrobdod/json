@@ -6,11 +6,9 @@ organizationHomepage := Some(new URL("http://rayrobdod.name/"))
 
 version := "1.0.1-SNAPSHOT"
 
-scalaVersion := "2.9.3"
+scalaVersion := "2.10.2"
 
-crossScalaVersions ++= Seq("2.9.0", "2.9.1", "2.9.2", "2.10.2", "2.11.0-M4")
-
-target := new File("C:/Users/Raymond/AppData/Local/Temp/build/JSON/")
+crossScalaVersions ++= Seq("2.9.0", "2.9.1", "2.9.2", "2.9.3", "2.11.0-M4")
 
 compileOrder := CompileOrder.JavaThenScala
 

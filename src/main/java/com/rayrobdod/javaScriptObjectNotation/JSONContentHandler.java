@@ -37,7 +37,8 @@ import java.io.IOException;
 import java.text.ParseException;
 
 /**
- * Reads a URLConnection, and turns it either into an ArrayList or a HashMap via JSON Parsing. 
+ * Reads a URLConnection, and turns it either into an ArrayList or a HashMap via JSON Parsing.
+ * @since 1.0.1 
  */
 public final class JSONContentHandler extends java.net.ContentHandler
 {
