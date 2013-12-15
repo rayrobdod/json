@@ -17,7 +17,11 @@ object JsonBuild extends Build {
 			"-overview", javaSrc.toString + "/overview.html",
 			"-link", "http://docs.oracle.com/javase/7/docs/api/",
 		//	"-linksource", "-sourcetab", "4",
-			"-use"
+			"-use",
+			"-notree",
+			"-encoding", "UTF-8",
+			"-group", "JSON", "com.rayrobdod.javaScriptObjectNotation*",
+			"-group", "BSON", "com.rayrobdod.binaryJSON*"
 		)},
 		artifactName in packageDoc in JavaDoc :=
 			((sv, mod, art) => "" + mod.name + "_" + sv.binary + "-" + mod.revision + "-javadoc.jar")
