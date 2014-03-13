@@ -37,14 +37,11 @@ import java.text.ParseException;
 /**
  * This takes a String that is properly JSONEncoded and turns it into a Java Collections object
  * @author Raymond Dodge
- * @version 16 Jan 2012
- * @version 2013 Jun 23 - making method not static, and now extends JSONDecoder
- * @version 2013 Jun 23 - now uses {@link ToHashMap} for JSONObjects, instead of JSONObject
  */
 public final class ToJavaCollectionJSONDecoder implements JSONDecoder<Object>
 {
 	/**
-	 * This returns a valid decoding of a CharSequence into a Java Object
+	 * This returns a decoding of a valid CharSequence into a Java Object
 	 * @param c the CharSequence to decode
 	 * @return a HashMap, ArrayList, JSONString, Number, Boolean or null
 	 * @throws NullPointerException if c is null

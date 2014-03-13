@@ -30,11 +30,11 @@ package com.rayrobdod.javaScriptObjectNotation.parser;
 import java.text.ParseException;
 
 /**
- * Modified and extracted ParseListener from JSONArray
+ * An interface that listens for ParseEvents. ParseEvents are created by the
+ * JSONParser.parse method. So, basically, an instance of this recieves events
+ * from JSONParser.Parse and the listener can act based on the events.
  * 
  * @author Raymond Dodge
- * @version Sep 1, 2010 - Sept 7, 2010
- * @version 15 Dec 2011 - moved from {@code net.verizon.rayrobdod.javaScriptObjectNotation} to {@code com.rayrobdod.javaScriptObjectNotation;}
  */
 public interface JSONParseListener extends java.util.EventListener
 {	
@@ -42,7 +42,7 @@ public interface JSONParseListener extends java.util.EventListener
 	 * A character has been read
 	 * @param index the index of the character
 	 * @param character the read character
-	 * @throws IllegalStateException if this is called before started or between started and ended
+	 * @throws IllegalStateException if this is called before started or ???
 	 */
 	void charRead(int index, char character) throws IllegalStateException;
 	
@@ -50,7 +50,7 @@ public interface JSONParseListener extends java.util.EventListener
 	 * An element has started
 	 * @param commaIndex the index of the comma
 	 * @param character the character that started the element
-	 * @throws IllegalStateException if this is called before started or between started and ended
+	 * @throws IllegalStateException if this is called before started or ???
 	 */
 	void elemStarted(int commaIndex, char character) throws IllegalStateException;
 	
@@ -58,7 +58,7 @@ public interface JSONParseListener extends java.util.EventListener
 	 * An element has ended
 	 * @param commaIndex the index of the comma
 	 * @param character the character that ended the element
-	 * @throws IllegalStateException if this is called before started or between started and ended
+	 * @throws IllegalStateException if this is called before started or ???
 	 * @throws ParseException if there was a problem with the element
 	 */
 	void elemEnded(int commaIndex, char character) throws IllegalStateException, ParseException;
@@ -67,7 +67,7 @@ public interface JSONParseListener extends java.util.EventListener
 	 * A key has ended and a value has started
 	 * @param colonIndex the index of the comma
 	 * @param character the character that split the element
-	 * @throws IllegalStateException if this is called before started or between started and ended
+	 * @throws IllegalStateException if this is called before started or ???
 	 * @throws ParseException if there was a problem with the key
 	 * @throws ClassCastException if the key is not of the JSONString type, or a similar error occurs.
 	 */
@@ -78,37 +78,37 @@ public interface JSONParseListener extends java.util.EventListener
 	 * Indicates that the initial bracket has been reached
 	 * @param index the location of the bracket
 	 * @param character the bracket character
-	 * @throws IllegalStateException if this is called before started or between started and ended
-	 * @throws ParseException if there bracket was the wrong one
+	 * @throws IllegalStateException ???
+	 * @throws ParseException if the bracket was the wrong one
 	 */
 	void openingBracket(int index, char character) throws IllegalStateException, ParseException;
 
 	/**
-	 * The level has changed
+	 * The ending bracket
 	 * @param index the location of the change
 	 * @param character the character used in the change
-	 * @throws IllegalStateException if this is called before started or between started and ended
-	 * @throws ParseException if there bracket was the wrong one
+	 * @throws IllegalStateException ???
+	 * @throws ParseException if the bracket was the wrong one
 	 */
 	void endingBracket(int index, char character) throws IllegalStateException, ParseException;
 	
 	/**
-	 * returns whether the parsing can end at this time
-	 * @return true if the parsing can end
-	 * @throws IllegalStateException if this is called before started or between started and ended
+	 * returns a value indicating whether the parser can short-circut parsing.
+	 * @return true if this listener has all the information it needs to create a result
+	 * @throws IllegalStateException ???
 	 */
 	boolean abort() throws IllegalStateException;
 	
 	/**
 	 * Called when the parsing ends.
-	 * @throws IllegalStateException if this is called before started or between started and ended
-	 * @throws ParseException if there was an error with the parsing
+	 * @throws IllegalStateException if this is called before started or twice without interviening start calls
+	 * @throws ParseException if whatever post-processing results in an illegal result
 	 */
 	void ended() throws IllegalStateException, ParseException;
 	
 	/**
 	 * Called when the parsing starts.
-	 * @throws IllegalStateException if this is called before started or between started and ended
+	 * @throws IllegalStateException if this is called twice without interviening ended calls
 	 */
 	void started() throws IllegalStateException;
 }

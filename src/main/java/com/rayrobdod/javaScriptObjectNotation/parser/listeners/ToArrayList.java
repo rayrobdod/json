@@ -41,16 +41,6 @@ import java.util.ArrayList;
  * just unwanted.
  * 
  * @author Raymond Dodge
- * @version Sep 9, 2010
- * @version Nov 8, 2010 - changed from extending {@link JSONParseAdapter}
-			to implementing {@link JSONParseListener}
- * @version 15 Dec 2011 - moved from {@code net.verizon.rayrobdod.javaScriptObjectNotation} to {@code com.rayrobdod.javaScriptObjectNotation;}
- * @version 15 Jan 2011 - moved from {@code com.rayrobdod.javaScriptObjectNotation.parser}
-		to {@code com.rayrobdod.javaScriptObjectNotation.parser.listeners}
- * @version 2013 Jun 23 - renaming from JSONToArrayListParseListener to ToArrayList
- * @version 2013 Jun 23 - adding #ToArrayList(JSONDecoder)
- * @version 2013 Jun 23 - now accepts empty arrays
- * @version 2013 Jun 25 - adding a type parameter, and static apply methods
  * @see ArrayList
  */
 public final class ToArrayList<E> implements JSONParseListener

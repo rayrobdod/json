@@ -35,9 +35,6 @@ import java.text.ParseException;
 /**
  * This takes a String that is properly JSONEncoded and turns it into a Java Object
  * @author Raymond Dodge
- * @version 16 Jan 2012 - extracted from JSONObject
- * @version 18 Jan 2012 - gave a method to make an object version 
- * @version 2013 Jun 23 - making method not static, and now extends JSONDecoder
  */
 public final class ToJavaObjectJSONDecoder implements JSONDecoder<Object>
 {

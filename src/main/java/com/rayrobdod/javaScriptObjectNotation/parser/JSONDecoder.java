@@ -34,8 +34,6 @@ package com.rayrobdod.javaScriptObjectNotation.parser;
  * 
  * It is expected that these should be functional, as in without variables.
  * 
- * @version 16 Jan 2012
- * @version 2013 Jun 23 - adding type parameter RetType
  * @param RetType the type that decode returns
  */
 public interface JSONDecoder<RetType>

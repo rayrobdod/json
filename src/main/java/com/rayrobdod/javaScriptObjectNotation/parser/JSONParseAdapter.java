@@ -30,12 +30,11 @@ package com.rayrobdod.javaScriptObjectNotation.parser;
 import java.text.ParseException;
 
 /**
- * This is an Adapter for JSONParseListener. All methods do nothing, except abort which
- * always returns false.
+ * This is an Adapter for JSONParseListener.
+ * 
+ * All methods do nothing, except abort which always returns false.
  * 
  * @author Raymond Dodge
- * @version Sep 9, 2010
- * @version 15 Dec 2011 - moved from {@code net.verizon.rayrobdod.javaScriptObjectNotation} to {@code com.rayrobdod.javaScriptObjectNotation;}
  */
 public abstract class JSONParseAdapter implements JSONParseListener
 {
