@@ -438,6 +438,10 @@ public final class JSONString implements CharSequence, Comparable<JSONString>, I
 				throw new ParseException("all '\"' in string must be escaped",
 						currentChar);
 			}
+			else if (currentChar < ' ' && currentChar >= '\0')
+			{
+				throw new ParseException("Control Chars not allowed in JSON strings", currentChar);
+			}
 			else if (currentChar == '\\')
 			{
 				if (codes.containsKey(new Character((char) secondChar)))

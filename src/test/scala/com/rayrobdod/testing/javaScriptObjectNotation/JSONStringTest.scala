@@ -64,7 +64,7 @@ class JSONStringTest extends FunSpec
 						).toString === "\\/\"\b\f\n\r\t")
 			}
 			
-			describe ("Sould treat unicode escapes") {
+			describe ("Should treat unicode escapes") {
 				it ("Should correctly respond to a valid escape"){
 					val thingToTest = """"\u0041" """
 					assert(JSONString.isValid(thingToTest))
@@ -258,7 +258,8 @@ class JSONStringTest extends FunSpec
 	
 		describe ("two differently encoded but equivalent strings (\\t)") {
 			val first = generateUnparsed(""" "\t" """)
-			val second = generateUnparsed(""" "\u0009" """)
+			// because even the mode that handles no escapes handles u escapes
+			val second = generateUnparsed(""" "\""" + """u0009" """)
 			
 			it ("should be equal") {
 				assert(first === second)
