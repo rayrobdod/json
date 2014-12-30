@@ -181,6 +181,11 @@ class JSONObjectValidatorTest extends FunSpec
 			JSONParser.parse(l, "{}")
 		}
 		
+		it ("should accept an empty object with a space") {
+			val l = new JSONObjectValidator;
+			JSONParser.parse(l, "{ }")
+		}
+		
 		it ("should accept a single-element object") {
 			val l = new JSONObjectValidator;
 			JSONParser.parse(l, "{\"\":true}")
@@ -193,6 +198,21 @@ class JSONObjectValidatorTest extends FunSpec
 					x + ",\"" + i + "\":" + i
 				} + "}"
 			)
+		}
+		
+		it ("should error at an empty value (middle of list)") {
+			val l = new JSONObjectValidator;
+			intercept[IllegalStateException] {JSONParser.parse(l, """{"0":0,,"2":2}""")}
+		}
+		
+		it ("should error at an empty value (middle of list) (2)") {
+			val l = new JSONObjectValidator;
+			intercept[IllegalStateException] {JSONParser.parse(l, """{"0":0, ,"2":2}""")}
+		}
+		
+		it ("should error at an empty value (end of list)") {
+			val l = new JSONObjectValidator;
+			intercept[IllegalStateException] {JSONParser.parse(l, """{"0":0,"2":2,}""")}
 		}
 		
 		it ("should error if a later element lacks pairness") {

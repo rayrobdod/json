@@ -139,6 +139,11 @@ class JSONArrayValidatorTest extends FunSpec
 			JSONParser.parse(l, "[]")
 		}
 		
+		it ("should accept an empty array with a space") {
+			val l = new JSONArrayValidator;
+			JSONParser.parse(l, "[ ]")
+		}
+		
 		it ("should accept a single-element array") {
 			val l = new JSONArrayValidator;
 			JSONParser.parse(l, "[true]")
@@ -162,6 +167,11 @@ class JSONArrayValidatorTest extends FunSpec
 		it ("should error at an empty value (middle of list)") {
 			val l = new JSONArrayValidator;
 			intercept[ParseException] { JSONParser.parse(l, "[1,2,,3]") }
+		}
+		
+		it ("should error at an empty value (middle of list) (2)") {
+			val l = new JSONArrayValidator;
+			intercept[ParseException] { JSONParser.parse(l, "[1,2, ,3]") }
 		}
 		
 		it ("should error at an empty value (end of list)") {
