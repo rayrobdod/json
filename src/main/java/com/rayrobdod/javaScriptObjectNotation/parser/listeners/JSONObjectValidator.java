@@ -84,7 +84,7 @@ public final class JSONObjectValidator implements JSONParseListener
 				"Call .started() first.");
 		if (currentKey == null) throw new IllegalStateException(
 				"elemEnded called before elemStarted called");
-		if (currentValue == null &&  currentKey.length() == 0) {
+		if (currentValue == null &&  currentKey.toString().trim().length() == 0) {
 			// empty element; possibly because empty object
 			// two wrongs make a right?
 		} else {
