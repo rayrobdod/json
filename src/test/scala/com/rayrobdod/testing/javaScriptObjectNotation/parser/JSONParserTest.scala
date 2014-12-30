@@ -72,77 +72,77 @@ class JSONParserTest extends FunSpec
 			it ("always puts out a start and end event") {
 				val l = new EventToNumberListener()
 				JSONParser.parse(l, "")
-				expectResult("67")(l.result)
+				assertResult("67")(l.result)
 			}
 			
 			it ("should respond to array brackets") {
 				val l = new EventToNumberListener()
 				JSONParser.parse(l, "[]")
-				expectResult("641257")(l.result)
+				assertResult("641257")(l.result)
 			}
 			
 			it ("should respond to object brackets") {
 				val l = new EventToNumberListener()
 				JSONParser.parse(l, "{}")
-				expectResult("641257")(l.result)
+				assertResult("641257")(l.result)
 			}
 			
 			it ("should respond to a comma inside brackets") {
 				val l = new EventToNumberListener()
 				JSONParser.parse(l, "{,}")
-				expectResult("64121257")(l.result)
+				assertResult("64121257")(l.result)
 			}
 			
 			it ("should respond to a colon inside brackets") {
 				val l = new EventToNumberListener()
 				JSONParser.parse(l, "{:}")
-				expectResult("6413257")(l.result)
+				assertResult("6413257")(l.result)
 			}
 			
 			it ("should respond to characters inside brackets") {
 				val l = new EventToNumberListener()
 				JSONParser.parse(l, "{asb}")
-				expectResult("641000257")(l.result)
+				assertResult("641000257")(l.result)
 			}
 			
 			it ("should use charRead for nested stuff") {
 				val l = new EventToNumberListener()
 				JSONParser.parse(l, "{{a}}")
-				expectResult("641000257")(l.result)
+				assertResult("641000257")(l.result)
 			}
 			
 			it ("should stop after exiting the outermost layer") {
 				val l = new EventToNumberListener()
 				JSONParser.parse(l, "{[}]abc")
-				expectResult("64100257")(l.result)
+				assertResult("64100257")(l.result)
 			}
 			
 			// Maybe error instead?
 			it ("should not mention a closing bracket if there isn't one") {
 				val l = new EventToNumberListener()
 				JSONParser.parse(l, "{")
-				expectResult("6417")(l.result)
+				assertResult("6417")(l.result)
 			}
 			
 			// Maybe error instead?
 			it ("should not mention a opening bracket if there isn't one") {
 				val l = new EventToNumberListener()
 				JSONParser.parse(l, "}")
-				expectResult("67")(l.result)
-				// INSTEAD(?): expectResult("6257")(l.result)
+				assertResult("67")(l.result)
+				// INSTEAD(?): assertResult("6257")(l.result)
 			}
 			
 			it ("should not respond to alphanums outside brackets") {
 				val l = new EventToNumberListener()
 				JSONParser.parse(l, "K9")
-				expectResult("67")(l.result)
-				// INSTEAD(?): expectResult("6007")(l.result)
+				assertResult("67")(l.result)
+				// INSTEAD(?): assertResult("6007")(l.result)
 			}
 			
 			it ("multiple colons") {
 				val l = new EventToNumberListener()
 				JSONParser.parse(l, "{::}")
-				expectResult("64133257")(l.result)
+				assertResult("64133257")(l.result)
 			}
 		}
 		
@@ -151,31 +151,31 @@ class JSONParserTest extends FunSpec
 			it ("should respond to array brackets") {
 				val l = new GetCharParameterListener()
 				JSONParser.parse(l, "[]")
-				expectResult("[[]]")(l.result)
+				assertResult("[[]]")(l.result)
 			}
 			
 			it ("should respond to object brackets") {
 				val l = new GetCharParameterListener()
 				JSONParser.parse(l, "{}")
-				expectResult("{{}}")(l.result)
+				assertResult("{{}}")(l.result)
 			}
 			
 			it ("should respond to commas inside brackets") {
 				val l = new GetCharParameterListener()
 				JSONParser.parse(l, "{,}")
-				expectResult("{{,,}}")(l.result)
+				assertResult("{{,,}}")(l.result)
 			}
 			
 			it ("should respond to colons inside brackets") {
 				val l = new GetCharParameterListener()
 				JSONParser.parse(l, "[:]")
-				expectResult("[[:]]")(l.result)
+				assertResult("[[:]]")(l.result)
 			}
 			
 			it ("should respond to alphanums inside brackets") {
 				val l = new GetCharParameterListener()
 				JSONParser.parse(l, "[abc]")
-				expectResult("[[abc]]")(l.result)
+				assertResult("[[abc]]")(l.result)
 			}
 		}
 	}

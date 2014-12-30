@@ -70,13 +70,13 @@ class ToArrayListTest extends FunSpec
 		it ("should accept a one-element array") {
 			val l = new ToArrayList(ToIntDecoder)
 			JSONParser.parse(l, "[1]")
-			expectResult(JList(1))(l.getArrayList)
+			assertResult(JList(1))(l.getArrayList)
 		}
 		
 		it ("should accept a many-element array") {
 			val l = new ToArrayList(ToIntDecoder)
 			JSONParser.parse(l, "[1,2,3,4,5]")
-			expectResult(JList(1,2,3,4,5))(l.getArrayList)
+			assertResult(JList(1,2,3,4,5))(l.getArrayList)
 		}
 		
 	}

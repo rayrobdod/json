@@ -43,13 +43,13 @@ class JSONArrayTest extends FunSpec
 				assert( new JSONArray().isEmpty() )
 			}
 			it ("has a size of zero") {
-				expectResult(0)( new JSONArray().size() )
+				assertResult(0)( new JSONArray().size() )
 			}
 			it ("errors when getting") {
 				intercept[IndexOutOfBoundsException]( new JSONArray().get(0) )
 			}
 			it ("has an unparsed value of `[]`") {
-				expectResult("[]")( new JSONArray().getUnparsed() )
+				assertResult("[]")( new JSONArray().getUnparsed() )
 			}
 		}
 		
@@ -67,16 +67,16 @@ class JSONArrayTest extends FunSpec
 				assert(! singleValueSeq.isEmpty() )
 			}
 			it ("has a size of one") {
-				expectResult(1)( singleValueSeq.size() )
+				assertResult(1)( singleValueSeq.size() )
 			}
 			it ("returns the value when getting 0") {
-				expectResult(value)( singleValueSeq.get(0) )
+				assertResult(value)( singleValueSeq.get(0) )
 			}
 			it ("errors when getting 1") {
 				intercept[IndexOutOfBoundsException]( singleValueSeq.get(1) )
 			}
 			it ("has an unparsed value of `[4]`") {
-				expectResult("[4]")( singleValueSeq.getUnparsed() )
+				assertResult("[4]")( singleValueSeq.getUnparsed() )
 			}
 		}
 		
@@ -93,11 +93,11 @@ class JSONArrayTest extends FunSpec
 				assert(! manyValueSeq.isEmpty() )
 			}
 			it ("has a size of size") {
-				expectResult(size)( manyValueSeq.size() )
+				assertResult(size)( manyValueSeq.size() )
 			}
 			it ("returns the value when getting 0") {
 				(0 until 20).foreach{ i => 
-					expectResult(i)( manyValueSeq.get(i) )
+					assertResult(i)( manyValueSeq.get(i) )
 				}
 			}
 		}
@@ -114,14 +114,14 @@ class JSONArrayTest extends FunSpec
 			}
 			
 			(0 until index).foreach{ i => 
-				expectResult(i)( manyValueSeq.get(i) )
+				assertResult(i)( manyValueSeq.get(i) )
 			}
-			expectResult(value)( manyValueSeq.get(index) )
+			assertResult(value)( manyValueSeq.get(index) )
 			(index until 20).foreach{ i => 
-				expectResult(i)( manyValueSeq.get(i+1) )
+				assertResult(i)( manyValueSeq.get(i+1) )
 			}
 			
-			expectResult(
+			assertResult(
 				"[0,1,2,3,4,5,6,7,8,9,true,10,11,"+
 					"12,13,14,15,16,17,18,19]")(
 				manyValueSeq.getUnparsed()
@@ -140,13 +140,13 @@ class JSONArrayTest extends FunSpec
 			}
 			
 			(0 until index).foreach{ i => 
-				expectResult(i)( manyValueSeq.get(i) )
+				assertResult(i)( manyValueSeq.get(i) )
 			}
 			(index until 19).foreach{ i => 
-				expectResult(i+1)( manyValueSeq.get(i) )
+				assertResult(i+1)( manyValueSeq.get(i) )
 			}
 			
-			expectResult(
+			assertResult(
 				"[0,1,2,3,4,5,6,7,8,9,11,"+
 					"12,13,14,15,16,17,18,19]")(
 				manyValueSeq.getUnparsed()
@@ -166,14 +166,14 @@ class JSONArrayTest extends FunSpec
 			}
 			
 			(0 until index).foreach{ i => 
-				expectResult(i)( manyValueSeq.get(i) )
+				assertResult(i)( manyValueSeq.get(i) )
 			}
-			expectResult(value)( manyValueSeq.get(index) )
+			assertResult(value)( manyValueSeq.get(index) )
 			((index+1) until 20).foreach{ i => 
-				expectResult(i)( manyValueSeq.get(i) )
+				assertResult(i)( manyValueSeq.get(i) )
 			}
 			
-			expectResult(
+			assertResult(
 				"[0,1,2,3,4,5,6,7,8,9,null,11,"+
 					"12,13,14,15,16,17,18,19]")(
 				manyValueSeq.getUnparsed()

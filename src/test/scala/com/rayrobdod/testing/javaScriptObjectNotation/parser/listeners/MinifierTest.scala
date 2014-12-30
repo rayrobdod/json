@@ -49,31 +49,31 @@ class MinifierTest extends FunSpec
 	
 	describe ("JSONParser.parse(Minifier)") {
 		it ("should remove whitespace from empty array") {
-			expectResult("[]")(minify("  [  ]  "))
+			assertResult("[]")(minify("  [  ]  "))
 		}
 		
 		it ("should trim whitespace from empty object") {
-			expectResult("{:}")(minify("  {  :  }  "))
+			assertResult("{:}")(minify("  {  :  }  "))
 		}
 		
 		it ("should remove whitespace from around array values") {
-			expectResult("{1,2,3}")(minify("{ 1, 2, 3 }"))
+			assertResult("{1,2,3}")(minify("{ 1, 2, 3 }"))
 		}
 		
 		it ("should remove whitespace from around object values") {
-			expectResult("""{"1":true,"2":false}""")(
+			assertResult("""{"1":true,"2":false}""")(
 				minify("""{ "1" : true , "2" : false }"""))
 		}
 		
 		it ("should recurse") {
-			expectResult("[[1,2],[3,4]]")(
+			assertResult("[[1,2],[3,4]]")(
 				minify(" [ [ 1 , 2 ] , [ 3 , 4 ] ] "))
 		}
 		
 		// stretch goal
 		// when is 'if possible'? all UTF-8? ASCII?
 		ignore ("should unescape json string values") {
-			expectResult("{\"A\"}")(minify("""{ "\""" + """u0041" }"""))
+			assertResult("{\"A\"}")(minify("""{ "\""" + """u0041" }"""))
 		}
 	}
 }

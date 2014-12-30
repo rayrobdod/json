@@ -43,7 +43,7 @@ class GetSizeTest extends FunSpec
 				
 				l.started()
 				l.ended()
-				expectResult(0)(l.getCount)
+				assertResult(0)(l.getCount)
 			}
 			
 			it ("one") {
@@ -54,7 +54,7 @@ class GetSizeTest extends FunSpec
 				l.charRead(-1,'\0')
 				l.elemEnded(-1,'\0')
 				l.ended()
-				expectResult(1)(l.getCount)
+				assertResult(1)(l.getCount)
 			}
 			
 			it ("many") {
@@ -68,7 +68,7 @@ class GetSizeTest extends FunSpec
 					l.elemEnded(x,x.toChar)
 				}
 				l.ended()
-				expectResult(count)(l.getCount)
+				assertResult(count)(l.getCount)
 			}
 		}
 		
@@ -79,7 +79,7 @@ class GetSizeTest extends FunSpec
 				l.elemStarted(-1,'\0')
 				l.elemEnded(-1,'\0')
 				l.ended()
-				expectResult(0)(l.getCount)
+				assertResult(0)(l.getCount)
 		}
 		
 		describe ("should error if not first given a started message") {
@@ -107,33 +107,33 @@ class GetSizeTest extends FunSpec
 			it ("zero") {
 				val l = new GetSize;
 				JSONParser.parse(l, "")
-				expectResult(0)(l.getCount)
+				assertResult(0)(l.getCount)
 			}
 			
 			it ("one") {
 				val l = new GetSize;
 				JSONParser.parse(l, "[a]")
-				expectResult(1)(l.getCount)
+				assertResult(1)(l.getCount)
 			}
 			
 			it ("many") {
 				val l = new GetSize;
 				val count = 20;
 				JSONParser.parse(l, (1 until count).foldLeft("[0"){_ + "," + _} + "]")
-				expectResult(count)(l.getCount)
+				assertResult(count)(l.getCount)
 			}
 		}
 		
 		it ("should not respond to elemStarted/elemEnded with no charRead") {
 				val l = new GetSize;
 				JSONParser.parse(l, "[]")
-				expectResult(0)(l.getCount)
+				assertResult(0)(l.getCount)
 		}
 		
 		it ("should count only a single layer") {
 				val l = new GetSize;
 				JSONParser.parse(l, "[[[[[[[[]]]]]]]]")
-				expectResult(1)(l.getCount)
+				assertResult(1)(l.getCount)
 		}
 	}
 }

@@ -60,13 +60,13 @@ class ToScalaCollectionTest extends FunSpec
 		it ("should accept a one-element array") {
 			val l = new ToScalaCollection(ToIntDecoder)
 			JSONParser.parse(l, "[1]")
-			expectResult(Seq(1))(l.resultSeq)
+			assertResult(Seq(1))(l.resultSeq)
 		}
 		
 		it ("should accept a many-element array") {
 			val l = new ToScalaCollection(ToIntDecoder)
 			JSONParser.parse(l, "[1,2,3,4,5]")
-			expectResult(Seq(1,2,3,4,5))(l.resultSeq)
+			assertResult(Seq(1,2,3,4,5))(l.resultSeq)
 		}
 		
 		
@@ -80,19 +80,19 @@ class ToScalaCollectionTest extends FunSpec
 		it ("should accept a one-element object") {
 			val l = new ToScalaCollection(ToIntDecoder)
 			JSONParser.parse(l, "{\"\":1}")
-			expectResult(Map("" -> 1))(l.resultMap)
+			assertResult(Map("" -> 1))(l.resultMap)
 		}
 		
 		it ("should accept a many-element object") {
 			val l = new ToScalaCollection(ToIntDecoder)
 			JSONParser.parse(l, "{\"1\":1,\"2\":2,\"3\":3}")
-			expectResult(Map("1" -> 1,"2" -> 2,"3" -> 3))(l.resultMap)
+			assertResult(Map("1" -> 1,"2" -> 2,"3" -> 3))(l.resultMap)
 		}
 		
 		it ("should accept a mixed ... thing") {
 			val l = new ToScalaCollection(ToIntDecoder)
 			JSONParser.parse(l, "{\"1\":1,2,\"3\":3}")
-			expectResult(Seq(Right("1" -> 1), Left(2), Right("3" -> 3)))(l.result)
+			assertResult(Seq(Right("1" -> 1), Left(2), Right("3" -> 3)))(l.result)
 		}
 	}
 }

@@ -70,17 +70,17 @@ class ToHashMapTest extends FunSpec
 		it ("should accept a one-element array") {
 			val l = new ToHashMap(ToIntDecoder)
 			JSONParser.parse(l, "{\"\":1}")
-			expectResult(1)(l.getResult.get(""))
+			assertResult(1)(l.getResult.get(""))
 		}
 		
 		it ("should accept a many-element array") {
 			val l = new ToHashMap(ToIntDecoder)
 			JSONParser.parse(l, """{"1":1,"2":2,"3":3,"4":4,"5":5}""")
-			expectResult(1)(l.getResult.get("1"))
-			expectResult(2)(l.getResult.get("2"))
-			expectResult(3)(l.getResult.get("3"))
-			expectResult(4)(l.getResult.get("4"))
-			expectResult(5)(l.getResult.get("5"))
+			assertResult(1)(l.getResult.get("1"))
+			assertResult(2)(l.getResult.get("2"))
+			assertResult(3)(l.getResult.get("3"))
+			assertResult(4)(l.getResult.get("4"))
+			assertResult(5)(l.getResult.get("5"))
 		}
 		
 	}

@@ -43,7 +43,7 @@ class GetSizeTest extends FunSpec
 				
 				l.started()
 				l.ended()
-				expectResult(0)(l.getCount)
+				assertResult(0)(l.getCount)
 			}
 			
 			it ("one") {
@@ -52,7 +52,7 @@ class GetSizeTest extends FunSpec
 				l.started()
 				l.newKeyValue(0x01,"",EmptyDataInput)
 				l.ended()
-				expectResult(1)(l.getCount)
+				assertResult(1)(l.getCount)
 			}
 			
 			it ("many") {
@@ -64,7 +64,7 @@ class GetSizeTest extends FunSpec
 					l.newKeyValue(0x01,"",EmptyDataInput)
 				}
 				l.ended()
-				expectResult(count)(l.getCount)
+				assertResult(count)(l.getCount)
 			}
 		}
 		
@@ -90,26 +90,26 @@ class GetSizeTest extends FunSpec
 			it ("zero") {
 				val l = new GetSize;
 				BSONParser.parse(l, commonObjects.empty)
-				expectResult(0)(l.getCount)
+				assertResult(0)(l.getCount)
 			}
 			
 			it ("one") {
 				val l = new GetSize;
 				BSONParser.parse(l, commonObjects.helloWorld)
-				expectResult(1)(l.getCount)
+				assertResult(1)(l.getCount)
 			}
 			
 			it ("many") {
 				val l = new GetSize;
 				BSONParser.parse(l, commonObjects.countTo20)
-				expectResult(20)(l.getCount)
+				assertResult(20)(l.getCount)
 			}
 		}
 		
 		it ("should count only a single layer") {
 				val l = new GetSize;
 				BSONParser.parse(l, commonObjects.recursion)
-				expectResult(1)(l.getCount)
+				assertResult(1)(l.getCount)
 			}
 	}
 }

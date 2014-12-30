@@ -45,35 +45,35 @@ class BSONWriterTest extends FunSpec
 {
 	describe ("BSONWriter") {
 		it ("should create a correct empty list") {
-			expectResult(
+			assertResult(
 				Seq(5,0,0,0,0).map{_.byteValue}.toSeq
 			)(
 				BSONWriter.encode(Seq.empty).toSeq
 			)
 		}
 		it ("should create a correct empty map") {
-			expectResult(
+			assertResult(
 				Seq(5,0,0,0,0).map{_.byteValue}.toSeq
 			)(
 				BSONWriter.encode(mapAsJavaMap(Map.empty[String,Object])).toSeq
 			)
 		}
 		it ("should create a correct one-element list") {
-			expectResult(
+			assertResult(
 				Seq(12,0,0,0,0x10,'0',0,5,0,0,0,0).toSeq
 			)(
 				BSONWriter.encode(Seq(5)).toSeq
 			)
 		}
 		it ("should create a correct one-pair map") {
-			expectResult(
+			assertResult(
 				Seq(12,0,0,0,0x10,'a',0,2,0,0,0,0).toSeq
 			)(
 				BSONWriter.encode(mapAsJavaMap(Map("a" → 2))).toSeq
 			)
 		}
 		it ("should create a correct multi-element list") {
-			expectResult(
+			assertResult(
 				Seq(40,0,0,0,
 					0x10,'0',0, 0,0,0,0,
 					0x10,'1',0, 1,0,0,0,
@@ -92,10 +92,10 @@ class BSONWriterTest extends FunSpec
 			val l = new ToHashMap(new ToJavaCollectionBSONDecoder)
 			BSONParser.parse(l, commonObjects.DataInput(string))
 			
-			expectResult(mapAsJavaMap(orig))(l.getResult)
+			assertResult(mapAsJavaMap(orig))(l.getResult)
 		}
 		it ("should recurse") {
-			expectResult(
+			assertResult(
 				Seq(13,0,0,0,
 					0x04,'0',0, 5,0,0,0,0,
 				0).toSeq
@@ -104,7 +104,7 @@ class BSONWriterTest extends FunSpec
 			)
 		}
 		it ("should do keywords") {
-			expectResult(
+			assertResult(
 				Seq(16,0,0,0,
 					0x08,'0',0,1,
 					0x08,'1',0,0,
@@ -115,7 +115,7 @@ class BSONWriterTest extends FunSpec
 			)
 		}
 		it ("should do strings") {
-			expectResult(
+			assertResult(
 				Seq(18,0,0,0,
 					0x02,'0',0,6,0,0,0,'h','e','l','l','o',0,
 				0).toSeq

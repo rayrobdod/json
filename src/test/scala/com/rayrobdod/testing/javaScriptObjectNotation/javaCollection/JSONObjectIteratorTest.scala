@@ -69,10 +69,10 @@ class JSONObjectIteratorTest extends FunSpec
 				assert( myThing1.hasNext() )
 			}
 			it ("has a next with the correct key") {
-				expectResult("hi"){myThing1.next().getKey.toString}
+				assertResult("hi"){myThing1.next().getKey.toString}
 			}
 			it ("has a next with the correct value") {
-				expectResult(1){myThing1.next().getValue}
+				assertResult(1){myThing1.next().getValue}
 			}
 			it ("cannot remove before next") {
 				intercept[IllegalStateException]( myThing1.remove() )
@@ -103,8 +103,8 @@ class JSONObjectIteratorTest extends FunSpec
 			
 			it ("iterates through the things in order (IE, is an order-preserving map)") {
 				(iterator zip (0 until size).iterator).foreach({(j:Entry[JSONString, Object], i:Int) =>
-					expectResult(i){j.getValue}
-					expectResult(i.toString){j.getKey.toString}
+					assertResult(i){j.getValue}
+					assertResult(i.toString){j.getKey.toString}
 				}.tupled)
 			}
 		}

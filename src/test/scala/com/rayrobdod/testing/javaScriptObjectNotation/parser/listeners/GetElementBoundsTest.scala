@@ -43,9 +43,9 @@ class GetElementBoundsTest extends FunSpec
 				
 				l.started()
 				l.ended()
-				expectResult(-1)(l.getElementStartIndex)
-				expectResult(-1)(l.getKeyValueSplitIndex)
-				expectResult(-1)(l.getElementEndIndex)
+				assertResult(-1)(l.getElementStartIndex)
+				assertResult(-1)(l.getKeyValueSplitIndex)
+				assertResult(-1)(l.getElementEndIndex)
 			}
 			
 			it ("case: not enough elements") {
@@ -55,9 +55,9 @@ class GetElementBoundsTest extends FunSpec
 				l.elemStarted(5,'a')
 				l.elemEnded(6,'a')
 				l.ended()
-				expectResult(-1)(l.getElementStartIndex)
-				expectResult(-1)(l.getKeyValueSplitIndex)
-				expectResult(-1)(l.getElementEndIndex)
+				assertResult(-1)(l.getElementStartIndex)
+				assertResult(-1)(l.getKeyValueSplitIndex)
+				assertResult(-1)(l.getElementEndIndex)
 			}
 		}
 		
@@ -77,9 +77,9 @@ class GetElementBoundsTest extends FunSpec
 				l.elemStarted(6,'6')
 				l.elemEnded(7,'7')
 				l.ended()
-				expectResult(s)(l.getElementStartIndex)
-				expectResult(c)(l.getKeyValueSplitIndex)
-				expectResult(e)(l.getElementEndIndex)
+				assertResult(s)(l.getElementStartIndex)
+				assertResult(c)(l.getKeyValueSplitIndex)
+				assertResult(e)(l.getElementEndIndex)
 		}
 	}
 	
@@ -88,26 +88,26 @@ class GetElementBoundsTest extends FunSpec
 			it ("case: no values in list") {
 				val l = new GetElementBounds(0);
 				JSONParser.parse(l, "")
-				expectResult(-1)(l.getElementStartIndex)
-				expectResult(-1)(l.getKeyValueSplitIndex)
-				expectResult(-1)(l.getElementEndIndex)
+				assertResult(-1)(l.getElementStartIndex)
+				assertResult(-1)(l.getKeyValueSplitIndex)
+				assertResult(-1)(l.getElementEndIndex)
 			}
 			
 			it ("case: not enough elements") {
 				val l = new GetElementBounds(2);
 				JSONParser.parse(l, "[]")
-				expectResult(-1)(l.getElementStartIndex)
-				expectResult(-1)(l.getKeyValueSplitIndex)
-				expectResult(-1)(l.getElementEndIndex)
+				assertResult(-1)(l.getElementStartIndex)
+				assertResult(-1)(l.getKeyValueSplitIndex)
+				assertResult(-1)(l.getElementEndIndex)
 			}
 		}
 		
 		it ("should respond to the nth elemStarted value") {
 				val l = new GetElementBounds(2);
 				JSONParser.parse(l, "[:,:,:,:]")
-				expectResult(4)(l.getElementStartIndex)
-				expectResult(5)(l.getKeyValueSplitIndex)
-				expectResult(6)(l.getElementEndIndex)
+				assertResult(4)(l.getElementStartIndex)
+				assertResult(5)(l.getKeyValueSplitIndex)
+				assertResult(6)(l.getElementEndIndex)
 		}
 	}
 }

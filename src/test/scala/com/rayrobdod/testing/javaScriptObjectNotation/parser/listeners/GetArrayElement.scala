@@ -59,7 +59,7 @@ class GetArrayElementTest extends FunSpec
 		it ("should accept a one-element array") {
 			val l = new GetArrayElement(0, ToIntDecoder)
 			JSONParser.parse(l, "[1]")
-			expectResult(1)(l.getParsedElement)
+			assertResult(1)(l.getParsedElement)
 		}
 		
 		it ("should error for indexOutOfBounds") {
@@ -70,13 +70,13 @@ class GetArrayElementTest extends FunSpec
 		it ("should get first element of many-element array") {
 			val l = new GetArrayElement(0, ToIntDecoder)
 			JSONParser.parse(l, "[1,2,3,4,5]")
-			expectResult(1)(l.getParsedElement)
+			assertResult(1)(l.getParsedElement)
 		}
 		
 		it ("should get fourth element of many-element array") {
 			val l = new GetArrayElement(3, ToIntDecoder)
 			JSONParser.parse(l, "[1,2,3,4,5]")
-			expectResult(4)(l.getParsedElement)
+			assertResult(4)(l.getParsedElement)
 		}
 		
 	}
