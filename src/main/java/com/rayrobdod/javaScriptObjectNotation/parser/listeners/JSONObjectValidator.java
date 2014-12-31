@@ -45,6 +45,7 @@ import com.rayrobdod.javaScriptObjectNotation.JSONString;
  */
 public final class JSONObjectValidator implements JSONParseListener
 {
+	private int currentIndex;
 	private StringBuilder currentKey;
 	private StringBuilder currentValue;
 	private boolean isParsing;
@@ -84,9 +85,12 @@ public final class JSONObjectValidator implements JSONParseListener
 				"Call .started() first.");
 		if (currentKey == null) throw new IllegalStateException(
 				"elemEnded called before elemStarted called");
-		if (currentValue == null &&  currentKey.toString().trim().length() == 0) {
-			// empty element; possibly because empty object
-			// two wrongs make a right?
+		if (currentValue == null && currentKey.toString().trim().length() == 0) {
+			if (currentIndex == 0) {
+				// empty object
+			} else {
+				throw new ParseException("empty key-value pair", commaIndex);
+			}
 		} else {
 			if (currentKey.length() == 0) throw new ParseException(
 					"empty key", commaIndex);
@@ -129,6 +133,7 @@ public final class JSONObjectValidator implements JSONParseListener
 				"elemStarted called after elemStarted before elemEnded called");
 		
 		currentKey = new StringBuilder();
+		currentIndex = currentIndex + 1;
 	}
 	
 	/**
@@ -156,6 +161,7 @@ public final class JSONObjectValidator implements JSONParseListener
 		isParsing = true;
 		reachedOpeningBracket = false;
 		reachedEndingBracket = false;
+		currentIndex = -1;
 	}
 	
 	public void ended() throws ParseException, IllegalStateException

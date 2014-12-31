@@ -92,7 +92,7 @@ class JSONObjectValidatorTest extends FunSpec
 			l.ended()
 		}
 		
-		it ("should accept a multi-element array") {
+		it ("should accept a multi-element object") {
 			val l = new JSONObjectValidator;
 			
 			l.started()
@@ -108,6 +108,38 @@ class JSONObjectValidatorTest extends FunSpec
 			}
 			l.endingBracket(5,'}')
 			l.ended()
+		}
+		
+		it ("should error at an empty value (middle of list)") {
+			val l = new JSONObjectValidator;
+			
+			l.started()
+			l.openingBracket(5,'{')
+			l.elemStarted(5,'{')
+			l.charRead(5,'"')
+			l.charRead(5,'0')
+			l.charRead(5,'"')
+			l.keyValueSeparation(5,':')
+			l.charRead(5,'0')
+			l.elemEnded(5,',')
+			l.elemStarted(5,',')
+			intercept[ParseException] { l.elemEnded(5,',') }
+		}
+		
+		it ("should error at an empty value (end of list)") {
+			val l = new JSONObjectValidator;
+			
+			l.started()
+			l.openingBracket(5,'{')
+			l.elemStarted(5,'{')
+			l.charRead(5,'"')
+			l.charRead(5,'0')
+			l.charRead(5,'"')
+			l.keyValueSeparation(5,':')
+			l.charRead(5,'0')
+			l.elemEnded(5,',')
+			l.elemStarted(5,',')
+			intercept[ParseException] { l.elemEnded(5,'}') }
 		}
 		
 		it ("should error if a later element lacks pairness") {
@@ -202,17 +234,17 @@ class JSONObjectValidatorTest extends FunSpec
 		
 		it ("should error at an empty value (middle of list)") {
 			val l = new JSONObjectValidator;
-			intercept[IllegalStateException] {JSONParser.parse(l, """{"0":0,,"2":2}""")}
+			intercept[ParseException] {JSONParser.parse(l, """{"0":0,,"2":2}""")}
 		}
 		
-		it ("should error at an empty value (middle of list) (2)") {
+		it ("should error at an empty value (middle of list) with whitespace") {
 			val l = new JSONObjectValidator;
-			intercept[IllegalStateException] {JSONParser.parse(l, """{"0":0, ,"2":2}""")}
+			intercept[ParseException] {JSONParser.parse(l, """{"0":0, ,"2":2}""")}
 		}
 		
 		it ("should error at an empty value (end of list)") {
 			val l = new JSONObjectValidator;
-			intercept[IllegalStateException] {JSONParser.parse(l, """{"0":0,"2":2,}""")}
+			intercept[ParseException] {JSONParser.parse(l, """{"0":0,"2":2,}""")}
 		}
 		
 		it ("should error if a later element lacks pairness") {
