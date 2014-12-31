@@ -134,7 +134,7 @@ object PrimitiveCborEncoderTest {
 	// String Interpolation
 	implicit class HexArrayStringConverter(val sc: StringContext) extends AnyVal {
 		def hexArray(args: Any*):Array[Byte] = {
-			((sc.parts.head):String).grouped(2).map{x => Integer.parseInt(x, 16)}.map{_.byteValue}.toArray
+			((sc.parts.head):String).filter{x => ('A' <= x && x <= 'F') || ('a' <= x && x <= 'f') || ('0' <= x && x <= '9')}.grouped(2).map{x => Integer.parseInt(x, 16)}.map{_.byteValue}.toArray
 		}
 	}
 }

@@ -78,7 +78,7 @@ class AggregateCborEncoderTest extends FunSpec
 			src.add( 6.5:java.lang.Double )    // FA40d00000
 			src.add( emptyList )               // 80
 			
-			assertResult(hexArray"84A161411841A16142F4FA40d0000080"){ enc.encode(src, enc) }
+			assertResult(hexArray"84_A161411841_A16142F4_FA40d00000_80"){ enc.encode(src, enc) }
 		}
 	}
 	
