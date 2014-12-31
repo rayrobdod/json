@@ -77,6 +77,11 @@ class StringCborEncoderTest extends FunSpec
 			val res = Array(0x78, 26).map{_.byteValue} ++ ('a' to 'z').map{_.byteValue}
 			assertResult(res){ enc.encode("abcdefghijklmnopqrstuvwxyz", enc) }
 		}
+		it ("value for hexString len 0") {
+			val src = hexArray""
+			val res = hexArray"40"
+			assertResult(res){ enc.encode(src, enc) }
+		}
 		it ("value for hexString len 3") {
 			val src = hexArray"010203"
 			val res = hexArray"43010203"
