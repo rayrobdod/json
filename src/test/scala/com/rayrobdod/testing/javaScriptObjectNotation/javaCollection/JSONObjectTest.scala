@@ -52,7 +52,7 @@ class JSONObjectTest extends FunSpec
 				assertResult(0)( new JSONObject().size() )
 			}
 			it ("errors when getting") {
-				intercept[IndexOutOfBoundsException]( new JSONObject().get(0) )
+				assertResult(null){ new JSONObject().get(0) }
 			}
 			it ("has an unparsed value of `{}`") {
 				assertResult("{}")( new JSONObject().getUnparsed() )
