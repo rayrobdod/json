@@ -49,24 +49,18 @@ public final class ToJavaCollectionCborDecoder implements CBORDecoder
 		
 		int majorType = (c[0] & 0xE0) >> 5;
 		int additionalInfo = c[0] & 0x1F;
-		long length;
+		long length = 0;
 		int lengthlen;
 		if (additionalInfo <= 23) {
 			length = additionalInfo;
 			lengthlen = 0;
 		} else if (additionalInfo == 24) {
-			length = c[1];
 			lengthlen = 1;
 		} else if (additionalInfo == 25) {
-			length = ((c[1] << 8) + c[2]);
 			lengthlen = 2;
 		} else if (additionalInfo == 26) {
-			length = (((((0l + c[1] << 8) + c[2]) << 8) + c[3]) << 8) + c[4];
 			lengthlen = 4;
 		} else if (additionalInfo == 27) {
-			length = ((((((((((((( 0l +
-					c[1]  << 8) + c[2]) << 8) + c[3]) << 8) + c[4]) << 8) +
-				    c[5]) << 8) + c[6]) << 8) + c[7]) << 8) + c[8];
 			lengthlen = 8;
 		} else if (additionalInfo == 31) {
 			// unknown length
@@ -74,6 +68,11 @@ public final class ToJavaCollectionCborDecoder implements CBORDecoder
 			lengthlen = 0;
 		} else {
 			throw new IllegalArgumentException("Disallowed number length");
+		}
+		
+		for (int i = 0; i < lengthlen; i++) {
+			long addend = ((long) c[1+i]) & 0xFF;
+			length = (length << 8) + addend;
 		}
 		
 		
