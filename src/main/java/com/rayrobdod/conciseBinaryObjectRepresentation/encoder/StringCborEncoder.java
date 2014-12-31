@@ -26,77 +26,53 @@
 */
 package com.rayrobdod.conciseBinaryObjectRepresentation.encoder;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.ArrayList;
 import com.rayrobdod.conciseBinaryObjectRepresentation.CBOREncoder;
 
 /**
- * A JSONEncoder that can encode numbers, booleans and 'null'.
+ * A JSONEncoder that can encode byte and text strings
  */
-public final class PrimitiveCborEncoder implements CBOREncoder
+public final class StringCborEncoder implements CBOREncoder
 {
 	public boolean canEncode(Object a) {
-		if (a == null) {return true;}
+		if (a == null) {return false;}
 		return (
-			Number.class.isInstance(a)  ||
-			Boolean.class.isInstance(a) ||
+			byte[].class.isInstance(a)  ||
+			CharSequence.class.isInstance(a) ||
 			false
 		);
 	}
 	
 	public byte[] encode(Object a, CBOREncoder recurser) throws ClassCastException {
+		byte majorType;
+		byte[] values;
+		
 		if (a == null) {
-			byte[] retVal = { (byte) (0xf6) };
-			return retVal;
+			throw new ClassCastException("cannot encode null");
 			
-		} else if (a instanceof Boolean) {
-			boolean b = (Boolean) a;
-			byte[] retVal = { (byte) (b ? 0xf5 : 0xf4) };
-			return retVal;
+		} else if (a instanceof byte[]) {
+			majorType = 2 << 5;
+			values = (byte[]) a;
 			
-		} else if (a instanceof Number) {
-			Number b = (Number) a;
-			long l   = b.longValue();
-			double d = b.doubleValue();
-			float f  = b.floatValue();
-			
-			if (d != l && d != f) {
-				// does not fit in long or float
-				final byte firstByte = (byte) (0xfb);
-				
-				return PrimitiveCborEncoder.merge(firstByte, separateBytes(
-						Double.doubleToLongBits(d)));
-				
-			} else if (f != l) {
-				// does not fit in integral type
-				final byte firstByte = (byte) (0xfa);
-				
-				return PrimitiveCborEncoder.merge(firstByte, separateBytes(
-						Float.floatToIntBits(f)));
-				
-			} else {
-				// integral number
-				int majorType = ( l >= 0 ? 0 : 1 ) << 5;
-				long abs = ( l >= 0 ? l : (-1 - l) );
-				
-				if (abs <= 23) {
-					byte[] retVal = {(byte) (majorType | abs)};
-					return retVal;
-				} else if (abs <= 255) {
-					byte[] retVal = {(byte) (majorType | 24), (byte) abs};
-					return retVal;
-				} else if (abs <= 0xFFFF) {
-					byte[] retVal = {(byte) (majorType | 25), (byte) ((abs >> 8) & 0xFF), (byte) (abs & 0xFF)};
-					return retVal;
-				} else if (abs <= 0xFFFFFFFFl) {
-					return PrimitiveCborEncoder.merge((byte) (majorType | 26), separateBytes((int) abs));
-				} else {
-					return PrimitiveCborEncoder.merge((byte) (majorType | 27), separateBytes(abs));
-				}
-			}
+		} else if (a instanceof CharSequence) {
+			majorType = 3 << 5;
+			values = a.toString().getBytes(UTF_8);
 			
 		} else {
 			throw new ClassCastException("cannot encode object: " + a.toString());
 		}
+		
+		if (values.length <= 23) {
+			return merge( (byte) (majorType | values.length), new Byte[0], values );
+		} else if (values.length <= 255) {
+			return merge( (byte) (majorType | 24), new Byte[] {(byte) values.length}, values );
+		} else if (values.length <= 0xFFFF) {
+			return merge( (byte) (majorType | 25), new Byte[] {(byte) (values.length >> 8), (byte) values.length}, values );
+		} else {
+			return merge( (byte) (majorType | 26), separateBytes(values.length), values );
+		}
+		
 	}
 	
 	
@@ -118,11 +94,14 @@ public final class PrimitiveCborEncoder implements CBOREncoder
 		return list.toArray(new Byte[0]);
 	}
 	
-	private static byte[] merge(byte a, Byte[] b) {
-		byte[] out = new byte[1 + b.length];
+	private static byte[] merge(byte a, Byte[] b, byte[] c) {
+		byte[] out = new byte[1 + b.length + c.length];
 		out[0] = a;
 		for (int i = 0; i < b.length; i++) {
 			out[1 + i] = b[i];
+		}
+		for (int i = 0; i < c.length; i++) {
+			out[1 + b.length + i] = c[i];
 		}
 		return out;
 	}
