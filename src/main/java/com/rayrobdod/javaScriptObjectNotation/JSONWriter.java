@@ -40,6 +40,7 @@ import java.text.ParseException;
  * 
  * @author Raymond Dodge
  * @version 2013 Aug 03
+ * @deprecated use JSONEncoders instead
  * @see com.rayrobdod.binaryJSON.BSONWriter
  */
 public final class JSONWriter
