@@ -27,6 +27,7 @@
 package com.rayrobdod.conciseBinaryObjectRepresentation.parser.decoders;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import com.rayrobdod.conciseBinaryObjectRepresentation.Break;
 import com.rayrobdod.conciseBinaryObjectRepresentation.parser.CBORDecoder;
 import java.text.ParseException;
 
@@ -71,6 +72,7 @@ public final class ToJavaCollectionCborDecoder implements CBORDecoder
 		}
 		
 		for (int i = 0; i < lengthlen; i++) {
+			// unsigned bytes, so chop of extension bits
 			long addend = ((long) c[1+i]) & 0xFF;
 			length = (length << 8) + addend;
 		}
@@ -99,6 +101,7 @@ public final class ToJavaCollectionCborDecoder implements CBORDecoder
 			if (additionalInfo == 25) { throw new IllegalArgumentException("Can't handle half-precision"); }
 			if (additionalInfo == 26) { return Float.intBitsToFloat((int) length); }
 			if (additionalInfo == 27) { return Double.longBitsToDouble(length); }
+			if (additionalInfo == 31) { return Break.instance; }
 			
 			throw new IllegalArgumentException("Unknown Simple Value");
 		} else {

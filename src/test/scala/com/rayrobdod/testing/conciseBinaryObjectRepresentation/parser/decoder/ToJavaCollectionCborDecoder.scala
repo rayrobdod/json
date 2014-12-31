@@ -26,6 +26,7 @@
 */
 package com.rayrobdod.conciseBinaryObjectRepresentation.parser.decoders
 
+import com.rayrobdod.conciseBinaryObjectRepresentation.Break
 import com.rayrobdod.conciseBinaryObjectRepresentation.encoder.PrimitiveCborEncoderTest.HexArrayStringConverter
 import org.scalatest.{FunSpec}
 import java.text.ParseException;
@@ -49,6 +50,10 @@ class ToJavaCollectionCborDecoderTest extends FunSpec
 		it ("value for 'false'") {
 			val src = Array(0xf4).map{_.byteValue}
 			assertResult(false){ dec.decode(src) }
+		}
+		it ("value for 'break'") {
+			val src = Array(0xff).map{_.byteValue}
+			assertResult(Break.instance){ dec.decode(src) }
 		}
 		
 		describe ("numbers") {
