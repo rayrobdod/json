@@ -85,7 +85,7 @@ public final class JSONObjectIterator implements Iterator<Entry<JSONString, Obje
 		int rightIndex = unparsed.lastIndexOf('}');
 		
 		boolean endCommaIsComma = unparsed.charAt(leftIndex) != '}';
-		boolean whitespaceRemains = unparsed.substring(leftIndex, rightIndex).matches("[\\s]*");
+		boolean whitespaceRemains = unparsed.substring(leftIndex, rightIndex).matches("[\\s\\{]*");
 		
 		return endCommaIsComma && !whitespaceRemains;
 	}

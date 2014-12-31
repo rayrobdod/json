@@ -61,6 +61,20 @@ class JSONObjectIteratorTest extends FunSpec
 			}
 		}
 		
+		describe ("with zero values and whitespace") {
+			def empty = new JSONObjectIterator("{  }");
+			
+			it ("does not have a next") {
+				assert( !empty.hasNext() )
+			}
+			it ("errors when trying to get next") {
+				intercept[NoSuchElementException]( empty.next() )
+			}
+			it ("errors when trying to remove") {
+				intercept[IllegalStateException]( empty.remove() )
+			}
+		}
+		
 		describe ("with a single value") {
 			def myThing1 = new JSONObjectIterator("""{"hi":1}""");
 			def myThing0 = { val a = myThing1; a.next(); a}
