@@ -1,0 +1,11 @@
+ 	TopState, InitState
+[	TopState, ArrayValueStartState("", 0)
+"	TopState, ArrayValueEndState("", 0), StringState("0")
+1	TopState, ArrayValueEndState("", 0), StringState("0")
+"	TopState, ArrayValueEndState("", 0)
+,	TopState, ArrayValueStartState("", 1)
+"	TopState, ArrayValueEndState("", 1), StringState("1")
+2	TopState, ArrayValueEndState("", 1), StringState("1")
+"	TopState, ArrayValueEndState("", 1)
+]	TopState, 
+
