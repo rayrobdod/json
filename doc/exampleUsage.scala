@@ -1,5 +1,8 @@
 #!scala
 
+import com.rayrobdod.json.parser.JsonParser;
+import com.rayrobdod.json.builder.Builder;
+
 case class Name(given:String, middle:String, family:String)
 case class Person(n:Name, gender:String, isDead:boolean, interests:Set[String])
 
@@ -11,7 +14,7 @@ val json = """{
 		},
 		"gender":"male",
 		"isDead":false,
-		"interests":["bowling", "tennis", "programming"]
+		"interests":["bowling", "tennis", "programming", "twitch plays pokémon"]
 }"""
 
 object SetBuilder extends Builder[Set[String]] {
@@ -28,9 +31,10 @@ object NameBuilder extends Builder[Name] {
 		case "given" => folding.copy(given = value)
 		case "middle" => folding.copy(middle = value)
 		case "family" => folding.copy(family = value)
-		case _ => // do nothing
+		case _ => throw new ParseException("Unexpected key: " + key, -1)
 	}
 	def childBuilder(key:String):Builder[_] = SetBuilder
+	override val resultType:Class[Name] = classOf[Name]
 }
 
 object PersonBuilder extends Builder[Person] {
@@ -40,12 +44,13 @@ object PersonBuilder extends Builder[Person] {
 		case "gender" => folding.copy(gender = value.toString)
 		case "isDead" => folding.copy(isDead = (value == true))
 		case "interests" => folding.copy(interests = value.asInstanceOf[Set[String]])
-		case _ => // do nothing
+		case _ => throw new ParseException("Unexpected key: " + key, -1)
 	}
 	def childBuilder(key:String):Builder[_] = key match {
 		case "n" => NameBuilder,
 		case _ => SetBuilder
 	}
+	override val resultType:Class[Person] = classOf[Person]
 }
 
 val p:Person = JSONParser(PersonBuilder).parse(json)
