@@ -49,7 +49,7 @@ class BsonParserTest_Happy2 extends FunSpec {
 				)
 			)
 			val expected = (0 until 20).map{i => i.toString -> i}.toMap
-			val result = new BsonParser(MapBuilder).parse(source)
+			val result = new BsonParser(new MapBuilder()).parse(source)
 			
 			assertResult(expected){result}
 		}

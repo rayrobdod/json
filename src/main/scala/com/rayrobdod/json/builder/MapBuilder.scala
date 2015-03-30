@@ -28,12 +28,21 @@ package com.rayrobdod.json.builder;
 
 import scala.collection.immutable.Map;
 
-/** A builder that creates maps */
-object MapBuilder extends Builder[Map[Any, Any]] {
+/** A builder that creates maps
+ * 
+ * @constructor
+ * @param a function pretty directly called by `childBuilder()`. By default, it
+ * 		is a function that creates more MapBuilders
+ */
+class MapBuilder(childBuilderMap:Function1[String, Builder[_ <: Any]] = MapBuilder.defaultChildBuilder) extends Builder[Map[Any, Any]] {
 	override val init:Map[Any, Any] = Map.empty
 	override def apply(folding:Map[Any, Any], key:String, value:Any) = {
 		folding + ((key, value))
 	}
-	override def childBuilder(key:String):Builder[Map[Any, Any]] = MapBuilder
+	override def childBuilder(key:String):Builder[_ <: Any] = childBuilderMap(key)
 	override val resultType:Class[Map[Any,Any]] = classOf[Map[Any,Any]]
+}
+
+object MapBuilder {
+	val defaultChildBuilder = {s:String => new MapBuilder()}
 }

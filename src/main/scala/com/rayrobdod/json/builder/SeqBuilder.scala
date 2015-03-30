@@ -28,12 +28,21 @@ package com.rayrobdod.json.builder;
 
 import scala.collection.immutable.Seq;
 
-/** A builder that creates seqs */
-object SeqBuilder extends Builder[Seq[Any]] {
+/** A builder that creates seqs
+ * 
+ * @constructor
+ * @param the type of this seq's complex child elements. If it is Nothing, it will default to making more SeqBuilders
+ */
+class SeqBuilder(childBuilder:Option[Builder[_ <: Any]]) extends Builder[Seq[Any]] {
+	/** A Builder that creates seqs, where every complex type child is also a seq */
+	def this() = {this(None)}
+	/** A Builder that creates seqs, where every complex type is of type `childBuilder` */
+	def this(childBuilder:Builder[_ <: Any]) = {this(Some(childBuilder))}
+	
 	val init:Seq[Nothing] = Nil
 	def apply(folding:Seq[Any], key:String, value:Any) = {
 		folding :+ value
 	}
-	def childBuilder(key:String):Builder[Seq[Any]] = SeqBuilder
+	def childBuilder(key:String):Builder[_ <: Any] = childBuilder.getOrElse(new SeqBuilder)
 	val resultType:Class[Seq[_]] = classOf[Seq[_]]
 }

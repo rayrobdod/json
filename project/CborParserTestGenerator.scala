@@ -104,7 +104,7 @@ class CborParserTest_Happy extends FunSpec {
 				)
 			)
 			val expected = """ + expected + """
-			val result = new CborParser(MapBuilder).parse(source)
+			val result = new CborParser(new MapBuilder()).parse(source)
 			assertResult(expected){result}
 		}"""
 	}
