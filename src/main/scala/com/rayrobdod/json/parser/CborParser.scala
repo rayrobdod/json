@@ -57,7 +57,7 @@ final class CborParser[A](topBuilder:Builder[A]) {
 		}
 		
 		majorType match {
-			// posiitve integer
+			// positive integer
 			case 0 => additionalInfoData.value
 			// negative integer
 			case 1 => -1 - additionalInfoData.value
@@ -92,10 +92,16 @@ final class CborParser[A](topBuilder:Builder[A]) {
 		aid match {
 			case AdditionalInfoIndeterminate() => {
 				val stream = new java.io.ByteArrayOutputStream
-				var b:Byte = input.readByte()
-				while (b != 0xFF.byteValue) {
-					stream.write(b)
-					b = input.readByte()
+				
+				var next:Any = this.parse(input)
+				while (next != EndOfIndeterminateObject()) {
+					val nextBytes:Array[Byte] = next match {
+						case s:String => s.getBytes(UTF_8)
+						case a:Array[Byte] => a
+						case _ => throw new ClassCastException("Members of indeterminite-length string must be strings")
+					}
+					stream.write(nextBytes)
+					next = this.parse(input)
 				}
 				stream.toByteArray()
 			}
