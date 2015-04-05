@@ -64,24 +64,27 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 	 * Decodes the input values to an object.
 	 */
 	def parse(chars:Iterable[Char]):A = {
-		topBuilder.resultType.cast(
-			chars.zipWithIndex.foldLeft[Stack[StackFrame[_ >: A]]](
+		topBuilder.resultType.cast({
+			var length = 0;
+			val a = chars.zipWithIndex.foldLeft[Stack[StackFrame[_ >: A]]](
 				Stack(StackFrame(topBuilder.init, topBuilder, InitState), StackFrame(topBuilder.init, SingletonBuilder, TopState))
 			){(stateStack:Stack[StackFrame[_ >: A]], charIndex:(Char, Int)) =>
-				if (stateStack.size > 1) {
-					val (char2, index) = charIndex
-					val char = if (char2.isWhitespace) {' '} else {char2}
-					
-					val retVal = stateStack.top.state.apply(stateStack, char, index)
-					
-					// System.out.println()
-					// System.out.println(retVal)
-					retVal
-				} else {
-					stateStack
-				}
-			}.top.soFar
-		)
+				val (char2, index) = charIndex
+				val char = if (char2.isWhitespace) {' '} else {char2}
+				
+				val retVal = stateStack.top.state.apply(stateStack, char, index)
+				
+				// System.out.println()
+				// System.out.println(retVal)
+				length = index + 1;
+				retVal
+			}
+			if (a.lengthCompare(1) == 0) {
+				a.top.soFar
+			} else {
+				throw new ParseException("Incomplete object", length);
+			}
+		})
 	}
 	
 	
