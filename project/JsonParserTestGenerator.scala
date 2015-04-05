@@ -71,6 +71,7 @@ object JsonParserTestGenerator {
 		("string containing escape codes (newline)", """["\n"]""", """Map("0" -> "\n")"""),
 		("string containing escape codes (tab)", """["\t"]""", """Map("0" -> "\t")"""),
 		("string containing escape codes (backslash)", """["\\"]""", """Map("0" -> "\\")"""),
+		("string containing escape codes (other)", """["\"\/\b\f\r"]""", """Map("0" -> "\"/\b\f\r")"""),
 		// that time where I have to perform a 'bobby tables' to force the thing to put unicode escapes into a JSON Parser 
 		("string containing escape codes (unicode)", "[\"\\\"\"\" + \"\"\"u0123\"]", """Map("0" -> "ģ")"""),
 		("string containing escape codes (unicode) 2", "[\"\\\"\"\" + \"\"\"u221E\"]", """Map("0" -> "\u221E")"""),
