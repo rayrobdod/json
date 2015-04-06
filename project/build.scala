@@ -32,6 +32,7 @@ object MyBuild extends Build {
 			id = "json",
 			base = file("."),
 			settings = Defaults.defaultSettings ++
+					CsvParserTestGenerator.settings ++
 					CborParserTestGenerator.settings ++
 					BsonParserTestGenerator.settings ++
 					JsonParserTestGenerator.settings
