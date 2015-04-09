@@ -76,7 +76,7 @@ final class BsonParser[A](topBuilder:Builder[A]) {
 				case 10 => null
 				case 16 => Integer.reverseBytes( input.readInt() );
 				case 18 => java.lang.Long.reverseBytes( input.readLong() );
-				case _ => throw new Exception
+				case _ => throw new ParseException("Unknown data type", -1)
 			}
 			
 			result = topBuilder.apply(result, key, value);
