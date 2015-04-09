@@ -33,7 +33,23 @@ import scala.collection.immutable.{Seq, Map, Stack}
 import com.rayrobdod.json.builder._
 
 /**
+ * A streaming decoder for json data.
+ * This parser is intended to be relatively strict.
  * 
+ * == Primitive types ==
+ * 
+ - null
+ - java.lang.Integer
+ - java.lang.Long
+ - java.lang.Double
+ - java.lang.String
+ - java.lang.Boolean
+ * 
+ * @see [[http://bsonspec.org/]]
+ *
+ * @constructor
+ * Creates a BsonParser instance.
+ * @param topBuilder the builder that this parser will use when constructing objects
  */
 final class BsonParser[A](topBuilder:Builder[A]) {
 	private val END_OF_DOCUMENT_TYPE:Byte = 0x00;

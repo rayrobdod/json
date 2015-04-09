@@ -24,38 +24,10 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json.builder;
+package com.rayrobdod.json;
 
-import java.lang.reflect.Method
-
-/** A builder that builds a JavaBean
- * 
- * As with anything that works with javabeans, this requires the class
- * to have a zero-argument constructor and will interact with methods
- * of the form `setX`.
+/**
+ * Contains the various built-in parsers
  */
-class BeanBuilder[A](clazz:Class[A], childBuilders:Map[String, Builder[_]] = Map.empty) extends Builder[A] {
-	/**
-	 * Creates an instance of clazz by calling the class's No Argument constructor.
-	 */
-	def init:A = clazz.getConstructor().newInstance()
-	
-	/**
-	 * Sets the `key` bean property in the `folding` object
-	 * 
-	 * note: Unlike most implementations of Builder, this will mutate `folding`
-	 * @return the input parameter `folding`
-	 * @todo maybe check for other primitive numeric types - IE a `setVal(Short)` when handed a `Long` or visa versa
-	 */
-	def apply(folding:A, key:String, value:Any) = {
-		val m = clazz.getMethod("set" + key.head.toUpper + key.tail, value.getClass)
-		m.invoke(folding, value.asInstanceOf[Object])
-		// the above line should have mutated `folding`.
-		folding
-	}
-	
-	def childBuilder(key:String):Builder[_] = childBuilders(key)
-	
-	/** Returns the constructor parameter `clazz` */
-	val resultType:Class[A] = clazz
+package object parser {
 }

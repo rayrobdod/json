@@ -33,6 +33,21 @@ import com.rayrobdod.json.builder._
 
 /**
  * A streaming decoder for json data.
+ * This parser is intended to be relatively strict.
+ * 
+ * == Primitive types ==
+ * 
+ - null
+ - java.lang.Long
+ - java.lang.Double
+ - java.lang.String
+ - java.lang.Boolean
+ * 
+ * @see [[http://json.org/]]
+ *
+ * @constructor
+ * Creates a JsonParser instance.
+ * @param topBuilder the builder that this parser will use when constructing objects
  */
 final class JsonParser[A](topBuilder:Builder[A]) {
 	private final case class StackFrame[B](soFar:B, builder:Builder[B], state:State) {
@@ -62,6 +77,8 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 	
 	/**
 	 * Decodes the input values to an object.
+	 * @param chars the serialized json object or array
+	 * @return the parsed object
 	 */
 	def parse(chars:Iterable[Char]):A = {
 		topBuilder.resultType.cast({

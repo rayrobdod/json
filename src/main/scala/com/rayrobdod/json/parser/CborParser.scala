@@ -34,7 +34,22 @@ import com.rayrobdod.json.builder._
 
 /**
  * A parser that will decode cbor data
- * @see http://tools.ietf.org/html/rfc7049
+ * 
+ * == Primitive types ==
+ * 
+ - null
+ - java.lang.Long
+ - Array[Byte]
+ - java.lang.String
+ - java.lang.Boolean
+ - java.lang.Float
+ - java.lang.Double
+ * 
+ * @see [[http://tools.ietf.org/html/rfc7049]]
+ * 
+ * @constructor
+ * Creates a CborParser instance.
+ * @param topBuilder the builder that this parser will use when constructing objects
  */
 final class CborParser[A](topBuilder:Builder[A]) {
 	import CborParser._
@@ -174,7 +189,7 @@ final class CborParser[A](topBuilder:Builder[A]) {
 }
 
 
-object CborParser {
+private object CborParser {
 	private abstract sealed class AdditionalInfoData {
 		def value:Long
 	}

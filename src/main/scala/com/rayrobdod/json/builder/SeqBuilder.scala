@@ -31,7 +31,8 @@ import scala.collection.immutable.Seq;
 /** A builder that creates seqs
  * 
  * @constructor
- * @param the type of this seq's complex child elements. If it is Nothing, it will default to making more SeqBuilders
+ * A builder that will create seqs, where complex types are built by `childBuilder.getOrElse(this)`
+ * @param childBuilder the type of this seq's complex child elements. If it is Nothing, it will default to making more SeqBuilders
  */
 class SeqBuilder(childBuilder:Option[Builder[_ <: Any]]) extends Builder[Seq[Any]] {
 	/** A Builder that creates seqs, where every complex type child is also a seq */

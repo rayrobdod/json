@@ -35,12 +35,24 @@ import com.rayrobdod.json.builder._
  * A streaming decoder for csv data.
  * 
  * This parser is lenient, in that it ignores trailing delimiters
+ * 
+ * A CSV file is always two levels deep - a two dimensional array.
+ * 
+ * == Primitive types ==
+ - java.lang.String
+ *  
+ * @constructor
+ * Creates a CsvParser instance.
+ * @param topBuilder the builder that this parser will use when constructing objects
+ * @param meaningfulCharacters determines which characters have special meanings
  */
 final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.CharacterMeanings = CsvParser.csvCharacterMeanings) {
 	
 	
 	/**
 	 * Decodes the input values to an object.
+	 * @param chars the serialized json object or array
+	 * @return the parsed object
 	 */
 	def parse(chars:Iterable[Char]):A = {
 		chars.zipWithIndex.foldLeft[State](new StartOfRecordState()){
@@ -238,6 +250,10 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 	
 }
 
+/**
+ * Contains classes used to customize the CsvParser's behavoir, as
+ * well as a few common instances of those classes.
+ */
 object CsvParser {
 	/**
 	 * Tells the CsvParser which characters are special
