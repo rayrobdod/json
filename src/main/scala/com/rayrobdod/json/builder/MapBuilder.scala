@@ -43,6 +43,6 @@ class MapBuilder(childBuilderMap:Function1[String, Builder[_ <: Any]] = MapBuild
 	override val resultType:Class[Map[Any,Any]] = classOf[Map[Any,Any]]
 }
 
-object MapBuilder {
+private object MapBuilder {
 	val defaultChildBuilder = {s:String => new MapBuilder()}
 }

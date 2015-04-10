@@ -18,6 +18,29 @@ scalacOptions ++= Seq("-unchecked", "-deprecation")
 
 
 
+artifact in (Compile, packageDoc) := {
+	(artifact in (Compile, packageDoc)).value.copy(extension = "zip")
+}
+
+artifact in (Compile, packageSrc) := {
+	(artifact in (Compile, packageSrc)).value.copy(extension = "zip")
+}
+
+packageOptions in (Compile, packageBin) <+= (scalaVersion, sourceDirectory).map{(scalaVersion:String, srcDir:File) =>
+	val manifest = new java.util.jar.Manifest(new java.io.FileInputStream(srcDir + "/main/MANIFEST.MF"))
+	manifest.getAttributes("scala/").putValue("Implementation-Version", scalaVersion)
+	Package.JarManifest( manifest )
+}
+
+licenses += (("3-point BSD", new java.net.URL("http://rayrobdod.name/programming/libraries/java/json/2.0.0/LICENSE.rst") ))
+
+mappings in (Compile, packageSrc) <+= baseDirectory.map{(b) => (new File(b, "LICENSE.rst"), "LICENSE.rst" )}
+
+mappings in (Compile, packageBin) <+= baseDirectory.map{(b) => (new File(b, "LICENSE.rst"), "LICENSE.rst" )}
+
+
+
+
 // scalaTest
 scalaVersion in Test := "2.10.5"
 
