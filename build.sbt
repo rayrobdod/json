@@ -16,6 +16,8 @@ javacOptions ++= Seq("-Xlint:deprecation", "-Xlint:unchecked")
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
+libraryDependencies += ("org.scala-lang" % "scala-reflect" % "2.10.5")
+
 
 
 artifact in (Compile, packageDoc) := {
