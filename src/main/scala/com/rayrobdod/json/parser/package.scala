@@ -31,3 +31,21 @@ package com.rayrobdod.json;
  */
 package object parser {
 }
+
+package parser {
+	private[parser] class Reader2Iterable(r:java.io.Reader) extends Iterable[Char]() {
+		def iterator() = {
+			new Iterator[Char]() {
+				private var nextChar = r.read()
+				override def next = {
+					val retVal = nextChar;
+					nextChar = r.read();
+					retVal.asInstanceOf[Char]
+				}
+				override def hasNext = {
+					nextChar != -1;
+				}
+			}
+		}
+	}
+}

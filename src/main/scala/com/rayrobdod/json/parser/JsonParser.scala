@@ -91,8 +91,6 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 				
 				val retVal = stateStack.head.state.apply(stateStack, char, index)
 				
-				// System.out.println()
-				// System.out.println(retVal)
 				length = index + 1;
 				retVal
 			}
@@ -104,6 +102,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 		})
 	}
 	
+	def parse(chars:java.io.Reader):A = this.parse(new Reader2Iterable(chars))
 	
 	
 	/** The parser's state */

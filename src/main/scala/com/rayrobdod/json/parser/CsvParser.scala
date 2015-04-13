@@ -60,6 +60,7 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 		}.topValue
 	}
 	
+	def parse(chars:java.io.Reader):A = this.parse(new Reader2Iterable(chars))
 	
 	
 	private trait State {
