@@ -8,7 +8,7 @@ version := "2.0-SNAPSHOT"
 
 scalaVersion := "2.10.5"
 
-crossScalaVersions ++= Seq("2.10.5", "2.11.6")
+crossScalaVersions := Seq("2.10.5", "2.11.6")
 
 compileOrder := CompileOrder.JavaThenScala
 
@@ -24,6 +24,7 @@ artifact in (Compile, packageDoc) := {
 	(artifact in (Compile, packageDoc)).value.copy(extension = "zip")
 }
 
+// TODO: tarball
 artifact in (Compile, packageSrc) := {
 	(artifact in (Compile, packageSrc)).value.copy(extension = "zip")
 }
