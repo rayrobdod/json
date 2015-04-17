@@ -4,7 +4,7 @@ organization := "com.rayrobdod"
 
 organizationHomepage := Some(new URL("http://rayrobdod.name/"))
 
-version := "2.0-SNAPSHOT"
+version := "2.0-RC1"
 
 scalaVersion := "2.10.5"
 
