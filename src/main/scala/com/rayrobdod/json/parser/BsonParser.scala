@@ -128,6 +128,6 @@ final class BsonParser[A](topBuilder:Builder[A]) {
 			byte = input.readByte();
 		}
 		
-		return new String( data.toByteArray(), UTF_8);
+		new String( data.toByteArray(), UTF_8);
 	}
 }

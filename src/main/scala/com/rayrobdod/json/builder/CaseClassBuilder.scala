@@ -49,7 +49,7 @@ class CaseClassBuilder[A <: Product](clazz:Class[A], val init:A, childBuilders:M
 		val typ = mirror.classSymbol( clazz ).toType
 		val copyMethod = typ.declaration(newTermName("copy")).asMethod
 		val copyParams = copyMethod.paramss(0)
-		val indexOfModification = copyParams.zipWithIndex.filter{_._1.name.decodedName.toString == key}.headOption.map{_._2}
+		val indexOfModification = copyParams.zipWithIndex.find{_._1.name.decodedName.toString == key}.map{_._2}
 		
 		indexOfModification match {
 			case None => throw new IllegalArgumentException(key + " is not a member of case class " + folding.toString)
