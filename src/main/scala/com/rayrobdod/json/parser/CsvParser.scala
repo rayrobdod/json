@@ -257,7 +257,14 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
  */
 object CsvParser {
 	/**
-	 * Tells the CsvParser which characters are special
+	 * A data container which tells the CsvParser which characters are special
+	 * 
+	 * @constructor
+	 * @param recordDelimeter first-level separators; separate records
+	 * @param fieldDelimeter second-level separators; separeate the fields within a record
+	 * @param stringDelimeter A character that starts and ends strings of literal characters
+	 * @param ignorable characters that are trimmed from the start or end of a record
+	 * @param escape a character that causes the next character to be interpreted literally
 	 */
 	final case class CharacterMeanings(
 			val recordDelimeter:Set[Char],
