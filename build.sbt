@@ -16,7 +16,7 @@ javacOptions ++= Seq("-Xlint:deprecation", "-Xlint:unchecked")
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
-libraryDependencies += ("org.scala-lang" % "scala-reflect" % "2.10.5")
+libraryDependencies <+= scalaVersion.apply{("org.scala-lang" % "scala-reflect" % _)}
 
 
 
@@ -45,8 +45,7 @@ mappings in (Compile, packageBin) <+= baseDirectory.map{(b) => (new File(b, "LIC
 
 
 // scalaTest
-scalaVersion in Test := "2.10.5"
 
-libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.2.1" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.1" % "test"
 
 testOptions in Test += Tests.Argument("-oS")

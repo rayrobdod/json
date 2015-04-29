@@ -1,4 +1,5 @@
 # JSON
+[![Build Status](https://travis-ci.org/rayrobdod/json.svg?branch=master)](https://travis-ci.org/rayrobdod/json)
 
 
 ## Build Instructions
