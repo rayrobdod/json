@@ -316,5 +316,15 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 		}
 		override def toString:String = "IntegerState(" + key + ")"
 	}
+	
+	/** A builder that creates strings */
+	private object StringBuilder extends Builder[String] {
+		val init:String = ""
+		def apply(folding:String, key:String, value:Any):String = {
+			folding + value.toString
+		}
+		def childBuilder(key:String):Builder[String] = this
+		val resultType:Class[String] = classOf[String]
+	}
 }
 
