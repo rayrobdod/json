@@ -36,7 +36,7 @@ import scala.collection.immutable.Map;
  */
 class MapBuilder(childBuilderMap:Function1[String, Builder[_ <: Any]] = MapBuilder.defaultChildBuilder) extends Builder[Map[Any, Any]] {
 	override val init:Map[Any, Any] = Map.empty
-	override def apply(folding:Map[Any, Any], key:String, value:Any) = {
+	override def apply(folding:Map[Any, Any], key:String, value:Any):Map[Any,Any] = {
 		folding + ((key, value))
 	}
 	override def childBuilder(key:String):Builder[_ <: Any] = childBuilderMap(key)

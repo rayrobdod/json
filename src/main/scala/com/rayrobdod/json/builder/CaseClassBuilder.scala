@@ -44,7 +44,7 @@ class CaseClassBuilder[A <: Product](clazz:Class[A], val init:A, childBuilders:M
 	 * @return the input parameter `folding`
 	 * @todo maybe check for other primitive numeric types - IE a `setVal(Short)` when handed a `Long` or visa versa
 	 */
-	def apply(folding:A, key:String, value:Any) = {
+	def apply(folding:A, key:String, value:Any):A = {
 		val mirror = runtimeMirror( this.getClass.getClassLoader )
 		val typ = mirror.classSymbol( clazz ).toType
 		val copyMethod = typ.declaration(newTermName("copy")).asMethod
@@ -53,7 +53,7 @@ class CaseClassBuilder[A <: Product](clazz:Class[A], val init:A, childBuilders:M
 		
 		indexOfModification match {
 			case None => throw new IllegalArgumentException(key + " is not a member of case class " + folding.toString)
-			case Some(x:Int) => {                        
+			case Some(x:Int) => {
 				val newArgs = folding.productIterator.toSeq.updated(x, value)
 				
 				// scala reflection - "No ClassTag available for A"

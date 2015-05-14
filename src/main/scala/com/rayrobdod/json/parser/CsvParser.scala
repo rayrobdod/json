@@ -40,7 +40,7 @@ import com.rayrobdod.json.builder._
  * 
  * == Primitive types ==
  - java.lang.String
- *  
+ * 
  * @constructor
  * Creates a CsvParser instance.
  * @param topBuilder the builder that this parser will use when constructing objects
@@ -101,7 +101,7 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 			innerValue:Any,
 			innerIndex:Int
 	) extends State {
-		override def topValue = {
+		override def topValue:A = {
 			topBuilder.apply(topVal, topIndex.toString, innerValue)
 		}
 		
@@ -141,7 +141,7 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 			val string:String
 	) extends State {
 		private val childBuilder = topBuilder.childBuilder(topIndex.toString).asInstanceOf[Builder[Any]]
-		override def topValue = {
+		override def topValue:A = {
 			val newInnerValue = childBuilder.apply(innerValue, innerIndex.toString, string)
 			topBuilder.apply(topVal, topIndex.toString, newInnerValue)
 		}
@@ -186,7 +186,7 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 	) extends State {
 		private val childBuilder = topBuilder.childBuilder(topIndex.toString).asInstanceOf[Builder[Any]]
 		
-		override def topValue = {
+		override def topValue:A = {
 			val newInnerValue = childBuilder.apply(innerValue, innerIndex.toString, string)
 			topBuilder.apply(topVal, topIndex.toString, newInnerValue)
 		}
@@ -227,7 +227,7 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 	) extends State {
 		private val correspondingNormalState = new NormalState(topVal, topIndex, innerValue, innerIndex, string)
 		
-		override def topValue = correspondingNormalState.topValue
+		override def topValue:A = correspondingNormalState.topValue
 		
 		override def apply(c:Char, index:Int):State = {
 			if (meaningfulCharacters.stringDelimeter.contains(c)) {
@@ -243,8 +243,8 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 			correspondingNormalState:NormalState
 	) extends State {
 
-		override def topValue = correspondingNormalState.topValue
-		override def apply(c:Char, i:Int) = {
+		override def topValue:A = correspondingNormalState.topValue
+		override def apply(c:Char, i:Int):State = {
 			correspondingNormalState.copy(string = correspondingNormalState.string + c)
 		}
 	}

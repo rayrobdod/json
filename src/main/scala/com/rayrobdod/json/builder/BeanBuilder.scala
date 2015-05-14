@@ -47,7 +47,7 @@ class BeanBuilder[A](clazz:Class[A], childBuilders:Map[String, Builder[_]] = Map
 	 * @return the input parameter `folding`
 	 * @todo maybe check for other primitive numeric types - IE a `setVal(Short)` when handed a `Long` or visa versa
 	 */
-	def apply(folding:A, key:String, value:Any) = {
+	def apply(folding:A, key:String, value:Any):A = {
 		val m = clazz.getMethod("set" + key.head.toUpper + key.tail, value.getClass)
 		m.invoke(folding, value.asInstanceOf[Object])
 		// the above line should have mutated `folding`.

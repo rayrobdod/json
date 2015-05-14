@@ -31,7 +31,7 @@ package com.rayrobdod.json;
  *
  * Pretty much every parser will require a Builder when parsing data.
  * The builder will basically determine how the parser will treat complex
- * data types. 
+ * data types.
  */
 package object builder {
 }

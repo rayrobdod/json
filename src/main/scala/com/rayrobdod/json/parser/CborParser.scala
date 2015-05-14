@@ -133,7 +133,7 @@ final class CborParser[A](topBuilder:Builder[A]) {
 		
 		aid match {
 			case AdditionalInfoDeterminate(len:Long) => {
-				(0 until len.intValue).foreach{index => 
+				(0 until len.intValue).foreach{index =>
 					val childParser = new CborParser(topBuilder.childBuilder(index.toString))
 					val childObject = childParser.parse(input)
 					retVal = topBuilder.apply(retVal, index.toString, childObject)
@@ -161,7 +161,7 @@ final class CborParser[A](topBuilder:Builder[A]) {
 		
 		aid match {
 			case AdditionalInfoDeterminate(len:Long) => {
-				(0 until len.intValue).foreach{index => 
+				(0 until len.intValue).foreach{index =>
 					val keyParser = new CborParser(topBuilder) // in other words, pray that the key is not an object or array
 					val keyObject = keyParser.parse(input)
 					val childParser = new CborParser(topBuilder.childBuilder(index.toString))
@@ -178,7 +178,7 @@ final class CborParser[A](topBuilder:Builder[A]) {
 					if (keyObject != EndOfIndeterminateObject()) {
 						val childParser = new CborParser(topBuilder.childBuilder(keyObject.toString))
 						val childObject = childParser.parse(input)
-					
+						
 						retVal = topBuilder.apply(retVal, keyObject.toString, childObject)
 					}
 				}
@@ -197,7 +197,7 @@ private object CborParser {
 		
 	}
 	private final case class AdditionalInfoIndeterminate() extends AdditionalInfoData {
-		override def value = throw new UnsupportedOperationException
+		override def value:Nothing = throw new UnsupportedOperationException
 	}
 	
 	final case class EndOfIndeterminateObject()

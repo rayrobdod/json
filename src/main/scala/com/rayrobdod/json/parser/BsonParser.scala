@@ -60,7 +60,7 @@ final class BsonParser[A](topBuilder:Builder[A]) {
 	 */
 	def parse(input:DataInput):A = {
 		// We don't really care about the document length.
-		/* val length = */ Integer.reverseBytes( input.readInt() );	
+		/* val length = */ Integer.reverseBytes( input.readInt() );
 		
 		var result:A = topBuilder.init
 		var valueType:Byte = input.readByte();

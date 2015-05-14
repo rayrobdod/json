@@ -67,10 +67,10 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 	
 	private object SingletonBuilder extends Builder[Any] {
 		val init:String = ""
-		def apply(folding:Any, key:String, value:Any) = value
+		def apply(folding:Any, key:String, value:Any):Any = value
 		def childBuilder(key:String):Builder[Any] = this
 		val resultType:Class[Any] = classOf[Any]
-		override def toString = "SingletonBuilder"
+		override def toString:String = "SingletonBuilder"
 	}
 	
 	
@@ -111,14 +111,14 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 	}
 	
 	private object TopState extends State {
-		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int) =  c match {
+		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] =  c match {
 			case ' '  => in
 			case '\t' => in
 			case '\n' => in
 			case '\r' => in
 			case _    => throw new ParseException("At end of item, but; found " + c, index)
 		}
-		override def toString = "TopState"
+		override def toString:String = "TopState"
 	}
 	
 	private object InitState extends State {
@@ -131,7 +131,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 			case '['  => in.replaceTopState(new ArrayValueStartState(""))
 			case _    => throw new ParseException("Expecting '{' or '['; found " + c, index)
 		}
-		override def toString = "InitState"
+		override def toString:String = "InitState"
 	}
 	
 	private class ObjectKeyStartState(parKey:String) extends State {
@@ -144,7 +144,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 			case '}'  => in.tail.buildTop(parKey, in.head.soFar)
 			case _    => throw new ParseException("Expecting start of key; found " + c, index)
 		}
-		override def toString = "ObjectKeyStartState(" + parKey + ")"
+		override def toString:String = "ObjectKeyStartState(" + parKey + ")"
 	}
 	
 	private class ObjectKeyEndState(parKey:String) extends State {
@@ -158,7 +158,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 			}
 			case _    => throw new ParseException("Expecting ':'; found " + c, index)
 		}
-		override def toString = "ObjectKeyEndState(" + parKey + ")"
+		override def toString:String = "ObjectKeyEndState(" + parKey + ")"
 	}
 	
 	private class ObjectValueStartState(parKey:String, currKey:String) extends State {
@@ -181,7 +181,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 				}
 			}
 		}
-		override def toString = "ObjectValueStartState(" + parKey + "," + currKey + ")"
+		override def toString:String = "ObjectValueStartState(" + parKey + "," + currKey + ")"
 	}
 	
 	private class ObjectValueEndState(parKey:String, currKey:String) extends State {
@@ -194,7 +194,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 			case '}'  => in.tail.buildTop(parKey, in.head.soFar)
 			case _    => throw new ParseException("Expecting ',' or ']'; found " + c, charIndex)
 		}
-		override def toString = "ObjectValueEndState(" + parKey + "," + currKey + ")"
+		override def toString:String = "ObjectValueEndState(" + parKey + "," + currKey + ")"
 	}
 	
 	
@@ -219,7 +219,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 				}
 			}
 		}
-		override def toString = "ArrayValueStartState(" + parKey + "," + arrayIndex + ")"
+		override def toString:String = "ArrayValueStartState(" + parKey + "," + arrayIndex + ")"
 	}
 	
 	private class ArrayValueEndState(parKey:String, arrayIndex:Int) extends State {
@@ -232,7 +232,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 			case ']'  => in.tail.buildTop(parKey, in.head.soFar)
 			case _    => throw new ParseException("Expecting ',' or ']'; found " + c, charIndex)
 		}
-		override def toString = "ArrayValueEndState(" + parKey + "," + arrayIndex + ")"
+		override def toString:String = "ArrayValueEndState(" + parKey + "," + arrayIndex + ")"
 	}
 	
 	private class StringState(key:String) extends State {
@@ -248,7 +248,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 				in.buildTop("", c)
 			}
 		}
-		override def toString = "StringState(" + key + ")"
+		override def toString:String = "StringState(" + key + ")"
 	}
 	
 	private class StringEscapeState(key:String) extends State {
@@ -264,7 +264,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 			case 'u'  => in.replaceTopState(new StringUnicodeEscapeState(key))
 			case _    => throw new ParseException("Unexpected escape code in string: " + c, charIndex)
 		}
-		override def toString = "StringEscapeState(" + key + ")"
+		override def toString:String = "StringEscapeState(" + key + ")"
 	}
 	
 	private class StringUnicodeEscapeState(key:String, characters:Int = 0, value:Int = 0) extends State {
@@ -282,7 +282,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 				throw new ParseException("non-hex character in unicode escape: " + c, charIndex)
 			}
 		}
-		override def toString = "StringUnicodeEscapeState(" + key + ")"
+		override def toString:String = "StringUnicodeEscapeState(" + key + ")"
 	}
 	
 	private class IntegerState(key:String) extends State {
@@ -295,7 +295,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 				in.buildTop("", c)
 			}
 		}
-		override def toString = "IntegerState(" + key + ")"
+		override def toString:String = "IntegerState(" + key + ")"
 	}
 	
 	private class KeywordState(key:String) extends State {
@@ -314,7 +314,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 				in.buildTop("", c)
 			}
 		}
-		override def toString = "IntegerState(" + key + ")"
+		override def toString:String = "IntegerState(" + key + ")"
 	}
 }
 

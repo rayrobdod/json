@@ -41,7 +41,7 @@ class SeqBuilder(childBuilder:Option[Builder[_ <: Any]]) extends Builder[Seq[Any
 	def this(childBuilder:Builder[_ <: Any]) = {this(Some(childBuilder))}
 	
 	val init:Seq[Nothing] = Nil
-	def apply(folding:Seq[Any], key:String, value:Any) = {
+	def apply(folding:Seq[Any], key:String, value:Any):Seq[Any] = {
 		folding :+ value
 	}
 	def childBuilder(key:String):Builder[_ <: Any] = childBuilder.getOrElse(new SeqBuilder)

@@ -29,7 +29,7 @@ package com.rayrobdod.json.builder;
 /** A builder that creates strings */
 object StringBuilder extends Builder[String] {
 	val init:String = ""
-	def apply(folding:String, key:String, value:Any) = {
+	def apply(folding:String, key:String, value:Any):String = {
 		folding + value.toString
 	}
 	def childBuilder(key:String):Builder[String] = this
