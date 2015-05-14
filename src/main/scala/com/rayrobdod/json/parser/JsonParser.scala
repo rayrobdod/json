@@ -288,7 +288,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 	private class IntegerState(key:String) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = {
 			if (c == '}' || c == ']' || c == ',') {
-				val newValue = (in.head.soFar).toString.toLong
+				val newValue = (in.head.soFar).toString.trim.toLong
 				val in2 = in.tail.buildTop(key, newValue)
 				in2.head.state.apply(in2, c, charIndex)
 			} else {
