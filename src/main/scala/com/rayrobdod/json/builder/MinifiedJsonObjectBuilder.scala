@@ -27,16 +27,22 @@
 package com.rayrobdod.json.builder;
 
 import scala.collection.immutable.Seq;
+import java.nio.charset.StandardCharsets.UTF_8;
+import java.nio.charset.Charset;
 
 /** A builder that will output a json format string
  * 
  * @constructor
  * A builder that will create json format strings
+ * 
+ * @param charset The output will only contain characters that can be encoded using the specified charset.
+ *           Any characters outside the charset will be u-escaped. Default is to keep all characters verbaitim
  */
-class MinifiedJsonObjectBuilder extends Builder[String] {
+class MinifiedJsonObjectBuilder(charset:Charset = UTF_8) extends Builder[String] {
 	
 	val init:String = "{}"
-	/** @param folding a valid json object, with no whitespace after the final '}' */
+	
+	/** @param folding a valid json object, with characters trailing the final '}' */
 	def apply(folding:String, key:String, value:Any):String = {
 		val jsonKey:String = strToJsonStr(key)
 		
@@ -61,7 +67,7 @@ class MinifiedJsonObjectBuilder extends Builder[String] {
 	
 	
 	
-	def strToJsonStr(s:String):String = "\"" + s.flatMap{_ match {
+	private def strToJsonStr(s:String):String = "\"" + s.flatMap{_ match {
 		case '"'  => "\\\""
 		case '\\' => """\\"""
 		case '\b' => "\\b"
@@ -70,8 +76,10 @@ class MinifiedJsonObjectBuilder extends Builder[String] {
 		case '\r' => "\\r"
 		case '\t' => "\\t"
 		case x => {
-			if (x <= ' ') {
-				"\\u" + ("0000" + x.intValue.toString).takeRight(4)
+			if (x < ' ') {
+				"\\u" + ("0000" + x.intValue.toHexString).takeRight(4)
+			} else if (! charset.newEncoder().canEncode(x)) {
+				"\\u" + ("0000" + x.intValue.toHexString).takeRight(4)
 			} else {
 				Seq(x)
 			}

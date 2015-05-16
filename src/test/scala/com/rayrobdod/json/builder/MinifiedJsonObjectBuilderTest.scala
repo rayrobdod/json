@@ -30,14 +30,10 @@ import scala.beans.BeanProperty;
 import java.text.ParseException;
 import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
+import java.nio.charset.StandardCharsets.US_ASCII;
+import com.rayrobdod.json.parser.CborParserTest_Happy.HexArrayStringConverter;
 
 class MinifiedJsonObjectBuilderTest extends FunSpec {
-	
-	implicit class HexArrayStringConverter(val sc: StringContext) {
-		def hexArray(args: Any*):Array[Byte] = {
-			((sc.parts.head):String).filter{x => ('A' <= x && x <= 'F') || ('a' <= x && x <= 'f') || ('0' <= x && x <= '9')}.grouped(2).map{x => Integer.parseInt(x, 16)}.map{_.byteValue}.toArray
-		}
-	}
 	
 	describe("MinifiedJsonObjectBuilder") {
 		it ("inits correctly") {
@@ -76,6 +72,21 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 		it ("Appends string with escapes 2") {
 			assertResult("""{"":"a\""" + """u0000c"}"""){
 				new MinifiedJsonObjectBuilder().apply("{}", "", "a\u0000c")
+			}
+		}
+		it ("Appends string with space") {
+			assertResult("""{"":" a c "}"""){
+				new MinifiedJsonObjectBuilder().apply("{}", "", " a c ")
+			}
+		}
+		it ("Appends string with non-ascii char (utf-8)") {
+			assertResult("""{"":"Pokémon"}"""){
+				new MinifiedJsonObjectBuilder().apply("{}", "", "Pokémon")
+			}
+		}
+		it ("Appends string with non-ascii char (ascii)") {
+			assertResult("""{"":"Pok\""" + """u00e9mon"}"""){
+				new MinifiedJsonObjectBuilder(US_ASCII).apply("{}", "", "Pokémon")
 			}
 		}
 		it ("Appends a second value") {
