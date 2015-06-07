@@ -33,9 +33,11 @@ object JsonParserTestGenerator {
 	private val testValues:Seq[(String, String, String)] = Seq(
 		("empty array", """[]""", "Map.empty"),
 		("empty array with before whitespace", """  []""", "Map.empty"),
+		("empty array with before byteordermark", """\ufeff[]""", "Map.empty"),
 		("empty array with middle whitespace", """[  ]""", "Map.empty"),
 		("empty array with ending whitespace", """[]  """, "Map.empty"),
 		("empty object", """{}""", "Map.empty"),
+		("empty object with before byteordermark", """\ufeff{}""", "Map.empty"),
 		("empty object with before whitespace", """  {}""", "Map.empty"),
 		("empty object with middle whitespace", """{  }""", "Map.empty"),
 		("empty object with ending whitespace", """{}  """, "Map.empty"),

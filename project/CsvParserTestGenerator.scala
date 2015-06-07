@@ -36,6 +36,8 @@ object CsvParserTestGenerator {
 		("empty object", """ "" """, "Seq()", "CsvParser.csvCharacterMeanings"),
 		("empty object with whitespace csv", """ "  " """, "Seq()", "CsvParser.csvCharacterMeanings"),
 		("empty object with whitespace tsv", """ "  " """, "Seq()", "CsvParser.tsvCharacterMeanings"),
+		("empty object with byteordermark csv", """ "\ufeff" """, "Seq()", "CsvParser.csvCharacterMeanings"),
+		("empty object with byteordermark tsv", """ "\ufeff" """, "Seq()", "CsvParser.tsvCharacterMeanings"),
 		("single element csv", """ "4" """, """Seq(Seq("4"))""", "CsvParser.csvCharacterMeanings"),
 		("single element tsv", """ "4" """, """Seq(Seq("4"))""", "CsvParser.tsvCharacterMeanings"),
 		("single element ascii", """ "4" """, """Seq(Seq("4"))""", "CsvParser.asciiCharacterMeanings"),
