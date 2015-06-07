@@ -275,9 +275,9 @@ object CsvParser {
 	)
 	
 	/** The set of CharacterMeanings for comma separated values */
-	val csvCharacterMeanings = CharacterMeanings(Set('\n'), Set(','), Set('"'), Set(' ', '\t'), Set('\\'))
+	val csvCharacterMeanings = CharacterMeanings(Set('\n'), Set(','), Set('"'), Set(' ', '\t', '\uFEFF'), Set('\\'))
 	/** The set of CharacterMeanings for tab separated values */
-	val tsvCharacterMeanings = CharacterMeanings(Set('\n'), Set('\t'), Set('"'), Set(' '), Set('\\'))
+	val tsvCharacterMeanings = CharacterMeanings(Set('\n'), Set('\t'), Set('"'), Set(' ', '\uFEFF'), Set('\\'))
 	/** The set of CharacterMeanings using ASCII delimeters */
 	val asciiCharacterMeanings = CharacterMeanings(Set('\u001E'), Set('\u001F'), Set.empty, Set.empty, Set.empty)
 }
