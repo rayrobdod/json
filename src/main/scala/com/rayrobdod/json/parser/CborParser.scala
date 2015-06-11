@@ -61,35 +61,35 @@ final class CborParser[A](topBuilder:Builder[A]) {
 		val headerByte:Byte = input.readByte();
 		val majorType = (headerByte >> 5) & 0x07
 		val additionalInfo = headerByte & 0x1F
-		val additionalInfoData:AdditionalInfoData = {
-			if (additionalInfo <= 23) { AdditionalInfoDeterminate(additionalInfo) }
-			else if (additionalInfo == 24) { AdditionalInfoDeterminate(input.readUnsignedByte()) }
-			else if (additionalInfo == 25) { AdditionalInfoDeterminate(input.readUnsignedShort()) }
-			else if (additionalInfo == 26) { AdditionalInfoDeterminate(input.readInt()) } //todo unsigned int
-			else if (additionalInfo == 27) { AdditionalInfoDeterminate(input.readLong()) } // todo unsigned long (?)
-			else if (additionalInfo == 31) { AdditionalInfoIndeterminate() }
-			else {throw new ParseException("Illegal `additionalInfo` field", -1)}
+		val additionalInfoData:AdditionalInfoData = additionalInfo match {
+			case x if (x <= 23) => { AdditionalInfoDeterminate(x) }
+			case 24 => { AdditionalInfoDeterminate(input.readUnsignedByte()) }
+			case 25 => { AdditionalInfoDeterminate(input.readUnsignedShort()) }
+			case 26 => { AdditionalInfoDeterminate(input.readInt()) } //todo unsigned int
+			case 27 => { AdditionalInfoDeterminate(input.readLong()) } // todo unsigned long (?)
+			case 31 => { AdditionalInfoIndeterminate() }
+			case _  => {throw new ParseException("Illegal `additionalInfo` field", -1)}
 		}
 		
 		majorType match {
 			// positive integer
-			case 0 => additionalInfoData.value
+			case MajorTypeCodes.POSITIVE_INT => additionalInfoData.value
 			// negative integer
-			case 1 => -1 - additionalInfoData.value
+			case MajorTypeCodes.NEGATIVE_INT => -1 - additionalInfoData.value
 			// byte string
-			case 2 => parseByteString(input, additionalInfoData)
+			case MajorTypeCodes.BYTE_ARRAY => parseByteString(input, additionalInfoData)
 			// text string
-			case 3 => new String(parseByteString(input, additionalInfoData), UTF_8)
+			case MajorTypeCodes.STRING => new String(parseByteString(input, additionalInfoData), UTF_8)
 			// array/list
-			case 4 => parseArray(topBuilder, input, additionalInfoData)
+			case MajorTypeCodes.ARRAY => parseArray(topBuilder, input, additionalInfoData)
 			// map
-			case 5 => parseObject(topBuilder, input, additionalInfoData)
+			case MajorTypeCodes.OBJECT => parseObject(topBuilder, input, additionalInfoData)
 			// tags
-			case 6 => {
+			case MajorTypeCodes.TAG => {
 				new TaggedValue(additionalInfoData.value, this.parse(input))
 			}
 			// floats/simple
-			case 7 => additionalInfo match {
+			case MajorTypeCodes.SPECIAL => additionalInfo match {
 				case 20 => false
 				case 21 => true
 				case 22 => null
@@ -203,4 +203,16 @@ private object CborParser {
 	final case class EndOfIndeterminateObject()
 	final case class UnknownSimpleValue(value:Byte)
 	final case class TaggedValue(tag:Long, item:Any)
+	
+	/** because magic numbers are bad */
+	object MajorTypeCodes {
+		val POSITIVE_INT = 0
+		val NEGATIVE_INT = 1
+		val BYTE_ARRAY = 2
+		val STRING = 3
+		val ARRAY = 4
+		val OBJECT = 5
+		val TAG = 6
+		val SPECIAL = 7
+	}
 }
