@@ -42,7 +42,7 @@ class MinifiedJsonObjectBuilder(charset:Charset = UTF_8) extends Builder[String]
 	
 	val init:String = "{}"
 	
-	/** @param folding a valid json object, with characters trailing the final '}' */
+	/** @param folding a valid json object, with no characters trailing the final '}' */
 	def apply(folding:String, key:String, value:Any):String = {
 		val jsonKey:String = strToJsonStr(key)
 		
