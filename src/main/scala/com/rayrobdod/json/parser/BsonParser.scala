@@ -102,16 +102,6 @@ final class BsonParser[A](topBuilder:Builder[A]) {
 		result
 	}
 	
-	/* def parse(is:InputStream):A = this.parse(
-		new java.io.DataInputStream(ba)
-	)
-	
-	def parse(ba:Array[Byte]):A = this.parse(
-		new java.io.ByteArrayInputStream(ba)
-	) */
-	
-	
-	
 	
 	
 	/**

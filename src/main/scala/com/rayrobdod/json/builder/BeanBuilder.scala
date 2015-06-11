@@ -33,6 +33,10 @@ import java.lang.reflect.Method
  * As with anything that works with javabeans, this requires the class
  * to have a zero-argument constructor and will interact with methods
  * of the form `setX`.
+ 
+ * @constructor
+ * @param clazz the class of the objects to build
+ * @param childBuilders a map used directly by childBuilder
  */
 class BeanBuilder[A](clazz:Class[A], childBuilders:Map[String, Builder[_]] = Map.empty) extends Builder[A] {
 	/**
@@ -54,6 +58,9 @@ class BeanBuilder[A](clazz:Class[A], childBuilders:Map[String, Builder[_]] = Map
 		folding
 	}
 	
+	/**
+	 * Applies the key to the constructor parameter `childBuilders`
+	 */
 	def childBuilder(key:String):Builder[_] = childBuilders(key)
 	
 	/** Returns the constructor parameter `clazz` */

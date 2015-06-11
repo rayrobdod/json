@@ -46,7 +46,6 @@ scalastyleConfig := baseDirectory.value / "project" / "scalastyle-config.xml"
 
 
 // scalaTest
-
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.1" % "test"
 
 testOptions in Test += Tests.Argument("-oS")
