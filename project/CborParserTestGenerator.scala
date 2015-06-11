@@ -55,6 +55,7 @@ object CborParserTestGenerator {
 		("byte string INDET", """ hexArray"5F44AABBCCDD43EEFF99FF" """, """ hexArray"AABBCCDDEEFF99" """),
 		("char string 0", """Array[Byte](0x60)""", " \"\" "),
 		("char string 5", """Array(0x65, 'h', 'e', 'l', 'l', 'o').map{_.byteValue}""", """ "hello" """),
+		("char string multibyte char", """hexArray"63e6b0b4" """, """ "\u6c34" """),
 		("char string INDET", """Array(0x7F, 0x62, 'h', 'e', 0x63, 'l', 'l', 'o', 0xFF).map{_.byteValue}""", """ "hello" """),
 		("array 0", """ hexArray"80" """, "Map()"),
 		("array 1", """ hexArray"8121" """, """Map("0" -> -2)"""),
