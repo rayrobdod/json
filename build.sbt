@@ -41,6 +41,10 @@ mappings in (Compile, packageSrc) <+= baseDirectory.map{(b) => (new File(b, "LIC
 
 mappings in (Compile, packageBin) <+= baseDirectory.map{(b) => (new File(b, "LICENSE.rst"), "LICENSE.rst" )}
 
+mappings in (Compile, packageSrc) <+= baseDirectory.map{(b) => (new File(b, "CHANGES.md"), "CHANGES.md" )}
+
+mappings in (Compile, packageBin) <+= baseDirectory.map{(b) => (new File(b, "CHANGES.md"), "CHANGES.md" )}
+
 scalastyleConfig := baseDirectory.value / "project" / "scalastyle-config.xml"
 
 
