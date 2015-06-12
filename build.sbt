@@ -19,16 +19,6 @@ scalacOptions ++= Seq("-unchecked", "-deprecation")
 libraryDependencies <+= scalaVersion.apply{("org.scala-lang" % "scala-reflect" % _)}
 
 
-
-artifact in (Compile, packageDoc) := {
-	(artifact in (Compile, packageDoc)).value.copy(extension = "zip")
-}
-
-// TODO: tarball
-artifact in (Compile, packageSrc) := {
-	(artifact in (Compile, packageSrc)).value.copy(extension = "zip")
-}
-
 packageOptions in (Compile, packageBin) <+= (scalaVersion, sourceDirectory).map{(scalaVersion:String, srcDir:File) =>
 	val manifest = new java.util.jar.Manifest(new java.io.FileInputStream(srcDir + "/main/MANIFEST.MF"))
 	manifest.getAttributes("scala/").putValue("Implementation-Version", scalaVersion)
