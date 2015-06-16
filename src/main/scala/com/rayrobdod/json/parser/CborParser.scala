@@ -189,7 +189,7 @@ final class CborParser[A](topBuilder:Builder[A]) {
 }
 
 
-private object CborParser {
+object CborParser {
 	private abstract sealed class AdditionalInfoData {
 		def value:Long
 	}
@@ -206,24 +206,24 @@ private object CborParser {
 	
 	/** because magic numbers are bad */
 	object MajorTypeCodes {
-		val POSITIVE_INT = 0
-		val NEGATIVE_INT = 1
-		val BYTE_ARRAY = 2
-		val STRING = 3
-		val ARRAY = 4
-		val OBJECT = 5
-		val TAG = 6
-		val SPECIAL = 7
+		val POSITIVE_INT:Byte = 0
+		val NEGATIVE_INT:Byte = 1
+		val BYTE_ARRAY:Byte = 2
+		val STRING:Byte = 3
+		val ARRAY:Byte = 4
+		val OBJECT:Byte = 5
+		val TAG:Byte = 6
+		val SPECIAL:Byte = 7
 	}
 	
 	/** because magic numbers are bad */
 	object SimpleValueCodes {
-		val FALSE = 20
-		val TRUE = 21
-		val NULL = 22
-		val HALF_FLOAT = 25
-		val FLOAT = 26
-		val DOUBLE = 27
-		val END_OF_LIST = 31
+		val FALSE:Byte  = 20
+		val TRUE:Byte   = 21
+		val NULL:Byte   = 22
+		val HALF_FLOAT:Byte = 25
+		val FLOAT:Byte  = 26
+		val DOUBLE:Byte = 27
+		val END_OF_LIST:Byte = 31
 	}
 }

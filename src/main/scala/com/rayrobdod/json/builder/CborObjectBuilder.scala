@@ -28,13 +28,14 @@ package com.rayrobdod.json.builder;
 
 import scala.collection.immutable.Seq
 import java.nio.charset.StandardCharsets.UTF_8
+import com.rayrobdod.json.parser.CborParser.{MajorTypeCodes, SimpleValueCodes}
 
 /**
  * A builder that will serialize a map as a Cbor Object
  */
 class CborObjectBuilder extends Builder[Seq[Byte]] {
 	
-	val init:Seq[Byte] = encodeLength(5, 0)
+	val init:Seq[Byte] = encodeLength(MajorTypeCodes.OBJECT, 0)
 	
 	/** @param folding a valid cbor object */
 	def apply(folding:Seq[Byte], key:String, value:Any):Seq[Byte] = {
@@ -49,7 +50,7 @@ class CborObjectBuilder extends Builder[Seq[Byte]] {
 			case _  => {throw new IllegalArgumentException("input `folding` had illegal length value")}
 		}
 		
-		encodeLength(5, objectLength + 1) ++ passData ++ encodeValue(key) ++ encodeValue(value)
+		encodeLength(MajorTypeCodes.OBJECT, objectLength + 1) ++ passData ++ encodeValue(key) ++ encodeValue(value)
 	}
 	
 	def childBuilder(key:String):Builder[_ <: Any] = new MapBuilder()
@@ -73,18 +74,18 @@ class CborObjectBuilder extends Builder[Seq[Byte]] {
 	}
 	
 	private def encodeValue(v:Any):Seq[Byte] = v match {
-		case false => encodeLength(7, 20)
-		case true  => encodeLength(7, 21)
-		case null  => encodeLength(7, 22)
-		case x:Float => Seq((0xE0 + 26).byteValue) ++ long2ByteArray(java.lang.Float.floatToIntBits(x), 4)
-		case x:Double => Seq((0xE0 + 27).byteValue) ++ long2ByteArray(java.lang.Double.doubleToLongBits(x))
+		case false => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.FALSE)
+		case true  => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.TRUE)
+		case null  => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.NULL)
+		case x:Float => Seq((0xE0 + SimpleValueCodes.FLOAT).byteValue) ++ long2ByteArray(java.lang.Float.floatToIntBits(x), 4)
+		case x:Double => Seq((0xE0 + SimpleValueCodes.DOUBLE).byteValue) ++ long2ByteArray(java.lang.Double.doubleToLongBits(x))
 		case x:String => {
 			val bytes = x.getBytes(UTF_8)
-			encodeLength(3, bytes.length) ++ bytes
+			encodeLength(MajorTypeCodes.STRING, bytes.length) ++ bytes
 		}
-		case x:Number if (x.longValue >= 0) => encodeLength(0, x.longValue)
-		case x:Number if (x.longValue < 0) => encodeLength(1, -1 - x.longValue)
-		case bytes:Array[Byte] => encodeLength(2, bytes.length) ++ bytes
+		case x:Number if (x.longValue >= 0) => encodeLength(MajorTypeCodes.POSITIVE_INT, x.longValue)
+		case x:Number if (x.longValue < 0) => encodeLength(MajorTypeCodes.NEGATIVE_INT, -1 - x.longValue)
+		case bytes:Array[Byte] => encodeLength(MajorTypeCodes.BYTE_ARRAY, bytes.length) ++ bytes
 		case x:Map[_,_] => {
 			new MapParser(this).parse(x.asInstanceOf[Map[Any, Any]])
 		}
