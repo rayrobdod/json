@@ -90,13 +90,13 @@ final class CborParser[A](topBuilder:Builder[A]) {
 			}
 			// floats/simple
 			case MajorTypeCodes.SPECIAL => additionalInfo match {
-				case 20 => false
-				case 21 => true
-				case 22 => null
-				case 25 => throw new UnsupportedOperationException("Half float")
-				case 26 => java.lang.Float.intBitsToFloat(additionalInfoData.value.intValue)
-				case 27 => java.lang.Double.longBitsToDouble(additionalInfoData.value.longValue)
-				case 31 => EndOfIndeterminateObject()
+				case SimpleValueCodes.FALSE => false
+				case SimpleValueCodes.TRUE  => true
+				case SimpleValueCodes.NULL => null
+				case SimpleValueCodes.HALF_FLOAT => throw new UnsupportedOperationException("Half float")
+				case SimpleValueCodes.FLOAT => java.lang.Float.intBitsToFloat(additionalInfoData.value.intValue)
+				case SimpleValueCodes.DOUBLE => java.lang.Double.longBitsToDouble(additionalInfoData.value.longValue)
+				case SimpleValueCodes.END_OF_LIST => EndOfIndeterminateObject()
 				case _  => UnknownSimpleValue(additionalInfoData.value.byteValue)
 			}
 			case _ => throw new AssertionError("majorType was greater than 7")
@@ -214,5 +214,16 @@ private object CborParser {
 		val OBJECT = 5
 		val TAG = 6
 		val SPECIAL = 7
+	}
+	
+	/** because magic numbers are bad */
+	object SimpleValueCodes {
+		val FALSE = 20
+		val TRUE = 21
+		val NULL = 22
+		val HALF_FLOAT = 25
+		val FLOAT = 26
+		val DOUBLE = 27
+		val END_OF_LIST = 31
 	}
 }

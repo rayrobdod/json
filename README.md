@@ -5,8 +5,8 @@
 ## Build Instructions
 This repository uses [sbt](http://www.scala-sbt.org/) as its build tool.
 
-Both dependencies can be found by sbt automatically, and both are only used for
-testing.
+The dependencies can be found by sbt automatically, but only scala itself isn't
+used just for testing.
 
 ##Usage
 There are two types of classes in this library. The first is
