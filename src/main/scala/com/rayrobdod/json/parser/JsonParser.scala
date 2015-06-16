@@ -86,8 +86,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 			val a = chars.zipWithIndex.foldLeft[List[StackFrame[_ >: A]]](
 				List(StackFrame(topBuilder.init, topBuilder, InitState), StackFrame(topBuilder.init, SingletonBuilder, TopState))
 			){(stateStack:List[StackFrame[_ >: A]], charIndex:(Char, Int)) =>
-				val (char2, index) = charIndex
-				val char = if (char2.isWhitespace) {' '} else {char2}
+				val (char, index) = charIndex
 				
 				val retVal = stateStack.head.state.apply(stateStack, char, index)
 				
