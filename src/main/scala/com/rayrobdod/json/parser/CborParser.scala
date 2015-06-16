@@ -200,11 +200,20 @@ private object CborParser {
 		override def value:Nothing = throw new UnsupportedOperationException
 	}
 	
+	/**
+	 * The marker of the end of an indeterminate value. Represented as (0xFF).
+	 * Unless you're trying to see this value, you shouldn't see this value.
+	 */
 	final case class EndOfIndeterminateObject()
+	/** A simple value other than the known ones */
 	final case class UnknownSimpleValue(value:Byte)
+	/** A tagged value */
 	final case class TaggedValue(tag:Long, item:Any)
 	
-	/** because magic numbers are bad */
+	/**
+	 * The CBOR major types.
+	 * Because magic numbers are bad.
+	 */
 	object MajorTypeCodes {
 		val POSITIVE_INT = 0
 		val NEGATIVE_INT = 1
@@ -216,7 +225,10 @@ private object CborParser {
 		val SPECIAL = 7
 	}
 	
-	/** because magic numbers are bad */
+	/**
+	 * Known simple values.
+	 * Because magic numbers are bad.
+	 */
 	object SimpleValueCodes {
 		val FALSE = 20
 		val TRUE = 21
