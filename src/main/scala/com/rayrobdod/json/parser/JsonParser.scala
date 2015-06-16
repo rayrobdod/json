@@ -67,10 +67,10 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 	
 	private object SingletonBuilder extends Builder[Any] {
 		val init:String = ""
-		def apply(folding:Any, key:String, value:Any) = value
+		def apply(folding:Any, key:String, value:Any):Any = value
 		def childBuilder(key:String):Builder[Any] = this
 		val resultType:Class[Any] = classOf[Any]
-		override def toString = "SingletonBuilder"
+		override def toString:String = "SingletonBuilder"
 	}
 	
 	
@@ -102,6 +102,11 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 		})
 	}
 	
+	/**
+	 * Decodes the input values to an object.
+	 * @param chars the serialized json object or array
+	 * @return the parsed object
+	 */
 	def parse(chars:java.io.Reader):A = this.parse(new Reader2Iterable(chars))
 	
 	
@@ -111,128 +116,122 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 	}
 	
 	private object TopState extends State {
-		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int) =  c match {
-			case ' '  => in
-			case '\t' => in
-			case '\n' => in
-			case '\r' => in
+		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] =  c match {
+			case x if x.isWhitespace => in
 			case _    => throw new ParseException("At end of item, but; found " + c, index)
 		}
-		override def toString = "TopState"
+		override def toString:String = "TopState"
 	}
 	
 	private object InitState extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] = c match {
-			case ' '  => in
-			case '\t' => in
-			case '\n' => in
-			case '\r' => in
+			case '\ufeff' => in // byte-order-mark
+			case x if x.isWhitespace => in
 			case '{'  => in.replaceTopState(new ObjectKeyStartState(""))
 			case '['  => in.replaceTopState(new ArrayValueStartState(""))
 			case _    => throw new ParseException("Expecting '{' or '['; found " + c, index)
 		}
-		override def toString = "InitState"
+		override def toString:String = "InitState"
 	}
 	
 	private class ObjectKeyStartState(parKey:String) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] = c match {
-			case ' '  => in
-			case '\t' => in
-			case '\n' => in
-			case '\r' => in
-			case '"'  => (new StackFrame(StringBuilder.init, StringBuilder.asInstanceOf[Builder[Any]], new StringState(""))) :: (new StackFrame("", SingletonBuilder, new ObjectKeyEndState(parKey))) :: in.replaceTopState(new ObjectKeyEndState(parKey))
+			case x if x.isWhitespace => in
+			case '"'  => {
+				(new StackFrame(StringBuilder.init, StringBuilder.asInstanceOf[Builder[Any]], new StringState(""))) ::
+				(new StackFrame("", SingletonBuilder, new ObjectKeyEndState(parKey))) ::
+				in.replaceTopState(new ObjectKeyEndState(parKey))
+			}
 			case '}'  => in.tail.buildTop(parKey, in.head.soFar)
 			case _    => throw new ParseException("Expecting start of key; found " + c, index)
 		}
-		override def toString = "ObjectKeyStartState(" + parKey + ")"
+		override def toString:String = "ObjectKeyStartState(" + parKey + ")"
 	}
 	
 	private class ObjectKeyEndState(parKey:String) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] = c match {
-			case ' '  => in
-			case '\t' => in
-			case '\n' => in
-			case '\r' => in
+			case x if x.isWhitespace => in
 			case ':'  => {
 				in.tail.replaceTopState(new ObjectValueStartState(parKey, in.head.soFar.toString))
 			}
 			case _    => throw new ParseException("Expecting ':'; found " + c, index)
 		}
-		override def toString = "ObjectKeyEndState(" + parKey + ")"
+		override def toString:String = "ObjectKeyEndState(" + parKey + ")"
 	}
 	
 	private class ObjectValueStartState(parKey:String, currKey:String) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] = c match {
-			case ' '  => in
-			case '\t' => in
-			case '\n' => in
-			case '\r' => in
-			case '"'  => (new StackFrame(StringBuilder.init, StringBuilder.asInstanceOf[Builder[Any]], new StringState(currKey))) :: in.replaceTopState(new ObjectValueEndState(parKey, currKey))
+			case x if x.isWhitespace => in
+			case '"'  => {
+				(new StackFrame(StringBuilder.init, StringBuilder.asInstanceOf[Builder[Any]], new StringState(currKey))) ::
+				in.replaceTopState(new ObjectValueEndState(parKey, currKey))
+			}
 			case '['  => in.replaceTopState(new ObjectValueEndState(parKey, currKey)).pushChild(currKey, new ArrayValueStartState(currKey))
 			case '{'  => in.replaceTopState(new ObjectValueEndState(parKey, currKey)).pushChild(currKey, new ObjectKeyStartState(currKey))
-			case '-'  => (new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(currKey))) :: in.replaceTopState(new ObjectValueEndState(parKey, currKey))
-			case _    => {
-				if ('0' <= c && c <= '9') {
-					(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(currKey))) :: in.replaceTopState(new ObjectValueEndState(parKey, currKey))
-				} else if ('a' <= c && c <= 'z') {
-					(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new KeywordState(currKey))) :: in.replaceTopState(new ObjectValueEndState(parKey, currKey))
-				} else {
-					throw new ParseException("Expecting start of value; found " + c, index)
-				}
+			case '-'  => {
+				(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(currKey))) ::
+				in.replaceTopState(new ObjectValueEndState(parKey, currKey))
 			}
+			case x if ('0' <= x && x <= '9') => {
+				(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(currKey))) ::
+				in.replaceTopState(new ObjectValueEndState(parKey, currKey))
+			}
+			case x if ('a' <= x && x <= 'z') => {
+				(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new KeywordState(currKey))) ::
+				in.replaceTopState(new ObjectValueEndState(parKey, currKey))
+			}
+			case _ => throw new ParseException("Expecting start of value; found " + c, index)
 		}
-		override def toString = "ObjectValueStartState(" + parKey + "," + currKey + ")"
+		override def toString:String = "ObjectValueStartState(" + parKey + "," + currKey + ")"
 	}
 	
 	private class ObjectValueEndState(parKey:String, currKey:String) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = c match {
-			case ' '  => in
-			case '\t' => in
-			case '\n' => in
-			case '\r' => in
+			case x if x.isWhitespace => in
 			case ','  => in.replaceTopState(new ObjectKeyStartState(parKey))
 			case '}'  => in.tail.buildTop(parKey, in.head.soFar)
 			case _    => throw new ParseException("Expecting ',' or ']'; found " + c, charIndex)
 		}
-		override def toString = "ObjectValueEndState(" + parKey + "," + currKey + ")"
+		override def toString:String = "ObjectValueEndState(" + parKey + "," + currKey + ")"
 	}
 	
 	
 	private class ArrayValueStartState(parKey:String, arrayIndex:Int = 0) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = c match {
-			case ' '  => in
-			case '\t' => in
-			case '\n' => in
-			case '\r' => in
+			case x if x.isWhitespace => in
 			case ']'  => in.tail.buildTop(parKey, in.head.soFar)
-			case '"'  => (new StackFrame(StringBuilder.init, StringBuilder.asInstanceOf[Builder[Any]], new StringState(arrayIndex.toString))) :: in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
+			case '"'  => {
+				(new StackFrame(StringBuilder.init, StringBuilder.asInstanceOf[Builder[Any]], new StringState(arrayIndex.toString))) ::
+				in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
+			}
 			case '['  => in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex)).pushChild(arrayIndex.toString, new ArrayValueStartState(arrayIndex.toString))
 			case '{'  => in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex)).pushChild(arrayIndex.toString, new ObjectKeyStartState(arrayIndex.toString))
-			case '-'  => (new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(arrayIndex.toString))) :: in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
-			case _    => {
-				if ('0' <= c && c <= '9') {
-					(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(arrayIndex.toString))) :: in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
-				} else if ('a' <= c && c <= 'z') {
-					(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new KeywordState(arrayIndex.toString))) :: in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
-				} else {
-					throw new ParseException("Expecting start of value; found " + c, charIndex)
-				}
+			case '-'  => {
+				(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(arrayIndex.toString))) ::
+				in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
 			}
+			case x if ('0' <= x && x <= '9') => {
+				(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(arrayIndex.toString))) ::
+				in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
+			}
+			case x if ('a' <= x && x <= 'z') => {
+				(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new KeywordState(arrayIndex.toString))) ::
+				in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
+			}
+			case _ =>
+					throw new ParseException("Expecting start of value; found " + c, charIndex)
 		}
-		override def toString = "ArrayValueStartState(" + parKey + "," + arrayIndex + ")"
+		override def toString:String = "ArrayValueStartState(" + parKey + "," + arrayIndex + ")"
 	}
 	
 	private class ArrayValueEndState(parKey:String, arrayIndex:Int) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = c match {
-			case ' '  => in
-			case '\t' => in
-			case '\n' => in
-			case '\r' => in
+			case x if x.isWhitespace => in
 			case ','  => in.replaceTopState(new ArrayValueStartState(parKey, arrayIndex + 1))
 			case ']'  => in.tail.buildTop(parKey, in.head.soFar)
 			case _    => throw new ParseException("Expecting ',' or ']'; found " + c, charIndex)
 		}
-		override def toString = "ArrayValueEndState(" + parKey + "," + arrayIndex + ")"
+		override def toString:String = "ArrayValueEndState(" + parKey + "," + arrayIndex + ")"
 	}
 	
 	private class StringState(key:String) extends State {
@@ -248,7 +247,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 				in.buildTop("", c)
 			}
 		}
-		override def toString = "StringState(" + key + ")"
+		override def toString:String = "StringState(" + key + ")"
 	}
 	
 	private class StringEscapeState(key:String) extends State {
@@ -264,7 +263,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 			case 'u'  => in.replaceTopState(new StringUnicodeEscapeState(key))
 			case _    => throw new ParseException("Unexpected escape code in string: " + c, charIndex)
 		}
-		override def toString = "StringEscapeState(" + key + ")"
+		override def toString:String = "StringEscapeState(" + key + ")"
 	}
 	
 	private class StringUnicodeEscapeState(key:String, characters:Int = 0, value:Int = 0) extends State {
@@ -282,20 +281,20 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 				throw new ParseException("non-hex character in unicode escape: " + c, charIndex)
 			}
 		}
-		override def toString = "StringUnicodeEscapeState(" + key + ")"
+		override def toString:String = "StringUnicodeEscapeState(" + key + ")"
 	}
 	
 	private class IntegerState(key:String) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = {
 			if (c == '}' || c == ']' || c == ',') {
-				val newValue = (in.head.soFar).toString.toLong
+				val newValue = (in.head.soFar).toString.trim.toLong
 				val in2 = in.tail.buildTop(key, newValue)
 				in2.head.state.apply(in2, c, charIndex)
 			} else {
 				in.buildTop("", c)
 			}
 		}
-		override def toString = "IntegerState(" + key + ")"
+		override def toString:String = "IntegerState(" + key + ")"
 	}
 	
 	private class KeywordState(key:String) extends State {
@@ -314,7 +313,17 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 				in.buildTop("", c)
 			}
 		}
-		override def toString = "IntegerState(" + key + ")"
+		override def toString:String = "IntegerState(" + key + ")"
+	}
+	
+	/** A builder that creates strings */
+	private object StringBuilder extends Builder[String] {
+		val init:String = ""
+		def apply(folding:String, key:String, value:Any):String = {
+			folding + value.toString
+		}
+		def childBuilder(key:String):Builder[String] = this
+		val resultType:Class[String] = classOf[String]
 	}
 }
 

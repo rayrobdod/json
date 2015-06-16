@@ -26,7 +26,7 @@
 */
 package com.rayrobdod.json.builder;
 
-import scala.reflect.BeanProperty;
+import scala.beans.BeanProperty;
 import java.text.ParseException;
 import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
@@ -47,7 +47,7 @@ class BeanBuilderTest extends FunSpec {
 			}
 		}
 		it ("Can handle the age bean property") {
-			val age = 9001l
+			val age = 9001L
 			assertResult(new Person("", age)){
 				new BeanBuilder(classOf[Person]).apply(new Person(), "age", age)
 			}
@@ -96,8 +96,8 @@ object BeanBuilderTest {
 	
 	object MockBuilder extends Builder[Nothing] {
 		def init:Nothing = {throw new UnsupportedOperationException}
-		def apply(folding:Nothing, key:String, value:Any) = {throw new UnsupportedOperationException}
-		def childBuilder(key:String) = {throw new UnsupportedOperationException}
+		def apply(folding:Nothing, key:String, value:Any):Nothing = {throw new UnsupportedOperationException}
+		def childBuilder(key:String):Nothing = {throw new UnsupportedOperationException}
 		def resultType:Class[Nothing] = {throw new UnsupportedOperationException}
 	}
 }

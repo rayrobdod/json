@@ -46,7 +46,7 @@ class CaseClassBuilderTest extends FunSpec {
 			}
 		}
 		it ("Can handle the age bean property") {
-			val age = 9001l
+			val age = 9001L
 			assertResult(new Person("", age)){
 				new CaseClassBuilder(classOf[Person], new Person("", 0)).apply(new Person("", 0), "age", age)
 			}
@@ -90,8 +90,8 @@ object CaseClassBuilderTest {
 	
 	object MockBuilder extends Builder[Nothing] {
 		def init:Nothing = {throw new UnsupportedOperationException}
-		def apply(folding:Nothing, key:String, value:Any) = {throw new UnsupportedOperationException}
-		def childBuilder(key:String) = {throw new UnsupportedOperationException}
+		def apply(folding:Nothing, key:String, value:Any):Nothing = {throw new UnsupportedOperationException}
+		def childBuilder(key:String):Nothing = {throw new UnsupportedOperationException}
 		def resultType:Class[Nothing] = {throw new UnsupportedOperationException}
 	}
 }

@@ -33,9 +33,11 @@ object JsonParserTestGenerator {
 	private val testValues:Seq[(String, String, String)] = Seq(
 		("empty array", """[]""", "Map.empty"),
 		("empty array with before whitespace", """  []""", "Map.empty"),
+		("empty array with before byteordermark", """\ufeff[]""", "Map.empty"),
 		("empty array with middle whitespace", """[  ]""", "Map.empty"),
 		("empty array with ending whitespace", """[]  """, "Map.empty"),
 		("empty object", """{}""", "Map.empty"),
+		("empty object with before byteordermark", """\ufeff{}""", "Map.empty"),
 		("empty object with before whitespace", """  {}""", "Map.empty"),
 		("empty object with middle whitespace", """{  }""", "Map.empty"),
 		("empty object with ending whitespace", """{}  """, "Map.empty"),
@@ -46,27 +48,33 @@ object JsonParserTestGenerator {
 		("array containing multiple strings", """["a","b","c"]""", """Map("0" -> "a", "1" -> "b", "2" -> "c")"""),
 		
 		("array containing positive number", """[24601]""", """Map("0" -> 24601)"""),
+		("array containing positive number (whitespace)", """[ 24601 ]""", """Map("0" -> 24601)"""),
 		("array containing zero", """[0]""", """Map("0" -> 0)"""),
 		("array containing negative number", """[-42]""", """Map("0" -> -42)"""),
 		("array containing multiple numbers", """[-1,0,1]""", """Map("0" -> -1, "1" -> 0, "2" -> 1)"""),
 		
 		("array containing array", """[[[]]]""", """Map("0" -> Map("0" -> Map()))"""),
+		("array containing array (whitespace)", """[ [ [ ] ] ]""", """Map("0" -> Map("0" -> Map()))"""),
 		("array containing array 2", """[[0,1]]""", """Map("0" -> Map("0" -> 0, "1" -> 1))"""),
 		("array containing object", """[{}]""", """Map("0" -> Map())"""),
 		
 		("object containing empty string", """{"":""}""", """Map("" -> "")"""),
 		("object containing single char string", """{"a":"b"}""", """Map("a" -> "b")"""),
 		("object containing multi char string", """{"abcde":"12345"}""", """Map("abcde" -> "12345")"""),
+		("object containing multi char string (whitespace)", """{ "abcde" : "12345" }""", """Map("abcde" -> "12345")"""),
 		("object containing multiple string", """{"a":"b","c":"d"}""", """Map("a" -> "b", "c" -> "d")"""),
 		
 		("object containing positive number", """{"":24601}""", """Map("" -> 24601)"""),
 		("object containing zero", """{"":0}""", """Map("" -> 0)"""),
 		("object containing negative number", """{"":-42}""", """Map("" -> -42)"""),
 		("object containing multiple numbers", """{"a":-1,"b":0,"c":1}""", """Map("a" -> -1, "b" -> 0, "c" -> 1)"""),
+		("object containing positive number (whitespace)", """{"": 24601 }""", """Map("" -> 24601)"""),
 		
 		("object containing array", """{"":[[]]}""", """Map("" -> Map("0" -> Map()))"""),
+		("object containing array (whitespace)", """{"":[ [] ]}""", """Map("" -> Map("0" -> Map()))"""),
 		("object containing array 2", """{"":[0,1]}""", """Map("" -> Map("0" -> 0, "1" -> 1))"""),
 		("object containing object", """{"":{}}""", """Map("" -> Map())"""),
+		("object containing object (whitespace)", """{ "" : {} }""", """Map("" -> Map())"""),
 		
 		("string containing escape codes (newline)", """["\n"]""", """Map("0" -> "\n")"""),
 		("string containing escape codes (tab)", """["\t"]""", """Map("0" -> "\t")"""),
@@ -78,7 +86,8 @@ object JsonParserTestGenerator {
 		("string containing escape codes (unicode) 3", "[\"\\\"\"\" + \"\"\"u0041A\"]", """Map("0" -> "AA")"""),
 		("array containing keyword (true)", """[true]""", """Map("0" -> true)"""),
 		("array containing keyword (false)", """[false]""", """Map("0" -> false)"""),
-		("array containing keyword (null)", """[null]""", """Map("0" -> null)""")
+		("array containing keyword (null)", """[null]""", """Map("0" -> null)"""),
+		("array containing keyword (null) (whitespace)", """[ null ]""", """Map("0" -> null)""")
 		
 	)
 	

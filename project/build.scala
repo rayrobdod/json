@@ -47,7 +47,7 @@ object MyBuild extends Build {
 	lazy val root = Project(
 			id = "json",
 			base = file("."),
-			settings = Defaults.defaultSettings ++
+			settings = Defaults.coreDefaultSettings ++
 					CsvParserTestGenerator.settings ++
 					CborParserTestGenerator.settings ++
 					BsonParserTestGenerator.settings ++

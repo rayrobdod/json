@@ -40,14 +40,13 @@ import com.rayrobdod.json.builder._
  * 
  * == Primitive types ==
  - java.lang.String
- *  
+ * 
  * @constructor
  * Creates a CsvParser instance.
  * @param topBuilder the builder that this parser will use when constructing objects
  * @param meaningfulCharacters determines which characters have special meanings
  */
 final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.CharacterMeanings = CsvParser.csvCharacterMeanings) {
-	
 	
 	/**
 	 * Decodes the input values to an object.
@@ -60,6 +59,11 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 		}.topValue
 	}
 	
+	/**
+	 * Decodes the input values to an object.
+	 * @param chars the serialized json object or array
+	 * @return the parsed object
+	 */
 	def parse(chars:java.io.Reader):A = this.parse(new Reader2Iterable(chars))
 	
 	
@@ -101,7 +105,7 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 			innerValue:Any,
 			innerIndex:Int
 	) extends State {
-		override def topValue = {
+		override def topValue:A = {
 			topBuilder.apply(topVal, topIndex.toString, innerValue)
 		}
 		
@@ -141,7 +145,7 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 			val string:String
 	) extends State {
 		private val childBuilder = topBuilder.childBuilder(topIndex.toString).asInstanceOf[Builder[Any]]
-		override def topValue = {
+		override def topValue:A = {
 			val newInnerValue = childBuilder.apply(innerValue, innerIndex.toString, string)
 			topBuilder.apply(topVal, topIndex.toString, newInnerValue)
 		}
@@ -186,7 +190,7 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 	) extends State {
 		private val childBuilder = topBuilder.childBuilder(topIndex.toString).asInstanceOf[Builder[Any]]
 		
-		override def topValue = {
+		override def topValue:A = {
 			val newInnerValue = childBuilder.apply(innerValue, innerIndex.toString, string)
 			topBuilder.apply(topVal, topIndex.toString, newInnerValue)
 		}
@@ -227,7 +231,7 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 	) extends State {
 		private val correspondingNormalState = new NormalState(topVal, topIndex, innerValue, innerIndex, string)
 		
-		override def topValue = correspondingNormalState.topValue
+		override def topValue:A = correspondingNormalState.topValue
 		
 		override def apply(c:Char, index:Int):State = {
 			if (meaningfulCharacters.stringDelimeter.contains(c)) {
@@ -243,8 +247,8 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 			correspondingNormalState:NormalState
 	) extends State {
 
-		override def topValue = correspondingNormalState.topValue
-		override def apply(c:Char, i:Int) = {
+		override def topValue:A = correspondingNormalState.topValue
+		override def apply(c:Char, i:Int):State = {
 			correspondingNormalState.copy(string = correspondingNormalState.string + c)
 		}
 	}
@@ -252,12 +256,19 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 }
 
 /**
- * Contains classes used to customize the CsvParser's behavoir, as
+ * Contains classes used to customize the CsvParser's behavior, as
  * well as a few common instances of those classes.
  */
 object CsvParser {
 	/**
-	 * Tells the CsvParser which characters are special
+	 * A data container which tells the CsvParser which characters are special
+	 * 
+	 * @constructor
+	 * @param recordDelimeter first-level separators; separate records
+	 * @param fieldDelimeter second-level separators; separate the fields within a record
+	 * @param stringDelimeter A character that starts and ends strings of literal characters
+	 * @param ignorable characters that are trimmed from the start or end of a record
+	 * @param escape a character that causes the next character to be interpreted literally
 	 */
 	final case class CharacterMeanings(
 			val recordDelimeter:Set[Char],
@@ -267,11 +278,19 @@ object CsvParser {
 			val escape:Set[Char]
 	)
 	
-	/** The set of CharacterMeanings for comma separated values */
-	val csvCharacterMeanings = CharacterMeanings(Set('\n'), Set(','), Set('"'), Set(' ', '\t'), Set('\\'))
-	/** The set of CharacterMeanings for tab separated values */
-	val tsvCharacterMeanings = CharacterMeanings(Set('\n'), Set('\t'), Set('"'), Set(' '), Set('\\'))
-	/** The set of CharacterMeanings using ASCII delimeters */
-	val asciiCharacterMeanings = CharacterMeanings(Set('\u001E'), Set('\u001F'), Set(), Set(), Set())
+	/**
+	 * A CharacterMeanings that uses a set of characters similar to most Comma-Separated-Values files
+	 */
+	val csvCharacterMeanings = CharacterMeanings(Set('\n'), Set(','), Set('"'), Set(' ', '\t', '\uFEFF'), Set('\\'))
+	
+	/**
+	 * A CharacterMeanings that uses a set of characters similar to most Tab-Separated-Values files
+	 */
+	val tsvCharacterMeanings = CharacterMeanings(Set('\n'), Set('\t'), Set('"'), Set(' ', '\uFEFF'), Set('\\'))
+	
+	/**
+	 * A CharacterMeanings that uses ASCII record and field delimiter characters to separate records and fields
+	 */
+	val asciiCharacterMeanings = CharacterMeanings(Set('\u001E'), Set('\u001F'), Set.empty, Set.empty, Set.empty)
 }
 

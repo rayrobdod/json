@@ -34,15 +34,15 @@ package object parser {
 
 package parser {
 	private[parser] class Reader2Iterable(r:java.io.Reader) extends Iterable[Char]() {
-		def iterator() = {
+		def iterator():Iterator[Char] = {
 			new Iterator[Char]() {
-				private var nextChar = r.read()
-				override def next = {
+				private var nextChar:Int = r.read()
+				override def next:Char = {
 					val retVal = nextChar;
 					nextChar = r.read();
 					retVal.asInstanceOf[Char]
 				}
-				override def hasNext = {
+				override def hasNext:Boolean = {
 					nextChar != -1;
 				}
 			}
