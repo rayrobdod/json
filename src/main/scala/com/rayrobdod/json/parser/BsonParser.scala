@@ -52,8 +52,7 @@ import com.rayrobdod.json.builder._
  * @param topBuilder the builder that this parser will use when constructing objects
  */
 final class BsonParser[A](topBuilder:Builder[A]) {
-	private val END_OF_DOCUMENT_TYPE:Byte = 0x00;
-	
+	import BsonParser.TypeCodes
 	
 	/**
 	 * Decodes the input values to an object.
@@ -64,34 +63,34 @@ final class BsonParser[A](topBuilder:Builder[A]) {
 		
 		var result:A = topBuilder.init
 		var valueType:Byte = input.readByte();
-		while (valueType != END_OF_DOCUMENT_TYPE) {
+		while (valueType != TypeCodes.END_OF_DOCUMENT) {
 			val key:String = readCString(input)
 			val value = valueType match {
-				case  1 => { // float
+				case TypeCodes.FLOAT => {
 					java.lang.Double.longBitsToDouble(
 						java.lang.Long.reverseBytes( input.readLong() )
 					)
 				}
-				case  2 => { // string
+				case TypeCodes.STRING => {
 					val len = Integer.reverseBytes( input.readInt() );
 					val bytes = new Array[Byte](len);
 					input.readFully(bytes);
 					if (bytes(len - 1) != 0) {throw new ParseException("Incorrect string length", -1)}
 					new String(bytes, 0, len - 1, UTF_8)
 				}
-				case  3 => { // document
+				case TypeCodes.DOCUMENT => {
 					new BsonParser(topBuilder.childBuilder(key)).parse(input)
 				}
-				case  4 => { // document (array)
+				case TypeCodes.ARRAY => {
 					new BsonParser(topBuilder.childBuilder(key)).parse(input)
 				}
-				case  8 => { // boolean
+				case TypeCodes.BOOLEAN => {
 					val readValue = input.readByte()
 					(readValue != 0)
 				}
-				case 10 => null
-				case 16 => Integer.reverseBytes( input.readInt() );
-				case 18 => java.lang.Long.reverseBytes( input.readLong() );
+				case TypeCodes.NULL => null
+				case TypeCodes.INTEGER => Integer.reverseBytes( input.readInt() );
+				case TypeCodes.LONG => java.lang.Long.reverseBytes( input.readLong() );
 				case _ => throw new ParseException("Unknown data type", -1)
 			}
 			
@@ -101,16 +100,6 @@ final class BsonParser[A](topBuilder:Builder[A]) {
 		
 		result
 	}
-	
-	/* def parse(is:InputStream):A = this.parse(
-		new java.io.DataInputStream(ba)
-	)
-	
-	def parse(ba:Array[Byte]):A = this.parse(
-		new java.io.ByteArrayInputStream(ba)
-	) */
-	
-	
 	
 	
 	
@@ -129,5 +118,21 @@ final class BsonParser[A](topBuilder:Builder[A]) {
 		}
 		
 		new String( data.toByteArray(), UTF_8);
+	}
+}
+
+
+private object BsonParser {
+	/** because magic numbers are bad */
+	object TypeCodes {
+		val END_OF_DOCUMENT = 0
+		val FLOAT = 1
+		val STRING = 2
+		val DOCUMENT = 3
+		val ARRAY = 4
+		val BOOLEAN = 8
+		val NULL = 10
+		val INTEGER = 16
+		val LONG = 18
 	}
 }

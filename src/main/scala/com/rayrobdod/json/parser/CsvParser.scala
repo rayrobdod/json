@@ -48,7 +48,6 @@ import com.rayrobdod.json.builder._
  */
 final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.CharacterMeanings = CsvParser.csvCharacterMeanings) {
 	
-	
 	/**
 	 * Decodes the input values to an object.
 	 * @param chars the serialized json object or array
@@ -60,6 +59,11 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 		}.topValue
 	}
 	
+	/**
+	 * Decodes the input values to an object.
+	 * @param chars the serialized json object or array
+	 * @return the parsed object
+	 */
 	def parse(chars:java.io.Reader):A = this.parse(new Reader2Iterable(chars))
 	
 	
@@ -252,7 +256,7 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 }
 
 /**
- * Contains classes used to customize the CsvParser's behavoir, as
+ * Contains classes used to customize the CsvParser's behavior, as
  * well as a few common instances of those classes.
  */
 object CsvParser {
@@ -261,7 +265,7 @@ object CsvParser {
 	 * 
 	 * @constructor
 	 * @param recordDelimeter first-level separators; separate records
-	 * @param fieldDelimeter second-level separators; separeate the fields within a record
+	 * @param fieldDelimeter second-level separators; separate the fields within a record
 	 * @param stringDelimeter A character that starts and ends strings of literal characters
 	 * @param ignorable characters that are trimmed from the start or end of a record
 	 * @param escape a character that causes the next character to be interpreted literally
@@ -274,11 +278,19 @@ object CsvParser {
 			val escape:Set[Char]
 	)
 	
-	/** The set of CharacterMeanings for comma separated values */
-	val csvCharacterMeanings = CharacterMeanings(Set('\n'), Set(','), Set('"'), Set(' ', '\t'), Set('\\'))
-	/** The set of CharacterMeanings for tab separated values */
-	val tsvCharacterMeanings = CharacterMeanings(Set('\n'), Set('\t'), Set('"'), Set(' '), Set('\\'))
-	/** The set of CharacterMeanings using ASCII delimeters */
+	/**
+	 * A CharacterMeanings that uses a set of characters similar to most Comma-Separated-Values files
+	 */
+	val csvCharacterMeanings = CharacterMeanings(Set('\n'), Set(','), Set('"'), Set(' ', '\t', '\uFEFF'), Set('\\'))
+	
+	/**
+	 * A CharacterMeanings that uses a set of characters similar to most Tab-Separated-Values files
+	 */
+	val tsvCharacterMeanings = CharacterMeanings(Set('\n'), Set('\t'), Set('"'), Set(' ', '\uFEFF'), Set('\\'))
+	
+	/**
+	 * A CharacterMeanings that uses ASCII record and field delimiter characters to separate records and fields
+	 */
 	val asciiCharacterMeanings = CharacterMeanings(Set('\u001E'), Set('\u001F'), Set.empty, Set.empty, Set.empty)
 }
 
