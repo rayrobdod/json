@@ -110,6 +110,48 @@ class JsonParserTest_Unhappy extends FunSpec {
 			}
 			assertResult(8){ex.getErrorOffset()}
 		}
+		it ("""errors when number starts with a decimal point (array)""") {
+			val source = """[.5]"""
+			val ex = intercept[ParseException]{
+				new JsonParser(new MapBuilder()).parse(source)
+			}
+			assertResult(1){ex.getErrorOffset()}
+		}
+		it ("""errors when number starts with a decimal point (object)""") {
+			val source = """{"":.5}"""
+			val ex = intercept[ParseException]{
+				new JsonParser(new MapBuilder()).parse(source)
+			}
+			assertResult(4){ex.getErrorOffset()}
+		}
+		it ("""errors when number starts with an exponent indicator (array)""") {
+			val source = """[e5]"""
+			val ex = intercept[ParseException]{
+				new JsonParser(new MapBuilder()).parse(source)
+			}
+			assertResult(3){ex.getErrorOffset()}
+		}
+		it ("""errors when number starts with a exponent indicator (object)""") {
+			val source = """{"":e5}"""
+			val ex = intercept[ParseException]{
+				new JsonParser(new MapBuilder()).parse(source)
+			}
+			assertResult(6){ex.getErrorOffset()}
+		}
+		it ("""errors when number starts with a plus sign (array)""") {
+			val source = """[+5]"""
+			val ex = intercept[ParseException]{
+				new JsonParser(new MapBuilder()).parse(source)
+			}
+			assertResult(1){ex.getErrorOffset()}
+		}
+		it ("""errors when number starts with a plus sign (object)""") {
+			val source = """{"":+5}"""
+			val ex = intercept[ParseException]{
+				new JsonParser(new MapBuilder()).parse(source)
+			}
+			assertResult(4){ex.getErrorOffset()}
+		}
 		
 		
 		it ("""errors on control character inside string""") {

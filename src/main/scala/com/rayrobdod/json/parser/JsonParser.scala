@@ -171,6 +171,12 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 				(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(currKey))) ::
 				in.replaceTopState(new ObjectValueEndState(parKey, currKey))
 			}
+			case '.'  => {
+				val msg = "Numeric value may not begin with a '.'"
+				val ex = new ParseException(msg, index)
+				ex.initCause(new NumberFormatException(msg))
+				throw ex;
+			}
 			case x if ('0' <= x && x <= '9') => {
 				(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(currKey))) ::
 				in.replaceTopState(new ObjectValueEndState(parKey, currKey))
@@ -208,6 +214,12 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 			case '-'  => {
 				(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(arrayIndex.toString))) ::
 				in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
+			}
+			case '.'  => {
+				val msg = "Numeric value may not begin with a '.'"
+				val ex = new ParseException(msg, charIndex)
+				ex.initCause(new NumberFormatException(msg))
+				throw ex;
 			}
 			case x if ('0' <= x && x <= '9') => {
 				(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(arrayIndex.toString))) ::
