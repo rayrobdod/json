@@ -70,6 +70,13 @@ object JsonParserTestGenerator {
 		("object containing multiple numbers", """{"a":-1,"b":0,"c":1}""", """Map("a" -> -1, "b" -> 0, "c" -> 1)"""),
 		("object containing positive number (whitespace)", """{"": 24601 }""", """Map("" -> 24601)"""),
 		
+		("object containing float", """{"": 1.2}""", """Map("" -> 1.2)"""),
+		// leading zeros are required?
+		("object containing float (negative)", """{"": -1.2}""", """Map("" -> -1.2)"""),
+		("object containing float (exponent)", """{"": 1e5}""", """Map("" -> 1e5)"""),
+		("object containing float (decimal and exponent)", """{"": 1.2e5}""", """Map("" -> 1.2e5)"""),
+		("object containing float (decimal and neg exponent)", """{"": 1.2e-5}""", """Map("" -> 1.2e-5)"""),
+		
 		("object containing array", """{"":[[]]}""", """Map("" -> Map("0" -> Map()))"""),
 		("object containing array (whitespace)", """{"":[ [] ]}""", """Map("" -> Map("0" -> Map()))"""),
 		("object containing array 2", """{"":[0,1]}""", """Map("" -> Map("0" -> 0, "1" -> 1))"""),
