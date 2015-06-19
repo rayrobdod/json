@@ -13,4 +13,4 @@ script:
   - sbt ++$TRAVIS_SCALA_VERSION coverage test
 
 after_success:
-  - sbt coveralls
+  - sbt ++$TRAVIS_SCALA_VERSION coveralls
