@@ -57,6 +57,12 @@ class CaseClassBuilderTest extends FunSpec {
 				new CaseClassBuilder(classOf[Person], new Person("", 0)).apply(new Person("", 0), "age", age)
 			}
 		}
+		it ("Throws excpetion on unknown key") {
+			val age = "9001"
+			intercept[IllegalArgumentException]{
+				new CaseClassBuilder(classOf[Person], new Person("", 0)).apply(new Person("", 0), "asdfjkl;", age)
+			}
+		}
 		it ("childBuilder returns value from constructor") {
 			import CaseClassBuilderTest.MockBuilder
 			

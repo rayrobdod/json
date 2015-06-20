@@ -86,8 +86,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 			val a = chars.zipWithIndex.foldLeft[List[StackFrame[_ >: A]]](
 				List(StackFrame(topBuilder.init, topBuilder, InitState), StackFrame(topBuilder.init, SingletonBuilder, TopState))
 			){(stateStack:List[StackFrame[_ >: A]], charIndex:(Char, Int)) =>
-				val (char2, index) = charIndex
-				val char = if (char2.isWhitespace) {' '} else {char2}
+				val (char, index) = charIndex
 				
 				val retVal = stateStack.head.state.apply(stateStack, char, index)
 				
@@ -172,6 +171,12 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 				(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(currKey))) ::
 				in.replaceTopState(new ObjectValueEndState(parKey, currKey))
 			}
+			case '.'  => {
+				val msg = "Numeric value may not begin with a '.'"
+				val ex = new ParseException(msg, index)
+				ex.initCause(new NumberFormatException(msg))
+				throw ex;
+			}
 			case x if ('0' <= x && x <= '9') => {
 				(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(currKey))) ::
 				in.replaceTopState(new ObjectValueEndState(parKey, currKey))
@@ -209,6 +214,12 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 			case '-'  => {
 				(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(arrayIndex.toString))) ::
 				in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
+			}
+			case '.'  => {
+				val msg = "Numeric value may not begin with a '.'"
+				val ex = new ParseException(msg, charIndex)
+				ex.initCause(new NumberFormatException(msg))
+				throw ex;
 			}
 			case x if ('0' <= x && x <= '9') => {
 				(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(arrayIndex.toString))) ::
@@ -287,7 +298,12 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 	private class IntegerState(key:String) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = {
 			if (c == '}' || c == ']' || c == ',') {
-				val newValue = (in.head.soFar).toString.trim.toLong
+				val rawNewValue = (in.head.soFar).toString.trim
+				val newValue:AnyVal = try {
+					rawNewValue.toLong
+				} catch {
+					case _:NumberFormatException => rawNewValue.toDouble
+				}
 				val in2 = in.tail.buildTop(key, newValue)
 				in2.head.state.apply(in2, c, charIndex)
 			} else {

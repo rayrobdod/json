@@ -63,7 +63,7 @@ object CborParserTestGenerator {
 		("object 0", """ hexArray"A0" """, "Map()"),
 		("object 1", """ hexArray"A10405" """, """Map("4" -> 5)"""),
 		("object 2", """ hexArray"A2600061651865" """, """Map("" -> 0, "e" -> 0x65)"""),
-		("object INDET", """ hexArray"A2600061651865FF" """, """Map("" -> 0, "e" -> 0x65)"""),
+		("object INDET", """ hexArray"BF600061651865FF" """, """Map("" -> 0, "e" -> 0x65)"""),
 		("tag self-describing", """ hexArray"d9d9f780" """, "CborParser.TaggedValue(55799, Map())")
 		
 	)
