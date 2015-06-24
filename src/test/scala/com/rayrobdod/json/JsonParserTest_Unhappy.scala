@@ -155,7 +155,7 @@ class JsonParserTest_Unhappy extends FunSpec {
 		
 		
 		it ("""errors on control character inside string""") {
-			('\0' until ' ').foreach{c =>
+			('\u0000' until ' ').foreach{c =>
 				val source = Seq('[', '"', c, '"', ']') 
 				val ex = intercept[ParseException]{
 					val result = new JsonParser(new MapBuilder()).parse(source)
