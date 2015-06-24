@@ -1,4 +1,4 @@
-name := "JSON"
+name := "json"
 
 organization := "com.rayrobdod"
 
@@ -25,7 +25,7 @@ packageOptions in (Compile, packageBin) <+= (scalaVersion, sourceDirectory).map{
 	Package.JarManifest( manifest )
 }
 
-licenses += (("3-point BSD", new java.net.URL("http://rayrobdod.name/programming/libraries/java/json/2.0.0/LICENSE.rst") ))
+licenses += (("3-point BSD", new URL("http://opensource.org/licenses/BSD-3-Clause") ))
 
 mappings in (Compile, packageSrc) <+= baseDirectory.map{(b) => (new File(b, "LICENSE.rst"), "LICENSE.rst" )}
 

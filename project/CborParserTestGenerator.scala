@@ -34,6 +34,7 @@ object CborParserTestGenerator {
 		("false", """Array[Byte](0xF4.byteValue)""", "false"),
 		("true", """Array[Byte](0xF5.byteValue)""", "true"),
 		("null", """Array[Byte](0xF6.byteValue)""", "null"),
+		("unknown", """Array[Byte](0xE4.byteValue)""", "CborParser.UnknownSimpleValue(4)"),
 		("endOfObject", """Array[Byte](0xFF.byteValue)""", "CborParser.EndOfIndeterminateObject()"),
 		("integer 0", """Array[Byte](0)""", "0"),
 		("integer 1", """Array[Byte](1)""", "1"),
