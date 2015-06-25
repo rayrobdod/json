@@ -28,7 +28,8 @@ package com.rayrobdod.json.parser;
 
 import org.scalatest.FunSpec;
 import java.text.ParseException;
-import java.io.DataInput
+import java.io.DataInput
+import scala.language.implicitConversions
 import scala.collection.immutable.Map;
 import com.rayrobdod.json.builder.MapBuilder;
 import CborParserTest_Happy.HexArrayStringConverter
