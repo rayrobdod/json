@@ -26,6 +26,9 @@
 */
 package com.rayrobdod.json;
 
+import scala.collection.{Iterable, Iterator}
+// import scala.collection.{AbstractIterable, AbstractIterator}
+
 /**
  * Contains the various built-in parsers
  */
@@ -36,7 +39,7 @@ package parser {
 	private[parser] class Reader2Iterable(r:java.io.Reader) extends Iterable[Char]() {
 		def iterator():Iterator[Char] = {
 			new Iterator[Char]() {
-				private var nextChar:Int = r.read()
+				private[this] var nextChar:Int = r.read()
 				override def next:Char = {
 					val retVal = nextChar;
 					nextChar = r.read();

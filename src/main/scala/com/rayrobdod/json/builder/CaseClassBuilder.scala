@@ -58,11 +58,6 @@ class CaseClassBuilder[A <: Product](clazz:Class[A], val init:A, childBuilders:M
 			case Some(x:Int) => {
 				val newArgs = folding.productIterator.toSeq.updated(x, value)
 				
-				// scala reflection - "No ClassTag available for A"
-				//val inputMirror = mirror.reflect(folding)
-				//val copyMirror = inputMirror.reflectMethod(copyMethod)
-				//copyMirror.apply(newArgs:_*)
-				
 				val copyMirror = clazz.getMethods.filter{_.getName == "copy"}.head
 				resultType.cast(copyMirror.invoke(folding, newArgs.map{_.asInstanceOf[Object]}:_*))
 			}

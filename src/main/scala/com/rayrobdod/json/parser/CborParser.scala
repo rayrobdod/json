@@ -103,7 +103,7 @@ final class CborParser[A](topBuilder:Builder[A]) {
 		}
 	}
 	
-	private def parseByteString(input:DataInput, aid:AdditionalInfoData):Array[Byte] = {
+	private[this] def parseByteString(input:DataInput, aid:AdditionalInfoData):Array[Byte] = {
 		aid match {
 			case AdditionalInfoIndeterminate() => {
 				val stream = new java.io.ByteArrayOutputStream
@@ -128,7 +128,7 @@ final class CborParser[A](topBuilder:Builder[A]) {
 		}
 	}
 	
-	private def parseArray(topBuilder:Builder[A], input:DataInput, aid:AdditionalInfoData):A = {
+	private[this] def parseArray(topBuilder:Builder[A], input:DataInput, aid:AdditionalInfoData):A = {
 		var retVal:A = topBuilder.init
 		
 		aid match {
@@ -156,7 +156,7 @@ final class CborParser[A](topBuilder:Builder[A]) {
 		retVal
 	}
 	
-	private def parseObject(topBuilder:Builder[A], input:DataInput, aid:AdditionalInfoData):A = {
+	private[this] def parseObject(topBuilder:Builder[A], input:DataInput, aid:AdditionalInfoData):A = {
 		var retVal:A = topBuilder.init
 		
 		aid match {

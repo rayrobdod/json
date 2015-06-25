@@ -67,12 +67,12 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 	def parse(chars:java.io.Reader):A = this.parse(new Reader2Iterable(chars))
 	
 	
-	private trait State {
+	private[this] trait State {
 		def topValue:A
 		def apply(c:Char, index:Int):State
 	}
 	
-	private case class StartOfRecordState(
+	private[this] case class StartOfRecordState(
 			topValue:A = topBuilder.init,
 			topIndex:Int = 0
 	) extends State {
@@ -99,7 +99,7 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 		}
 	}
 	
-	private case class StartOfFieldState(
+	private[this] case class StartOfFieldState(
 			topVal:A,
 			topIndex:Int,
 			innerValue:Any,
@@ -137,14 +137,14 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 		}
 	}
 	
-	private case class NormalState(
+	private[this] case class NormalState(
 			topVal:A,
 			topIndex:Int,
 			innerValue:Any,
 			innerIndex:Int,
 			val string:String
 	) extends State {
-		private val childBuilder = topBuilder.childBuilder(topIndex.toString).asInstanceOf[Builder[Any]]
+		private[this] val childBuilder = topBuilder.childBuilder(topIndex.toString).asInstanceOf[Builder[Any]]
 		override def topValue:A = {
 			val newInnerValue = childBuilder.apply(innerValue, innerIndex.toString, string)
 			topBuilder.apply(topVal, topIndex.toString, newInnerValue)
@@ -180,7 +180,7 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 		}
 	}
 	
-	private case class EndingWhitespaceState(
+	private[this] case class EndingWhitespaceState(
 			topVal:A,
 			topIndex:Int,
 			innerValue:Any,
@@ -188,7 +188,7 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 			string:String,
 			endingWhitespace:String
 	) extends State {
-		private val childBuilder = topBuilder.childBuilder(topIndex.toString).asInstanceOf[Builder[Any]]
+		private[this] val childBuilder = topBuilder.childBuilder(topIndex.toString).asInstanceOf[Builder[Any]]
 		
 		override def topValue:A = {
 			val newInnerValue = childBuilder.apply(innerValue, innerIndex.toString, string)
@@ -222,14 +222,14 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 		}
 	}
 	
-	private case class QuotedState(
+	private[this] case class QuotedState(
 			val topVal:A,
 			topIndex:Int,
 			innerValue:Any,
 			innerIndex:Int,
 			string:String
 	) extends State {
-		private val correspondingNormalState = new NormalState(topVal, topIndex, innerValue, innerIndex, string)
+		private[this] val correspondingNormalState = new NormalState(topVal, topIndex, innerValue, innerIndex, string)
 		
 		override def topValue:A = correspondingNormalState.topValue
 		
@@ -243,7 +243,7 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 	}
 	
 	
-	private case class EscapeState(
+	private[this] case class EscapeState(
 			correspondingNormalState:NormalState
 	) extends State {
 

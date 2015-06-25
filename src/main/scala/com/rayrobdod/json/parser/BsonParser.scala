@@ -52,7 +52,7 @@ import com.rayrobdod.json.builder._
  * @param topBuilder the builder that this parser will use when constructing objects
  */
 final class BsonParser[A](topBuilder:Builder[A]) {
-	import BsonParser.TypeCodes
+	import BsonParser.{readCString, TypeCodes}
 	
 	/**
 	 * Decodes the input values to an object.
@@ -100,9 +100,10 @@ final class BsonParser[A](topBuilder:Builder[A]) {
 		
 		result
 	}
-	
-	
-	
+}
+
+
+private object BsonParser {
 	/**
 	 * Reads a c-style string from the DataInput.
 	 * Basically, reads things until it reaches a '0x00' and then throws what it read into a String.
@@ -119,10 +120,8 @@ final class BsonParser[A](topBuilder:Builder[A]) {
 		
 		new String( data.toByteArray(), UTF_8);
 	}
-}
-
-
-private object BsonParser {
+	
+	
 	/** because magic numbers are bad */
 	object TypeCodes {
 		val END_OF_DOCUMENT = 0

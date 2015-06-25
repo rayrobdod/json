@@ -50,10 +50,10 @@ import com.rayrobdod.json.builder._
  * @param topBuilder the builder that this parser will use when constructing objects
  */
 final class JsonParser[A](topBuilder:Builder[A]) {
-	private final case class StackFrame[B](soFar:B, builder:Builder[B], state:State) {
+	private[this] final case class StackFrame[B](soFar:B, builder:Builder[B], state:State) {
 		def build(key:String, v:Any):StackFrame[B] = this.copy(soFar = builder.apply(soFar, key, v))
 	}
-	private final implicit class EditTopFrameStack(a:List[StackFrame[_ >: A]]){
+	private[this] final implicit class EditTopFrameStack(a:List[StackFrame[_ >: A]]){
 		def replaceTopState(b:State):List[StackFrame[_ >: A]] = a.head.copy(state = b) :: a.tail
 		def buildTop(k:String, v:Any):List[StackFrame[_ >: A]] = a.head.build(k, v) :: a.tail
 		def pushChild(k:String, s:State):List[StackFrame[_ >: A]] = {
@@ -63,9 +63,8 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 			c :: a
 		}
 	}
-	// private implicit def stack2EditTopFrameStack(a:List[StackFrame[_ >: A]]):EditTopFrameStack = new EditTopFrameStack(a)
 	
-	private object SingletonBuilder extends Builder[Any] {
+	private[this] object SingletonBuilder extends Builder[Any] {
 		val init:String = ""
 		def apply(folding:Any, key:String, value:Any):Any = value
 		def childBuilder(key:String):Builder[Any] = this
@@ -110,11 +109,11 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 	
 	
 	/** The parser's state */
-	private trait State {
+	private[this] trait State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]]
 	}
 	
-	private object TopState extends State {
+	private[this] object TopState extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] =  c match {
 			case x if x.isWhitespace => in
 			case _    => throw new ParseException("At end of item, but; found " + c, index)
@@ -122,7 +121,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 		override def toString:String = "TopState"
 	}
 	
-	private object InitState extends State {
+	private[this] object InitState extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] = c match {
 			case '\ufeff' => in // byte-order-mark
 			case x if x.isWhitespace => in
@@ -133,7 +132,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 		override def toString:String = "InitState"
 	}
 	
-	private class ObjectKeyStartState(parKey:String) extends State {
+	private[this] class ObjectKeyStartState(parKey:String) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] = c match {
 			case x if x.isWhitespace => in
 			case '"'  => {
@@ -147,7 +146,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 		override def toString:String = "ObjectKeyStartState(" + parKey + ")"
 	}
 	
-	private class ObjectKeyEndState(parKey:String) extends State {
+	private[this] class ObjectKeyEndState(parKey:String) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] = c match {
 			case x if x.isWhitespace => in
 			case ':'  => {
@@ -158,7 +157,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 		override def toString:String = "ObjectKeyEndState(" + parKey + ")"
 	}
 	
-	private class ObjectValueStartState(parKey:String, currKey:String) extends State {
+	private[this] class ObjectValueStartState(parKey:String, currKey:String) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] = c match {
 			case x if x.isWhitespace => in
 			case '"'  => {
@@ -190,7 +189,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 		override def toString:String = "ObjectValueStartState(" + parKey + "," + currKey + ")"
 	}
 	
-	private class ObjectValueEndState(parKey:String, currKey:String) extends State {
+	private[this] class ObjectValueEndState(parKey:String, currKey:String) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = c match {
 			case x if x.isWhitespace => in
 			case ','  => in.replaceTopState(new ObjectKeyStartState(parKey))
@@ -201,7 +200,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 	}
 	
 	
-	private class ArrayValueStartState(parKey:String, arrayIndex:Int = 0) extends State {
+	private[this] class ArrayValueStartState(parKey:String, arrayIndex:Int = 0) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = c match {
 			case x if x.isWhitespace => in
 			case ']'  => in.tail.buildTop(parKey, in.head.soFar)
@@ -235,7 +234,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 		override def toString:String = "ArrayValueStartState(" + parKey + "," + arrayIndex + ")"
 	}
 	
-	private class ArrayValueEndState(parKey:String, arrayIndex:Int) extends State {
+	private[this] class ArrayValueEndState(parKey:String, arrayIndex:Int) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = c match {
 			case x if x.isWhitespace => in
 			case ','  => in.replaceTopState(new ArrayValueStartState(parKey, arrayIndex + 1))
@@ -245,7 +244,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 		override def toString:String = "ArrayValueEndState(" + parKey + "," + arrayIndex + ")"
 	}
 	
-	private class StringState(key:String) extends State {
+	private[this] class StringState(key:String) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = {
 			if (c < ' ') {
 				throw new ParseException("Control chars not allowed in strings", charIndex)
@@ -261,7 +260,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 		override def toString:String = "StringState(" + key + ")"
 	}
 	
-	private class StringEscapeState(key:String) extends State {
+	private[this] class StringEscapeState(key:String) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = c match {
 			case '"'  => in.buildTop("", "\"").replaceTopState(new StringState(key))
 			case '\\' => in.buildTop("", "\\").replaceTopState(new StringState(key))
@@ -277,7 +276,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 		override def toString:String = "StringEscapeState(" + key + ")"
 	}
 	
-	private class StringUnicodeEscapeState(key:String, characters:Int = 0, value:Int = 0) extends State {
+	private[this] class StringUnicodeEscapeState(key:String, characters:Int = 0, value:Int = 0) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = {
 			if (('0' <= c && c <= '9') || ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F')) {
 				val cInt = java.lang.Integer.parseInt("" + c, 16)
@@ -295,7 +294,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 		override def toString:String = "StringUnicodeEscapeState(" + key + ")"
 	}
 	
-	private class IntegerState(key:String) extends State {
+	private[this] class IntegerState(key:String) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = {
 			if (c == '}' || c == ']' || c == ',') {
 				val rawNewValue = (in.head.soFar).toString.trim
@@ -313,7 +312,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 		override def toString:String = "IntegerState(" + key + ")"
 	}
 	
-	private class KeywordState(key:String) extends State {
+	private[this] class KeywordState(key:String) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = {
 			if (c == '}' || c == ']' || c == ',') {
 				val valueString = (in.head.soFar).toString.trim
@@ -333,7 +332,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 	}
 	
 	/** A builder that creates strings */
-	private object StringBuilder extends Builder[String] {
+	private[this] object StringBuilder extends Builder[String] {
 		val init:String = ""
 		def apply(folding:String, key:String, value:Any):String = {
 			folding + value.toString
