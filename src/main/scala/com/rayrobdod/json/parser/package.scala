@@ -43,7 +43,7 @@ package parser {
 				override def next:Char = {
 					val retVal = nextChar;
 					nextChar = r.read();
-					retVal.asInstanceOf[Char]
+					retVal.toChar
 				}
 				override def hasNext:Boolean = {
 					nextChar != -1;

@@ -136,7 +136,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] = c match {
 			case x if x.isWhitespace => in
 			case '"'  => {
-				(new StackFrame(StringBuilder.init, StringBuilder.asInstanceOf[Builder[Any]], new StringState(""))) ::
+				(new StackFrame(StringBuilder.init, StringBuilder, new StringState(""))) ::
 				(new StackFrame("", SingletonBuilder, new ObjectKeyEndState(parKey))) ::
 				in.replaceTopState(new ObjectKeyEndState(parKey))
 			}
@@ -161,13 +161,13 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] = c match {
 			case x if x.isWhitespace => in
 			case '"'  => {
-				(new StackFrame(StringBuilder.init, StringBuilder.asInstanceOf[Builder[Any]], new StringState(currKey))) ::
+				(new StackFrame(StringBuilder.init, StringBuilder, new StringState(currKey))) ::
 				in.replaceTopState(new ObjectValueEndState(parKey, currKey))
 			}
 			case '['  => in.replaceTopState(new ObjectValueEndState(parKey, currKey)).pushChild(currKey, new ArrayValueStartState(currKey))
 			case '{'  => in.replaceTopState(new ObjectValueEndState(parKey, currKey)).pushChild(currKey, new ObjectKeyStartState(currKey))
 			case '-'  => {
-				(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(currKey))) ::
+				(new StackFrame(StringBuilder.init + c, StringBuilder, new IntegerState(currKey))) ::
 				in.replaceTopState(new ObjectValueEndState(parKey, currKey))
 			}
 			case '.'  => {
@@ -177,11 +177,11 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 				throw ex;
 			}
 			case x if ('0' <= x && x <= '9') => {
-				(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(currKey))) ::
+				(new StackFrame(StringBuilder.init + c, StringBuilder, new IntegerState(currKey))) ::
 				in.replaceTopState(new ObjectValueEndState(parKey, currKey))
 			}
 			case x if ('a' <= x && x <= 'z') => {
-				(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new KeywordState(currKey))) ::
+				(new StackFrame(StringBuilder.init + c, StringBuilder, new KeywordState(currKey))) ::
 				in.replaceTopState(new ObjectValueEndState(parKey, currKey))
 			}
 			case _ => throw new ParseException("Expecting start of value; found " + c, index)
@@ -205,13 +205,13 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 			case x if x.isWhitespace => in
 			case ']'  => in.tail.buildTop(parKey, in.head.soFar)
 			case '"'  => {
-				(new StackFrame(StringBuilder.init, StringBuilder.asInstanceOf[Builder[Any]], new StringState(arrayIndex.toString))) ::
+				(new StackFrame(StringBuilder.init, StringBuilder, new StringState(arrayIndex.toString))) ::
 				in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
 			}
 			case '['  => in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex)).pushChild(arrayIndex.toString, new ArrayValueStartState(arrayIndex.toString))
 			case '{'  => in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex)).pushChild(arrayIndex.toString, new ObjectKeyStartState(arrayIndex.toString))
 			case '-'  => {
-				(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(arrayIndex.toString))) ::
+				(new StackFrame(StringBuilder.init + c, StringBuilder, new IntegerState(arrayIndex.toString))) ::
 				in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
 			}
 			case '.'  => {
@@ -221,11 +221,11 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 				throw ex;
 			}
 			case x if ('0' <= x && x <= '9') => {
-				(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(arrayIndex.toString))) ::
+				(new StackFrame(StringBuilder.init + c, StringBuilder, new IntegerState(arrayIndex.toString))) ::
 				in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
 			}
 			case x if ('a' <= x && x <= 'z') => {
-				(new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new KeywordState(arrayIndex.toString))) ::
+				(new StackFrame(StringBuilder.init + c, StringBuilder, new KeywordState(arrayIndex.toString))) ::
 				in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
 			}
 			case _ =>
@@ -332,13 +332,13 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 	}
 	
 	/** A builder that creates strings */
-	private[this] object StringBuilder extends Builder[String] {
+	private[this] object StringBuilder extends Builder[Any] {
 		val init:String = ""
-		def apply(folding:String, key:String, value:Any):String = {
-			folding + value.toString
+		def apply(folding:Any, key:String, value:Any):String = {
+			folding.toString + value.toString
 		}
-		def childBuilder(key:String):Builder[String] = this
-		val resultType:Class[String] = classOf[String]
+		def childBuilder(key:String):Builder[_] = this
+		val resultType:Class[Any] = classOf[Any]
 	}
 }
 
