@@ -29,6 +29,7 @@ package com.rayrobdod.json.builder;
 import scala.collection.immutable.Seq
 import java.nio.charset.StandardCharsets.UTF_8
 import com.rayrobdod.json.parser.CborParser.{MajorTypeCodes, SimpleValueCodes}
+import com.rayrobdod.json.parser.MapParser
 
 /**
  * A builder that will serialize a map as a Cbor Object
@@ -96,13 +97,5 @@ class CborObjectBuilder extends Builder[Seq[Byte]] {
 	}
 	private def long2ByteArray(l:Long, count:Int = 8):Seq[Byte] = {
 		(56 to 0 by -8).map{x => ((l >> x) & 0xFF).byteValue}.takeRight(count)
-	}
-	
-	private class MapParser[A](topBuilder:Builder[A]) {
-		def parse(vals:Map[Any, Any]):A = {
-			vals.foldLeft[A](topBuilder.init){
-				(state:A, keyValue:(Any, Any)) => topBuilder.apply(state, keyValue._1.toString, keyValue._2)
-			}
-		}
 	}
 }

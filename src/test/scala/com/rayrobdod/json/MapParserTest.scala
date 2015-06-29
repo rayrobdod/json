@@ -24,39 +24,35 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json;
+package com.rayrobdod.json.parser
 
-import com.rayrobdod.json.builder.Builder
+import org.scalatest.FunSpec
+import java.text.ParseException
+import scala.collection.immutable.Map
+import com.rayrobdod.json.builder.{MapBuilder, MinifiedJsonObjectBuilder}
 
-/**
- * Contains the various built-in parsers
- */
-package object parser {
-}
-
-package parser {
-	private[parser] class Reader2Iterable(r:java.io.Reader) extends Iterable[Char]() {
-		def iterator():Iterator[Char] = {
-			new Iterator[Char]() {
-				private var nextChar:Int = r.read()
-				override def next:Char = {
-					val retVal = nextChar;
-					nextChar = r.read();
-					retVal.asInstanceOf[Char]
-				}
-				override def hasNext:Boolean = {
-					nextChar != -1;
-				}
-			}
+class MapParserTest extends FunSpec {
+	describe("MapParser") {
+		it ("""recreates an arbitrary map""") {
+			val src = Map("a" -> 32, "b" -> Some(false), "c" -> new MapBuilder()).map{x => ((x._1:Any, x._2:Any))}
+			val res = new MapParser(new MapBuilder()).parse(src)
+			
+			assertResult(res){src}
+		}
+		it ("""recreates an arbitrary map with nesting""") {
+			val src = Map("a" -> Map.empty, "b" -> Map("x" -> true, "y" -> false)).map{x => ((x._1:Any, x._2:Any))}
+			val res = new MapParser(new MapBuilder()).parse(src)
+			
+			assertResult(res){src}
 		}
 	}
-	
-	/** A trivial "parser" that does the parse thing with a map */
-	class MapParser[A](topBuilder:Builder[A]) {
-		def parse(vals:Map[Any, Any]):A = {
-			vals.foldLeft[A](topBuilder.init){
-				(state:A, keyValue:(Any, Any)) => topBuilder.apply(state, keyValue._1.toString, keyValue._2)
-			}
+	describe("MapParser + Json") {
+		it ("""can be used with the json stuff to serialze and deserialize a map""") {
+			val src = Map("a" -> 32L, "b" -> false, "c" -> "1.5").map{x => ((x._1:Any, x._2:Any))}
+			val json = new MapParser(new MinifiedJsonObjectBuilder()).parse(src)
+			val res = new JsonParser(new MapBuilder()).parse(json)
+			
+			assertResult(res){src}
 		}
 	}
 }

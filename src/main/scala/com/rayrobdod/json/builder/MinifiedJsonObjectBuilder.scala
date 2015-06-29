@@ -29,6 +29,7 @@ package com.rayrobdod.json.builder;
 import scala.collection.immutable.Seq;
 import java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.charset.Charset;
+import com.rayrobdod.json.parser.MapParser
 
 /** A builder that will output a json format string
  * 
@@ -85,13 +86,4 @@ class MinifiedJsonObjectBuilder(charset:Charset = UTF_8) extends Builder[String]
 			}
 		}
 	}} + "\""
-	
-	
-	private class MapParser[A](topBuilder:Builder[A]) {
-		def parse(vals:Map[Any, Any]):A = {
-			vals.foldLeft[A](topBuilder.init){
-				(state:A, keyValue:(Any, Any)) => topBuilder.apply(state, keyValue._1.toString, keyValue._2)
-			}
-		}
-	}
 }
