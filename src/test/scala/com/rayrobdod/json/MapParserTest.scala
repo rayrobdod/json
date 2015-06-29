@@ -37,13 +37,13 @@ class MapParserTest extends FunSpec {
 			val src = Map("a" -> 32, "b" -> Some(false), "c" -> new MapBuilder()).map{x => ((x._1:Any, x._2:Any))}
 			val res = new MapParser(new MapBuilder()).parse(src)
 			
-			assertResult(res){src}
+			assertResult(src){res}
 		}
 		it ("""recreates an arbitrary map with nesting""") {
 			val src = Map("a" -> Map.empty, "b" -> Map("x" -> true, "y" -> false)).map{x => ((x._1:Any, x._2:Any))}
 			val res = new MapParser(new MapBuilder()).parse(src)
 			
-			assertResult(res){src}
+			assertResult(src){res}
 		}
 	}
 	describe("MapParser + Json") {
@@ -52,7 +52,7 @@ class MapParserTest extends FunSpec {
 			val json = new MapParser(new MinifiedJsonObjectBuilder()).parse(src)
 			val res = new JsonParser(new MapBuilder()).parse(json)
 			
-			assertResult(res){src}
+			assertResult(src){res}
 		}
 	}
 }
