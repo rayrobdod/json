@@ -1,3 +1,7 @@
+## 2.0-RC4
+* JsonParser will no longer accept trailing commas
+* Creating a set of classes that allow writing to json/cbor format files
+
 ## 2.0-RC3
 * JsonParser can now to parse non-iteger integers
 

@@ -8,7 +8,7 @@ version := "2.0-SNAPSHOT"
 
 scalaVersion := "2.10.5"
 
-crossScalaVersions := Seq("2.10.5", "2.11.6")
+crossScalaVersions := Seq("2.10.5", "2.11.7")
 
 compileOrder := CompileOrder.JavaThenScala
 
@@ -40,6 +40,6 @@ scalastyleConfig := baseDirectory.value / "project" / "scalastyle-config.xml"
 
 
 // scalaTest
-libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.1" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.5" % "test"
 
 testOptions in Test += Tests.Argument("-oS")
