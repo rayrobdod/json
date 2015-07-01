@@ -161,7 +161,7 @@ class JsonParserTest_Unhappy extends FunSpec {
 			val ex = intercept[ParseException]{
 				new JsonParser(new MapBuilder()).parse(source)
 			}
-			assertResult(6){ex.getErrorOffset()}
+			assertResult(7){ex.getErrorOffset()}
 		}
 		it ("""errors on empty value (array)""") {
 			val source = """[1,,3]"""
@@ -182,7 +182,7 @@ class JsonParserTest_Unhappy extends FunSpec {
 			val ex = intercept[ParseException]{
 				new JsonParser(new MapBuilder()).parse(source)
 			}
-			assertResult(6){ex.getErrorOffset()}
+			assertResult(7){ex.getErrorOffset()}
 		}
 		it ("""errors on empty value (object)""") {
 			val source = """{"":0,,}"""

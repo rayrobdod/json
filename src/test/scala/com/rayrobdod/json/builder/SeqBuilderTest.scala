@@ -88,7 +88,7 @@ class SeqBuilderTest extends FunSpec {
 					"""[
 						{"name":"Mario", "age":32},
 						{"name":"Luigi", "age":32},
-						{"name":"Peach", "age":28},
+						{"name":"Peach", "age":28}
 					]"""
 				)
 			}

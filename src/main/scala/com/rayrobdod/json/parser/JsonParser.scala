@@ -105,7 +105,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 	def parse(chars:java.io.Reader):A = this.parse(new Reader2Iterable(chars))
 	
 	
-	/** The parser's state */
+	/** The parser's state. To be placed inside a foldleft. */
 	private trait State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]]
 	}
@@ -127,21 +127,21 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 			case '\t' => in
 			case '\n' => in
 			case '\r' => in
-			case '{'  => in.replaceTopState(new ObjectKeyStartState(""))
+			case '{'  => in.replaceTopState(new ObjectKeyStartState("", true))
 			case '['  => in.replaceTopState(new ArrayValueStartState(""))
 			case _    => throw new ParseException("Expecting '{' or '['; found " + c, index)
 		}
 		override def toString:String = "InitState"
 	}
 	
-	private class ObjectKeyStartState(parKey:String) extends State {
+	private class ObjectKeyStartState(parKey:String, endObjectAllowed:Boolean) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] = c match {
 			case ' '  => in
 			case '\t' => in
 			case '\n' => in
 			case '\r' => in
 			case '"'  => (new StackFrame(StringBuilder.init, StringBuilder.asInstanceOf[Builder[Any]], new StringState(""))) :: (new StackFrame("", SingletonBuilder, new ObjectKeyEndState(parKey))) :: in.replaceTopState(new ObjectKeyEndState(parKey))
-			case '}'  => in.tail.buildTop(parKey, in.head.soFar)
+			case '}'  if endObjectAllowed => in.tail.buildTop(parKey, in.head.soFar)
 			case _    => throw new ParseException("Expecting start of key; found " + c, index)
 		}
 		override def toString:String = "ObjectKeyStartState(" + parKey + ")"
@@ -169,7 +169,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 			case '\r' => in
 			case '"'  => (new StackFrame(StringBuilder.init, StringBuilder.asInstanceOf[Builder[Any]], new StringState(currKey))) :: in.replaceTopState(new ObjectValueEndState(parKey, currKey))
 			case '['  => in.replaceTopState(new ObjectValueEndState(parKey, currKey)).pushChild(currKey, new ArrayValueStartState(currKey))
-			case '{'  => in.replaceTopState(new ObjectValueEndState(parKey, currKey)).pushChild(currKey, new ObjectKeyStartState(currKey))
+			case '{'  => in.replaceTopState(new ObjectValueEndState(parKey, currKey)).pushChild(currKey, new ObjectKeyStartState(currKey, true))
 			case '-'  => (new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(currKey))) :: in.replaceTopState(new ObjectValueEndState(parKey, currKey))
 			case _    => {
 				if ('0' <= c && c <= '9') {
@@ -190,7 +190,7 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 			case '\t' => in
 			case '\n' => in
 			case '\r' => in
-			case ','  => in.replaceTopState(new ObjectKeyStartState(parKey))
+			case ','  => in.replaceTopState(new ObjectKeyStartState(parKey, false))
 			case '}'  => in.tail.buildTop(parKey, in.head.soFar)
 			case _    => throw new ParseException("Expecting ',' or ']'; found " + c, charIndex)
 		}
@@ -199,15 +199,18 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 	
 	
 	private class ArrayValueStartState(parKey:String, arrayIndex:Int = 0) extends State {
+		/** true iff the next character is allowed to end the array - i.e. be a ']' */
+		private[this] val endObjectAllowed:Boolean = (arrayIndex == 0);
+		
 		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = c match {
 			case ' '  => in
 			case '\t' => in
 			case '\n' => in
 			case '\r' => in
-			case ']'  => in.tail.buildTop(parKey, in.head.soFar)
+			case ']'  if endObjectAllowed => in.tail.buildTop(parKey, in.head.soFar)
 			case '"'  => (new StackFrame(StringBuilder.init, StringBuilder.asInstanceOf[Builder[Any]], new StringState(arrayIndex.toString))) :: in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
 			case '['  => in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex)).pushChild(arrayIndex.toString, new ArrayValueStartState(arrayIndex.toString))
-			case '{'  => in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex)).pushChild(arrayIndex.toString, new ObjectKeyStartState(arrayIndex.toString))
+			case '{'  => in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex)).pushChild(arrayIndex.toString, new ObjectKeyStartState(arrayIndex.toString, true))
 			case '-'  => (new StackFrame(StringBuilder.init + c, StringBuilder.asInstanceOf[Builder[Any]], new IntegerState(arrayIndex.toString))) :: in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
 			case _    => {
 				if ('0' <= c && c <= '9') {
