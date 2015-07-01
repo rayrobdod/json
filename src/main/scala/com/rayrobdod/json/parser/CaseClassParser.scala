@@ -24,41 +24,34 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json;
+package com.rayrobdod.json.parser;
 
+import scala.reflect.runtime.universe.{runtimeMirror, newTermName}
 import com.rayrobdod.json.builder.Builder
-import scala.collection.{Iterable, Iterator}
-// import scala.collection.{AbstractIterable, AbstractIterator}
+
 
 /**
- * Contains the various built-in parsers
  */
-package object parser {
+final class CaseClassParser[A](topBuilder:Builder[A]) {
+	
+	/**
+	 * 
+	 * @param obj the object to extract values from
+	 * @param clazz the class of obj
+	 * @return the parsed object
+	 */
+	def parse[B <: Product](obj:B)(implicit clazz:Class[B]):A = {
+		val mirror = runtimeMirror( this.getClass.getClassLoader )
+		val typ = mirror.classSymbol( clazz ).toType
+		val copyMethod = typ.declaration(newTermName("copy")).asMethod
+		val copyParams = copyMethod.paramss(0)
+		
+		copyParams.zipWithIndex.foldLeft(topBuilder.init){(state:A, keyValue) =>
+			val (name, index) = keyValue
+			val name2 = name.name.decodedName.toString
+			
+			topBuilder.apply(state, name2, obj.productElement(index))
+		}
+	}
 }
 
-package parser {
-	private[parser] class Reader2Iterable(r:java.io.Reader) extends Iterable[Char]() {
-		def iterator():Iterator[Char] = {
-			new Iterator[Char]() {
-				private[this] var nextChar:Int = r.read()
-				override def next:Char = {
-					val retVal = nextChar;
-					nextChar = r.read();
-					retVal.toChar
-				}
-				override def hasNext:Boolean = {
-					nextChar != -1;
-				}
-			}
-		}
-	}
-	
-	/** A trivial "parser" that does the parse thing with a map */
-	class MapParser[A](topBuilder:Builder[A]) {
-		def parse(vals:Map[Any, Any]):A = {
-			vals.foldLeft[A](topBuilder.init){
-				(state:A, keyValue:(Any, Any)) => topBuilder.apply(state, keyValue._1.toString, keyValue._2)
-			}
-		}
-	}
-}

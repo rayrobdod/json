@@ -24,41 +24,33 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json;
+package com.rayrobdod.json.parser
 
-import com.rayrobdod.json.builder.Builder
-import scala.collection.{Iterable, Iterator}
-// import scala.collection.{AbstractIterable, AbstractIterator}
+import org.scalatest.FunSpec
+import java.text.ParseException
+import scala.collection.immutable.Map
+import com.rayrobdod.json.builder.{MapBuilder, CaseClassBuilder, MinifiedJsonObjectBuilder}
 
-/**
- * Contains the various built-in parsers
- */
-package object parser {
-}
-
-package parser {
-	private[parser] class Reader2Iterable(r:java.io.Reader) extends Iterable[Char]() {
-		def iterator():Iterator[Char] = {
-			new Iterator[Char]() {
-				private[this] var nextChar:Int = r.read()
-				override def next:Char = {
-					val retVal = nextChar;
-					nextChar = r.read();
-					retVal.toChar
-				}
-				override def hasNext:Boolean = {
-					nextChar != -1;
-				}
-			}
+class CaseClassParserTest extends FunSpec {
+	private implicit def fooClass = classOf[Foo]
+	private case class Foo(hello:Long, world:String, bazz:Boolean)
+	
+	describe("CaseClassParser") {
+		it ("""recreates an arbitrary case class""") {
+			val exp = Map("hello" -> 43L, "world" -> "world", "bazz" -> true)
+			val src = Foo(43L, "world", true)
+			val res = new CaseClassParser(new MapBuilder()).parse(src)
+			
+			assertResult(exp){res}
 		}
 	}
-	
-	/** A trivial "parser" that does the parse thing with a map */
-	class MapParser[A](topBuilder:Builder[A]) {
-		def parse(vals:Map[Any, Any]):A = {
-			vals.foldLeft[A](topBuilder.init){
-				(state:A, keyValue:(Any, Any)) => topBuilder.apply(state, keyValue._1.toString, keyValue._2)
-			}
+	describe("CaseClassParser + Json") {
+		it ("""can be used with the json stuff to serialze and deserialize a map""") {
+			val src = Foo(-5, "asdf", true)
+			val json = new CaseClassParser(new MinifiedJsonObjectBuilder()).parse(src)
+			val res = new JsonParser(new CaseClassBuilder(fooClass, Foo(0,"",false))).parse(json)
+			
+			assertResult(src){res}
 		}
 	}
 }
