@@ -76,14 +76,13 @@ class MinifiedJsonObjectBuilder(charset:Charset = UTF_8) extends Builder[String]
 		case '\n' => "\\n"
 		case '\r' => "\\r"
 		case '\t' => "\\t"
-		case x => {
-			if (x < ' ') {
-				"\\u" + ("0000" + x.intValue.toHexString).takeRight(4)
-			} else if (! charset.newEncoder().canEncode(x)) {
-				"\\u" + ("0000" + x.intValue.toHexString).takeRight(4)
-			} else {
-				Seq(x)
-			}
-		}
+		case x if (x < ' ') => toUnicodeEscape(x)
+		case x if (! charset.newEncoder.canEncode(x)) => toUnicodeEscape(x)
+		case x => Seq(x)
 	}} + "\""
+	
+	@inline
+	private def toUnicodeEscape(c:Char) = {
+		"\\u" + ("0000" + c.intValue.toHexString).takeRight(4)
+	}
 }
