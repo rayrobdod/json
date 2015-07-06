@@ -27,29 +27,34 @@
 package com.rayrobdod.json.builder;
 
 /**
+ * A class that creates an object from a sequence of 'fold'-style method calls
  * 
+ * @tparam Subject the type of object to build
  */
-public interface Builder<Subject> {
+trait Builder[Subject] {
 	/**
-	 * The starting point of the builder
+	 * The starting point of the folding process
 	 */
-	public Subject init();
+	def init:Subject
 	
 	/**
-	 * 
+	 * The main part of the folding process
+	 * @param foldee the subject of the fold process
+	 * @param key the key of a keyValue pair
+	 * @param value the value of a keyValue pair
+	 * @return the subject of the fold process
 	 */
-	public Subject apply(Subject folder, String key, Object value);
+	def apply(foldee:Subject, key:String, value:Any):Subject
 	
 	/**
 	 * A builder that should be used when a parser 
-	 * @param key the 
+	 * @param key the key of a keyValue pair
 	 */
-	public Builder<? extends Object> childBuilder(String key);
+	def childBuilder(key:String):Builder[_]
 	
 	/**
-	 * 
+	 * The Class object of the Subect class
 	 * This should be constant
 	 */
-	public Class<Subject> resultType();
+	def resultType:Class[Subject]
 }
-

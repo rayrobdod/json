@@ -31,8 +31,8 @@ import scala.collection.immutable.Map;
 /** A builder that creates maps
  * 
  * @constructor
- * @param a function pretty directly called by `childBuilder()`. By default, it
- * 		is a function that creates more MapBuilders
+ * @param childBuilderMap a function pretty directly called by `childBuilder()`.
+ *          By default, it is a function that creates more MapBuilders
  */
 class MapBuilder(childBuilderMap:Function1[String, Builder[_ <: Any]] = MapBuilder.defaultChildBuilder) extends Builder[Map[Any, Any]] {
 	override val init:Map[Any, Any] = Map.empty

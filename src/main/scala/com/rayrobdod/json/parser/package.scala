@@ -37,6 +37,7 @@ package object parser {
 }
 
 package parser {
+	/** An iterable whose iterator reads characters from the reader one at a time */
 	private[parser] class Reader2Iterable(r:java.io.Reader) extends Iterable[Char]() {
 		def iterator():Iterator[Char] = {
 			new Iterator[Char]() {
