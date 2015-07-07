@@ -62,4 +62,13 @@ package parser {
 			}
 		}
 	}
+	
+	/** A trivial "parser" that does the parse thing with a seq */
+	class SeqParser[A](topBuilder:Builder[A]) {
+		def parse(vals:Seq[Any]):A = {
+			vals.zipWithIndex.foldLeft[A](topBuilder.init){
+				(state:A, valueKey:(Any, Int)) => topBuilder.apply(state, valueKey._2.toString, valueKey._1)
+			}
+		}
+	}
 }

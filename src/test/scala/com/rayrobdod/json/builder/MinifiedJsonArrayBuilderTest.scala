@@ -33,115 +33,110 @@ import org.scalatest.FunSpec;
 import java.nio.charset.StandardCharsets.US_ASCII;
 import com.rayrobdod.json.parser.CborParserTest_Happy.HexArrayStringConverter;
 
-class MinifiedJsonObjectBuilderTest extends FunSpec {
+class MinifiedJsonArrayBuilderTest extends FunSpec {
 	
-	describe("MinifiedJsonObjectBuilder") {
+	describe("MinifiedJsonArrayBuilder") {
 		it ("inits correctly") {
-			assertResult("{}"){new MinifiedJsonObjectBuilder().init}
+			assertResult("[]"){new MinifiedJsonArrayBuilder().init}
 		}
 		it ("Appends null") {
-			assertResult("""{"":null}"""){
-				new MinifiedJsonObjectBuilder().apply("{}", "", null)
+			assertResult("""[null]"""){
+				new MinifiedJsonArrayBuilder().apply("[]", "", null)
 			}
 		}
 		it ("Appends true") {
-			assertResult("""{"":true}"""){
-				new MinifiedJsonObjectBuilder().apply("{}", "", true)
+			assertResult("""[true]"""){
+				new MinifiedJsonArrayBuilder().apply("[]", "", true)
 			}
 		}
 		it ("Appends false") {
-			assertResult("""{"":false}"""){
-				new MinifiedJsonObjectBuilder().apply("{}", "", false)
+			assertResult("""[false]"""){
+				new MinifiedJsonArrayBuilder().apply("[]", "", false)
 			}
 		}
 		it ("Appends integer") {
-			assertResult("""{"":68}"""){
-				new MinifiedJsonObjectBuilder().apply("{}", "", 68)
-			}
-		}
-		it ("Appends seq") {
-			assertResult("""{"":[1,2,3]}"""){
-				new MinifiedJsonObjectBuilder().apply("{}", "", Seq(1,2,3))
+			assertResult("""[68]"""){
+				new MinifiedJsonArrayBuilder().apply("[]", "", 68)
 			}
 		}
 		it ("Appends string") {
-			assertResult("""{"":"abc"}"""){
-				new MinifiedJsonObjectBuilder().apply("{}", "", "abc")
+			assertResult("""["abc"]"""){
+				new MinifiedJsonArrayBuilder().apply("[]", "", "abc")
 			}
 		}
 		it ("Appends string with escapes") {
-			assertResult("""{"":"a\tc"}"""){
-				new MinifiedJsonObjectBuilder().apply("{}", "", "a\tc")
+			assertResult("""["a\tc"]"""){
+				new MinifiedJsonArrayBuilder().apply("[]", "", "a\tc")
 			}
 		}
 		it ("Appends string with escapes 2") {
-			assertResult("""{"":"a\""" + """u0000c"}"""){
-				new MinifiedJsonObjectBuilder().apply("{}", "", "a\u0000c")
+			assertResult("""["a\""" + """u0000c"]"""){
+				new MinifiedJsonArrayBuilder().apply("[]", "", "a\u0000c")
 			}
 		}
 		it ("Appends string with space") {
-			assertResult("""{"":" a c "}"""){
-				new MinifiedJsonObjectBuilder().apply("{}", "", " a c ")
+			assertResult("""[" a c "]"""){
+				new MinifiedJsonArrayBuilder().apply("[]", "", " a c ")
 			}
 		}
 		it ("Appends string with non-ascii char (utf-8)") {
-			assertResult("""{"":"Pokémon"}"""){
-				new MinifiedJsonObjectBuilder().apply("{}", "", "Pokémon")
+			assertResult("""["Pokémon"]"""){
+				new MinifiedJsonArrayBuilder().apply("[]", "", "Pokémon")
 			}
 		}
 		it ("Appends string with non-ascii char (ascii)") {
-			assertResult("""{"":"Pok\""" + """u00e9mon"}"""){
-				new MinifiedJsonObjectBuilder(US_ASCII).apply("{}", "", "Pokémon")
+			assertResult("""["Pok\""" + """u00e9mon"]"""){
+				new MinifiedJsonArrayBuilder(US_ASCII).apply("[]", "", "Pokémon")
 			}
 		}
 		it ("Appends a second value") {
-			assertResult("""{"a":"b","c":"d"}"""){
-				new MinifiedJsonObjectBuilder().apply("""{"a":"b"}""", "c", "d")
+			assertResult("""["a","b","c","d"]"""){
+				new MinifiedJsonArrayBuilder().apply("""["a","b","c"]""", "3", "d")
 			}
 		}
 		it ("childBuilder returns MapBuilder") {
-			val builder = new MinifiedJsonObjectBuilder()
+			val builder = new MinifiedJsonArrayBuilder()
 			
 			assert{builder.childBuilder("").isInstanceOf[MapBuilder]}
 		}
 		it ("resultType returns constructor parameter `clazz`") {
 			assertResult(classOf[String]){
-				new MinifiedJsonObjectBuilder().resultType
+				new MinifiedJsonArrayBuilder().resultType
 			}
 		}
 	}
 	
-	describe("MinifiedJsonObjectBuilder integration") {
+	describe("MinifiedJsonArrayBuilder integration") {
 		import com.rayrobdod.json.parser.{JsonParser, CborParser}
 		
-		it ("MinifiedJsonObjectBuilder + JsonParser + primitive") {
-			assertResult("""{"a":61,"b":62,"c":63}"""){
-				new JsonParser(new MinifiedJsonObjectBuilder).parse(
-					"""{"a":61,"b":62,"c":63}"""
+		it ("MinifiedJsonArrayBuilder + JsonParser + primitive") {
+			assertResult("""[61,62,63]"""){
+				new JsonParser(new MinifiedJsonArrayBuilder).parse(
+					"""[61,62,63]"""
 				)
 			}
 		}
-		it ("MinifiedJsonObjectBuilder + JsonParser + primitive (whitespace)") {
-			assertResult("""{"a":61,"b":62,"c":63}"""){
-				new JsonParser(new MinifiedJsonObjectBuilder).parse(
-					"""{
-	"a" : 61,
-	"b" : 62,
-	"c" : 63
-}"""
+		it ("MinifiedJsonArrayBuilder + JsonParser + primitive (whitespace)") {
+			assertResult("""["a","b","c"]"""){
+				new JsonParser(new MinifiedJsonArrayBuilder).parse(
+					"""[
+	"a",
+	"b",
+	"c"
+]"""
 				)
 			}
 		}
-		it ("MinifiedJsonObjectBuilder + JsonParser + nested objects") {
-			assertResult("""{"":{"a":0,"b":1}}"""){
-				new JsonParser(new MinifiedJsonObjectBuilder).parse(
-					"""{"":{"a":0,"b":1}}"""
+		it ("MinifiedJsonArrayBuilder + JsonParser + nested objects") {
+			assertResult("""[{"a":0,"b":1}]"""){
+				new JsonParser(new MinifiedJsonArrayBuilder).parse(
+					"""[{"a":0,"b":1}]"""
 				)
 			}
 		}
-		it ("MinifiedJsonObjectBuilder + CborParser + primitives") {
-			assertResult("""{"4":5}"""){
-				new CborParser(new MinifiedJsonObjectBuilder).parse(
+		it ("MinifiedJsonArrayBuilder + CborParser + primitives") {
+			assertResult("""[5]"""){
+				new CborParser(new MinifiedJsonArrayBuilder).parse(
 					new java.io.DataInputStream(
 						new java.io.ByteArrayInputStream(
 							hexArray"A10405"
