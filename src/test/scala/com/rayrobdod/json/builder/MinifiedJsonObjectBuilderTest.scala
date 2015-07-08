@@ -34,6 +34,8 @@ import java.nio.charset.StandardCharsets.US_ASCII;
 import com.rayrobdod.json.parser.CborParserTest_Happy.HexArrayStringConverter;
 
 class MinifiedJsonObjectBuilderTest extends FunSpec {
+	private case class Abc(a:Int, b:Boolean, c:String)
+	private implicit def classAbc = classOf[Abc]
 	
 	describe("MinifiedJsonObjectBuilder") {
 		it ("inits correctly") {
@@ -112,7 +114,7 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 	}
 	
 	describe("MinifiedJsonObjectBuilder integration") {
-		import com.rayrobdod.json.parser.{JsonParser, CborParser}
+		import com.rayrobdod.json.parser.{JsonParser, CborParser, CaseClassParser, MapParser}
 		
 		it ("MinifiedJsonObjectBuilder + JsonParser + primitive") {
 			assertResult("""{"a":61,"b":62,"c":63}"""){
@@ -148,6 +150,18 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 						)
 					)
 				)
+			}
+		}
+		it ("MinifiedJsonObjectBuilder + case class") {
+			assertResult("""{"a":5,"b":false,"c":"str"}"""){
+				new CaseClassParser(new MinifiedJsonObjectBuilder).parse(Abc(5,false,"str"))
+			}
+		}
+		it ("MinifiedJsonObjectBuilder + nested case class") {
+			val pf:PartialFunction[Any,Any] = {case x:Abc => new CaseClassParser(new MapBuilder).parse(x)}
+			
+			assertResult("""{"5":{"a":5,"b":false,"c":"str"}}"""){
+				new MapParser(new MinifiedJsonObjectBuilder(transformer = pf)).parse(Map("5" -> Abc(5,false,"str")))
 			}
 		}
 	}

@@ -39,7 +39,7 @@ import com.rayrobdod.json.parser.{MapParser, SeqParser}
  * @param charset The output will only contain characters that can be encoded using the specified charset.
  *           Any characters outside the charset will be u-escaped. Default is to keep all characters verbaitim
  */
-class MinifiedJsonObjectBuilder(charset:Charset = UTF_8) extends Builder[String] {
+class MinifiedJsonObjectBuilder(charset:Charset = UTF_8, transformer:PartialFunction[Any, Any] = PartialFunction.empty) extends Builder[String] {
 	import MinifiedJsonObjectBuilder._
 	
 	val init:String = "{}"
@@ -47,7 +47,7 @@ class MinifiedJsonObjectBuilder(charset:Charset = UTF_8) extends Builder[String]
 	/** @param folding a valid json object, with no characters trailing the final '}' */
 	def apply(folding:String, key:String, value:Any):String = {
 		val jsonKey:String = strToJsonStr(key, charset)
-		val jsonObject:String = serialize(value, charset)
+		val jsonObject:String = serialize(value, charset, transformer)
 		
 		val jsonKeyValuePair = jsonKey + ":" + jsonObject;
 		
@@ -69,14 +69,14 @@ class MinifiedJsonObjectBuilder(charset:Charset = UTF_8) extends Builder[String]
  * @param charset The output will only contain characters that can be encoded using the specified charset.
  *           Any characters outside the charset will be u-escaped. Default is to keep all characters verbaitim
  */
-class MinifiedJsonArrayBuilder(charset:Charset = UTF_8) extends Builder[String] {
+class MinifiedJsonArrayBuilder(charset:Charset = UTF_8, transformer:PartialFunction[Any, Any] = PartialFunction.empty) extends Builder[String] {
 	import MinifiedJsonObjectBuilder._
 	
 	val init:String = "[]"
 	
 	/** @param folding a valid json object, with no characters trailing the final '}' */
 	def apply(folding:String, key:String, value:Any):String = {
-		val jsonObject:String = serialize(value, charset)
+		val jsonObject:String = serialize(value, charset, transformer)
 		
 		if (folding == "[]") {
 			"[" + jsonObject + "]"
@@ -90,13 +90,14 @@ class MinifiedJsonArrayBuilder(charset:Charset = UTF_8) extends Builder[String] 
 
 /** methods for [[MinifiedJsonObjectBuilder]] and [[MinifiedJsonArrayBuilder]] */
 object MinifiedJsonObjectBuilder {
-	private[builder] def serialize(value:Any, charset:Charset):String = value match {
+	private[builder] def serialize(value:Any, charset:Charset, transformer:PartialFunction[Any, Any]):String = value match {
 		case x:Number => x.toString
 		case x:Boolean => x.toString
 		case null => "null"
 		case x:String => strToJsonStr(x, charset)
-		case x:Map[_,_] => new MapParser(new MinifiedJsonObjectBuilder(charset)).parse(x.asInstanceOf[Map[Any, Any]])
-		case x:Seq[_] => new SeqParser(new MinifiedJsonArrayBuilder(charset)).parse(x:Seq[Any])
+		case x:Map[_,_] => new MapParser(new MinifiedJsonObjectBuilder(charset, transformer)).parse(x.asInstanceOf[Map[Any, Any]])
+		case x:Seq[_] => new SeqParser(new MinifiedJsonArrayBuilder(charset, transformer)).parse(x:Seq[Any])
+		case x if (transformer.isDefinedAt(x)) => serialize(transformer(x), charset, transformer)
 	}
 	
 	private[builder] def strToJsonStr(s:String, charset:Charset):String = "\"" + s.flatMap{_ match {
