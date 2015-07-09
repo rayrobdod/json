@@ -80,17 +80,7 @@ import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.MapBuilder;
 
-object CborParserTest_Happy {
-	// String Interpolation
-	implicit class HexArrayStringConverter(val sc: StringContext) extends AnyVal {
-		def hexArray(args: Any*):Array[Byte] = {
-			((sc.parts.head):String).filter{x => ('A' <= x && x <= 'F') || ('a' <= x && x <= 'f') || ('0' <= x && x <= '9')}.grouped(2).map{x => Integer.parseInt(x, 16)}.map{_.byteValue}.toArray
-		}
-	}
-}
-
 class CborParserTest_Happy extends FunSpec {
-	import CborParserTest_Happy.HexArrayStringConverter
 
 	describe("CborParser + MapBuilder can decode") {"""
 		

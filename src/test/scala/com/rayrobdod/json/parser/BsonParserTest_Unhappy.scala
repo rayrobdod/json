@@ -34,12 +34,10 @@ import com.rayrobdod.json.builder.MapBuilder;
 class BsonParserTest_UnHappy extends FunSpec {
 	describe("BsonParser (Unhappy)") {
 		it ("String is longer than prefix") {
-			val src = new java.io.DataInputStream(
-				new java.io.ByteArrayInputStream(
+			val src = byteArray2DataInput(
 					Array[Byte](0,0,0,0,
 						0x02,0,  2,0,0,0,  'a','b','c',
 					0)
-				)
 			);
 			
 			intercept[ParseException] {
@@ -47,13 +45,11 @@ class BsonParserTest_UnHappy extends FunSpec {
 			}
 		}
 		it ("String is shorter than prefix") {
-			val src = new java.io.DataInputStream(
-				new java.io.ByteArrayInputStream(
+			val src = byteArray2DataInput(
 					Array[Byte](0,0,0,0,
 						0x02,0,  2,0,0,0,  'a',
 						0x02,0,  2,0,0,0,  'a','b',
 					0)
-				)
 			);
 			
 			intercept[ParseException] {
@@ -61,11 +57,9 @@ class BsonParserTest_UnHappy extends FunSpec {
 			}
 		}
 		it ("data ends early") {
-			val src = new java.io.DataInputStream(
-				new java.io.ByteArrayInputStream(
+			val src = byteArray2DataInput(
 					Array[Byte](0,0,0,0,
 						0x02,0,  2,0)
-				)
 			);
 			
 			intercept[java.io.EOFException] {
@@ -73,12 +67,10 @@ class BsonParserTest_UnHappy extends FunSpec {
 			}
 		}
 		it ("Does not parse on unknown data type") {
-			val src = new java.io.DataInputStream(
-				new java.io.ByteArrayInputStream(
+			val src = byteArray2DataInput(
 					Array[Byte](0,0,0,0,
 						0x50,0,  3,0,0,0,  'a','b','c',
 					0)
-				)
 			);
 			
 			intercept[ParseException] {

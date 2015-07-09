@@ -26,17 +26,13 @@
 */
 package com.rayrobdod.json.builder;
 
-import scala.beans.BeanProperty;
 import java.text.ParseException;
 import scala.collection.immutable.{Seq, Map};
 import org.scalatest.FunSpec;
 import java.nio.charset.StandardCharsets.US_ASCII;
-import com.rayrobdod.json.parser.CborParserTest_Happy.HexArrayStringConverter;
+import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter}
 
 class CborObjectBuilderTest extends FunSpec {
-	import CborObjectBuilderTest.HexArrayStringConverter
-	
-	
 	describe("CborObjectBuilder") {
 		it ("inits correctly") {
 			assertResult(Seq(0xA0.byteValue)){new CborObjectBuilder().init}
@@ -193,10 +189,8 @@ class CborObjectBuilderTest extends FunSpec {
 		it ("CborObjectBuilder + CborParser + primitive key") {
 			assertResult(hexSeq"A1613405"){
 				new CborParser(new CborObjectBuilder).parse(
-					new java.io.DataInputStream(
-						new java.io.ByteArrayInputStream(
+					byteArray2DataInput(
 							hexArray"A10405"
-						)
 					)
 				)
 			}
@@ -204,26 +198,11 @@ class CborObjectBuilderTest extends FunSpec {
 		it ("CborObjectBuilder + CborParser + primitives") {
 			assertResult(hexSeq"A162202005"){
 				new CborParser(new CborObjectBuilder).parse(
-					new java.io.DataInputStream(
-						new java.io.ByteArrayInputStream(
+					byteArray2DataInput(
 							hexArray"A162202005"
-						)
 					)
 				)
 			}
 		}
 	}
 }
-
-object CborObjectBuilderTest {
-	// String Interpolation
-	implicit class HexArrayStringConverter(val sc: StringContext) extends AnyVal {
-		def hexSeq(args: Any*):Seq[Byte] = {
-			((sc.parts.head):String).filter{x => ('A' <= x && x <= 'F') || ('a' <= x && x <= 'f') || ('0' <= x && x <= '9')}.grouped(2).map{x => Integer.parseInt(x, 16)}.map{_.byteValue}.to[Seq]
-		}
-		def hexArray(args: Any*):Array[Byte] = {
-			hexSeq(args).toArray
-		}
-	}
-}
-

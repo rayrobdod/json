@@ -31,7 +31,7 @@ import java.text.ParseException;
 import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
 import java.nio.charset.StandardCharsets.US_ASCII;
-import com.rayrobdod.json.parser.CborParserTest_Happy.HexArrayStringConverter;
+import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter};
 
 class MinifiedJsonArrayBuilderTest extends FunSpec {
 	
@@ -137,14 +137,9 @@ class MinifiedJsonArrayBuilderTest extends FunSpec {
 		it ("MinifiedJsonArrayBuilder + CborParser + primitives") {
 			assertResult("""[5]"""){
 				new CborParser(new MinifiedJsonArrayBuilder).parse(
-					new java.io.DataInputStream(
-						new java.io.ByteArrayInputStream(
-							hexArray"A10405"
-						)
-					)
+					byteArray2DataInput(hexArray"A10405")
 				)
 			}
 		}
 	}
 }
-

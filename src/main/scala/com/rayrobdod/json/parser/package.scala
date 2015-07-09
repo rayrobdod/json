@@ -28,17 +28,42 @@ package com.rayrobdod.json;
 
 import com.rayrobdod.json.builder.Builder
 import scala.collection.{Iterable, Iterator}
+import scala.collection.immutable.{Seq => ISeq}
 // import scala.collection.{AbstractIterable, AbstractIterator}
 
 /**
  * Contains the various built-in parsers
  */
 package object parser {
+	private[json] def byteArray2DataInput(ba:Array[Byte]):java.io.DataInput = {
+		new java.io.DataInputStream(
+			new java.io.ByteArrayInputStream(
+				ba
+			)
+		)
+	}
+	
+	// String Interpolation
+	private[json] implicit class HexArrayStringConverter(val sc: StringContext) extends AnyVal {
+		def hexSeq(args: Any*):ISeq[Byte] = {
+			((sc.parts.head):String)
+				.filter{x =>
+					('A' <= x && x <= 'F') || ('a' <= x && x <= 'f') || ('0' <= x && x <= '9')
+				}
+				.grouped(2)
+				.map{x => Integer.parseInt(x, 16)}
+				.map{_.byteValue}
+				.to[ISeq]
+		}
+		def hexArray(args: Any*):Array[Byte] = {
+			hexSeq(args).toArray
+		}
+	}
 }
 
 package parser {
 	/** An iterable whose iterator reads characters from the reader one at a time */
-	private[parser] class Reader2Iterable(r:java.io.Reader) extends Iterable[Char]() {
+	private[parser] class Reader2Iterable(r:java.io.Reader) extends Iterable[Char] {
 		def iterator():Iterator[Char] = {
 			new Iterator[Char]() {
 				private[this] var nextChar:Int = r.read()

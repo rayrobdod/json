@@ -31,10 +31,9 @@ import java.text.ParseException;
 import scala.collection.immutable.{Seq, Map};
 import org.scalatest.FunSpec;
 import java.nio.charset.StandardCharsets.US_ASCII;
-import com.rayrobdod.json.parser.CborParserTest_Happy.HexArrayStringConverter;
+import com.rayrobdod.json.parser.HexArrayStringConverter;
 
 class CborArrayBuilderTest extends FunSpec {
-	import CborArrayBuilderTest.HexArrayStringConverter
 	private case class Abc(a:Int, b:Boolean, c:String)
 	private implicit def classAbc = classOf[Abc]
 	
@@ -176,7 +175,7 @@ class CborArrayBuilderTest extends FunSpec {
 	}
 	
 	describe("CborArrayBuilder integration") {
-		import com.rayrobdod.json.parser.{JsonParser, SeqParser, CborParser, CaseClassParser}
+		import com.rayrobdod.json.parser.{JsonParser, SeqParser, CborParser, CaseClassParser, byteArray2DataInput}
 		
 		it ("CborArrayBuilder + JsonParser + primitive") {
 			assertResult(hexSeq"83 183D 183E 183F"){
@@ -195,10 +194,8 @@ class CborArrayBuilderTest extends FunSpec {
 		it ("CborArrayBuilder + CborParser + primitives") {
 			assertResult(hexSeq"8262202005"){
 				new CborParser(new CborArrayBuilder).parse(
-					new java.io.DataInputStream(
-						new java.io.ByteArrayInputStream(
+					byteArray2DataInput(
 							hexArray"8262202005"
-						)
 					)
 				)
 			}
@@ -219,16 +216,3 @@ class CborArrayBuilderTest extends FunSpec {
 		}
 	}
 }
-
-object CborArrayBuilderTest {
-	// String Interpolation
-	implicit class HexArrayStringConverter(val sc: StringContext) extends AnyVal {
-		def hexSeq(args: Any*):Seq[Byte] = {
-			((sc.parts.head):String).filter{x => ('A' <= x && x <= 'F') || ('a' <= x && x <= 'f') || ('0' <= x && x <= '9')}.grouped(2).map{x => Integer.parseInt(x, 16)}.map{_.byteValue}.to[Seq]
-		}
-		def hexArray(args: Any*):Array[Byte] = {
-			hexSeq(args).toArray
-		}
-	}
-}
-

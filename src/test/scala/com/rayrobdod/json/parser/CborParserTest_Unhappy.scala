@@ -28,47 +28,34 @@ package com.rayrobdod.json.parser;
 
 import org.scalatest.FunSpec;
 import java.text.ParseException;
-import java.io.DataInput
-import scala.language.implicitConversions
 import scala.collection.immutable.Map;
 import com.rayrobdod.json.builder.MapBuilder;
-import CborParserTest_Happy.HexArrayStringConverter
 
 class CborParserTest_Unhappy extends FunSpec {
 	describe("CborParser") {
 		it ("""errors when told to decode a half float""") {
 			val source = hexArray"F93C00"
 			val ex = intercept[UnsupportedOperationException]{
-				new CborParser(new MapBuilder()).parse(source)
+				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
 			}
 		}
 		it ("""errors when array is incomplete""") {
 			val source = Array[Byte](0x58, 30) ++ (1 to 10).map{_.byteValue}
 			val ex = intercept[java.io.EOFException]{
-				new CborParser(new MapBuilder()).parse(source)
+				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
 			}
 		}
 		it ("""illegal additional info field""") {
 			val source = Array[Byte](28) ++ (1 to 50).map{_.byteValue}
 			val ex = intercept[ParseException]{
-				new CborParser(new MapBuilder()).parse(source)
+				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
 			}
 		}
 		it ("""errors when INDET byte string contains non-string values""") {
 			val source = hexArray"5F44AABBCCDD21FF"
 			val ex = intercept[ClassCastException]{
-				new CborParser(new MapBuilder()).parse(source)
+				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
 			}
 		}
-	}
-	
-	
-	
-	private implicit def byteArray2DataInput(ba:Array[Byte]):DataInput = {
-		new java.io.DataInputStream(
-			new java.io.ByteArrayInputStream(
-				ba
-			)
-		)
 	}
 }
