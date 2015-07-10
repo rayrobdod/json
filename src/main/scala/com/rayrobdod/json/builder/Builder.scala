@@ -26,23 +26,35 @@
 */
 package com.rayrobdod.json.builder;
 
-import scala.collection.immutable.Map;
-
-/** A builder that creates maps
+/**
+ * A class that creates an object from a sequence of 'fold'-style method calls
  * 
- * @constructor
- * @param childBuilderMap a function pretty directly called by `childBuilder()`.
- *          By default, it is a function that creates more MapBuilders
+ * @tparam Subject the type of object to build
  */
-class MapBuilder(childBuilderMap:Function1[String, Builder[_ <: Any]] = MapBuilder.defaultChildBuilder) extends Builder[Map[Any, Any]] {
-	override val init:Map[Any, Any] = Map.empty
-	override def apply(folding:Map[Any, Any], key:String, value:Any):Map[Any,Any] = {
-		folding + ((key, value))
-	}
-	override def childBuilder(key:String):Builder[_ <: Any] = childBuilderMap(key)
-	override val resultType:Class[Map[Any,Any]] = classOf[Map[Any,Any]]
-}
-
-private object MapBuilder {
-	val defaultChildBuilder = {s:String => new MapBuilder()}
+trait Builder[Subject] {
+	/**
+	 * The starting point of the folding process
+	 */
+	def init:Subject
+	
+	/**
+	 * The main part of the folding process
+	 * @param foldee the subject of the fold process
+	 * @param key the key of a keyValue pair
+	 * @param value the value of a keyValue pair
+	 * @return the subject of the fold process
+	 */
+	def apply(foldee:Subject, key:String, value:Any):Subject
+	
+	/**
+	 * A builder that should be used when a parser 
+	 * @param key the key of a keyValue pair
+	 */
+	def childBuilder(key:String):Builder[_]
+	
+	/**
+	 * The Class object of the Subect class
+	 * This should be constant
+	 */
+	def resultType:Class[Subject]
 }

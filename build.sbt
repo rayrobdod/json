@@ -1,14 +1,14 @@
-name := "JSON"
+name := "json"
 
 organization := "com.rayrobdod"
 
 organizationHomepage := Some(new URL("http://rayrobdod.name/"))
 
-version := "2.0-RC3"
+version := "2.0-RC4"
 
 scalaVersion := "2.10.5"
 
-crossScalaVersions := Seq("2.10.5", "2.11.6")
+crossScalaVersions := Seq("2.10.5", "2.11.7")
 
 compileOrder := CompileOrder.JavaThenScala
 
@@ -25,7 +25,7 @@ packageOptions in (Compile, packageBin) <+= (scalaVersion, sourceDirectory).map{
 	Package.JarManifest( manifest )
 }
 
-licenses += (("3-point BSD", new java.net.URL("http://rayrobdod.name/programming/libraries/java/json/2.0.0/LICENSE.rst") ))
+licenses += (("3-point BSD", new URL("http://opensource.org/licenses/BSD-3-Clause") ))
 
 mappings in (Compile, packageSrc) <+= baseDirectory.map{(b) => (new File(b, "LICENSE.rst"), "LICENSE.rst" )}
 
@@ -40,6 +40,6 @@ scalastyleConfig := baseDirectory.value / "project" / "scalastyle-config.xml"
 
 
 // scalaTest
-libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.1" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.5" % "test"
 
 testOptions in Test += Tests.Argument("-oS")

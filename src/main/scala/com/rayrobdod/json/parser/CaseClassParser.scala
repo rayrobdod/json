@@ -24,32 +24,34 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json.builder;
+package com.rayrobdod.json.parser;
+
+import scala.reflect.runtime.universe.{runtimeMirror, newTermName}
+import com.rayrobdod.json.builder.Builder
+
 
 /**
- * 
  */
-public interface Builder<Subject> {
-	/**
-	 * The starting point of the builder
-	 */
-	public Subject init();
+final class CaseClassParser[A](topBuilder:Builder[A]) {
 	
 	/**
 	 * 
+	 * @param obj the object to extract values from
+	 * @param clazz the class of obj
+	 * @return the parsed object
 	 */
-	public Subject apply(Subject folder, String key, Object value);
-	
-	/**
-	 * A builder that should be used when a parser 
-	 * @param key the 
-	 */
-	public Builder<? extends Object> childBuilder(String key);
-	
-	/**
-	 * 
-	 * This should be constant
-	 */
-	public Class<Subject> resultType();
+	def parse[B <: Product](obj:B)(implicit clazz:Class[B]):A = {
+		val mirror = runtimeMirror( this.getClass.getClassLoader )
+		val typ = mirror.classSymbol( clazz ).toType
+		val copyMethod = typ.declaration(newTermName("copy")).asMethod
+		val copyParams = copyMethod.paramss(0)
+		
+		copyParams.zipWithIndex.foldLeft(topBuilder.init){(state:A, keyValue) =>
+			val (name, index) = keyValue
+			val name2 = name.name.decodedName.toString
+			
+			topBuilder.apply(state, name2, obj.productElement(index))
+		}
+	}
 }
 

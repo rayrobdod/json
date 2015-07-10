@@ -24,25 +24,33 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json.builder;
+package com.rayrobdod.json.parser
 
-import scala.collection.immutable.Map;
+import org.scalatest.FunSpec
+import java.text.ParseException
+import scala.collection.immutable.Map
+import com.rayrobdod.json.builder.{MapBuilder, CaseClassBuilder, MinifiedJsonObjectBuilder}
 
-/** A builder that creates maps
- * 
- * @constructor
- * @param childBuilderMap a function pretty directly called by `childBuilder()`.
- *          By default, it is a function that creates more MapBuilders
- */
-class MapBuilder(childBuilderMap:Function1[String, Builder[_ <: Any]] = MapBuilder.defaultChildBuilder) extends Builder[Map[Any, Any]] {
-	override val init:Map[Any, Any] = Map.empty
-	override def apply(folding:Map[Any, Any], key:String, value:Any):Map[Any,Any] = {
-		folding + ((key, value))
+class CaseClassParserTest extends FunSpec {
+	private implicit def fooClass = classOf[Foo]
+	private case class Foo(hello:Long, world:String, bazz:Boolean)
+	
+	describe("CaseClassParser") {
+		it ("""recreates an arbitrary case class""") {
+			val exp = Map("hello" -> 43L, "world" -> "world", "bazz" -> true)
+			val src = Foo(43L, "world", true)
+			val res = new CaseClassParser(new MapBuilder()).parse(src)
+			
+			assertResult(exp){res}
+		}
 	}
-	override def childBuilder(key:String):Builder[_ <: Any] = childBuilderMap(key)
-	override val resultType:Class[Map[Any,Any]] = classOf[Map[Any,Any]]
-}
-
-private object MapBuilder {
-	val defaultChildBuilder = {s:String => new MapBuilder()}
+	describe("CaseClassParser + Json") {
+		it ("""can be used with the json stuff to serialze and deserialize a map""") {
+			val src = Foo(-5, "asdf", true)
+			val json = new CaseClassParser(new MinifiedJsonObjectBuilder()).parse(src)
+			val res = new JsonParser(new CaseClassBuilder(fooClass, Foo(0,"",false))).parse(json)
+			
+			assertResult(src){res}
+		}
+	}
 }

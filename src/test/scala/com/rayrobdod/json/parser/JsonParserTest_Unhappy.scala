@@ -155,7 +155,7 @@ class JsonParserTest_Unhappy extends FunSpec {
 		
 		
 		it ("""errors on control character inside string""") {
-			('\0' until ' ').foreach{c =>
+			('\u0000' until ' ').foreach{c =>
 				val source = Seq('[', '"', c, '"', ']') 
 				val ex = intercept[ParseException]{
 					val result = new JsonParser(new MapBuilder()).parse(source)
@@ -197,6 +197,48 @@ class JsonParserTest_Unhappy extends FunSpec {
 				new JsonParser(new MapBuilder()).parse(source)
 			}
 			assertResult(5){ex.getErrorOffset()}
+		}
+		it ("""errors on trailing comma (array)""") {
+			val source = """[1,2,3,]"""
+			val ex = intercept[ParseException]{
+				new JsonParser(new MapBuilder()).parse(source)
+			}
+			assertResult(7){ex.getErrorOffset()}
+		}
+		it ("""errors on empty value (array)""") {
+			val source = """[1,,3]"""
+			val ex = intercept[ParseException]{
+				new JsonParser(new MapBuilder()).parse(source)
+			}
+			assertResult(3){ex.getErrorOffset()}
+		}
+		it ("""errors on empty value 2 (array)""") {
+			val source = """[,]"""
+			val ex = intercept[ParseException]{
+				new JsonParser(new MapBuilder()).parse(source)
+			}
+			assertResult(1){ex.getErrorOffset()}
+		}
+		it ("""errors on trailing comma (object)""") {
+			val source = """{"a":2,}"""
+			val ex = intercept[ParseException]{
+				new JsonParser(new MapBuilder()).parse(source)
+			}
+			assertResult(7){ex.getErrorOffset()}
+		}
+		it ("""errors on empty value (object)""") {
+			val source = """{"":0,,}"""
+			val ex = intercept[ParseException]{
+				new JsonParser(new MapBuilder()).parse(source)
+			}
+			assertResult(6){ex.getErrorOffset()}
+		}
+		it ("""errors on empty value 2 (object)""") {
+			val source = """{,}"""
+			val ex = intercept[ParseException]{
+				new JsonParser(new MapBuilder()).parse(source)
+			}
+			assertResult(1){ex.getErrorOffset()}
 		}
 	}
 }

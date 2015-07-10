@@ -24,25 +24,58 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json.builder;
+package com.rayrobdod.json.parser;
 
+import java.text.ParseException;
 import scala.collection.immutable.Map;
+import org.scalatest.FunSpec;
+import com.rayrobdod.json.builder.MapBuilder;
 
-/** A builder that creates maps
- * 
- * @constructor
- * @param childBuilderMap a function pretty directly called by `childBuilder()`.
- *          By default, it is a function that creates more MapBuilders
- */
-class MapBuilder(childBuilderMap:Function1[String, Builder[_ <: Any]] = MapBuilder.defaultChildBuilder) extends Builder[Map[Any, Any]] {
-	override val init:Map[Any, Any] = Map.empty
-	override def apply(folding:Map[Any, Any], key:String, value:Any):Map[Any,Any] = {
-		folding + ((key, value))
+class BsonParserTest_UnHappy extends FunSpec {
+	describe("BsonParser (Unhappy)") {
+		it ("String is longer than prefix") {
+			val src = byteArray2DataInput(
+					Array[Byte](0,0,0,0,
+						0x02,0,  2,0,0,0,  'a','b','c',
+					0)
+			);
+			
+			intercept[ParseException] {
+				new BsonParser(new MapBuilder()).parse(src)
+			}
+		}
+		it ("String is shorter than prefix") {
+			val src = byteArray2DataInput(
+					Array[Byte](0,0,0,0,
+						0x02,0,  2,0,0,0,  'a',
+						0x02,0,  2,0,0,0,  'a','b',
+					0)
+			);
+			
+			intercept[ParseException] {
+				new BsonParser(new MapBuilder()).parse(src)
+			}
+		}
+		it ("data ends early") {
+			val src = byteArray2DataInput(
+					Array[Byte](0,0,0,0,
+						0x02,0,  2,0)
+			);
+			
+			intercept[java.io.EOFException] {
+				new BsonParser(new MapBuilder()).parse(src)
+			}
+		}
+		it ("Does not parse on unknown data type") {
+			val src = byteArray2DataInput(
+					Array[Byte](0,0,0,0,
+						0x50,0,  3,0,0,0,  'a','b','c',
+					0)
+			);
+			
+			intercept[ParseException] {
+				new BsonParser(new MapBuilder()).parse(src)
+			}
+		}
 	}
-	override def childBuilder(key:String):Builder[_ <: Any] = childBuilderMap(key)
-	override val resultType:Class[Map[Any,Any]] = classOf[Map[Any,Any]]
-}
-
-private object MapBuilder {
-	val defaultChildBuilder = {s:String => new MapBuilder()}
 }

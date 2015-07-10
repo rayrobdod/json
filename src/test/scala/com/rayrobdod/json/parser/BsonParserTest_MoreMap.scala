@@ -31,59 +31,25 @@ import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.MapBuilder;
 
-class BsonParserTest_UnHappy extends FunSpec {
-	describe("BsonParser (Unhappy)") {
-		it ("String is longer than prefix") {
-			val src = new java.io.DataInputStream(
-				new java.io.ByteArrayInputStream(
-					Array[Byte](0,0,0,0,
-						0x02,0,  2,0,0,0,  'a','b','c',
-					0)
-				)
-			);
+class BsonParserTest_Happy2 extends FunSpec {
+	describe("BsonParser + MapBuilder can decode") {
+		it ("20-element list") {
+			val elements:Seq[Seq[Byte]] = (0 until 10).map{(i:Int) =>
+					Seq[Byte](0x10, (0x30 + i).byteValue, 0x00, i.byteValue, 0x00, 0x00, 0x00) 
+				} ++: (10 until 20).map{(i:Int) =>
+					Seq[Byte](0x10, 0x31, (0x30 + i - 10).byteValue, 0x00, i.byteValue, 0x00, 0x00, 0x00) 
+				}
+			val elementsArray:Array[Byte] = elements.flatten.toArray
 			
-			intercept[ParseException] {
-				new BsonParser(new MapBuilder()).parse(src)
-			}
-		}
-		it ("String is shorter than prefix") {
-			val src = new java.io.DataInputStream(
-				new java.io.ByteArrayInputStream(
-					Array[Byte](0,0,0,0,
-						0x02,0,  2,0,0,0,  'a',
-						0x02,0,  2,0,0,0,  'a','b',
-					0)
-				)
-			);
+			val len = elementsArray.length + 1;
 			
-			intercept[ParseException] {
-				new BsonParser(new MapBuilder()).parse(src)
-			}
-		}
-		it ("data ends early") {
-			val src = new java.io.DataInputStream(
-				new java.io.ByteArrayInputStream(
-					Array[Byte](0,0,0,0,
-						0x02,0,  2,0)
-				)
-			);
+			val source = byteArray2DataInput(
+					Array[Byte](len.byteValue, 0x00, 0x00, 0x00) ++: elementsArray :+ 0x00.byteValue
+			)
+			val expected = (0 until 20).map{i => i.toString -> i}.toMap
+			val result = new BsonParser(new MapBuilder()).parse(source)
 			
-			intercept[java.io.EOFException] {
-				new BsonParser(new MapBuilder()).parse(src)
-			}
-		}
-		it ("Does not parse on unknown data type") {
-			val src = new java.io.DataInputStream(
-				new java.io.ByteArrayInputStream(
-					Array[Byte](0,0,0,0,
-						0x50,0,  3,0,0,0,  'a','b','c',
-					0)
-				)
-			);
-			
-			intercept[ParseException] {
-				new BsonParser(new MapBuilder()).parse(src)
-			}
+			assertResult(expected){result}
 		}
 	}
 }

@@ -34,6 +34,7 @@ object CborParserTestGenerator {
 		("false", """Array[Byte](0xF4.byteValue)""", "false"),
 		("true", """Array[Byte](0xF5.byteValue)""", "true"),
 		("null", """Array[Byte](0xF6.byteValue)""", "null"),
+		("unknown", """Array[Byte](0xE4.byteValue)""", "CborParser.UnknownSimpleValue(4)"),
 		("endOfObject", """Array[Byte](0xFF.byteValue)""", "CborParser.EndOfIndeterminateObject()"),
 		("integer 0", """Array[Byte](0)""", "0"),
 		("integer 1", """Array[Byte](1)""", "1"),
@@ -55,6 +56,7 @@ object CborParserTestGenerator {
 		("byte string INDET", """ hexArray"5F44AABBCCDD43EEFF99FF" """, """ hexArray"AABBCCDDEEFF99" """),
 		("char string 0", """Array[Byte](0x60)""", " \"\" "),
 		("char string 5", """Array(0x65, 'h', 'e', 'l', 'l', 'o').map{_.byteValue}""", """ "hello" """),
+		("char string multibyte char", """hexArray"63e6b0b4" """, """ "\u6c34" """),
 		("char string INDET", """Array(0x7F, 0x62, 'h', 'e', 0x63, 'l', 'l', 'o', 0xFF).map{_.byteValue}""", """ "hello" """),
 		("array 0", """ hexArray"80" """, "Map()"),
 		("array 1", """ hexArray"8121" """, """Map("0" -> -2)"""),
@@ -78,17 +80,7 @@ import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.MapBuilder;
 
-object CborParserTest_Happy {
-	// String Interpolation
-	implicit class HexArrayStringConverter(val sc: StringContext) extends AnyVal {
-		def hexArray(args: Any*):Array[Byte] = {
-			((sc.parts.head):String).filter{x => ('A' <= x && x <= 'F') || ('a' <= x && x <= 'f') || ('0' <= x && x <= '9')}.grouped(2).map{x => Integer.parseInt(x, 16)}.map{_.byteValue}.toArray
-		}
-	}
-}
-
 class CborParserTest_Happy extends FunSpec {
-	import CborParserTest_Happy.HexArrayStringConverter
 
 	describe("CborParser + MapBuilder can decode") {"""
 		

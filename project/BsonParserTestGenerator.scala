@@ -65,7 +65,7 @@ object BsonParserTestGenerator {
 						).map{_.byteValue}""", """Map("BSON" -> Map("0" -> "awesome", "1" -> 5.05, "2" -> 1986))"""),
 		("value contains Nul", """Array[Int](14,0,0,0,
 							0x02,'0',0, 2,0,0,0, 0,0,
-						0).map{_.byteValue}""", """Map("0" -> "\0")"""),
+						0).map{_.byteValue}""", """Map("0" -> "\u0000")"""),
 		("Object containing object", """Array[Int](
 					27,0,0,0,
 						0x04,'0',0, 19,0,0,0,

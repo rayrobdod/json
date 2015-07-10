@@ -24,25 +24,38 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json.builder;
+package com.rayrobdod.json.parser;
 
+import org.scalatest.FunSpec;
+import java.text.ParseException;
 import scala.collection.immutable.Map;
+import com.rayrobdod.json.builder.MapBuilder;
 
-/** A builder that creates maps
- * 
- * @constructor
- * @param childBuilderMap a function pretty directly called by `childBuilder()`.
- *          By default, it is a function that creates more MapBuilders
- */
-class MapBuilder(childBuilderMap:Function1[String, Builder[_ <: Any]] = MapBuilder.defaultChildBuilder) extends Builder[Map[Any, Any]] {
-	override val init:Map[Any, Any] = Map.empty
-	override def apply(folding:Map[Any, Any], key:String, value:Any):Map[Any,Any] = {
-		folding + ((key, value))
+class CborParserTest_Unhappy extends FunSpec {
+	describe("CborParser") {
+		it ("""errors when told to decode a half float""") {
+			val source = hexArray"F93C00"
+			val ex = intercept[UnsupportedOperationException]{
+				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+			}
+		}
+		it ("""errors when array is incomplete""") {
+			val source = Array[Byte](0x58, 30) ++ (1 to 10).map{_.byteValue}
+			val ex = intercept[java.io.EOFException]{
+				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+			}
+		}
+		it ("""illegal additional info field""") {
+			val source = Array[Byte](28) ++ (1 to 50).map{_.byteValue}
+			val ex = intercept[ParseException]{
+				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+			}
+		}
+		it ("""errors when INDET byte string contains non-string values""") {
+			val source = hexArray"5F44AABBCCDD21FF"
+			val ex = intercept[ClassCastException]{
+				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+			}
+		}
 	}
-	override def childBuilder(key:String):Builder[_ <: Any] = childBuilderMap(key)
-	override val resultType:Class[Map[Any,Any]] = classOf[Map[Any,Any]]
-}
-
-private object MapBuilder {
-	val defaultChildBuilder = {s:String => new MapBuilder()}
 }

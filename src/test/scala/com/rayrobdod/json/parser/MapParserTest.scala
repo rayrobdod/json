@@ -24,34 +24,35 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json.parser;
+package com.rayrobdod.json.parser
 
-import java.text.ParseException;
-import scala.collection.immutable.Map;
-import org.scalatest.FunSpec;
-import com.rayrobdod.json.builder.MapBuilder;
+import org.scalatest.FunSpec
+import java.text.ParseException
+import scala.collection.immutable.Map
+import com.rayrobdod.json.builder.{MapBuilder, MinifiedJsonObjectBuilder}
 
-class BsonParserTest_Happy2 extends FunSpec {
-	describe("BsonParser + MapBuilder can decode") {
-		it ("20-element list") {
-			val elements:Seq[Seq[Byte]] = (0 until 10).map{(i:Int) =>
-					Seq[Byte](0x10, (0x30 + i).byteValue, 0x00, i.byteValue, 0x00, 0x00, 0x00) 
-				} ++: (10 until 20).map{(i:Int) =>
-					Seq[Byte](0x10, 0x31, (0x30 + i - 10).byteValue, 0x00, i.byteValue, 0x00, 0x00, 0x00) 
-				}
-			val elementsArray:Array[Byte] = elements.flatten.toArray
+class MapParserTest extends FunSpec {
+	describe("MapParser") {
+		it ("""recreates an arbitrary map""") {
+			val src = Map("a" -> 32, "b" -> Some(false), "c" -> new MapBuilder()).map{x => ((x._1:Any, x._2:Any))}
+			val res = new MapParser(new MapBuilder()).parse(src)
 			
-			val len = elementsArray.length + 1;
+			assertResult(src){res}
+		}
+		it ("""recreates an arbitrary map with nesting""") {
+			val src = Map("a" -> Map.empty, "b" -> Map("x" -> true, "y" -> false)).map{x => ((x._1:Any, x._2:Any))}
+			val res = new MapParser(new MapBuilder()).parse(src)
 			
-			val source = new java.io.DataInputStream(
-				new java.io.ByteArrayInputStream(
-					Array[Byte](len.byteValue, 0x00, 0x00, 0x00) ++: elementsArray :+ 0x00.byteValue
-				)
-			)
-			val expected = (0 until 20).map{i => i.toString -> i}.toMap
-			val result = new BsonParser(new MapBuilder()).parse(source)
+			assertResult(src){res}
+		}
+	}
+	describe("MapParser + Json") {
+		it ("""can be used with the json stuff to serialze and deserialize a map""") {
+			val src = Map("a" -> 32L, "b" -> false, "c" -> "1.5").map{x => ((x._1:Any, x._2:Any))}
+			val json = new MapParser(new MinifiedJsonObjectBuilder()).parse(src)
+			val res = new JsonParser(new MapBuilder()).parse(json)
 			
-			assertResult(expected){result}
+			assertResult(src){res}
 		}
 	}
 }
