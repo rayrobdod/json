@@ -11,7 +11,7 @@ used just for testing.
 
 ## Usage
 There are two types of classes in this library. The first is
-[Builder](src/main/java/com/rayrobdod/json/builder/Builder.java),
+[Builder](src/main/scala/com/rayrobdod/json/builder/Builder.scala),
 which has to be implemented by a user of the library. The purpose is to receive
 values from the parser and add it to data objects. 
 

@@ -18,6 +18,13 @@ scalacOptions ++= Seq("-unchecked", "-deprecation")
 
 libraryDependencies <+= scalaVersion.apply{("org.scala-lang" % "scala-reflect" % _)}
 
+scalacOptions in doc in Compile ++= Seq(
+		"-doc-title", name.value,
+		"-doc-version", version.value,
+		"-doc-root-content", ((scalaSource in Compile).value / "rootdoc.txt").toString,
+		"-sourcepath", baseDirectory.value.toString,
+		"-doc-source-url", "https://github.com/rayrobdod/json/tree/" + version.value + "€{FILE_PATH}.scala"
+)
 
 packageOptions in (Compile, packageBin) <+= (scalaVersion, sourceDirectory).map{(scalaVersion:String, srcDir:File) =>
 	val manifest = new java.util.jar.Manifest(new java.io.FileInputStream(srcDir + "/main/MANIFEST.MF"))
