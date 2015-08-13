@@ -35,7 +35,7 @@ import scala.reflect.runtime.universe.{runtimeMirror, newTermName}
  * @param init the starting point of the builder
  * @param childBuilders a map used directly by childBuilder
  */
-class CaseClassBuilder[A <: Product](clazz:Class[A], val init:A, childBuilders:Map[String, Builder[_]] = Map.empty) extends Builder[A] {
+final class CaseClassBuilder[A <: Product](clazz:Class[A], val init:A, childBuilders:Map[String, Builder[_]] = Map.empty) extends Builder[A] {
 	/**
 	 * Creates an instance of clazz by calling the class's No Argument constructor.
 	 */

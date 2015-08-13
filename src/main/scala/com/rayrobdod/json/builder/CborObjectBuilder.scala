@@ -34,7 +34,7 @@ import com.rayrobdod.json.parser.{MapParser, SeqParser}
 /**
  * A builder that will serialize a map as a Cbor Object
  */
-class CborObjectBuilder(transformer:PartialFunction[Any, Any] = PartialFunction.empty) extends Builder[Seq[Byte]] {
+final class CborObjectBuilder(transformer:PartialFunction[Any, Any] = PartialFunction.empty) extends Builder[Seq[Byte]] {
 	import CborObjectBuilder._
 	
 	val init:Seq[Byte] = encodeLength(MajorTypeCodes.OBJECT, 0)

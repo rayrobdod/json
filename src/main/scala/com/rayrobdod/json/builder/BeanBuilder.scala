@@ -38,7 +38,7 @@ import java.lang.reflect.Method
  * @param clazz the class of the objects to build
  * @param childBuilders a map used directly by childBuilder
  */
-class BeanBuilder[A](clazz:Class[A], childBuilders:Map[String, Builder[_]] = Map.empty) extends Builder[A] {
+final class BeanBuilder[A](clazz:Class[A], childBuilders:Map[String, Builder[_]] = Map.empty) extends Builder[A] {
 	/**
 	 * Creates an instance of clazz by calling the class's No Argument constructor.
 	 */

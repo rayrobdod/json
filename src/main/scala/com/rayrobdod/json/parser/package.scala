@@ -63,7 +63,7 @@ package object parser {
 
 package parser {
 	/** An iterable whose iterator reads characters from the reader one at a time */
-	private[parser] class Reader2Iterable(r:java.io.Reader) extends Iterable[Char] {
+	private[parser] final class Reader2Iterable(r:java.io.Reader) extends Iterable[Char] {
 		def iterator():Iterator[Char] = {
 			new Iterator[Char]() {
 				private[this] var nextChar:Int = r.read()
@@ -80,7 +80,7 @@ package parser {
 	}
 	
 	/** A trivial "parser" that does the parse thing with a map */
-	class MapParser[A](topBuilder:Builder[A]) {
+	final class MapParser[A](topBuilder:Builder[A]) {
 		def parse(vals:Map[Any, Any]):A = {
 			vals.foldLeft[A](topBuilder.init){
 				(state:A, keyValue:(Any, Any)) => topBuilder.apply(state, keyValue._1.toString, keyValue._2)
@@ -89,7 +89,7 @@ package parser {
 	}
 	
 	/** A trivial "parser" that does the parse thing with a seq */
-	class SeqParser[A](topBuilder:Builder[A]) {
+	final class SeqParser[A](topBuilder:Builder[A]) {
 		def parse(vals:Seq[Any]):A = {
 			vals.zipWithIndex.foldLeft[A](topBuilder.init){
 				(state:A, valueKey:(Any, Int)) => topBuilder.apply(state, valueKey._2.toString, valueKey._1)

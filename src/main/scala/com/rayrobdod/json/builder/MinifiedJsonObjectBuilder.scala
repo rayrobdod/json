@@ -39,7 +39,7 @@ import com.rayrobdod.json.parser.{MapParser, SeqParser}
  * @param charset The output will only contain characters that can be encoded using the specified charset.
  *           Any characters outside the charset will be u-escaped. Default is to keep all characters verbaitim
  */
-class MinifiedJsonObjectBuilder(charset:Charset = UTF_8, transformer:PartialFunction[Any, Any] = PartialFunction.empty) extends Builder[String] {
+final class MinifiedJsonObjectBuilder(charset:Charset = UTF_8, transformer:PartialFunction[Any, Any] = PartialFunction.empty) extends Builder[String] {
 	import MinifiedJsonObjectBuilder._
 	
 	val init:String = "{}"
