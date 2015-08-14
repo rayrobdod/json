@@ -81,7 +81,7 @@ package parser {
 	
 	/** A trivial "parser" that does the parse thing with a map */
 	final class MapParser[A](topBuilder:Builder[A]) {
-		def parse(vals:Map[Any, Any]):A = {
+		def parse(vals:Map[_ <: Any, _ <: Any]):A = {
 			vals.foldLeft[A](topBuilder.init){
 				(state:A, keyValue:(Any, Any)) => topBuilder.apply(state, keyValue._1.toString, keyValue._2)
 			}
@@ -90,7 +90,7 @@ package parser {
 	
 	/** A trivial "parser" that does the parse thing with a seq */
 	final class SeqParser[A](topBuilder:Builder[A]) {
-		def parse(vals:Seq[Any]):A = {
+		def parse(vals:Seq[_ <: Any]):A = {
 			vals.zipWithIndex.foldLeft[A](topBuilder.init){
 				(state:A, valueKey:(Any, Int)) => topBuilder.apply(state, valueKey._2.toString, valueKey._1)
 			}
