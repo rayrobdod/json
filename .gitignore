@@ -1,6 +1,10 @@
+# per-computer files
+dot.sbt
+
+# scala / java products
 *.class
 *.log
 
-# sbt
+# sbt products
 target
 project/target

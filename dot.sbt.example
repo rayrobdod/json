@@ -1,0 +1,3 @@
+scalacOptions in doc in Compile ++= Seq(
+		"-diagrams-dot-path", """\path\to\dot.exe"""
+)

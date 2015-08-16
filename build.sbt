@@ -22,6 +22,7 @@ scalacOptions in doc in Compile ++= Seq(
 		"-doc-title", name.value,
 		"-doc-version", version.value,
 		"-doc-root-content", ((scalaSource in Compile).value / "rootdoc.txt").toString,
+		"-diagrams",
 		"-sourcepath", baseDirectory.value.toString,
 		"-doc-source-url", "https://github.com/rayrobdod/json/tree/" + version.value + "€{FILE_PATH}.scala"
 )
