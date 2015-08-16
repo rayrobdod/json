@@ -32,47 +32,48 @@ import org.scalatest.FunSpec;
 
 class CaseClassBuilderTest extends FunSpec {
 	import CaseClassBuilderTest.Person;
+	private implicit def personClass = classOf[Person]
 	
 	describe("CaseClassBuilder") {
 		it ("inits correctly") {
 			assertResult(new Person("me", 4)){
-					new CaseClassBuilder(classOf[Person], new Person("me", 4)).init
+					new CaseClassBuilder(new Person("me", 4)).init
 			}
 		}
 		it ("Can handle the name bean property") {
 			val name = "Anony Mouse"
 			assertResult(new Person(name, 0)){
-				new CaseClassBuilder(classOf[Person], new Person("", 0)).apply(new Person("", 0), "name", name)
+				new CaseClassBuilder(new Person("", 0)).apply(new Person("", 0), "name", name)
 			}
 		}
 		it ("Can handle the age bean property") {
 			val age = 9001L
 			assertResult(new Person("", age)){
-				new CaseClassBuilder(classOf[Person], new Person("", 0)).apply(new Person("", 0), "age", age)
+				new CaseClassBuilder(new Person("", 0)).apply(new Person("", 0), "age", age)
 			}
 		}
 		it ("Throws excpetion on incorrect type") {
 			val age = "9001"
 			intercept[IllegalArgumentException]{
-				new CaseClassBuilder(classOf[Person], new Person("", 0)).apply(new Person("", 0), "age", age)
+				new CaseClassBuilder(new Person("", 0)).apply(new Person("", 0), "age", age)
 			}
 		}
 		it ("Throws excpetion on unknown key") {
 			val age = "9001"
 			intercept[IllegalArgumentException]{
-				new CaseClassBuilder(classOf[Person], new Person("", 0)).apply(new Person("", 0), "asdfjkl;", age)
+				new CaseClassBuilder(new Person("", 0)).apply(new Person("", 0), "asdfjkl;", age)
 			}
 		}
 		it ("childBuilder returns value from constructor") {
 			import CaseClassBuilderTest.MockBuilder
 			
 			assertResult(MockBuilder){
-				new CaseClassBuilder(classOf[Person], new Person("", 0), Map("key" -> MockBuilder)).childBuilder("key")
+				new CaseClassBuilder(new Person("", 0), Map("key" -> MockBuilder)).childBuilder("key")
 			}
 		}
 		it ("resultType returns constructor parameter `clazz`") {
 			assertResult(classOf[Person]){
-				new CaseClassBuilder(classOf[Person], new Person("", 0)).resultType
+				new CaseClassBuilder(new Person("", 0)).resultType
 			}
 		}
 	}
@@ -82,7 +83,7 @@ class CaseClassBuilderTest extends FunSpec {
 		
 		it ("works") {
 			assertResult(Person("nqpppnl",1)){
-				new JsonParser(new CaseClassBuilder(classOf[Person], new Person("", 0))).parse(
+				new JsonParser(new CaseClassBuilder(new Person("", 0))).parse(
 					"""{"name":"nqpppnl","age":1}"""
 				)
 			}
