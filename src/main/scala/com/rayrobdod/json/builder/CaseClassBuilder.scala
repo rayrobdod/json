@@ -30,6 +30,7 @@ import scala.reflect.runtime.universe.{runtimeMirror, newTermName}
 
 /** A builder that builds a Case Class
  * 
+ * @tparam A the type of object to build
  * @constructor
  * @param clazz the class of the objects to build
  * @param init the starting point of the builder
@@ -40,10 +41,6 @@ final class CaseClassBuilder[A <: Product](
 		childBuilders:Function1[String, Builder[_]] = Map.empty
 )(		implicit clazz:Class[A]
 ) extends Builder[A] {
-	/**
-	 * Creates an instance of clazz by calling the class's No Argument constructor.
-	 */
-	//def init:A = clazz.getConstructor().newInstance()
 	
 	/**
 	 * Sets the `key` bean property in the `folding` object

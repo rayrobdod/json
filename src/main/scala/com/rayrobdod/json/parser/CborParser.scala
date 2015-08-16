@@ -188,7 +188,9 @@ final class CborParser[A](topBuilder:Builder[A]) {
 	}
 }
 
-
+/**
+ * Objects related to Cbor's data model
+ */
 object CborParser {
 	private abstract sealed class AdditionalInfoData {
 		def value:Long

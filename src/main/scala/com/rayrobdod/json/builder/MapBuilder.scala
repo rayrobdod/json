@@ -31,6 +31,7 @@ import scala.collection.immutable.Map;
 /** A builder that creates maps
  * 
  * @constructor
+ * Create a MapBuilder instance
  * @param childBuilderMap a function pretty directly called by `childBuilder()`.
  *          By default, it is a function that creates more MapBuilders
  */

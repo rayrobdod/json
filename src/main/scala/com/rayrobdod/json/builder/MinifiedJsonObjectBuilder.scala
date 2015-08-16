@@ -34,10 +34,11 @@ import com.rayrobdod.json.parser.{MapParser, SeqParser}
 /** A builder that will output a json format string
  * 
  * @constructor
- * A builder that will create json format strings
+ * Creates a JsonObjectBuilder
  * 
  * @param charset The output will only contain characters that can be encoded using the specified charset.
  *           Any characters outside the charset will be u-escaped. Default is to keep all characters verbaitim
+ * @param transformer a function to convert non-cbor-primitive objects to cbor-primitive objects
  */
 final class MinifiedJsonObjectBuilder(charset:Charset = UTF_8, transformer:PartialFunction[Any, Any] = PartialFunction.empty) extends Builder[String] {
 	import MinifiedJsonObjectBuilder._
@@ -89,7 +90,7 @@ class MinifiedJsonArrayBuilder(charset:Charset = UTF_8, transformer:PartialFunct
 }
 
 /** methods for [[MinifiedJsonObjectBuilder]] and [[MinifiedJsonArrayBuilder]] */
-object MinifiedJsonObjectBuilder {
+private[builder] object MinifiedJsonObjectBuilder {
 	private[builder] def serialize(value:Any, charset:Charset, transformer:PartialFunction[Any, Any]):String = value match {
 		case x:Number => x.toString
 		case x:Boolean => x.toString
