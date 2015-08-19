@@ -1,3 +1,7 @@
+## 2.0-RC5
+* Make every class, excepting Builder, final
+* Allow CaseClassBuilder's clazz parameter to be provided implicitly
+
 ## 2.0-RC4
 * JsonParser will no longer accept trailing commas
 * Creating a set of classes that allow writing to json/cbor format files

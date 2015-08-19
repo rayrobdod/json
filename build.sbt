@@ -4,6 +4,8 @@ organization := "com.rayrobdod"
 
 organizationHomepage := Some(new URL("http://rayrobdod.name/"))
 
+homepage := Some(new URL("http://rayrobdod.name/programming/libraries/java/json/"))
+
 version := "2.0-SNAPSHOT"
 
 scalaVersion := "2.10.5"
@@ -14,7 +16,7 @@ compileOrder := CompileOrder.JavaThenScala
 
 javacOptions ++= Seq("-Xlint:deprecation", "-Xlint:unchecked")
 
-scalacOptions ++= Seq("-unchecked", "-deprecation")
+scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 
 libraryDependencies <+= scalaVersion.apply{("org.scala-lang" % "scala-reflect" % _)}
 
@@ -23,6 +25,7 @@ scalacOptions in doc in Compile ++= Seq(
 		"-doc-version", version.value,
 		"-doc-root-content", ((scalaSource in Compile).value / "rootdoc.txt").toString,
 		"-diagrams",
+		"-external-urls", "scala=http://www.scala-lang.org/api/" + scalaVersion.value + "/",
 		"-sourcepath", baseDirectory.value.toString,
 		"-doc-source-url", "https://github.com/rayrobdod/json/tree/" + version.value + "€{FILE_PATH}.scala"
 )
