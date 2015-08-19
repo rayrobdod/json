@@ -68,7 +68,7 @@ final class CborObjectBuilder(transformer:PartialFunction[Any, Any] = PartialFun
  * A builder that will create cbor array format byte strings
  * @param transformer a function to convert non-cbor-primitive objects to cbor-primitive objects
  */
-class CborArrayBuilder(transformer:PartialFunction[Any, Any] = PartialFunction.empty) extends Builder[Seq[Byte]] {
+final class CborArrayBuilder(transformer:PartialFunction[Any, Any] = PartialFunction.empty) extends Builder[Seq[Byte]] {
 	import CborObjectBuilder._
 	
 	val init:Seq[Byte] = encodeLength(MajorTypeCodes.ARRAY, 0)
