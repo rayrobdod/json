@@ -8,13 +8,13 @@ homepage := Some(new URL("http://rayrobdod.name/programming/libraries/java/json/
 
 version := "2.0-SNAPSHOT"
 
-scalaVersion := "2.10.5"
+scalaVersion := "2.10.6"
 
-crossScalaVersions := Seq("2.10.5", "2.11.7")
+crossScalaVersions := Seq("2.10.6", "2.11.7")
 
 compileOrder := CompileOrder.JavaThenScala
 
-javacOptions ++= Seq("-Xlint:deprecation", "-Xlint:unchecked")
+javacOptions in Compile ++= Seq("-Xlint:deprecation", "-Xlint:unchecked")
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 
@@ -25,10 +25,11 @@ scalacOptions in doc in Compile ++= Seq(
 		"-doc-version", version.value,
 		"-doc-root-content", ((scalaSource in Compile).value / "rootdoc.txt").toString,
 		"-diagrams",
-		"-external-urls", "scala=http://www.scala-lang.org/api/" + scalaVersion.value + "/",
 		"-sourcepath", baseDirectory.value.toString,
 		"-doc-source-url", "https://github.com/rayrobdod/json/tree/" + version.value + "€{FILE_PATH}.scala"
 )
+
+autoAPIMappings in doc in Compile := true
 
 packageOptions in (Compile, packageBin) <+= (scalaVersion, sourceDirectory).map{(scalaVersion:String, srcDir:File) =>
 	val manifest = new java.util.jar.Manifest(new java.io.FileInputStream(srcDir + "/main/MANIFEST.MF"))
