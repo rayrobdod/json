@@ -1,6 +1,15 @@
-addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.0.4")
+// No support for 2.12
+if (System.getProperty("scoverage.disable") != "true") {
+  addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.0.4")
+} else {
+  TaskKey[Unit]("asfdsdfasdf") := {}
+}
 
-addSbtPlugin("org.scoverage" % "sbt-coveralls" % "1.0.0")
+if (System.getProperty("scoverage.disable", "") != "true") {
+  addSbtPlugin("org.scoverage" % "sbt-coveralls" % "1.0.0")
+} else {
+  TaskKey[Unit]("asfdsdfasdf") := {}
+}
 
 // only works with scala 2.11
 // addSbtPlugin("com.sksamuel.scapegoat" %% "sbt-scapegoat" % "0.94.6")

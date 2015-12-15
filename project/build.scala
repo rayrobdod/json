@@ -42,6 +42,16 @@ object MyBuild extends Build {
 		}
 	)
 	
+	private val coverageDisabledSettings = {
+		if (System.getProperty("scoverage.disable", "") != "true") {
+			Nil
+		} else {
+			Seq(
+				TaskKey[Unit]("coverage") := {},
+				TaskKey[Unit]("coveralls") := {}
+			)
+		}
+	}
 	
 	
 	lazy val root = Project(
@@ -52,6 +62,7 @@ object MyBuild extends Build {
 					CborParserTestGenerator.settings ++
 					BsonParserTestGenerator.settings ++
 					JsonParserTestGenerator.settings ++
+					coverageDisabledSettings ++
 					mySettings
 	)
 }
