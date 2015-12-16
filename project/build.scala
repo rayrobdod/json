@@ -28,18 +28,8 @@ import sbt._
 import Keys._
 
 object MyBuild extends Build {
-	val pack = TaskKey[Seq[File]]("pack200")
 	
 	private val mySettings = Seq(
-		pack in (Compile, packageBin) := {
-			val input:File = (packageBin in Compile).value
-			val output:File = new File(input.toString + ".pack.gz")
-			val p = java.lang.Runtime.getRuntime.exec(Array[String]("pack200",
-					"-CScalaSig=BBB", "-G", "-Ustrip", output.toString, input.toString
-			))
-			p.waitFor();
-			Seq(output);
-		}
 	)
 	
 	private val coverageDisabledSettings = {

@@ -15,3 +15,5 @@ if (System.getProperty("scoverage.disable", "") != "true") {
 // addSbtPlugin("com.sksamuel.scapegoat" %% "sbt-scapegoat" % "0.94.6")
 
 addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "0.7.0")
+
+addSbtPlugin("com.rayrobdod" % "sbt-alt-package" % "1.0")
