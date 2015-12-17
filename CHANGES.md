@@ -1,13 +1,15 @@
 ## 2.0-RC5
 * Make every class, excepting Builder, final
 * Allow CaseClassBuilder's clazz parameter to be provided implicitly
+* Allow MapParser and SeqParser to take collections with type params other than Any
+* Change BeanBuilder and CaseClassBuilder's childBuilders parameter from a Map to a Function1
 
 ## 2.0-RC4
 * JsonParser will no longer accept trailing commas
 * Creating a set of classes that allow writing to json/cbor format files
 
 ## 2.0-RC3
-* JsonParser can now to parse non-iteger integers
+* JsonParser can now parse non-integer numbers
 
 ## 2.0-RC2
 * improved code style
