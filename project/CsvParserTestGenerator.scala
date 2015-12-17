@@ -53,6 +53,8 @@ object CsvParserTestGenerator {
 		("escaped", """ " \\, " """, """Seq(Seq(","))""", "CsvParser.csvCharacterMeanings"),
 		("escaped two elem", """ " \\, , \\, " """, """Seq(Seq(",",","))""", "CsvParser.csvCharacterMeanings"),
 		("two rows csv w\\ whitespace", """ " 1 , 2 \n 3 , 4 " """, """Seq(Seq("1", "2"),Seq("3", "4"))""", "CsvParser.csvCharacterMeanings"),
+		("does not error if input ends while in a quote", """ "1 , 2 \n 3 , \"4 " """, """Seq(Seq("1", "2"),Seq("3", "4 "))""", "CsvParser.csvCharacterMeanings"),
+		("does not error if input ends in middle of escape", """ "1 , 2 \n 3 , 4\\" """, """Seq(Seq("1", "2"),Seq("3", "4" ))""", "CsvParser.csvCharacterMeanings"),
 		
 		// LibreOffice, at least, ignores trailing commas and lines
 		("two empty rows", """ "\n" """, """Seq(Seq(""))""", "CsvParser.csvCharacterMeanings"),
@@ -82,6 +84,12 @@ class CsvParserTest_Happy extends FunSpec {
 		
 		"\n\t\tit (\"\"\"" + name + "\"\"\"" + """) {
 			val source = """ + source + """
+			val expected = """ + expected + """
+			val result = new CsvParser(new SeqBuilder(), """ + charMeans + """).parse(source)
+			assertResult(expected){result}
+		}"""
+		"\n\t\tit (\"\"\"" + name + " (reader)\"\"\"" + """) {
+			val source = new java.io.StringReader(""" + source + """)
 			val expected = """ + expected + """
 			val result = new CsvParser(new SeqBuilder(), """ + charMeans + """).parse(source)
 			assertResult(expected){result}

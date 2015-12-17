@@ -34,13 +34,13 @@ import com.rayrobdod.json.builder.{MapBuilder, MinifiedJsonObjectBuilder}
 class MapParserTest extends FunSpec {
 	describe("MapParser") {
 		it ("""recreates an arbitrary map""") {
-			val src = Map("a" -> 32, "b" -> Some(false), "c" -> new MapBuilder()).map{x => ((x._1:Any, x._2:Any))}
+			val src = Map("a" -> 32, "b" -> Some(false), "c" -> new MapBuilder())
 			val res = new MapParser(new MapBuilder()).parse(src)
 			
 			assertResult(src){res}
 		}
 		it ("""recreates an arbitrary map with nesting""") {
-			val src = Map("a" -> Map.empty, "b" -> Map("x" -> true, "y" -> false)).map{x => ((x._1:Any, x._2:Any))}
+			val src = Map("a" -> Map.empty, "b" -> Map("x" -> true, "y" -> false))
 			val res = new MapParser(new MapBuilder()).parse(src)
 			
 			assertResult(src){res}
@@ -48,7 +48,7 @@ class MapParserTest extends FunSpec {
 	}
 	describe("MapParser + Json") {
 		it ("""can be used with the json stuff to serialze and deserialize a map""") {
-			val src = Map("a" -> 32L, "b" -> false, "c" -> "1.5").map{x => ((x._1:Any, x._2:Any))}
+			val src = Map("a" -> 32L, "b" -> false, "c" -> "1.5")
 			val json = new MapParser(new MinifiedJsonObjectBuilder()).parse(src)
 			val res = new JsonParser(new MapBuilder()).parse(json)
 			

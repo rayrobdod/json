@@ -32,9 +32,12 @@ import com.rayrobdod.json.parser.CborParser.{MajorTypeCodes, SimpleValueCodes}
 import com.rayrobdod.json.parser.{MapParser, SeqParser}
 
 /**
- * A builder that will serialize a map as a Cbor Object
+ * A builder that will create a series of bytes in Cbor Object format
+ * @constructor
+ * A builder that will create cbor object format byte strings
+ * @param transformer a function to convert non-cbor-primitive objects to cbor-primitive objects
  */
-class CborObjectBuilder(transformer:PartialFunction[Any, Any] = PartialFunction.empty) extends Builder[Seq[Byte]] {
+final class CborObjectBuilder(transformer:PartialFunction[Any, Any] = PartialFunction.empty) extends Builder[Seq[Byte]] {
 	import CborObjectBuilder._
 	
 	val init:Seq[Byte] = encodeLength(MajorTypeCodes.OBJECT, 0)
@@ -60,9 +63,12 @@ class CborObjectBuilder(transformer:PartialFunction[Any, Any] = PartialFunction.
 }
 
 /**
- * A builder that will serialize a map as a Cbor Array
+ * A builder that will create a series of bytes in Cbor Array format
+ * @constructor
+ * A builder that will create cbor array format byte strings
+ * @param transformer a function to convert non-cbor-primitive objects to cbor-primitive objects
  */
-class CborArrayBuilder(transformer:PartialFunction[Any, Any] = PartialFunction.empty) extends Builder[Seq[Byte]] {
+final class CborArrayBuilder(transformer:PartialFunction[Any, Any] = PartialFunction.empty) extends Builder[Seq[Byte]] {
 	import CborObjectBuilder._
 	
 	val init:Seq[Byte] = encodeLength(MajorTypeCodes.ARRAY, 0)
@@ -87,7 +93,12 @@ class CborArrayBuilder(transformer:PartialFunction[Any, Any] = PartialFunction.e
 	val resultType:Class[Seq[Byte]] = classOf[Seq[Byte]]
 }
 
-object CborObjectBuilder {
+private[builder] object CborObjectBuilder {
+	/**
+	 * Encode a number into CBOR form.
+	 * @param majorType the major type to prepend to the number. 0 ≥ x ≥ 7
+	 * @param value the value to encode
+	 */
 	private[builder] def encodeLength(majorType:Byte, value:Long):Seq[Byte] = {
 		val majorTypeShifted:Byte = (majorType << 5).byteValue
 		

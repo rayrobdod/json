@@ -63,7 +63,7 @@ package object parser {
 
 package parser {
 	/** An iterable whose iterator reads characters from the reader one at a time */
-	private[parser] class Reader2Iterable(r:java.io.Reader) extends Iterable[Char] {
+	private[parser] final class Reader2Iterable(r:java.io.Reader) extends Iterable[Char] {
 		def iterator():Iterator[Char] = {
 			new Iterator[Char]() {
 				private[this] var nextChar:Int = r.read()
@@ -79,18 +79,40 @@ package parser {
 		}
 	}
 	
-	/** A trivial "parser" that does the parse thing with a map */
-	class MapParser[A](topBuilder:Builder[A]) {
-		def parse(vals:Map[Any, Any]):A = {
+	/**
+	* A trivial "parser" that goes through the motions using each element of a map
+	 * 
+	 * @constructor
+	 * Create a MapParser
+	 * @param topBuilder the builder that this parser will use when constructing objects
+	 */
+	final class MapParser[A](topBuilder:Builder[A]) {
+		/**
+		 * Decodes the input values to an object.
+		 * @param vals the sequence containing values
+		 * @return the parsed object
+		 */
+		def parse(vals:Map[_ <: Any, _ <: Any]):A = {
 			vals.foldLeft[A](topBuilder.init){
 				(state:A, keyValue:(Any, Any)) => topBuilder.apply(state, keyValue._1.toString, keyValue._2)
 			}
 		}
 	}
 	
-	/** A trivial "parser" that does the parse thing with a seq */
-	class SeqParser[A](topBuilder:Builder[A]) {
-		def parse(vals:Seq[Any]):A = {
+	/**
+	 * A trivial "parser" that goes through the motions with each element of a seq
+	 * 
+	 * @constructor
+	 * Create a SeqParser
+	 * @param topBuilder the builder that this parser will use when constructing objects
+	 */
+	final class SeqParser[A](topBuilder:Builder[A]) {
+		/**
+		 * Decodes the input values to an object.
+		 * @param vals the sequence containing values
+		 * @return the parsed object
+		 */
+		def parse(vals:Seq[_ <: Any]):A = {
 			vals.zipWithIndex.foldLeft[A](topBuilder.init){
 				(state:A, valueKey:(Any, Int)) => topBuilder.apply(state, valueKey._2.toString, valueKey._1)
 			}

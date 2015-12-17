@@ -57,5 +57,59 @@ class CborParserTest_Unhappy extends FunSpec {
 				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
 			}
 		}
+		it ("errors when an integer has an indeterminate length") {
+			val source = hexArray"1F"
+			val ex = intercept[UnsupportedOperationException]{
+				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+			}
+		}
+		it ("errors when an integer has an 1E-type length") {
+			val source = hexArray"1E"
+			val ex = intercept[ParseException]{
+				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+			}
+		}
+		it ("errors when an integer has an 1D-type length") {
+			val source = hexArray"1E"
+			val ex = intercept[ParseException]{
+				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+			}
+		}
+		it ("errors when an integer has an 1C-type length") {
+			val source = hexArray"1E"
+			val ex = intercept[ParseException]{
+				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+			}
+		}
+		it ("errors when a byte array has an 1C-type length") {
+			val source = hexArray"5C"
+			val ex = intercept[ParseException]{
+				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+			}
+		}
+		it ("errors when a string array has an 1E-type length") {
+			val source = hexArray"7E"
+			val ex = intercept[ParseException]{
+				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+			}
+		}
+		it ("errors when a simple value has an 1C-type length") {
+			val source = hexArray"FC"
+			val ex = intercept[ParseException]{
+				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+			}
+		}
+		it ("errors when a negative integer has an indeterminate length") {
+			val source = hexArray"3F"
+			val ex = intercept[UnsupportedOperationException]{
+				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+			}
+		}
+		it ("errors when a tag has an indeterminate length") {
+			val source = hexArray"DF"
+			val ex = intercept[UnsupportedOperationException]{
+				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+			}
+		}
 	}
 }

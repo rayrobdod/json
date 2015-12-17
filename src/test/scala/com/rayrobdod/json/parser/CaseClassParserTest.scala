@@ -48,7 +48,7 @@ class CaseClassParserTest extends FunSpec {
 		it ("""can be used with the json stuff to serialze and deserialize a map""") {
 			val src = Foo(-5, "asdf", true)
 			val json = new CaseClassParser(new MinifiedJsonObjectBuilder()).parse(src)
-			val res = new JsonParser(new CaseClassBuilder(fooClass, Foo(0,"",false))).parse(json)
+			val res = new JsonParser(new CaseClassBuilder(Foo(0,"",false))).parse(json)
 			
 			assertResult(src){res}
 		}
