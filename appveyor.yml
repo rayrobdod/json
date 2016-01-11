@@ -1,0 +1,55 @@
+version: '2.0.{build}'
+os: Windows Server 2012
+install:
+  - ps: |
+      Add-Type -AssemblyName System.IO.Compression.FileSystem
+      if (!(Test-Path -Path "C:\sbt" )) {
+        (new-object System.Net.WebClient).DownloadFile(
+          'https://dl.bintray.com/sbt/native-packages/sbt/0.13.7/sbt-0.13.7.zip',
+          'C:\sbt-bin.zip'
+        )
+        [System.IO.Compression.ZipFile]::ExtractToDirectory("C:\sbt-bin.zip", "C:\sbt")
+      }
+  - ps: |
+      Add-Type -AssemblyName System.IO.Compression.FileSystem
+      if (!(Test-Path -Path "C:\graphviz" )) {
+        (new-object System.Net.WebClient).DownloadFile(
+          'http://graphviz.org/pub/graphviz/stable/windows/graphviz-2.38.zip',
+          'C:\graphviz-bin.zip'
+        )
+        [System.IO.Compression.ZipFile]::ExtractToDirectory("C:\graphviz-bin.zip", "C:\graphviz")
+      }
+      
+  - cmd: SET SBT_HOME=C:\sbt\sbt\bin
+  - cmd: SET SBT_OPTS=-Dscoverage.disable=true
+  - cmd: SET SBT_CMD="%JAVA_HOME%\bin\java.exe" %SBT_OPTS% -cp "%SBT_HOME%\sbt-launch.jar" xsbt.boot.Boot
+environment:
+  matrix:
+  - SCALA_VERSION: 2.10.6
+    JAVA_HOME: C:\Program Files (x86)\Java\jdk1.7.0
+    SBT_CROSS_TARGET: scala-2.10
+  - SCALA_VERSION: 2.11.7
+    JAVA_HOME: C:\Program Files (x86)\Java\jdk1.7.0
+    SBT_CROSS_TARGET: scala-2.11
+  - SCALA_VERSION: 2.12.0-M3
+    JAVA_HOME: C:\Program Files (x86)\Java\jdk1.8.0
+    SBT_CROSS_TARGET: scala-2.12.0-M3
+build_script:
+  - '%SBT_CMD% "set scalacOptions in doc in Compile ++= Seq(""-diagrams-dot-path"", ""C:/graphviz/release/bin/dot.exe"")" "set publishTo := Some(Resolver.file(""file"", baseDirectory.value / ""publish""))" ++%SCALA_VERSION% compile publish'
+test_script:
+  # primary purpose is to package, but might as well test too, I guess.
+  - cmd: '%SBT_CMD% ++%SCALA_VERSION% test'
+  - ps: |
+      $wc = New-Object 'System.Net.WebClient'
+      $files=get-childitem .\target\$($env:SBT_CROSS_TARGET)\test-results-junit
+      foreach ($file in $files) {
+        $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\target\$($env:SBT_CROSS_TARGET)\test-results-junit\$file))
+      }
+artifacts:
+  - path: publish
+    name: sbt_publish_directory
+cache:
+  - C:\sbt\
+  - C:\graphviz\
+  - C:\Users\appveyor\.m2
+  - C:\Users\appveyor\.ivy2
