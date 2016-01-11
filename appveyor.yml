@@ -22,17 +22,13 @@ environment:
   - SCALA_VERSION: 2.12.0-M3
     JAVA_HOME: C:\Program Files (x86)\Java\jdk1.8.0
 build_script:
-  - '%SBT_CMD% "set artifactName in packageBin in Compile := {(a,b,c) => ""bin.jar""}" ++%SCALA_VERSION% compile packageBin'
+  - '%SBT_CMD% "set publishTo := Some(Resolver.file(""file"", baseDirectory.value / ""publish""))" ++%SCALA_VERSION% compile publish'
 test_script:
   # primary purpose is to package, but might as well test too, I guess.
   - '%SBT_CMD% ++%SCALA_VERSION% test'
 artifacts:
-  - path: target\scala-2.10\bin.jar
-    name: bin_2.10
-  - path: target\scala-2.11\bin.jar
-    name: bin_2.11
-  - path: target\scala-2.12.0-M3\bin.jar
-    name: bin_2.12
+  - path: publish
+    name: sbt_publish_directory
 cache:
   - C:\sbt\
   - C:\Users\appveyor\.m2
