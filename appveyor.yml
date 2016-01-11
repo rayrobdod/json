@@ -17,15 +17,24 @@ environment:
   matrix:
   - SCALA_VERSION: 2.10.6
     JAVA_HOME: C:\Program Files (x86)\Java\jdk1.7.0
+    SBT_CROSS_TARGET: scala-2.10
   - SCALA_VERSION: 2.11.7
     JAVA_HOME: C:\Program Files (x86)\Java\jdk1.7.0
+    SBT_CROSS_TARGET: scala-2.11
   - SCALA_VERSION: 2.12.0-M3
     JAVA_HOME: C:\Program Files (x86)\Java\jdk1.8.0
+    SBT_CROSS_TARGET: scala-2.12.0-M3
 build_script:
   - '%SBT_CMD% "set publishTo := Some(Resolver.file(""file"", baseDirectory.value / ""publish""))" ++%SCALA_VERSION% compile publish'
 test_script:
   # primary purpose is to package, but might as well test too, I guess.
-  - '%SBT_CMD% ++%SCALA_VERSION% test'
+  - cmd: '%SBT_CMD% ++%SCALA_VERSION% test'
+  - ps: |
+      $wc = New-Object 'System.Net.WebClient'
+      $files=get-childitem .\target\$($env:SBT_CROSS_TARGET)\test-results-junit
+      foreach ($file in $files) {
+        $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\target\$($env:SBT_CROSS_TARGET)\test-results-junit\$file))
+      }
 artifacts:
   - path: publish
     name: sbt_publish_directory
