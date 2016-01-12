@@ -34,9 +34,15 @@ scalacOptions in doc in Compile ++= Seq(
 
 autoAPIMappings in doc in Compile := true
 
-packageOptions in (Compile, packageBin) <+= (scalaVersion, sourceDirectory).map{(scalaVersion:String, srcDir:File) =>
-	val manifest = new java.util.jar.Manifest(new java.io.FileInputStream(srcDir + "/main/MANIFEST.MF"))
-	manifest.getAttributes("scala/").putValue("Implementation-Version", scalaVersion)
+packageOptions in (Compile, packageBin) += {
+	val manifest = new java.util.jar.Manifest()
+	manifest.getEntries().put("scala/", {
+		val attrs = new java.util.jar.Attributes()
+		attrs.putValue("Implementation-Title", "Scala")
+		attrs.putValue("Implementation-URL", "http://www.scala-lang.org/")
+		attrs.putValue("Implementation-Version", scalaVersion.value)
+		attrs
+	})
 	Package.JarManifest( manifest )
 }
 
