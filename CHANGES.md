@@ -1,3 +1,6 @@
+## 2.0-RC6
+* Build scala2.10 and scala2.11 versions using java7
+
 ## 2.0-RC5
 * Make every class, excepting Builder, final
 * Allow CaseClassBuilder's clazz parameter to be provided implicitly
