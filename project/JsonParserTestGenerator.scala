@@ -122,7 +122,7 @@ class JsonParserTest_Happy extends FunSpec {
 			val result = new JsonParser(new MapBuilder()).parse(source)
 			assertResult(expected){result}
 		}
-		it (" """ + name + """ (reader)") {
+		it (""" + '"' + name + """ (reader)") {
 			val source = new java.io.StringReader(""" + "\"\"\"" + source + "\"\"\"" + """)
 			val expected = """ + expected + """
 			val result = new JsonParser(new MapBuilder()).parse(source)
