@@ -8,7 +8,7 @@ homepage := Some(new URL("http://rayrobdod.name/programming/libraries/java/json/
 
 apiURL := Some(url(s"http://doc.rayrobdod.name/json/${version.value}/"))
 
-version := "2.0-RC5"
+version := "2.0-RC6"
 
 scalaVersion := "2.10.6"
 
@@ -17,9 +17,9 @@ crossScalaVersions := Seq("2.10.6", "2.11.7") ++
 
 compileOrder := CompileOrder.JavaThenScala
 
-javacOptions in Compile ++= Seq("-Xlint:deprecation", "-Xlint:unchecked")
+javacOptions in Compile ++= Seq("-Xlint:deprecation", "-Xlint:unchecked", "-source", "1.7", "-target", "1.7")
 
-scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
+scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-target:jvm-1.7")
 
 libraryDependencies <+= scalaVersion.apply{("org.scala-lang" % "scala-reflect" % _)}
 
@@ -34,9 +34,15 @@ scalacOptions in doc in Compile ++= Seq(
 
 autoAPIMappings in doc in Compile := true
 
-packageOptions in (Compile, packageBin) <+= (scalaVersion, sourceDirectory).map{(scalaVersion:String, srcDir:File) =>
-	val manifest = new java.util.jar.Manifest(new java.io.FileInputStream(srcDir + "/main/MANIFEST.MF"))
-	manifest.getAttributes("scala/").putValue("Implementation-Version", scalaVersion)
+packageOptions in (Compile, packageBin) += {
+	val manifest = new java.util.jar.Manifest()
+	manifest.getEntries().put("scala/", {
+		val attrs = new java.util.jar.Attributes()
+		attrs.putValue("Implementation-Title", "Scala")
+		attrs.putValue("Implementation-URL", "http://www.scala-lang.org/")
+		attrs.putValue("Implementation-Version", scalaVersion.value)
+		attrs
+	})
 	Package.JarManifest( manifest )
 }
 
@@ -59,4 +65,4 @@ libraryDependencies += "org.scalatest" %% "scalatest" % (
       "2.2.5" + (if ((scalaVersion.value take 7) == "2.12.0-") { "-" + (scalaVersion.value drop 7) } else {""}) 
     ) % "test"
 
-testOptions in Test += Tests.Argument("-oS")
+testOptions in Test += Tests.Argument("-oS", "-u", s"${crossTarget.value}/test-results-junit" /*, "-h", s"${crossTarget.value}/test-results-html" */)
