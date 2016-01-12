@@ -50,6 +50,7 @@ object MyBuild extends Build {
 			settings = Defaults.coreDefaultSettings ++
 					CsvParserTestGenerator.settings ++
 					CborParserTestGenerator.settings ++
+					YamlParserTestGenerator.settings ++
 					BsonParserTestGenerator.settings ++
 					JsonParserTestGenerator.settings ++
 					coverageDisabledSettings ++
