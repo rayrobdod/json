@@ -34,4 +34,10 @@ package com.rayrobdod.json;
  * data types.
  */
 package object builder {
+	class ToStringKeyBuilder[A](inner:Builder[String,A]) extends Builder[Any,A] {
+		def init:A = inner.init
+		def apply(a:A, k:Any, v:Any):A = inner.apply(a, k.toString, v)
+		def childBuilder(k:Any):Builder[Any,_] = new ToStringKeyBuilder(inner.childBuilder(k.toString))
+		def resultType:Class[A] = inner.resultType
+	}
 }

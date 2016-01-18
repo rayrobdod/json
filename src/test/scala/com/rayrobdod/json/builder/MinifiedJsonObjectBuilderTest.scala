@@ -115,17 +115,18 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 	
 	describe("MinifiedJsonObjectBuilder integration") {
 		import com.rayrobdod.json.parser.{JsonParser, CborParser, CaseClassParser, MapParser}
+		val builder = new ToStringKeyBuilder(new MinifiedJsonObjectBuilder)
 		
 		it ("MinifiedJsonObjectBuilder + JsonParser + primitive") {
 			assertResult("""{"a":61,"b":62,"c":63}"""){
-				new JsonParser(new MinifiedJsonObjectBuilder).parse(
+				new JsonParser(builder).parse(
 					"""{"a":61,"b":62,"c":63}"""
 				)
 			}
 		}
 		it ("MinifiedJsonObjectBuilder + JsonParser + primitive (whitespace)") {
 			assertResult("""{"a":61,"b":62,"c":63}"""){
-				new JsonParser(new MinifiedJsonObjectBuilder).parse(
+				new JsonParser(builder).parse(
 					"""{
 	"a" : 61,
 	"b" : 62,
@@ -136,7 +137,7 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 		}
 		it ("MinifiedJsonObjectBuilder + JsonParser + nested objects") {
 			assertResult("""{"":{"a":0,"b":1}}"""){
-				new JsonParser(new MinifiedJsonObjectBuilder).parse(
+				new JsonParser(builder).parse(
 					"""{"":{"a":0,"b":1}}"""
 				)
 			}

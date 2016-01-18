@@ -24,33 +24,18 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json.parser
+package com.rayrobdod.json.union
 
-import org.scalatest.FunSpec
-import java.text.ParseException
-import scala.collection.immutable.Map
-import com.rayrobdod.json.builder.{MapBuilder, CaseClassBuilder, MinifiedJsonObjectBuilder, ToStringKeyBuilder}
+import scala.language.implicitConversions
 
-class CaseClassParserTest extends FunSpec {
-	private implicit def fooClass = classOf[Foo]
-	private case class Foo(hello:Long, world:String, bazz:Boolean)
+/**
+ */
+sealed trait StringOrInt
+
+object StringOrInt {
+	case class Left(s:String) extends StringOrInt
+	case class Right(i:Int) extends StringOrInt
 	
-	describe("CaseClassParser") {
-		it ("""recreates an arbitrary case class""") {
-			val exp = Map("hello" -> 43L, "world" -> "world", "bazz" -> true)
-			val src = Foo(43L, "world", true)
-			val res = new CaseClassParser(new MapBuilder()).parse(src)
-			
-			assertResult(exp){res}
-		}
-	}
-	describe("CaseClassParser + Json") {
-		it ("""can be used with the json stuff to serialze and deserialize a map""") {
-			val src = Foo(-5, "asdf", true)
-			val json = new CaseClassParser(new MinifiedJsonObjectBuilder()).parse(src)
-			val res = new JsonParser(new ToStringKeyBuilder(new CaseClassBuilder(Foo(0,"",false)))).parse(json)
-			
-			assertResult(src){res}
-		}
-	}
+	implicit def apply(s:String) = Left(s)
+	implicit def apply(i:Int) = Right(i)
 }

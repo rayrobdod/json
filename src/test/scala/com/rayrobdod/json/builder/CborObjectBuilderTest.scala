@@ -174,14 +174,14 @@ class CborObjectBuilderTest extends FunSpec {
 		
 		it ("CborObjectBuilder + JsonParser + primitive") {
 			assertResult(hexSeq"A3 6161 183D 6162 183E 6163 183F"){
-				new JsonParser(new CborObjectBuilder).parse(
+				new JsonParser(new ToStringKeyBuilder(new CborObjectBuilder)).parse(
 					"""{"a":61,"b":62,"c":63}"""
 				)
 			}
 		}
 		it ("CborObjectBuilder + JsonParser + nested objects") {
 			assertResult(hexSeq"A1 60 A2 616100 616201"){
-				new JsonParser(new CborObjectBuilder).parse(
+				new JsonParser(new ToStringKeyBuilder(new CborObjectBuilder)).parse(
 					"""{"":{"a":0,"b":1}}"""
 				)
 			}

@@ -77,7 +77,7 @@ class BeanBuilderTest extends FunSpec {
 		
 		it ("works") {
 			assertResult(Person("nqpppnl",1)){
-				new JsonParser(new BeanBuilder(classOf[Person])).parse(
+				new JsonParser(new ToStringKeyBuilder(new BeanBuilder(classOf[Person]))).parse(
 					"""{"name":"nqpppnl","age":1}"""
 				)
 			}

@@ -83,7 +83,7 @@ class CaseClassBuilderTest extends FunSpec {
 		
 		it ("works") {
 			assertResult(Person("nqpppnl",1)){
-				new JsonParser(new CaseClassBuilder(new Person("", 0))).parse(
+				new JsonParser(new ToStringKeyBuilder(new CaseClassBuilder(new Person("", 0)))).parse(
 					"""{"name":"nqpppnl","age":1}"""
 				)
 			}

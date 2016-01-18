@@ -30,6 +30,7 @@ import java.text.ParseException;
 import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.Builder;
+import com.rayrobdod.json.union.StringOrInt
 
 class JsonParserTest_OtherBuilders extends FunSpec {
 	describe("JsonParser with other builders") {
@@ -58,29 +59,29 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 				override val resultType:Class[Set[String]] = classOf[Set[String]]
 			}
 			
-			object NameBuilder extends Builder[String,Name] {
+			object NameBuilder extends Builder[StringOrInt,Name] {
 				def init:Name = Name("", "", "")
-				def apply(folding:Name, key:String, value:Any):Name = key match {
-					case "given" => folding.copy(given = value.toString)
-					case "middle" => folding.copy(middle = value.toString)
-					case "family" => folding.copy(family = value.toString)
+				def apply(folding:Name, key:StringOrInt, value:Any):Name = key match {
+					case StringOrInt.Left("given") => folding.copy(given = value.toString)
+					case StringOrInt.Left("middle") => folding.copy(middle = value.toString)
+					case StringOrInt.Left("family") => folding.copy(family = value.toString)
 					case _ => throw new ParseException("Unexpected key: " + key, -1)
 				}
-				def childBuilder(key:String):Builder[String,_] = SetBuilder
+				def childBuilder(key:StringOrInt):Builder[StringOrInt,_] = SetBuilder
 				override val resultType:Class[Name] = classOf[Name]
 			}
 			
-			object PersonBuilder extends Builder[String,Person] {
+			object PersonBuilder extends Builder[StringOrInt,Person] {
 				def init:Person = Person(Name("", "", ""), "", false, Set.empty)
-				def apply(folding:Person, key:String, value:Any):Person = key match {
-					case "name" => folding.copy(n = value.asInstanceOf[Name])
-					case "gender" => folding.copy(gender = value.toString)
-					case "isDead" => folding.copy(isDead = (value == true))
-					case "interests" => folding.copy(interests = value.asInstanceOf[Set[String]])
+				def apply(folding:Person, key:StringOrInt, value:Any):Person = key match {
+					case StringOrInt.Left("name") => folding.copy(n = value.asInstanceOf[Name])
+					case StringOrInt.Left("gender") => folding.copy(gender = value.toString)
+					case StringOrInt.Left("isDead") => folding.copy(isDead = (value == true))
+					case StringOrInt.Left("interests") => folding.copy(interests = value.asInstanceOf[Set[String]])
 					case _ => throw new ParseException("Unexpected key: " + key, -1)
 				}
-				def childBuilder(key:String):Builder[String,_] = key match {
-					case "name" => NameBuilder
+				def childBuilder(key:StringOrInt):Builder[StringOrInt,_] = key match {
+					case StringOrInt.Left("name") => NameBuilder
 					case _ => SetBuilder
 				}
 				override val resultType:Class[Person] = classOf[Person]

@@ -84,7 +84,7 @@ class SeqBuilderTest extends FunSpec {
 		}
 		it ("SeqBuilder + JsonParser + BeanBuilder") {
 			assertResult(Seq(Person("Mario", 32),Person("Luigi", 32),Person("Peach", 28))){
-				new JsonParser(new SeqBuilder(new BeanBuilder(classOf[Person]))).parse(
+				new JsonParser(new SeqBuilder(new ToStringKeyBuilder(new BeanBuilder(classOf[Person])))).parse(
 					"""[
 						{"name":"Mario", "age":32},
 						{"name":"Luigi", "age":32},
