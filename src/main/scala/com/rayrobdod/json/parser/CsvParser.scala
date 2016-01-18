@@ -46,7 +46,7 @@ import com.rayrobdod.json.builder._
  * @param topBuilder the builder that this parser will use when constructing objects
  * @param meaningfulCharacters determines which characters have special meanings
  */
-final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.CharacterMeanings = CsvParser.csvCharacterMeanings) {
+final class CsvParser[A](topBuilder:Builder[Int,A], meaningfulCharacters:CsvParser.CharacterMeanings = CsvParser.csvCharacterMeanings) {
 	
 	/**
 	 * Decodes the input values to an object.
@@ -83,7 +83,7 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 				new QuotedState(
 					topValue,
 					topIndex,
-					topBuilder.childBuilder(topIndex.toString).init,
+					topBuilder.childBuilder(topIndex).init,
 					0,
 					""
 				)
@@ -91,7 +91,7 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 				new NormalState(
 					topValue,
 					topIndex,
-					topBuilder.childBuilder(topIndex.toString).init,
+					topBuilder.childBuilder(topIndex).init,
 					0,
 					""
 				).apply(c, index)
@@ -106,7 +106,7 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 			innerIndex:Int
 	) extends State {
 		override def topValue:A = {
-			topBuilder.apply(topVal, topIndex.toString, innerValue)
+			topBuilder.apply(topVal, topIndex, innerValue)
 		}
 		
 		override def apply(c:Char, index:Int):State = {
@@ -144,10 +144,10 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 			innerIndex:Int,
 			val string:String
 	) extends State {
-		private[this] val childBuilder = topBuilder.childBuilder(topIndex.toString).asInstanceOf[Builder[Any]]
+		private[this] val childBuilder = topBuilder.childBuilder(topIndex).asInstanceOf[Builder[Int, Any]]
 		override def topValue:A = {
-			val newInnerValue = childBuilder.apply(innerValue, innerIndex.toString, string)
-			topBuilder.apply(topVal, topIndex.toString, newInnerValue)
+			val newInnerValue = childBuilder.apply(innerValue, innerIndex, string)
+			topBuilder.apply(topVal, topIndex, newInnerValue)
 		}
 		
 		override def apply(c:Char, index:Int):State = {
@@ -160,7 +160,7 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 				StartOfFieldState(
 					topVal,
 					topIndex,
-					childBuilder.apply(innerValue, innerIndex.toString, string),
+					childBuilder.apply(innerValue, innerIndex, string),
 					innerIndex + 1
 				)
 			} else if (meaningfulCharacters.ignorable.contains(c)) {
@@ -188,11 +188,11 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 			string:String,
 			endingWhitespace:String
 	) extends State {
-		private[this] val childBuilder = topBuilder.childBuilder(topIndex.toString).asInstanceOf[Builder[Any]]
+		private[this] val childBuilder = topBuilder.childBuilder(topIndex).asInstanceOf[Builder[Int, Any]]
 		
 		override def topValue:A = {
-			val newInnerValue = childBuilder.apply(innerValue, innerIndex.toString, string)
-			topBuilder.apply(topVal, topIndex.toString, newInnerValue)
+			val newInnerValue = childBuilder.apply(innerValue, innerIndex, string)
+			topBuilder.apply(topVal, topIndex, newInnerValue)
 		}
 		
 		override def apply(c:Char, index:Int):State = {
@@ -205,7 +205,7 @@ final class CsvParser[A](topBuilder:Builder[A], meaningfulCharacters:CsvParser.C
 				StartOfFieldState(
 					topVal,
 					topIndex,
-					childBuilder.apply(innerValue, innerIndex.toString, string),
+					childBuilder.apply(innerValue, innerIndex, string),
 					innerIndex + 1
 				)
 			} else if (meaningfulCharacters.ignorable.contains(c)) {

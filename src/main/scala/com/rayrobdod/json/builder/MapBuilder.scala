@@ -35,15 +35,15 @@ import scala.collection.immutable.Map;
  * @param childBuilderMap a function pretty directly called by `childBuilder()`.
  *          By default, it is a function that creates more MapBuilders
  */
-final class MapBuilder(childBuilderMap:Function1[String, Builder[_ <: Any]] = MapBuilder.defaultChildBuilder) extends Builder[Map[Any, Any]] {
-	override val init:Map[Any, Any] = Map.empty
-	override def apply(folding:Map[Any, Any], key:String, value:Any):Map[Any,Any] = {
+final class MapBuilder[K](childBuilderMap:Function1[K, Builder[K, _ <: Any]] = MapBuilder.defaultChildBuilder[K]) extends Builder[K, Map[K, Any]] {
+	override val init:Map[K, Any] = Map.empty
+	override def apply(folding:Map[K, Any], key:K, value:Any):Map[K,Any] = {
 		folding + ((key, value))
 	}
-	override def childBuilder(key:String):Builder[_ <: Any] = childBuilderMap(key)
-	override val resultType:Class[Map[Any,Any]] = classOf[Map[Any,Any]]
+	override def childBuilder(key:K):Builder[K, _ <: Any] = childBuilderMap(key)
+	override val resultType:Class[Map[K,Any]] = classOf[Map[K,Any]]
 }
 
 private object MapBuilder {
-	val defaultChildBuilder = {s:String => new MapBuilder()}
+	def defaultChildBuilder[K]:Function1[K, Builder[K, _ <: Any]] = {s:K => new MapBuilder[K]()}
 }

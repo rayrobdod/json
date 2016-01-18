@@ -61,7 +61,7 @@ class SeqBuilderTest extends FunSpec {
 		}
 		it ("childBuilder returns default value if no constructor") {
 			assert{
-				new SeqBuilder().childBuilder("sdafdsfa").isInstanceOf[SeqBuilder]
+				new SeqBuilder().childBuilder("sdafdsfa").isInstanceOf[SeqBuilder[_]]
 			}
 		}
 		it ("resultType returns constructor parameter `clazz`") {

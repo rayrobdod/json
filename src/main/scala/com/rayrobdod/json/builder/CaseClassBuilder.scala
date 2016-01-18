@@ -38,9 +38,9 @@ import scala.reflect.runtime.universe.{runtimeMirror, newTermName}
  */
 final class CaseClassBuilder[A <: Product](
 		val init:A,
-		childBuilders:Function1[String, Builder[_]] = Map.empty
+		childBuilders:Function1[String, Builder[String, _]] = Map.empty
 )(		implicit clazz:Class[A]
-) extends Builder[A] {
+) extends Builder[String, A] {
 	
 	/**
 	 * Sets the `key` bean property in the `folding` object
@@ -68,7 +68,7 @@ final class CaseClassBuilder[A <: Product](
 	/**
 	 * Applies the key to the constructor parameter `childBuilders`
 	 */
-	def childBuilder(key:String):Builder[_] = childBuilders(key)
+	def childBuilder(key:String):Builder[String, _] = childBuilders(key)
 	
 	/** Returns the constructor parameter `clazz` */
 	val resultType:Class[A] = clazz

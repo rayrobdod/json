@@ -38,7 +38,7 @@ import com.rayrobdod.json.builder.Builder
  * Creates a CaseClassParser instance.
  * @param topBuilder the builder that this parser will use when constructing objects
  */
-final class CaseClassParser[A](topBuilder:Builder[A]) {
+final class CaseClassParser[A](topBuilder:Builder[String,A]) {
 	
 	/**
 	 * Decodes the input values to an object.

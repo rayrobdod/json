@@ -165,7 +165,7 @@ class CborArrayBuilderTest extends FunSpec {
 		it ("childBuilder returns MapBuilder") {
 			val builder = new CborArrayBuilder()
 			
-			assert{builder.childBuilder("").isInstanceOf[MapBuilder]}
+			assert{builder.childBuilder("").isInstanceOf[MapBuilder[_]]}
 		}
 		it ("resultType returns constructor parameter `clazz`") {
 			assertResult(classOf[Seq[Byte]]){

@@ -37,7 +37,8 @@ import com.rayrobdod.json.parser.{MapParser, SeqParser}
  * A builder that will create cbor object format byte strings
  * @param transformer a function to convert non-cbor-primitive objects to cbor-primitive objects
  */
-final class CborObjectBuilder(transformer:PartialFunction[Any, Any] = PartialFunction.empty) extends Builder[Seq[Byte]] {
+// TODO: widen key to include everything else a CBOR key can be
+final class CborObjectBuilder(transformer:PartialFunction[Any, Any] = PartialFunction.empty) extends Builder[String, Seq[Byte]] {
 	import CborObjectBuilder._
 	
 	val init:Seq[Byte] = encodeLength(MajorTypeCodes.OBJECT, 0)
@@ -58,7 +59,7 @@ final class CborObjectBuilder(transformer:PartialFunction[Any, Any] = PartialFun
 		encodeLength(MajorTypeCodes.OBJECT, objectLength + 1) ++ passData ++ encodeValue(key,transformer) ++ encodeValue(value,transformer)
 	}
 	
-	def childBuilder(key:String):Builder[_ <: Any] = new MapBuilder()
+	def childBuilder(key:String):Builder[String, _ <: Any] = new MapBuilder()
 	val resultType:Class[Seq[Byte]] = classOf[Seq[Byte]]
 }
 
@@ -68,13 +69,13 @@ final class CborObjectBuilder(transformer:PartialFunction[Any, Any] = PartialFun
  * A builder that will create cbor array format byte strings
  * @param transformer a function to convert non-cbor-primitive objects to cbor-primitive objects
  */
-final class CborArrayBuilder(transformer:PartialFunction[Any, Any] = PartialFunction.empty) extends Builder[Seq[Byte]] {
+final class CborArrayBuilder(transformer:PartialFunction[Any, Any] = PartialFunction.empty) extends Builder[Any, Seq[Byte]] {
 	import CborObjectBuilder._
 	
 	val init:Seq[Byte] = encodeLength(MajorTypeCodes.ARRAY, 0)
 	
 	/** @param folding a valid cbor object */
-	def apply(folding:Seq[Byte], key:String, value:Any):Seq[Byte] = {
+	def apply(folding:Seq[Byte], key:Any, value:Any):Seq[Byte] = {
 		val headerByte:Byte = folding.head
 		val additionalInfo = headerByte & 0x1F
 		val (objectLength:Long, passData:Seq[Byte]) = additionalInfo match {
@@ -89,7 +90,7 @@ final class CborArrayBuilder(transformer:PartialFunction[Any, Any] = PartialFunc
 		encodeLength(MajorTypeCodes.ARRAY, objectLength + 1) ++ passData ++ encodeValue(value,transformer)
 	}
 	
-	def childBuilder(key:String):Builder[_ <: Any] = new MapBuilder()
+	def childBuilder(key:Any):Builder[Any, _ <: Any] = new MapBuilder()
 	val resultType:Class[Seq[Byte]] = classOf[Seq[Byte]]
 }
 
@@ -128,7 +129,7 @@ private[builder] object CborObjectBuilder {
 		case x:Number if (x.longValue < 0) => encodeLength(MajorTypeCodes.NEGATIVE_INT, -1 - x.longValue)
 		case bytes:Array[Byte] => encodeLength(MajorTypeCodes.BYTE_ARRAY, bytes.length) ++ bytes
 		case x:Map[_,_] => {
-			new MapParser(new CborObjectBuilder(transformer)).parse(x.asInstanceOf[Map[Any, Any]])
+			new MapParser(new CborObjectBuilder(transformer)).parse(x.map{x => ((x._1.toString, x._2))})
 		}
 		case x:Seq[_] => new SeqParser(new CborArrayBuilder(transformer)).parse(x)
 		case x if (transformer.isDefinedAt(x)) => encodeValue(transformer(x), transformer)

@@ -104,7 +104,7 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 		it ("childBuilder returns MapBuilder") {
 			val builder = new MinifiedJsonObjectBuilder()
 			
-			assert{builder.childBuilder("").isInstanceOf[MapBuilder]}
+			assert{builder.childBuilder("").isInstanceOf[MapBuilder[_]]}
 		}
 		it ("resultType returns constructor parameter `clazz`") {
 			assertResult(classOf[String]){

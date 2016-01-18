@@ -51,7 +51,8 @@ import com.rayrobdod.json.builder._
  * Creates a CborParser instance.
  * @param topBuilder the builder that this parser will use when constructing objects
  */
-final class CborParser[A](topBuilder:Builder[A]) {
+// TODO: widen key to include everything else that a key can be (aka pretty much anything)
+final class CborParser[A](topBuilder:Builder[String, A]) {
 	import CborParser._
 	
 	/**
@@ -128,7 +129,7 @@ final class CborParser[A](topBuilder:Builder[A]) {
 		}
 	}
 	
-	private[this] def parseArray(topBuilder:Builder[A], input:DataInput, aid:AdditionalInfoData):A = {
+	private[this] def parseArray(topBuilder:Builder[String, A], input:DataInput, aid:AdditionalInfoData):A = {
 		var retVal:A = topBuilder.init
 		
 		aid match {
@@ -156,7 +157,7 @@ final class CborParser[A](topBuilder:Builder[A]) {
 		retVal
 	}
 	
-	private[this] def parseObject(topBuilder:Builder[A], input:DataInput, aid:AdditionalInfoData):A = {
+	private[this] def parseObject(topBuilder:Builder[String, A], input:DataInput, aid:AdditionalInfoData):A = {
 		var retVal:A = topBuilder.init
 		
 		aid match {

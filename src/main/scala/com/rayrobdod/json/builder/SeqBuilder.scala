@@ -34,16 +34,16 @@ import scala.collection.immutable.Seq;
  * A builder that will create seqs, where complex types are built by `childBuilder.getOrElse(this)`
  * @param childBuilder the type of this seq's complex child elements. If it is Nothing, it will default to making more SeqBuilders
  */
-final class SeqBuilder(childBuilder:Option[Builder[_ <: Any]]) extends Builder[Seq[Any]] {
+final class SeqBuilder[Key](childBuilder:Option[Builder[Key, _ <: Any]]) extends Builder[Key, Seq[Any]] {
 	/** A Builder that creates seqs, where every complex type child is also a seq */
 	def this() = {this(None)}
 	/** A Builder that creates seqs, where every complex type is of type `childBuilder` */
-	def this(childBuilder:Builder[_ <: Any]) = {this(Some(childBuilder))}
+	def this(childBuilder:Builder[Key, _ <: Any]) = {this(Some(childBuilder))}
 	
 	val init:Seq[Nothing] = Nil
-	def apply(folding:Seq[Any], key:String, value:Any):Seq[Any] = {
+	def apply(folding:Seq[Any], key:Key, value:Any):Seq[Any] = {
 		folding :+ value
 	}
-	def childBuilder(key:String):Builder[_ <: Any] = childBuilder.getOrElse(new SeqBuilder)
+	def childBuilder(key:Key):Builder[Key, _ <: Any] = childBuilder.getOrElse(new SeqBuilder[Key])
 	val resultType:Class[Seq[_]] = classOf[Seq[_]]
 }

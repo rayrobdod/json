@@ -35,13 +35,13 @@ class MapParserTest extends FunSpec {
 	describe("MapParser") {
 		it ("""recreates an arbitrary map""") {
 			val src = Map("a" -> 32, "b" -> Some(false), "c" -> new MapBuilder())
-			val res = new MapParser(new MapBuilder()).parse(src)
+			val res = new MapParser(new MapBuilder[String]()).parse(src)
 			
 			assertResult(src){res}
 		}
 		it ("""recreates an arbitrary map with nesting""") {
 			val src = Map("a" -> Map.empty, "b" -> Map("x" -> true, "y" -> false))
-			val res = new MapParser(new MapBuilder()).parse(src)
+			val res = new MapParser(new MapBuilder[String]()).parse(src)
 			
 			assertResult(src){res}
 		}

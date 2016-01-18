@@ -51,7 +51,8 @@ import com.rayrobdod.json.builder._
  * Creates a BsonParser instance.
  * @param topBuilder the builder that this parser will use when constructing objects
  */
-final class BsonParser[A](topBuilder:Builder[A]) {
+// TODO: widen key to include everything else that a key can be (aka pretty much anything)
+final class BsonParser[A](topBuilder:Builder[String, A]) {
 	import BsonParser.{readCString, TypeCodes}
 	
 	/**

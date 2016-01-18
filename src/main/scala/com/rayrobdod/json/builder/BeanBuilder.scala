@@ -40,7 +40,7 @@ import java.lang.reflect.Method
  * @param clazz the class of the objects to build
  * @param childBuilders a map used directly by childBuilder
  */
-final class BeanBuilder[A](clazz:Class[A], childBuilders:Function1[String, Builder[_]] = Map.empty) extends Builder[A] {
+final class BeanBuilder[A](clazz:Class[A], childBuilders:Function1[String, Builder[String, _]] = Map.empty) extends Builder[String, A] {
 	/**
 	 * Creates an instance of clazz by calling the class's No Argument constructor.
 	 */
@@ -63,7 +63,7 @@ final class BeanBuilder[A](clazz:Class[A], childBuilders:Function1[String, Build
 	/**
 	 * Applies the key to the constructor parameter `childBuilders`
 	 */
-	def childBuilder(key:String):Builder[_] = childBuilders(key)
+	def childBuilder(key:String):Builder[String, _] = childBuilders(key)
 	
 	/** Returns the constructor parameter `clazz` */
 	val resultType:Class[A] = clazz

@@ -49,16 +49,16 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 					"interests":["bowling", "tennis", "programming", "twitch plays pokémon"]
 			}"""
 			
-			object SetBuilder extends Builder[Set[String]] {
+			object SetBuilder extends Builder[Any, Set[String]] {
 				def init:Set[String] = Set.empty
-				def apply(folding:Set[String], key:String, value:Any):Set[String] = {
+				def apply(folding:Set[String], key:Any, value:Any):Set[String] = {
 					folding + value.toString
 				}
-				def childBuilder(key:String):Builder[Set[String]] = this
+				def childBuilder(key:Any):Builder[Any,Set[String]] = this
 				override val resultType:Class[Set[String]] = classOf[Set[String]]
 			}
 			
-			object NameBuilder extends Builder[Name] {
+			object NameBuilder extends Builder[String,Name] {
 				def init:Name = Name("", "", "")
 				def apply(folding:Name, key:String, value:Any):Name = key match {
 					case "given" => folding.copy(given = value.toString)
@@ -66,11 +66,11 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 					case "family" => folding.copy(family = value.toString)
 					case _ => throw new ParseException("Unexpected key: " + key, -1)
 				}
-				def childBuilder(key:String):Builder[_] = SetBuilder
+				def childBuilder(key:String):Builder[String,_] = SetBuilder
 				override val resultType:Class[Name] = classOf[Name]
 			}
 			
-			object PersonBuilder extends Builder[Person] {
+			object PersonBuilder extends Builder[String,Person] {
 				def init:Person = Person(Name("", "", ""), "", false, Set.empty)
 				def apply(folding:Person, key:String, value:Any):Person = key match {
 					case "name" => folding.copy(n = value.asInstanceOf[Name])
@@ -79,7 +79,7 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 					case "interests" => folding.copy(interests = value.asInstanceOf[Set[String]])
 					case _ => throw new ParseException("Unexpected key: " + key, -1)
 				}
-				def childBuilder(key:String):Builder[_] = key match {
+				def childBuilder(key:String):Builder[String,_] = key match {
 					case "name" => NameBuilder
 					case _ => SetBuilder
 				}

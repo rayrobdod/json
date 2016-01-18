@@ -57,12 +57,12 @@ class MapBuilderTest extends FunSpec {
 			val key = "sdafdsfa"
 			
 			assertResult(MockBuilder){
-				new MapBuilder({s => if (s == key) {MockBuilder} else {throw new IllegalArgumentException(s)}}).childBuilder(key)
+				new MapBuilder[String]({s => if (s == key) {MockBuilder} else {throw new IllegalArgumentException(s)}}).childBuilder(key)
 			}
 		}
 		it ("childBuilder returns default value if no constructor") {
 			assert{
-				new MapBuilder().childBuilder("sdafdsfa").isInstanceOf[MapBuilder]
+				new MapBuilder().childBuilder("sdafdsfa").isInstanceOf[MapBuilder[_]]
 			}
 		}
 		it ("resultType returns constructor parameter `clazz`") {

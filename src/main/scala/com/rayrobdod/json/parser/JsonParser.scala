@@ -49,8 +49,9 @@ import com.rayrobdod.json.builder._
  * Creates a JsonParser instance.
  * @param topBuilder the builder that this parser will use when constructing objects
  */
-final class JsonParser[A](topBuilder:Builder[A]) {
-	private[this] final case class StackFrame[B](soFar:B, builder:Builder[B], state:State) {
+// TODO: widen key to include Ints
+final class JsonParser[A](topBuilder:Builder[String, A]) {
+	private[this] final case class StackFrame[B](soFar:B, builder:Builder[String, B], state:State) {
 		def build(key:String, v:Any):StackFrame[B] = this.copy(soFar = builder.apply(soFar, key, v))
 	}
 	private[this] final implicit class EditTopFrameStack(a:List[StackFrame[_ >: A]]){
@@ -58,16 +59,16 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 		def buildTop(k:String, v:Any):List[StackFrame[_ >: A]] = a.head.build(k, v) :: a.tail
 		def pushChild(k:String, s:State):List[StackFrame[_ >: A]] = {
 			val b = a.head.builder.childBuilder(k)
-			val e = b.asInstanceOf[Builder[Any]]
+			val e = b.asInstanceOf[Builder[String, Any]]
 			val c = StackFrame(e.init, e, s)
 			c :: a
 		}
 	}
 	
-	private[this] object SingletonBuilder extends Builder[Any] {
+	private[this] object SingletonBuilder extends Builder[Any, Any] {
 		val init:String = ""
-		def apply(folding:Any, key:String, value:Any):Any = value
-		def childBuilder(key:String):Builder[Any] = this
+		def apply(folding:Any, key:Any, value:Any):Any = value
+		def childBuilder(key:Any):Builder[Any, Any] = this
 		val resultType:Class[Any] = classOf[Any]
 	}
 	
@@ -321,12 +322,12 @@ final class JsonParser[A](topBuilder:Builder[A]) {
 	}
 	
 	/** A builder that creates strings */
-	private[this] object StringBuilder extends Builder[Any] {
+	private[this] object StringBuilder extends Builder[Any, Any] {
 		val init:String = ""
-		def apply(folding:Any, key:String, value:Any):String = {
+		def apply(folding:Any, key:Any, value:Any):String = {
 			folding.toString + value.toString
 		}
-		def childBuilder(key:String):Builder[_] = this
+		def childBuilder(key:Any):Builder[Any,Any] = this
 		val resultType:Class[Any] = classOf[Any]
 	}
 }

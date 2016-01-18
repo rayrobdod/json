@@ -86,15 +86,15 @@ package parser {
 	 * Create a MapParser
 	 * @param topBuilder the builder that this parser will use when constructing objects
 	 */
-	final class MapParser[A](topBuilder:Builder[A]) {
+	final class MapParser[K,A](topBuilder:Builder[K,A]) {
 		/**
 		 * Decodes the input values to an object.
 		 * @param vals the sequence containing values
 		 * @return the parsed object
 		 */
-		def parse(vals:Map[_ <: Any, _ <: Any]):A = {
+		def parse(vals:Map[K, _ <: Any]):A = {
 			vals.foldLeft[A](topBuilder.init){
-				(state:A, keyValue:(Any, Any)) => topBuilder.apply(state, keyValue._1.toString, keyValue._2)
+				(state:A, keyValue:(K, Any)) => topBuilder.apply(state, keyValue._1, keyValue._2)
 			}
 		}
 	}
@@ -106,7 +106,7 @@ package parser {
 	 * Create a SeqParser
 	 * @param topBuilder the builder that this parser will use when constructing objects
 	 */
-	final class SeqParser[A](topBuilder:Builder[A]) {
+	final class SeqParser[A](topBuilder:Builder[Int,A]) {
 		/**
 		 * Decodes the input values to an object.
 		 * @param vals the sequence containing values
@@ -114,7 +114,7 @@ package parser {
 		 */
 		def parse(vals:Seq[_ <: Any]):A = {
 			vals.zipWithIndex.foldLeft[A](topBuilder.init){
-				(state:A, valueKey:(Any, Int)) => topBuilder.apply(state, valueKey._2.toString, valueKey._1)
+				(state:A, valueKey:(Any, Int)) => topBuilder.apply(state, valueKey._2, valueKey._1)
 			}
 		}
 	}

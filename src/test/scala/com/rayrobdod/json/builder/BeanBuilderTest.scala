@@ -94,10 +94,10 @@ object BeanBuilderTest {
 		def this() = this("", 0)
 	}
 	
-	object MockBuilder extends Builder[Nothing] {
+	object MockBuilder extends Builder[Any, Nothing] {
 		def init:Nothing = {throw new UnsupportedOperationException}
-		def apply(folding:Nothing, key:String, value:Any):Nothing = {throw new UnsupportedOperationException}
-		def childBuilder(key:String):Nothing = {throw new UnsupportedOperationException}
+		def apply(folding:Nothing, key:Any, value:Any):Nothing = {throw new UnsupportedOperationException}
+		def childBuilder(key:Any):Nothing = {throw new UnsupportedOperationException}
 		def resultType:Class[Nothing] = {throw new UnsupportedOperationException}
 	}
 }

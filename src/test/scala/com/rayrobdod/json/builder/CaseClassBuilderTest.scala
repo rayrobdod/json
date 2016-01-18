@@ -95,7 +95,7 @@ class CaseClassBuilderTest extends FunSpec {
 object CaseClassBuilderTest {
 	case class Person(val name:String, val age:java.lang.Long)
 	
-	object MockBuilder extends Builder[Nothing] {
+	object MockBuilder extends Builder[String, Nothing] {
 		def init:Nothing = {throw new UnsupportedOperationException}
 		def apply(folding:Nothing, key:String, value:Any):Nothing = {throw new UnsupportedOperationException}
 		def childBuilder(key:String):Nothing = {throw new UnsupportedOperationException}

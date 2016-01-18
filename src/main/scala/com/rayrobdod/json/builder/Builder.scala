@@ -31,7 +31,7 @@ package com.rayrobdod.json.builder;
  * 
  * @tparam Subject the type of object to build
  */
-trait Builder[Subject] {
+trait Builder[-Key, Subject] {
 	/**
 	 * The starting point of the folding process
 	 */
@@ -44,13 +44,13 @@ trait Builder[Subject] {
 	 * @param value the value of a keyValue pair
 	 * @return the subject of the fold process
 	 */
-	def apply(foldee:Subject, key:String, value:Any):Subject
+	def apply(foldee:Subject, key:Key, value:Any):Subject
 	
 	/**
 	 * A builder that should be used when a parser 
 	 * @param key the key of a keyValue pair
 	 */
-	def childBuilder(key:String):Builder[_]
+	def childBuilder(key:Key):Builder[Key, _]
 	
 	/**
 	 * The Class object of the Subect class
