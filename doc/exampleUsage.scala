@@ -6,8 +6,9 @@
 import java.text.ParseException
 
 // imports from this library;
-import com.rayrobdod.json.parser.JsonParser;
-import com.rayrobdod.json.builder.Builder;
+import com.rayrobdod.json.parser.JsonParser
+import com.rayrobdod.json.builder.Builder
+import com.rayrobdod.json.builder.BuildableBuilder
 
 // the data classes
 case class Name(given:String, middle:String, family:String)
@@ -35,6 +36,7 @@ object SetBuilder extends Builder[Set[String]] {
   def resultType:Class[Set[String]] = classOf[Set[String]]
 }
 
+// Exaple using subclassing of Builder
 object NameBuilder extends Builder[Name] {
   def init:Name = Name("", "", "")
   def apply(folding:Name, key:String, value:Any) = key match {
@@ -47,21 +49,14 @@ object NameBuilder extends Builder[Name] {
   override val resultType:Class[Name] = classOf[Name]
 }
 
-object PersonBuilder extends Builder[Person] {
-  def init:Person = Person(Name("", "", ""), "", false, Set.empty)
-  def apply(folding:Person, key:String, value:Any) = key match {
-    case "name" => folding.copy(n = value.asInstanceOf[Name])
-    case "gender" => folding.copy(gender = value.toString)
-    case "isDead" => folding.copy(isDead = (value == true))
-    case "interests" => folding.copy(interests = value.asInstanceOf[Set[String]])
-    case _ => throw new ParseException("Unexpected key: " + key, -1)
+// example using BuildableBuilder
+val PersonBuilder = {
+  new BuildableBuilder(Person(Name("", "", ""), "", false, Set.empty))(classOf[Person])
+    .addDef("name", (folding, value) => folding.copy(n = value.asInstanceOf[Name]), NameBuilder)
+    .addDef("gender", (folding, value) => folding.copy(gender = value.toString), SetBuilder)
+    .addDef("isDead", (folding, value) => folding.copy(isDead = (value == true)), SetBuilder)
+    .addDef("interests", (folding, value) => folding.copy(interests = value.asInstanceOf[Set[String]]), SetBuilder)
   }
-  def childBuilder(key:String):Builder[_] = key match {
-    case "name" => NameBuilder
-    case _ => SetBuilder
-  }
-  override val resultType:Class[Person] = classOf[Person]
-}
 
 // parse the json file
 val p:Person = new JsonParser(PersonBuilder).parse(json)
