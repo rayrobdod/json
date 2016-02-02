@@ -32,6 +32,7 @@ import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
 import java.nio.charset.StandardCharsets.US_ASCII;
 import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter}
+import com.rayrobdod.json.union.StringOrInt.AsStringKeyBuilder
 
 class MinifiedJsonObjectBuilderTest extends FunSpec {
 	private case class Abc(a:Int, b:Boolean, c:String)
@@ -115,7 +116,7 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 	
 	describe("MinifiedJsonObjectBuilder integration") {
 		import com.rayrobdod.json.parser.{JsonParser, CborParser, CaseClassParser, MapParser}
-		val builder = new ToStringKeyBuilder(new MinifiedJsonObjectBuilder)
+		val builder = new AsStringKeyBuilder(new MinifiedJsonObjectBuilder)
 		
 		it ("MinifiedJsonObjectBuilder + JsonParser + primitive") {
 			assertResult("""{"a":61,"b":62,"c":63}"""){

@@ -32,6 +32,7 @@ import scala.collection.immutable.{Seq, Map};
 import org.scalatest.FunSpec;
 import java.nio.charset.StandardCharsets.US_ASCII;
 import com.rayrobdod.json.parser.HexArrayStringConverter;
+import com.rayrobdod.json.union.StringOrInt.AsStringKeyBuilder
 
 class CborArrayBuilderTest extends FunSpec {
 	private case class Abc(a:Int, b:Boolean, c:String)
@@ -186,7 +187,7 @@ class CborArrayBuilderTest extends FunSpec {
 		}
 		it ("CborArrayBuilder + JsonParser + nested objects") {
 			assertResult(hexSeq"81 A2 616100 616201"){
-				new JsonParser(new CborArrayBuilder).parse(
+				new JsonParser(new AsStringKeyBuilder(new CborArrayBuilder)).parse(
 					"""[{"a":0,"b":1}]"""
 				)
 			}

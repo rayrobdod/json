@@ -30,6 +30,7 @@ import scala.beans.BeanProperty;
 import java.text.ParseException;
 import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
+import com.rayrobdod.json.union.StringOrInt.AsStringKeyBuilder
 
 class MapBuilderTest extends FunSpec {
 	
@@ -78,14 +79,14 @@ class MapBuilderTest extends FunSpec {
 		
 		it ("MapBuilder + JsonParser + primitive") {
 			assertResult(Map("a" -> 61, "b" -> 62, "c" -> 63)){
-				new JsonParser(new MapBuilder).parse(
+				new JsonParser(new AsStringKeyBuilder(new MapBuilder)).parse(
 					"""{"a":61, "b":62, "c":63}"""
 				)
 			}
 		}
 		it ("MapBuilder + JsonParser + BeanBuilder") {
 			assertResult(Map("red" -> Person("Mario", 32),"green" -> Person("Luigi", 32),"pink" -> Person("Peach", 28))){
-				new JsonParser(new ToStringKeyBuilder(new MapBuilder({s:Any => new BeanBuilder(classOf[Person])}))).parse(
+				new JsonParser(new AsStringKeyBuilder(new MapBuilder({s:Any => new BeanBuilder(classOf[Person])}))).parse(
 					"""{
 						"red":{"name":"Mario", "age":32},
 						"green":{"name":"Luigi", "age":32},

@@ -29,6 +29,7 @@ package com.rayrobdod.json.builder;
 import java.text.ParseException;
 import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
+import com.rayrobdod.json.union.StringOrInt.AsStringKeyBuilder
 
 class CaseClassBuilderTest extends FunSpec {
 	import CaseClassBuilderTest.Person;
@@ -83,7 +84,7 @@ class CaseClassBuilderTest extends FunSpec {
 		
 		it ("works") {
 			assertResult(Person("nqpppnl",1)){
-				new JsonParser(new ToStringKeyBuilder(new CaseClassBuilder(new Person("", 0)))).parse(
+				new JsonParser(new AsStringKeyBuilder(new CaseClassBuilder(new Person("", 0)))).parse(
 					"""{"name":"nqpppnl","age":1}"""
 				)
 			}

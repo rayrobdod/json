@@ -26,6 +26,7 @@
 */
 package com.rayrobdod.json.union
 
+import com.rayrobdod.json.builder.Builder
 import scala.language.implicitConversions
 
 /**
@@ -38,4 +39,18 @@ object StringOrInt {
 	
 	implicit def apply(s:String) = Left(s)
 	implicit def apply(i:Int) = Right(i)
+	
+	final class AsStringKeyBuilder[A](inner:Builder[String,A]) extends Builder[StringOrInt,A] {
+		def init:A = inner.init
+		def apply(a:A, k:StringOrInt, v:Any):A = {
+			val strKey = k match {
+				case Left(s) => s
+				case Right(s) => s.toString
+			}
+			
+			inner.apply(a, strKey, v)
+		}
+		def childBuilder(k:StringOrInt):Builder[StringOrInt,_] = new AsStringKeyBuilder(inner.childBuilder(k.toString))
+		def resultType:Class[A] = inner.resultType
+	}
 }

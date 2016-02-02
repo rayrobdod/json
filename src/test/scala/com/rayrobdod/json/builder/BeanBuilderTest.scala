@@ -26,10 +26,11 @@
 */
 package com.rayrobdod.json.builder;
 
-import scala.beans.BeanProperty;
 import java.text.ParseException;
+import scala.beans.BeanProperty;
 import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
+import com.rayrobdod.json.union.StringOrInt.AsStringKeyBuilder
 
 class BeanBuilderTest extends FunSpec {
 	import BeanBuilderTest.Person;
@@ -77,7 +78,7 @@ class BeanBuilderTest extends FunSpec {
 		
 		it ("works") {
 			assertResult(Person("nqpppnl",1)){
-				new JsonParser(new ToStringKeyBuilder(new BeanBuilder(classOf[Person]))).parse(
+				new JsonParser(new AsStringKeyBuilder(new BeanBuilder(classOf[Person]))).parse(
 					"""{"name":"nqpppnl","age":1}"""
 				)
 			}

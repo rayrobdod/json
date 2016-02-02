@@ -24,7 +24,7 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json;
+package com.rayrobdod.json
 
 /**
  * Contains the various built-in builders.
@@ -34,10 +34,4 @@ package com.rayrobdod.json;
  * data types.
  */
 package object builder {
-	class ToStringKeyBuilder[A](inner:Builder[String,A]) extends Builder[Any,A] {
-		def init:A = inner.init
-		def apply(a:A, k:Any, v:Any):A = inner.apply(a, k.toString, v)
-		def childBuilder(k:Any):Builder[Any,_] = new ToStringKeyBuilder(inner.childBuilder(k.toString))
-		def resultType:Class[A] = inner.resultType
-	}
 }

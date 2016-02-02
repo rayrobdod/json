@@ -131,7 +131,7 @@ final class JsonParser[A](topBuilder:Builder[StringOrInt, A]) {
 		}
 	}
 	
-	private[this] class ObjectKeyStartState(parKey:String, endObjectAllowed:Boolean) extends State {
+	private[this] class ObjectKeyStartState(parKey:StringOrInt, endObjectAllowed:Boolean) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] = c match {
 			case x if x.isWhitespace => in
 			case '"'  => {
@@ -144,7 +144,7 @@ final class JsonParser[A](topBuilder:Builder[StringOrInt, A]) {
 		}
 	}
 	
-	private[this] class ObjectKeyEndState(parKey:String) extends State {
+	private[this] class ObjectKeyEndState(parKey:StringOrInt) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] = c match {
 			case x if x.isWhitespace => in
 			case ':'  => {
@@ -154,7 +154,7 @@ final class JsonParser[A](topBuilder:Builder[StringOrInt, A]) {
 		}
 	}
 	
-	private[this] class ObjectValueStartState(parKey:String, currKey:String) extends State {
+	private[this] class ObjectValueStartState(parKey:StringOrInt, currKey:String) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] = c match {
 			case x if x.isWhitespace => in
 			case '"'  => {
@@ -185,7 +185,7 @@ final class JsonParser[A](topBuilder:Builder[StringOrInt, A]) {
 		}
 	}
 	
-	private[this] class ObjectValueEndState(parKey:String, currKey:String) extends State {
+	private[this] class ObjectValueEndState(parKey:StringOrInt, currKey:String) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = c match {
 			case x if x.isWhitespace => in
 			case ','  => in.replaceTopState(new ObjectKeyStartState(parKey, false))
@@ -195,7 +195,7 @@ final class JsonParser[A](topBuilder:Builder[StringOrInt, A]) {
 	}
 	
 	
-	private[this] class ArrayValueStartState(parKey:String, arrayIndex:Int = 0) extends State {
+	private[this] class ArrayValueStartState(parKey:StringOrInt, arrayIndex:Int = 0) extends State {
 		/** true iff the next character is allowed to end the array - i.e. be a ']' */
 		private[this] val endObjectAllowed:Boolean = (arrayIndex == 0);
 		
@@ -206,10 +206,10 @@ final class JsonParser[A](topBuilder:Builder[StringOrInt, A]) {
 				(new StackFrame(StringBuilder.init, StringBuilder, new StringState(arrayIndex))) ::
 				in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
 			}
-			case '['  => in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex)).pushChild(arrayIndex.toString, new ArrayValueStartState(arrayIndex.toString))
-			case '{'  => in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex)).pushChild(arrayIndex.toString, new ObjectKeyStartState(arrayIndex.toString, true))
+			case '['  => in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex)).pushChild(arrayIndex, new ArrayValueStartState(arrayIndex))
+			case '{'  => in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex)).pushChild(arrayIndex, new ObjectKeyStartState(arrayIndex, true))
 			case '-'  => {
-				(new StackFrame(StringBuilder.init + c, StringBuilder, new IntegerState(arrayIndex.toString))) ::
+				(new StackFrame(StringBuilder.init + c, StringBuilder, new IntegerState(arrayIndex))) ::
 				in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
 			}
 			case '.'  => {
@@ -219,11 +219,11 @@ final class JsonParser[A](topBuilder:Builder[StringOrInt, A]) {
 				throw ex;
 			}
 			case x if ('0' <= x && x <= '9') => {
-				(new StackFrame(StringBuilder.init + c, StringBuilder, new IntegerState(arrayIndex.toString))) ::
+				(new StackFrame(StringBuilder.init + c, StringBuilder, new IntegerState(arrayIndex))) ::
 				in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
 			}
 			case x if ('a' <= x && x <= 'z') => {
-				(new StackFrame(StringBuilder.init + c, StringBuilder, new KeywordState(arrayIndex.toString))) ::
+				(new StackFrame(StringBuilder.init + c, StringBuilder, new KeywordState(arrayIndex))) ::
 				in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
 			}
 			case _ =>
@@ -231,7 +231,7 @@ final class JsonParser[A](topBuilder:Builder[StringOrInt, A]) {
 		}
 	}
 	
-	private[this] class ArrayValueEndState(parKey:String, arrayIndex:Int) extends State {
+	private[this] class ArrayValueEndState(parKey:StringOrInt, arrayIndex:Int) extends State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = c match {
 			case x if x.isWhitespace => in
 			case ','  => in.replaceTopState(new ArrayValueStartState(parKey, arrayIndex + 1))
