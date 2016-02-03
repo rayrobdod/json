@@ -30,12 +30,15 @@ import com.rayrobdod.json.builder.Builder
 import scala.language.implicitConversions
 
 /**
+ * A union type where the possible values are a String or Int
  */
 sealed trait StringOrInt
 
 object StringOrInt {
-	case class Left(s:String) extends StringOrInt
-	case class Right(i:Int) extends StringOrInt
+	/** A string value represented as a StringOrInt union */
+	final case class Left(s:String) extends StringOrInt
+	/** An integer value represented as a StringOrInt union */
+	final case class Right(i:Int) extends StringOrInt
 	
 	implicit def apply(s:String) = Left(s)
 	implicit def apply(i:Int) = Right(i)
