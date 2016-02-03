@@ -110,7 +110,7 @@ final class JsonParser[A](topBuilder:Builder[StringOrInt, A]) {
 	
 	
 	/** The parser's state. To be placed inside a foldleft. */
-	private[this] trait State {
+	private[this] sealed trait State {
 		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]]
 	}
 	
