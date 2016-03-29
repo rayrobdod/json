@@ -38,221 +38,124 @@ import com.rayrobdod.json.builder._
  * 
  * A CSV file is always two levels deep - a two dimensional array.
  * 
- * == Primitive types ==
- - java.lang.String
- * 
  * @constructor
  * Creates a CsvParser instance.
- * @param topBuilder the builder that this parser will use when constructing objects
  * @param meaningfulCharacters determines which characters have special meanings
  */
-final class CsvParser[A](topBuilder:Builder[Int,A], meaningfulCharacters:CsvParser.CharacterMeanings = CsvParser.csvCharacterMeanings) {
+final class CsvParser(
+		meaningfulCharacters:CsvParser.CharacterMeanings = CsvParser.csvCharacterMeanings
+) extends Parser[Int, String, Iterable[Char]] {
+	
+	def parsePrimitive(i:Iterable[Char]):String = new String(i.toArray)
 	
 	/**
 	 * Decodes the input values to an object.
+	 * @tparam A the type of object to create
+	 * @param builder the builder to use to construct the object
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse(chars:Iterable[Char]):A = {
-		chars.zipWithIndex.foldLeft[State](new StartOfRecordState()){
-			(state:State, charIndex:(Char, Int)) => state.apply(charIndex._1, charIndex._2)
-		}.topValue
+	def parseComplex[A](builder:Builder[Int, String, A], chars:Iterable[Char]):A = {
+		val endState = chars.zipWithIndex.foldLeft(State(builder.init, 0, "", "", false, false)){(state, ci) => 
+			val (char, index) = ci
+			
+			if (state.escaped) {
+				state.appendChar(char).copy(escaped = false)
+			} else if (state.quoted) {
+				val isQuote = meaningfulCharacters.stringDelimeter contains char;
+				state.appendChar(char).copy(quoted = !isQuote)
+			} else if (meaningfulCharacters.escape contains char) {
+				state.appendChar(char).copy(escaped = true)
+			} else if (meaningfulCharacters.stringDelimeter contains char) {
+				state.appendChar(char).copy(quoted = true)
+			} else if (meaningfulCharacters.recordDelimeter contains char) {
+				new State(
+					value = builder.apply(state.innerIndex).apply(state.value, state.innerInput, new LineParser),
+					innerIndex = state.innerIndex + 1,
+					innerInput = "",
+					endingWhitespace = "",
+					quoted = false,
+					escaped = false
+				)
+			} else {
+				state.appendChar(char)
+			}
+		}
+		
+		if (endState.innerInput.isEmpty) {
+			endState.value
+		} else {
+			builder.apply(endState.innerIndex).apply(endState.value, endState.innerInput, new LineParser)
+		}
 	}
 	
 	/**
 	 * Decodes the input values to an object.
+	 * @tparam A the type of object to create
+	 * @param builder the builder to use to construct the object
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse(chars:java.io.Reader):A = this.parse(new Reader2Iterable(chars))
+	def parseComplex[A](builder:Builder[Int, String, A], chars:java.io.Reader):A = this.parseComplex(builder, new Reader2Iterable(chars))
 	
 	
-	private[this] trait State {
-		def topValue:A
-		def apply(c:Char, index:Int):State
+	private[this] case class State[A] (
+		value:A,
+		innerIndex:Int,
+		innerInput:String,
+		endingWhitespace:String,
+		quoted:Boolean,
+		escaped:Boolean
+	) {
+		def appendChar(c:Char):State[A] = this.copy(endingWhitespace = "", innerInput = innerInput + endingWhitespace + c)
 	}
 	
-	private[this] case class StartOfRecordState(
-			topValue:A = topBuilder.init,
-			topIndex:Int = 0
-	) extends State {
-		override def apply(c:Char, index:Int):State = {
-			if (meaningfulCharacters.ignorable.contains(c)) {
-				this
-			} else if (meaningfulCharacters.stringDelimeter.contains(c)) {
-				new QuotedState(
-					topValue,
-					topIndex,
-					topBuilder.childBuilder(topIndex).init,
-					0,
-					""
-				)
+	
+	/** Splits a CSV record (i.e. one line) into fields */
+	private[this] final class LineParser extends Parser[Int, String, String] {
+		def parsePrimitive(i:String):String = new String(i.toArray)
+		
+		def parseComplex[A](builder:Builder[Int, String, A], chars:String):A = {
+			val endState = chars.zipWithIndex.foldLeft(State(builder.init, 0, "", "", false, false)){(state, ci) => 
+				val (char, index) = ci
+				
+				if (state.escaped) {
+					state.appendChar(char).copy(escaped = false)
+				} else if (state.quoted) {
+					val isQuote = meaningfulCharacters.stringDelimeter contains char;
+					if (isQuote) {state.copy(quoted = false)}
+					else {state.appendChar(char)}
+				} else if (meaningfulCharacters.ignorable contains char) {
+					if (state.innerInput == "") {
+						state
+					} else {
+						state.copy(endingWhitespace = state.endingWhitespace + char)
+					}
+				} else if (meaningfulCharacters.escape contains char) {
+					state.copy(escaped = true)
+				} else if (meaningfulCharacters.stringDelimeter contains char) {
+					state.copy(quoted = true)
+				} else if (meaningfulCharacters.fieldDelimeter contains char) {
+					new State(
+						value = builder.apply(state.innerIndex).apply(state.value, state.innerInput, new LineParser),
+						innerIndex = state.innerIndex + 1,
+						innerInput = "",
+						endingWhitespace = "",
+						quoted = false,
+						escaped = false
+					)
+				} else {
+					state.appendChar(char)
+				}
+			}
+			
+			if (endState.innerInput.isEmpty) {
+				endState.value
 			} else {
-				new NormalState(
-					topValue,
-					topIndex,
-					topBuilder.childBuilder(topIndex).init,
-					0,
-					""
-				).apply(c, index)
+				builder.apply(endState.innerIndex).apply(endState.value, endState.innerInput, new LineParser)
 			}
 		}
 	}
-	
-	private[this] case class StartOfFieldState(
-			topVal:A,
-			topIndex:Int,
-			innerValue:Any,
-			innerIndex:Int
-	) extends State {
-		override def topValue:A = {
-			topBuilder.apply(topVal, topIndex, innerValue)
-		}
-		
-		override def apply(c:Char, index:Int):State = {
-			if (meaningfulCharacters.ignorable.contains(c)) {
-				this
-			} else if (meaningfulCharacters.recordDelimeter.contains(c)) {
-				StartOfRecordState(
-					this.topValue,
-					topIndex + 1
-				)
-			} else if (meaningfulCharacters.stringDelimeter.contains(c)) {
-				new QuotedState(
-					topVal,
-					topIndex,
-					innerValue,
-					innerIndex,
-					""
-				)
-			} else {
-				new NormalState(
-					topVal,
-					topIndex,
-					innerValue,
-					innerIndex,
-					""
-				).apply(c, index)
-			}
-		}
-	}
-	
-	private[this] case class NormalState(
-			topVal:A,
-			topIndex:Int,
-			innerValue:Any,
-			innerIndex:Int,
-			val string:String
-	) extends State {
-		private[this] val childBuilder = topBuilder.childBuilder(topIndex).asInstanceOf[Builder[Int, Any]]
-		override def topValue:A = {
-			val newInnerValue = childBuilder.apply(innerValue, innerIndex, string)
-			topBuilder.apply(topVal, topIndex, newInnerValue)
-		}
-		
-		override def apply(c:Char, index:Int):State = {
-			if (meaningfulCharacters.recordDelimeter.contains(c)) {
-				StartOfRecordState(
-					this.topValue,
-					topIndex + 1
-				)
-			} else if (meaningfulCharacters.fieldDelimeter.contains(c)) {
-				StartOfFieldState(
-					topVal,
-					topIndex,
-					childBuilder.apply(innerValue, innerIndex, string),
-					innerIndex + 1
-				)
-			} else if (meaningfulCharacters.ignorable.contains(c)) {
-				EndingWhitespaceState(
-					topVal,
-					topIndex,
-					innerValue,
-					innerIndex,
-					string,
-					"" + c
-				)
-			} else if (meaningfulCharacters.escape.contains(c)) {
-				new EscapeState(this)
-			} else {
-				this.copy(string = string + c)
-			}
-		}
-	}
-	
-	private[this] case class EndingWhitespaceState(
-			topVal:A,
-			topIndex:Int,
-			innerValue:Any,
-			innerIndex:Int,
-			string:String,
-			endingWhitespace:String
-	) extends State {
-		private[this] val childBuilder = topBuilder.childBuilder(topIndex).asInstanceOf[Builder[Int, Any]]
-		
-		override def topValue:A = {
-			val newInnerValue = childBuilder.apply(innerValue, innerIndex, string)
-			topBuilder.apply(topVal, topIndex, newInnerValue)
-		}
-		
-		override def apply(c:Char, index:Int):State = {
-			if (meaningfulCharacters.recordDelimeter.contains(c)) {
-				StartOfRecordState(
-					this.topValue,
-					topIndex + 1
-				)
-			} else if (meaningfulCharacters.fieldDelimeter.contains(c)) {
-				StartOfFieldState(
-					topVal,
-					topIndex,
-					childBuilder.apply(innerValue, innerIndex, string),
-					innerIndex + 1
-				)
-			} else if (meaningfulCharacters.ignorable.contains(c)) {
-				this.copy(endingWhitespace = endingWhitespace + c)
-			} else {
-				NormalState(
-					topVal,
-					topIndex,
-					innerValue,
-					innerIndex,
-					string + endingWhitespace
-				).apply(c, index)
-			}
-		}
-	}
-	
-	private[this] case class QuotedState(
-			val topVal:A,
-			topIndex:Int,
-			innerValue:Any,
-			innerIndex:Int,
-			string:String
-	) extends State {
-		private[this] val correspondingNormalState = new NormalState(topVal, topIndex, innerValue, innerIndex, string)
-		
-		override def topValue:A = correspondingNormalState.topValue
-		
-		override def apply(c:Char, index:Int):State = {
-			if (meaningfulCharacters.stringDelimeter.contains(c)) {
-				correspondingNormalState
-			} else {
-				this.copy(string = this.string + c)
-			}
-		}
-	}
-	
-	
-	private[this] case class EscapeState(
-			correspondingNormalState:NormalState
-	) extends State {
-
-		override def topValue:A = correspondingNormalState.topValue
-		override def apply(c:Char, i:Int):State = {
-			correspondingNormalState.copy(string = correspondingNormalState.string + c)
-		}
-	}
-	
 }
 
 /**

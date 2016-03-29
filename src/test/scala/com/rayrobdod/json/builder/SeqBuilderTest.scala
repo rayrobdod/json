@@ -30,19 +30,20 @@ import scala.beans.BeanProperty;
 import java.text.ParseException;
 import scala.collection.immutable.Seq;
 import org.scalatest.FunSpec;
+import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.union.StringOrInt.AsStringKeyBuilder
 
 class SeqBuilderTest extends FunSpec {
 	
 	describe("SeqBuilder") {
 		it ("inits correctly") {
-			assertResult(Nil){new SeqBuilder().init}
+			assertResult(Nil){new PrimitiveSeqBuilder().init}
 		}
 		it ("Appends value") {
 			val myValue = new Object
 			
 			assertResult(Seq(myValue)){
-				new SeqBuilder().apply(Nil, "sdfa", myValue)
+				new PrimitiveSeqBuilder().apply("sdfa").apply(Nil, myValue, new IdentityParser[String, Object])
 			}
 		}
 		it ("Appends value 2") {
@@ -50,28 +51,12 @@ class SeqBuilderTest extends FunSpec {
 			val myValue2 = new Object
 			
 			assertResult(Seq(myValue1, myValue2)){
-				new SeqBuilder().apply(Seq(myValue1), "sdfa", myValue2)
-			}
-		}
-		it ("childBuilder returns value from constructor") {
-			import BeanBuilderTest.MockBuilder
-			
-			assertResult(MockBuilder){
-				new SeqBuilder(MockBuilder).childBuilder("asdf")
-			}
-		}
-		it ("childBuilder returns default value if no constructor") {
-			assert{
-				new SeqBuilder().childBuilder("sdafdsfa").isInstanceOf[SeqBuilder[_]]
-			}
-		}
-		it ("resultType returns constructor parameter `clazz`") {
-			assertResult(classOf[Seq[_]]){
-				new SeqBuilder().resultType
+				new PrimitiveSeqBuilder().apply("sdfa").apply(Seq(myValue1), myValue2, new IdentityParser[String, Object])
 			}
 		}
 	}
 	
+	/* 
 	describe("SeqBuilder integration") {
 		import com.rayrobdod.json.parser.JsonParser
 		import BeanBuilderTest.Person
@@ -95,5 +80,6 @@ class SeqBuilderTest extends FunSpec {
 			}
 		}
 	}
+	 */
 }
 

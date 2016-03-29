@@ -26,6 +26,7 @@
 */
 package com.rayrobdod.json.builder;
 
+import com.rayrobdod.json.parser.Parser
 import scala.reflect.runtime.universe.{runtimeMirror, newTermName}
 
 /** A builder that builds a Case Class
@@ -36,23 +37,25 @@ import scala.reflect.runtime.universe.{runtimeMirror, newTermName}
  * @param init the starting point of the builder
  * @param childBuilders a map used directly by childBuilder
  */
-final class CaseClassBuilder[A <: Product](
+final class CaseClassBuilder[Value, A <: Product](
 		val init:A,
-		childBuilders:Function1[String, Builder[String, _]] = Map.empty
+		childBuilders:Function1[String, Option[Builder[String, Value, _]]] = {s:String => None}
 )(		implicit clazz:Class[A]
-) extends Builder[String, A] {
+) extends Builder[String, Value, A] {
 	
 	/**
 	 * Sets the `key` bean property in the `folding` object
 	 * 
 	 * @todo maybe check for other primitive numeric types - IE a `setVal(Short)` when handed a `Long` or visa versa
 	 */
-	def apply(folding:A, key:String, value:Any):A = {
+	override def apply[Input](key:String):Function3[A, Input, Parser[String, Value, Input], A] = {(folding, input, parser) =>
 		val mirror = runtimeMirror( this.getClass.getClassLoader )
 		val typ = mirror.classSymbol( clazz ).toType
 		val copyMethod = typ.declaration(newTermName("copy")).asMethod
 		val copyParams = copyMethod.paramss(0)
 		val indexOfModification = copyParams.zipWithIndex.find{_._1.name.decodedName.toString == key}.map{_._2}
+		
+		val value:Any = childBuilders(key).map{x => parser.parseComplex(x, input)}.getOrElse{parser.parsePrimitive(input)}
 		
 		indexOfModification match {
 			case None => throw new IllegalArgumentException(key + " is not a member of case class " + folding.toString)
@@ -60,16 +63,8 @@ final class CaseClassBuilder[A <: Product](
 				val newArgs = folding.productIterator.toSeq.updated(x, value)
 				
 				val copyMirror = clazz.getMethods.filter{_.getName == "copy"}.head
-				resultType.cast(copyMirror.invoke(folding, newArgs.map{_.asInstanceOf[Object]}:_*))
+				clazz.cast(copyMirror.invoke(folding, newArgs.map{_.asInstanceOf[Object]}:_*))
 			}
 		}
 	}
-	
-	/**
-	 * Applies the key to the constructor parameter `childBuilders`
-	 */
-	def childBuilder(key:String):Builder[String, _] = childBuilders(key)
-	
-	/** Returns the constructor parameter `clazz` */
-	val resultType:Class[A] = clazz
 }

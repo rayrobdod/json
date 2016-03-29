@@ -41,7 +41,7 @@ class BsonParserTest_UnHappy extends FunSpec {
 			);
 			
 			intercept[ParseException] {
-				new BsonParser(new MapBuilder()).parse(src)
+				new BsonParser().parseComplex(new MapBuilder(), src)
 			}
 		}
 		it ("String is shorter than prefix") {
@@ -53,7 +53,7 @@ class BsonParserTest_UnHappy extends FunSpec {
 			);
 			
 			intercept[ParseException] {
-				new BsonParser(new MapBuilder()).parse(src)
+				new BsonParser().parseComplex(new MapBuilder(), src)
 			}
 		}
 		it ("data ends early") {
@@ -63,7 +63,7 @@ class BsonParserTest_UnHappy extends FunSpec {
 			);
 			
 			intercept[java.io.EOFException] {
-				new BsonParser(new MapBuilder()).parse(src)
+				new BsonParser().parseComplex(new MapBuilder(), src)
 			}
 		}
 		it ("Does not parse on unknown data type") {
@@ -74,7 +74,7 @@ class BsonParserTest_UnHappy extends FunSpec {
 			);
 			
 			intercept[ParseException] {
-				new BsonParser(new MapBuilder()).parse(src)
+				new BsonParser().parseComplex(new MapBuilder(), src)
 			}
 		}
 	}

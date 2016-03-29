@@ -29,6 +29,7 @@ package com.rayrobdod.json.parser;
 import org.scalatest.FunSpec;
 import java.text.ParseException;
 import scala.collection.immutable.Map;
+import com.rayrobdod.json.union.JsonValue;
 import com.rayrobdod.json.builder.MapBuilder;
 
 class CborParserTest_Unhappy extends FunSpec {
@@ -36,79 +37,79 @@ class CborParserTest_Unhappy extends FunSpec {
 		it ("""errors when told to decode a half float""") {
 			val source = hexArray"F93C00"
 			val ex = intercept[UnsupportedOperationException]{
-				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("""errors when array is incomplete""") {
 			val source = Array[Byte](0x58, 30) ++ (1 to 10).map{_.byteValue}
 			val ex = intercept[java.io.EOFException]{
-				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("""illegal additional info field""") {
 			val source = Array[Byte](28) ++ (1 to 50).map{_.byteValue}
 			val ex = intercept[ParseException]{
-				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("""errors when INDET byte string contains non-string values""") {
 			val source = hexArray"5F44AABBCCDD21FF"
 			val ex = intercept[ClassCastException]{
-				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("errors when an integer has an indeterminate length") {
 			val source = hexArray"1F"
 			val ex = intercept[UnsupportedOperationException]{
-				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("errors when an integer has an 1E-type length") {
 			val source = hexArray"1E"
 			val ex = intercept[ParseException]{
-				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("errors when an integer has an 1D-type length") {
 			val source = hexArray"1E"
 			val ex = intercept[ParseException]{
-				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("errors when an integer has an 1C-type length") {
 			val source = hexArray"1E"
 			val ex = intercept[ParseException]{
-				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("errors when a byte array has an 1C-type length") {
 			val source = hexArray"5C"
 			val ex = intercept[ParseException]{
-				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("errors when a string array has an 1E-type length") {
 			val source = hexArray"7E"
 			val ex = intercept[ParseException]{
-				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("errors when a simple value has an 1C-type length") {
 			val source = hexArray"FC"
 			val ex = intercept[ParseException]{
-				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("errors when a negative integer has an indeterminate length") {
 			val source = hexArray"3F"
 			val ex = intercept[UnsupportedOperationException]{
-				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("errors when a tag has an indeterminate length") {
 			val source = hexArray"DF"
 			val ex = intercept[UnsupportedOperationException]{
-				new CborParser(new MapBuilder()).parse(byteArray2DataInput(source))
+				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 	}

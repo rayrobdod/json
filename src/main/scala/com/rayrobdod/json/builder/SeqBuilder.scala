@@ -26,6 +26,7 @@
 */
 package com.rayrobdod.json.builder;
 
+import com.rayrobdod.json.parser.Parser
 import scala.collection.immutable.Seq;
 
 /** A builder that creates seqs
@@ -34,16 +35,22 @@ import scala.collection.immutable.Seq;
  * A builder that will create seqs, where complex types are built by `childBuilder.getOrElse(this)`
  * @param childBuilder the type of this seq's complex child elements. If it is Nothing, it will default to making more SeqBuilders
  */
-final class SeqBuilder[Key](childBuilder:Option[Builder[Key, _ <: Any]]) extends Builder[Key, Seq[Any]] {
-	/** A Builder that creates seqs, where every complex type child is also a seq */
-	def this() = {this(None)}
-	/** A Builder that creates seqs, where every complex type is of type `childBuilder` */
-	def this(childBuilder:Builder[Key, _ <: Any]) = {this(Some(childBuilder))}
+final class SeqBuilder[Key, Value, Inner](childBuilder:Builder[Key, Value, Inner]) extends Builder[Key, Value, Seq[Inner]] {
 	
-	val init:Seq[Nothing] = Nil
-	def apply(folding:Seq[Any], key:Key, value:Any):Seq[Any] = {
-		folding :+ value
+	def init:Seq[Inner] = Vector.empty[Inner]
+	
+	def apply[Input](key:Key):Function3[Seq[Inner], Input, Parser[Key, Value, Input], Seq[Inner]] = {(folding, innerInput, parser) =>
+		folding :+ parser.parseComplex(childBuilder, innerInput)
 	}
-	def childBuilder(key:Key):Builder[Key, _ <: Any] = childBuilder.getOrElse(new SeqBuilder[Key])
-	val resultType:Class[Seq[_]] = classOf[Seq[_]]
+}
+
+/**
+ * 
+ */
+final class PrimitiveSeqBuilder[Key, Value] extends Builder[Key, Value, Seq[Value]] {
+	def init:Seq[Value] = Vector.empty[Value]
+	
+	def apply[Input](key:Key):Function3[Seq[Value], Input, Parser[Key, Value, Input], Seq[Value]] = {(folding, innerInput, parser) =>
+		folding :+ parser.parsePrimitive(innerInput)
+	}
 }

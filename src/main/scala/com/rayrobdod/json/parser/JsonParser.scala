@@ -30,19 +30,12 @@ import java.text.ParseException
 import scala.collection.immutable.{Seq, Map, Stack}
 import com.rayrobdod.json.builder._
 import com.rayrobdod.json.union.StringOrInt
+import com.rayrobdod.json.union.JsonValue
 
 
 /**
  * A streaming decoder for json data.
  * This parser is intended to be relatively strict.
- * 
- * == Primitive types ==
- * 
- - null
- - java.lang.Long
- - java.lang.Double
- - java.lang.String
- - java.lang.Boolean
  * 
  * @see [[http://json.org/]]
  *
@@ -50,236 +43,229 @@ import com.rayrobdod.json.union.StringOrInt
  * Creates a JsonParser instance.
  * @param topBuilder the builder that this parser will use when constructing objects
  */
-// TODO: widen key to include Ints
-final class JsonParser[A](topBuilder:Builder[StringOrInt, A]) {
-	private[this] final case class StackFrame[B](soFar:B, builder:Builder[StringOrInt, B], state:State) {
-		def build(key:StringOrInt, v:Any):StackFrame[B] = this.copy(soFar = builder.apply(soFar, key, v))
+final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
+	
+	def parsePrimitive(i:Iterable[Char]):JsonValue = {
+		val numPattern = java.util.regex.Pattern.compile("""-?\d+\.?\d*(?:[eE][\+\-]?\d+)?""")
+		val s = new String(i.toArray).trim
+		
+		if (s == "null") {JsonValue.JsonValueNull} else
+		if (s == "true") {JsonValue(true)} else
+		if (s == "false") {JsonValue(false)} else
+		if (numPattern.matcher(s).matches) {JsonValue(java.lang.Double.parseDouble(s))} else
+		if (s.head == '"' && s.last == '"') {s.zipWithIndex.foldLeft[State[String]](new StringState("", {x:String => new EndState[String](x)})){(s, ci) => s.apply(ci._1, ci._2)}.asInstanceOf[EndState[String]].result}
+		throw new IllegalArgumentException(s)
 	}
-	private[this] final implicit class EditTopFrameStack(a:List[StackFrame[_ >: A]]){
-		def replaceTopState(b:State):List[StackFrame[_ >: A]] = a.head.copy(state = b) :: a.tail
-		def buildTop(k:StringOrInt, v:Any):List[StackFrame[_ >: A]] = a.head.build(k, v) :: a.tail
-		def pushChild(k:StringOrInt, s:State):List[StackFrame[_ >: A]] = {
-			val b = a.head.builder.childBuilder(k)
-			val e = b.asInstanceOf[Builder[StringOrInt, Any]]
-			val c = StackFrame(e.init, e, s)
-			c :: a
+	
+	/**
+	 * Decodes the input values to an object.
+	 * @param chars the serialized json object or array
+	 * @return the parsed object
+	 */
+	def parseComplex[A](builder:Builder[StringOrInt, JsonValue, A], chars:Iterable[Char]):A = {
+		val endstate = chars.zipWithIndex.foldLeft[State[A]](new InitState(builder)){(state, charIndex) =>
+			state.apply(charIndex._1, charIndex._2)
+		}
+		endstate match {
+			case x:EndState[A] => x.result
+			case _ => throw new ParseException("incomplete object", chars.size)
 		}
 	}
 	
-	private[this] object SingletonBuilder extends Builder[Any, Any] {
-		val init:String = ""
-		def apply(folding:Any, key:Any, value:Any):Any = value
-		def childBuilder(key:Any):Builder[Any, Any] = this
-		val resultType:Class[Any] = classOf[Any]
-	}
-	
-	
-	
 	/**
 	 * Decodes the input values to an object.
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse(chars:Iterable[Char]):A = {
-		topBuilder.resultType.cast({
-			var length = 0;
-			val a = chars.zipWithIndex.foldLeft[List[StackFrame[_ >: A]]](
-				List(StackFrame(topBuilder.init, topBuilder, InitState), StackFrame(topBuilder.init, SingletonBuilder, TopState))
-			){(stateStack:List[StackFrame[_ >: A]], charIndex:(Char, Int)) =>
-				val (char, index) = charIndex
-				
-				val retVal = stateStack.head.state.apply(stateStack, char, index)
-				
-				length = index + 1;
-				retVal
-			}
-			if (a.lengthCompare(1) == 0) {
-				a.head.soFar
-			} else {
-				throw new ParseException("Incomplete object", length);
-			}
-		})
-	}
-	
-	/**
-	 * Decodes the input values to an object.
-	 * @param chars the serialized json object or array
-	 * @return the parsed object
-	 */
-	def parse(chars:java.io.Reader):A = this.parse(new Reader2Iterable(chars))
+	def parseComplex[A](builder:Builder[StringOrInt, JsonValue, A], chars:java.io.Reader):A = this.parseComplex(builder, new Reader2Iterable(chars))
 	
 	
 	/** The parser's state. To be placed inside a foldleft. */
-	private[this] sealed trait State {
-		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]]
+	private[this] sealed trait State[A] {
+		def apply(c:Char, index:Int):State[A]
 	}
 	
-	private[this] object TopState extends State {
-		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] =  c match {
-			case x if x.isWhitespace => in
-			case _    => throw new ParseException("At end of item, but; found " + c, index)
+	private[this] class EndState[A](val result:A) extends State[A] {
+		def apply(c:Char, index:Int):State[A] = c match {
+			case x if x.isWhitespace => this
+			case _ => throw new ParseException("Stuff after end of object " + c, index)
 		}
 	}
 	
-	private[this] object InitState extends State {
-		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] = c match {
-			case '\ufeff' => in // byte-order-mark
-			case x if x.isWhitespace => in
-			case '{'  => in.replaceTopState(new ObjectKeyStartState("", true))
-			case '['  => in.replaceTopState(new ArrayValueStartState(""))
+	private[this] class InitState[A](builder:Builder[StringOrInt, JsonValue, A]) extends State[A] {
+		def apply(c:Char, index:Int):State[A] = c match {
+			case '\ufeff' => this // byte-order-mark
+			case x if x.isWhitespace => this
+			case '{'  => new ObjectKeyStartState(builder.init, builder, true)
+			case '['  => new ArrayValueStartState(builder.init, builder)
 			case _    => throw new ParseException("Expecting '{' or '['; found " + c, index)
 		}
 	}
 	
-	private[this] class ObjectKeyStartState(parKey:StringOrInt, endObjectAllowed:Boolean) extends State {
-		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] = c match {
-			case x if x.isWhitespace => in
-			case '"'  => {
-				(new StackFrame(StringBuilder.init, StringBuilder, new StringState(""))) ::
-				(new StackFrame("", SingletonBuilder, new ObjectKeyEndState(parKey))) ::
-				in.replaceTopState(new ObjectKeyEndState(parKey))
-			}
-			case '}'  if endObjectAllowed => in.tail.buildTop(parKey, in.head.soFar)
+	private[this] class ObjectKeyStartState[A](soFar:A, builder:Builder[StringOrInt, JsonValue, A], endObjectAllowed:Boolean) extends State[A] {
+		def apply(c:Char, index:Int):State[A] = c match {
+			case x if x.isWhitespace => this
+			case '"'  => new StringState("", {s:String => new ObjectKeyEndState(soFar, builder, s)})
+			case '}'  if endObjectAllowed => new EndState(soFar)
 			case _    => throw new ParseException("Expecting start of key; found " + c, index)
 		}
 	}
 	
-	private[this] class ObjectKeyEndState(parKey:StringOrInt) extends State {
-		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] = c match {
-			case x if x.isWhitespace => in
-			case ':'  => {
-				in.tail.replaceTopState(new ObjectValueStartState(parKey, in.head.soFar.toString))
-			}
+	private[this] class ObjectKeyEndState[A](soFar:A, builder:Builder[StringOrInt, JsonValue, A], key:String) extends State[A] {
+		def apply(c:Char, index:Int):State[A] = c match {
+			case x if x.isWhitespace => this
+			case ':'  => new ObjectValueStartState[A](soFar, builder, key)
 			case _    => throw new ParseException("Expecting ':'; found " + c, index)
 		}
 	}
 	
-	private[this] class ObjectValueStartState(parKey:StringOrInt, currKey:String) extends State {
-		def apply(in:List[StackFrame[_ >: A]], c:Char, index:Int):List[StackFrame[_ >: A]] = c match {
-			case x if x.isWhitespace => in
-			case '"'  => {
-				(new StackFrame(StringBuilder.init, StringBuilder, new StringState(currKey))) ::
-				in.replaceTopState(new ObjectValueEndState(parKey, currKey))
-			}
-			case '['  => in.replaceTopState(new ObjectValueEndState(parKey, currKey)).pushChild(currKey, new ArrayValueStartState(currKey))
-			case '{'  => in.replaceTopState(new ObjectValueEndState(parKey, currKey)).pushChild(currKey, new ObjectKeyStartState(currKey, true))
-			case '-'  => {
-				(new StackFrame(StringBuilder.init + c, StringBuilder, new IntegerState(currKey))) ::
-				in.replaceTopState(new ObjectValueEndState(parKey, currKey))
-			}
+	private[this] class ObjectValueStartState[A](soFar:A, builder:Builder[StringOrInt, JsonValue, A], key:String) extends State[A] {
+		def apply(c:Char, index:Int):State[A] = c match {
+			case x if x.isWhitespace => this
+			case '"'  => new StringState("", {s:String =>
+				val newObj = builder.apply[JsonValue](key).apply(soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]())
+				new ObjectValueEndState(newObj, builder)
+			})
+			case '['  => new InnerObjectState("[", {s:String => 
+				val newObj = builder.apply[Iterable[Char]](key).apply(soFar, s, JsonParser.this)
+				new ObjectValueEndState(newObj, builder)
+			})
+			case '{'  => new InnerObjectState("{", {s:String => 
+				val newObj = builder.apply[Iterable[Char]](key).apply(soFar, s, JsonParser.this)
+				new ObjectValueEndState(newObj, builder)
+			})
+			case '-'  => new IntegerState("-", {s:Number =>
+				val newObj = builder.apply[JsonValue](key).apply(soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]())
+				new ObjectValueEndState(newObj, builder)
+			})
 			case '.'  => {
 				val msg = "Numeric value may not begin with a '.'"
 				val ex = new ParseException(msg, index)
 				ex.initCause(new NumberFormatException(msg))
 				throw ex;
 			}
-			case x if ('0' <= x && x <= '9') => {
-				(new StackFrame(StringBuilder.init + c, StringBuilder, new IntegerState(currKey))) ::
-				in.replaceTopState(new ObjectValueEndState(parKey, currKey))
-			}
-			case x if ('a' <= x && x <= 'z') => {
-				(new StackFrame(StringBuilder.init + c, StringBuilder, new KeywordState(currKey))) ::
-				in.replaceTopState(new ObjectValueEndState(parKey, currKey))
-			}
+			case x if ('0' <= x && x <= '9') => new IntegerState("" + x, {s:Number =>
+				val newObj = builder.apply[JsonValue](key).apply(soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]())
+				new ObjectValueEndState(newObj, builder)
+			})
+			case x if ('a' <= x && x <= 'z') => new KeywordState("" + x, {s:JsonValue =>
+				val newObj = builder.apply[JsonValue](key).apply(soFar, s, new IdentityParser[StringOrInt, JsonValue]())
+				new ObjectValueEndState(newObj, builder)
+			})
 			case _ => throw new ParseException("Expecting start of value; found " + c, index)
 		}
 	}
 	
-	private[this] class ObjectValueEndState(parKey:StringOrInt, currKey:String) extends State {
-		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = c match {
-			case x if x.isWhitespace => in
-			case ','  => in.replaceTopState(new ObjectKeyStartState(parKey, false))
-			case '}'  => in.tail.buildTop(parKey, in.head.soFar)
-			case _    => throw new ParseException("Expecting ',' or ']'; found " + c, charIndex)
+	private[this] class ObjectValueEndState[A](soFar:A, builder:Builder[StringOrInt, JsonValue, A]) extends State[A] {
+		def apply(c:Char, charIndex:Int):State[A] = c match {
+			case x if x.isWhitespace => this
+			case ','  => new ObjectKeyStartState(soFar, builder, false)
+			case '}'  => new EndState(soFar) 
+			case _    => throw new ParseException("Expecting ',' or '}'; found " + c, charIndex)
 		}
 	}
 	
 	
-	private[this] class ArrayValueStartState(parKey:StringOrInt, arrayIndex:Int = 0) extends State {
+	private[this] class ArrayValueStartState[A](soFar:A, builder:Builder[StringOrInt, JsonValue, A], arrayIndex:Int = 0) extends State[A] {
 		/** true iff the next character is allowed to end the array - i.e. be a ']' */
 		private[this] val endObjectAllowed:Boolean = (arrayIndex == 0);
 		
-		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = c match {
-			case x if x.isWhitespace => in
-			case ']'  if endObjectAllowed => in.tail.buildTop(parKey, in.head.soFar)
-			case '"'  => {
-				(new StackFrame(StringBuilder.init, StringBuilder, new StringState(arrayIndex))) ::
-				in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
-			}
-			case '['  => in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex)).pushChild(arrayIndex, new ArrayValueStartState(arrayIndex))
-			case '{'  => in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex)).pushChild(arrayIndex, new ObjectKeyStartState(arrayIndex, true))
-			case '-'  => {
-				(new StackFrame(StringBuilder.init + c, StringBuilder, new IntegerState(arrayIndex))) ::
-				in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
-			}
+		def apply(c:Char, charIndex:Int):State[A] = c match {
+			case x if x.isWhitespace => this
+			case ']'  if endObjectAllowed => new EndState(soFar)
+			case '"'  => new StringState("", {s:String =>
+				val newObj = builder.apply[JsonValue](arrayIndex).apply(soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]())
+				new ArrayValueEndState(newObj, builder, arrayIndex)
+			})
+			case '['  => new InnerObjectState("[", {s:String => 
+				val newObj = builder.apply[Iterable[Char]](arrayIndex).apply(soFar, s, JsonParser.this)
+				new ArrayValueEndState(newObj, builder, arrayIndex)
+			})
+			case '{'  => new InnerObjectState("{", {s:String => 
+				val newObj = builder.apply[Iterable[Char]](arrayIndex).apply(soFar, s, JsonParser.this)
+				new ArrayValueEndState(newObj, builder, arrayIndex)
+			})
+			case '-'  => new IntegerState("-", {s:Number =>
+				val newObj = builder.apply[JsonValue](arrayIndex).apply(soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]())
+				new ArrayValueEndState(newObj, builder, arrayIndex)
+			})
 			case '.'  => {
 				val msg = "Numeric value may not begin with a '.'"
 				val ex = new ParseException(msg, charIndex)
 				ex.initCause(new NumberFormatException(msg))
 				throw ex;
 			}
-			case x if ('0' <= x && x <= '9') => {
-				(new StackFrame(StringBuilder.init + c, StringBuilder, new IntegerState(arrayIndex))) ::
-				in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
-			}
-			case x if ('a' <= x && x <= 'z') => {
-				(new StackFrame(StringBuilder.init + c, StringBuilder, new KeywordState(arrayIndex))) ::
-				in.replaceTopState(new ArrayValueEndState(parKey, arrayIndex))
-			}
+			case x if ('0' <= x && x <= '9') => new IntegerState("" + x, {s:Number =>
+				val newObj = builder.apply[JsonValue](arrayIndex).apply(soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]())
+				new ArrayValueEndState(newObj, builder, arrayIndex)
+			})
+			case x if ('a' <= x && x <= 'z') => new KeywordState("" + x, {s:JsonValue =>
+				val newObj = builder.apply[JsonValue](arrayIndex).apply(soFar, s, new IdentityParser[StringOrInt, JsonValue]())
+				new ArrayValueEndState(newObj, builder, arrayIndex)
+			})
 			case _ =>
 					throw new ParseException("Expecting start of value; found " + c, charIndex)
 		}
 	}
 	
-	private[this] class ArrayValueEndState(parKey:StringOrInt, arrayIndex:Int) extends State {
-		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = c match {
-			case x if x.isWhitespace => in
-			case ','  => in.replaceTopState(new ArrayValueStartState(parKey, arrayIndex + 1))
-			case ']'  => in.tail.buildTop(parKey, in.head.soFar)
+	private[this] class ArrayValueEndState[A](soFar:A, builder:Builder[StringOrInt, JsonValue, A], arrayIndex:Int) extends State[A] {
+		def apply(c:Char, charIndex:Int):State[A] = c match {
+			case x if x.isWhitespace => this
+			case ','  => new ArrayValueStartState(soFar, builder, arrayIndex + 1)
+			case ']'  => new EndState(soFar)
 			case _    => throw new ParseException("Expecting ',' or ']'; found " + c, charIndex)
 		}
 	}
 	
-	private[this] class StringState(key:StringOrInt) extends State {
-		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = {
+	private[this] case class InnerObjectState[A](str:String, pop:(String => State[A]), nesting:Int = 1) extends State[A] {
+		def apply(c:Char, index:Int):State[A] = c match {
+			case '[' => this.copy(str = str + c, nesting = nesting + 1)
+			case '{' => this.copy(str = str + c, nesting = nesting + 1)
+			case ']' => if (nesting == 1) {this.pop(str + c)} else {this.copy(str = str + c, nesting = nesting - 1)}
+			case '}' => if (nesting == 1) {this.pop(str + c)} else {this.copy(str = str + c, nesting = nesting - 1)}
+			case _ => this.copy(str = str + c)
+		}
+	}
+	
+	private[this] class StringState[A](str:String, pop:(String => State[A])) extends State[A] {
+		def apply(c:Char, charIndex:Int):State[A] = {
 			if (c < ' ') {
 				throw new ParseException("Control chars not allowed in strings", charIndex)
 			} else if (c == '\\') {
-				in.replaceTopState(new StringEscapeState(key))
+				new StringEscapeState(str, pop)
 			} else if (c == '"') {
-				val newValue = in.head.soFar
-				in.tail.buildTop(key, newValue)
+				pop(str)
 			} else {
-				in.buildTop("", c)
+				new StringState(str + c, pop)
 			}
 		}
 	}
 	
-	private[this] class StringEscapeState(key:StringOrInt) extends State {
-		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = c match {
-			case '"'  => in.buildTop("", "\"").replaceTopState(new StringState(key))
-			case '\\' => in.buildTop("", "\\").replaceTopState(new StringState(key))
-			case '/'  => in.buildTop("", "/" ).replaceTopState(new StringState(key))
-			case 'b'  => in.buildTop("", "\b").replaceTopState(new StringState(key))
-			case 'f'  => in.buildTop("", "\f").replaceTopState(new StringState(key))
-			case 'n'  => in.buildTop("", "\n").replaceTopState(new StringState(key))
-			case 'r'  => in.buildTop("", "\r").replaceTopState(new StringState(key))
-			case 't'  => in.buildTop("", "\t").replaceTopState(new StringState(key))
-			case 'u'  => in.replaceTopState(new StringUnicodeEscapeState(key))
+	private[this] class StringEscapeState[A](str:String, pop:(String => State[A])) extends State[A] {
+		def apply(c:Char, charIndex:Int):State[A] = c match {
+			case '"'  => new StringState(str + "\"", pop)
+			case '\\' => new StringState(str + "\\", pop)
+			case '/'  => new StringState(str + "/", pop)
+			case 'b'  => new StringState(str + "\b", pop)
+			case 'f'  => new StringState(str + "\f", pop)
+			case 'n'  => new StringState(str + "\n", pop)
+			case 'r'  => new StringState(str + "\r", pop)
+			case 't'  => new StringState(str + "\t", pop)
+			case 'u'  => new StringUnicodeEscapeState(str, pop)
 			case _    => throw new ParseException("Unexpected escape code in string: " + c, charIndex)
 		}
 	}
 	
-	private[this] class StringUnicodeEscapeState(key:StringOrInt, characters:Int = 0, value:Int = 0) extends State {
-		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = {
+	private[this] class StringUnicodeEscapeState[A](str:String, pop:(String => State[A]), characters:Int = 0, value:Int = 0) extends State[A] {
+		def apply(c:Char, charIndex:Int):State[A] = {
 			if (('0' <= c && c <= '9') || ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F')) {
 				val cInt = java.lang.Integer.parseInt("" + c, 16)
 				val newValue = value * 16 + cInt
 				
 				if (characters < 3) {
-					in.replaceTopState(new StringUnicodeEscapeState(key, characters + 1, value * 16 + cInt))
+					new StringUnicodeEscapeState(str, pop, characters + 1, value * 16 + cInt)
 				} else {
-					in.buildTop("", newValue.toChar).replaceTopState(new StringState(key))
+					new StringState(str + newValue.toChar, pop)
 				}
 			} else {
 				throw new ParseException("non-hex character in unicode escape: " + c, charIndex)
@@ -287,49 +273,36 @@ final class JsonParser[A](topBuilder:Builder[StringOrInt, A]) {
 		}
 	}
 	
-	private[this] class IntegerState(key:StringOrInt) extends State {
-		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = {
+	private[this] class IntegerState[A](str:String, pop:(Number => State[A])) extends State[A] {
+		def apply(c:Char, charIndex:Int):State[A] = {
 			if (c == '}' || c == ']' || c == ',') {
-				val rawNewValue = (in.head.soFar).toString.trim
-				val newValue:AnyVal = try {
+				val rawNewValue = str.toString.trim
+				val newValue:Number = try {
 					rawNewValue.toLong
 				} catch {
 					case _:NumberFormatException => rawNewValue.toDouble
 				}
-				val in2 = in.tail.buildTop(key, newValue)
-				in2.head.state.apply(in2, c, charIndex)
+				pop(newValue).apply(c, charIndex)
 			} else {
-				in.buildTop("", c)
+				new IntegerState(str + c, pop)
 			}
 		}
 	}
 	
-	private[this] class KeywordState(key:StringOrInt) extends State {
-		def apply(in:List[StackFrame[_ >: A]], c:Char, charIndex:Int):List[StackFrame[_ >: A]] = {
+	private[this] class KeywordState[A](str:String, pop:(JsonValue => State[A])) extends State[A] {
+		def apply(c:Char, charIndex:Int):State[A] = {
 			if (c == '}' || c == ']' || c == ',') {
-				val valueString = (in.head.soFar).toString.trim
+				val valueString = str.toString.trim
 				val value = valueString match {
-					case "true"  => true
-					case "false" => false
-					case "null"  => null
+					case "true"  => JsonValue(true)
+					case "false" => JsonValue(false)
+					case "null"  => JsonValue.JsonValueNull
 					case _ => throw new ParseException("Unexpected keyword: " + valueString, charIndex)
 				}
-				val in2 = in.tail.buildTop(key, value)
-				in2.head.state.apply(in2, c, charIndex)
+				pop(value).apply(c, charIndex)
 			} else {
-				in.buildTop("", c)
+				new KeywordState(str + c, pop)
 			}
 		}
 	}
-	
-	/** A builder that creates strings */
-	private[this] object StringBuilder extends Builder[Any, Any] {
-		val init:String = ""
-		def apply(folding:Any, key:Any, value:Any):String = {
-			folding.toString + value.toString
-		}
-		def childBuilder(key:Any):Builder[Any,Any] = this
-		val resultType:Class[Any] = classOf[Any]
-	}
 }
-

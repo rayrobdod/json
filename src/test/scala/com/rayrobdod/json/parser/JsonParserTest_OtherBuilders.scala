@@ -31,6 +31,7 @@ import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.Builder;
 import com.rayrobdod.json.union.StringOrInt
+import com.rayrobdod.json.union.JsonValue
 
 class JsonParserTest_OtherBuilders extends FunSpec {
 	describe("JsonParser with other builders") {
@@ -50,44 +51,41 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 					"interests":["bowling", "tennis", "programming", "twitch plays pokémon"]
 			}"""
 			
-			object SetBuilder extends Builder[Any, Set[String]] {
+			object SetBuilder extends Builder[StringOrInt, JsonValue, Set[String]] {
 				def init:Set[String] = Set.empty
-				def apply(folding:Set[String], key:Any, value:Any):Set[String] = {
-					folding + value.toString
+				def apply[Input](key:StringOrInt):Function3[Set[String], Input, Parser[StringOrInt, JsonValue, Input], Set[String]] = {(folding, input, parser) =>
+					val inputVal = parser.parsePrimitive(input)
+					val inputStr = inputVal match {case JsonValue.JsonValueString(s) => s; case _ => "????????"}
+					folding + inputStr
 				}
-				def childBuilder(key:Any):Builder[Any,Set[String]] = this
-				override val resultType:Class[Set[String]] = classOf[Set[String]]
 			}
 			
-			object NameBuilder extends Builder[StringOrInt,Name] {
+			object NameBuilder extends Builder[StringOrInt,JsonValue,Name] {
 				def init:Name = Name("", "", "")
-				def apply(folding:Name, key:StringOrInt, value:Any):Name = key match {
-					case StringOrInt.Left("given") => folding.copy(given = value.toString)
-					case StringOrInt.Left("middle") => folding.copy(middle = value.toString)
-					case StringOrInt.Left("family") => folding.copy(family = value.toString)
-					case _ => throw new ParseException("Unexpected key: " + key, -1)
+				def apply[Input](key:StringOrInt):Function3[Name, Input, Parser[StringOrInt, JsonValue, Input], Name] = {(folding, input, parser) =>
+					val value = parser.parsePrimitive(input) match {case JsonValue.JsonValueString(s) => s; case _ => "????????"}
+					
+					key match {
+						case StringOrInt.Left("given") => folding.copy(given = value)
+						case StringOrInt.Left("middle") => folding.copy(middle = value)
+						case StringOrInt.Left("family") => folding.copy(family = value)
+						case _ => throw new ParseException("Unexpected key: " + key, -1)
+					}
 				}
-				def childBuilder(key:StringOrInt):Builder[StringOrInt,_] = SetBuilder
-				override val resultType:Class[Name] = classOf[Name]
 			}
 			
-			object PersonBuilder extends Builder[StringOrInt,Person] {
+			object PersonBuilder extends Builder[StringOrInt, JsonValue, Person] {
 				def init:Person = Person(Name("", "", ""), "", false, Set.empty)
-				def apply(folding:Person, key:StringOrInt, value:Any):Person = key match {
-					case StringOrInt.Left("name") => folding.copy(n = value.asInstanceOf[Name])
-					case StringOrInt.Left("gender") => folding.copy(gender = value.toString)
-					case StringOrInt.Left("isDead") => folding.copy(isDead = (value == true))
-					case StringOrInt.Left("interests") => folding.copy(interests = value.asInstanceOf[Set[String]])
+				def apply[Input](key:StringOrInt):Function3[Person, Input, Parser[StringOrInt, JsonValue, Input], Person] = key match {
+					case StringOrInt.Left("name") => {(folding, input, parser) => folding.copy(n = parser.parseComplex(NameBuilder, input))}
+					case StringOrInt.Left("gender") => {(folding, input, parser) => folding.copy(gender = parser.parsePrimitive(input) match {case JsonValue.JsonValueString(s) => s; case _ => "????????"})}
+					case StringOrInt.Left("isDead") => {(folding, input, parser) => folding.copy(isDead = parser.parsePrimitive(input) match {case JsonValue.JsonValueBoolean(s) => s; case _ => false})}
+					case StringOrInt.Left("interests") => {(folding, input, parser) => folding.copy(interests = parser.parseComplex(SetBuilder, input))}
 					case _ => throw new ParseException("Unexpected key: " + key, -1)
 				}
-				def childBuilder(key:StringOrInt):Builder[StringOrInt,_] = key match {
-					case StringOrInt.Left("name") => NameBuilder
-					case _ => SetBuilder
-				}
-				override val resultType:Class[Person] = classOf[Person]
 			}
 			
-			val result:Person = new JsonParser(PersonBuilder).parse(json)
+			val result:Person = new JsonParser().parseComplex(PersonBuilder, json)
 			val expected = Person(
 				Name( "Raymond", "Robert", "Dodge"),
 				"male",

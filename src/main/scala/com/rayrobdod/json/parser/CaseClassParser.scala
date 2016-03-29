@@ -38,7 +38,7 @@ import com.rayrobdod.json.builder.Builder
  * Creates a CaseClassParser instance.
  * @param topBuilder the builder that this parser will use when constructing objects
  */
-final class CaseClassParser[A](topBuilder:Builder[String,A]) {
+final class CaseClassParser[Input <: Product](implicit clazz:Class[Input]) extends Parser[String, Any, Input] {
 	
 	/**
 	 * Decodes the input values to an object.
@@ -46,18 +46,21 @@ final class CaseClassParser[A](topBuilder:Builder[String,A]) {
 	 * @param clazz the class of obj
 	 * @return the parsed object
 	 */
-	def parse[B <: Product](obj:B)(implicit clazz:Class[B]):A = {
+	def parseComplex[Output](builder:Builder[String, Any, Output], obj:Input):Output = {
 		val mirror = runtimeMirror( this.getClass.getClassLoader )
 		val typ = mirror.classSymbol( clazz ).toType
 		val copyMethod = typ.declaration(newTermName("copy")).asMethod
 		val copyParams = copyMethod.paramss(0)
 		
-		copyParams.zipWithIndex.foldLeft(topBuilder.init){(state:A, keyValue) =>
+		copyParams.zipWithIndex.foldLeft(builder.init){(state:Output, keyValue) =>
 			val (name, index) = keyValue
 			val name2 = name.name.decodedName.toString
+			val value = obj.productElement(index)
 			
-			topBuilder.apply(state, name2, obj.productElement(index))
+			builder.apply(name2).apply(state, value, new IdentityParser)
 		}
 	}
+	
+	def parsePrimitive(i:Input):Any = throw new UnsupportedOperationException
 }
 

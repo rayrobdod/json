@@ -29,6 +29,8 @@ package com.rayrobdod.json.builder;
 import java.text.ParseException;
 import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
+import com.rayrobdod.json.parser.IdentityParser
+import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.StringOrInt.AsStringKeyBuilder
 
 class CaseClassBuilderTest extends FunSpec {
@@ -44,47 +46,40 @@ class CaseClassBuilderTest extends FunSpec {
 		it ("Can handle the name bean property") {
 			val name = "Anony Mouse"
 			assertResult(new Person(name, 0)){
-				new CaseClassBuilder(new Person("", 0)).apply(new Person("", 0), "name", name)
+				new CaseClassBuilder(new Person("", 0)).apply("name").apply(
+						new Person("", 0), name, new IdentityParser[String,Object])
 			}
 		}
 		it ("Can handle the age bean property") {
 			val age = 9001L
 			assertResult(new Person("", age)){
-				new CaseClassBuilder(new Person("", 0)).apply(new Person("", 0), "age", age)
+				new CaseClassBuilder(new Person("", 0)).apply("age").apply(
+						new Person("", 0), age, new IdentityParser[String,Any])
 			}
 		}
 		it ("Throws excpetion on incorrect type") {
 			val age = "9001"
 			intercept[IllegalArgumentException]{
-				new CaseClassBuilder(new Person("", 0)).apply(new Person("", 0), "age", age)
+				new CaseClassBuilder(new Person("", 0)).apply("age").apply(
+						new Person("", 0), age, new IdentityParser[String,Object])
 			}
 		}
 		it ("Throws excpetion on unknown key") {
 			val age = "9001"
 			intercept[IllegalArgumentException]{
-				new CaseClassBuilder(new Person("", 0)).apply(new Person("", 0), "asdfjkl;", age)
-			}
-		}
-		it ("childBuilder returns value from constructor") {
-			import CaseClassBuilderTest.MockBuilder
-			
-			assertResult(MockBuilder){
-				new CaseClassBuilder(new Person("", 0), Map("key" -> MockBuilder)).childBuilder("key")
-			}
-		}
-		it ("resultType returns constructor parameter `clazz`") {
-			assertResult(classOf[Person]){
-				new CaseClassBuilder(new Person("", 0)).resultType
+				new CaseClassBuilder(new Person("", 0)).apply("asdfjkl;").apply(
+						new Person("", 0), age, new IdentityParser[String,Object])
 			}
 		}
 	}
 	
-	describe("CaseClassBuilder + JsonParser") {
+	ignore("CaseClassBuilder + JsonParser") {
 		import com.rayrobdod.json.parser.JsonParser
 		
 		it ("works") {
 			assertResult(Person("nqpppnl",1)){
-				new JsonParser(new AsStringKeyBuilder(new CaseClassBuilder(new Person("", 0)))).parse(
+				new JsonParser().parseComplex(
+					new AsStringKeyBuilder(new CaseClassBuilder[JsonValue, Person](new Person("", 0))),
 					"""{"name":"nqpppnl","age":1}"""
 				)
 			}
@@ -95,11 +90,4 @@ class CaseClassBuilderTest extends FunSpec {
 
 object CaseClassBuilderTest {
 	case class Person(val name:String, val age:java.lang.Long)
-	
-	object MockBuilder extends Builder[String, Nothing] {
-		def init:Nothing = {throw new UnsupportedOperationException}
-		def apply(folding:Nothing, key:String, value:Any):Nothing = {throw new UnsupportedOperationException}
-		def childBuilder(key:String):Nothing = {throw new UnsupportedOperationException}
-		def resultType:Class[Nothing] = {throw new UnsupportedOperationException}
-	}
 }

@@ -26,6 +26,7 @@
 */
 package com.rayrobdod.json.builder;
 
+import com.rayrobdod.json.parser.Parser
 import java.lang.reflect.Method
 
 /** A builder that builds a JavaBean
@@ -40,7 +41,10 @@ import java.lang.reflect.Method
  * @param clazz the class of the objects to build
  * @param childBuilders a map used directly by childBuilder
  */
-final class BeanBuilder[A](clazz:Class[A], childBuilders:Function1[String, Builder[String, _]] = Map.empty) extends Builder[String, A] {
+final class BeanBuilder[Value, A](
+			clazz:Class[A],
+			childBuilders:Function1[String, Option[Builder[String, Value, _]]] = Map.empty.lift
+) extends Builder[String, Value, A] {
 	/**
 	 * Creates an instance of clazz by calling the class's No Argument constructor.
 	 */
@@ -53,18 +57,12 @@ final class BeanBuilder[A](clazz:Class[A], childBuilders:Function1[String, Build
 	 * @return the input parameter `folding`
 	 * @todo maybe check for other primitive numeric types - IE a `setVal(Short)` when handed a `Long` or visa versa
 	 */
-	def apply(folding:A, key:String, value:Any):A = {
+	def apply[Input](key:String):Function3[A, Input, Parser[String, Value, Input], A] = {(folding, input, parser) =>
+		val value:Any = childBuilders(key).map{x => parser.parseComplex(x, input)}.getOrElse{parser.parsePrimitive(input)}
+		
 		val m = clazz.getMethod("set" + key.head.toUpper + key.tail, value.getClass)
 		m.invoke(folding, value.asInstanceOf[Object])
 		// the above line should have mutated `folding`.
 		folding
 	}
-	
-	/**
-	 * Applies the key to the constructor parameter `childBuilders`
-	 */
-	def childBuilder(key:String):Builder[String, _] = childBuilders(key)
-	
-	/** Returns the constructor parameter `clazz` */
-	val resultType:Class[A] = clazz
 }

@@ -86,17 +86,20 @@ package parser {
 	 * Create a MapParser
 	 * @param topBuilder the builder that this parser will use when constructing objects
 	 */
-	final class MapParser[K,A](topBuilder:Builder[K,A]) {
+	final class MapParser[K,V] extends Parser[K,V,Map[K,V]] {
 		/**
 		 * Decodes the input values to an object.
 		 * @param vals the sequence containing values
 		 * @return the parsed object
 		 */
-		def parse(vals:Map[K, _ <: Any]):A = {
-			vals.foldLeft[A](topBuilder.init){
-				(state:A, keyValue:(K, Any)) => topBuilder.apply(state, keyValue._1, keyValue._2)
+		def parseComplex[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):A = {
+			vals.foldLeft[A](topBuilder.init){(state:A, keyValue:(K, V)) => 
+				val (key, value) = keyValue;
+				topBuilder.apply(key).apply(state, Map(keyValue), this)
 			}
 		}
+		def parsePrimitive(vals:Map[K,V]):V = vals.head._2
+
 	}
 	
 	/**
@@ -106,16 +109,23 @@ package parser {
 	 * Create a SeqParser
 	 * @param topBuilder the builder that this parser will use when constructing objects
 	 */
-	final class SeqParser[A](topBuilder:Builder[Int,A]) {
+	final class SeqParser[V] extends Parser[Int,V,Seq[V]] {
 		/**
 		 * Decodes the input values to an object.
 		 * @param vals the sequence containing values
 		 * @return the parsed object
 		 */
-		def parse(vals:Seq[_ <: Any]):A = {
-			vals.zipWithIndex.foldLeft[A](topBuilder.init){
-				(state:A, valueKey:(Any, Int)) => topBuilder.apply(state, valueKey._2, valueKey._1)
+		def parseComplex[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):A = {
+			vals.zipWithIndex.foldLeft[A](topBuilder.init){(state:A, valueKey:(V, Int)) => 
+				val (value, key) = valueKey;
+				topBuilder.apply(key).apply(state, Seq(value), this)
 			}
 		}
+		def parsePrimitive(vals:Seq[V]):V = vals.head
+	}
+	
+	final class IdentityParser[K,V] extends Parser[K,V,V] {
+		def parseComplex[A](b:Builder[K,V,A], v:V):A = throw new UnsupportedOperationException
+		def parsePrimitive(v:V):V = v
 	}
 }

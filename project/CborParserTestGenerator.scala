@@ -31,42 +31,42 @@ import java.nio.charset.StandardCharsets.UTF_8
 object CborParserTestGenerator {
 	
 	private val testValues:Seq[(String, String, String)] = Seq(
-		("false", """Array[Byte](0xF4.byteValue)""", "false"),
-		("true", """Array[Byte](0xF5.byteValue)""", "true"),
-		("null", """Array[Byte](0xF6.byteValue)""", "null"),
+		("false", """Array[Byte](0xF4.byteValue)""", "JsonValueBoolean(false)"),
+		("true", """Array[Byte](0xF5.byteValue)""", "JsonValueBoolean(true)"),
+		("null", """Array[Byte](0xF6.byteValue)""", "JsonValueNull"),
 		("unknown", """Array[Byte](0xE4.byteValue)""", "CborParser.UnknownSimpleValue(4)"),
 		("unknown (+byte)", """ hexArray"F842" """, "CborParser.UnknownSimpleValue(0x42)"),
 		("endOfObject", """Array[Byte](0xFF.byteValue)""", "CborParser.EndOfIndeterminateObject()"),
-		("integer 0", """Array[Byte](0)""", "0"),
-		("integer 1", """Array[Byte](1)""", "1"),
-		("integer 15", """Array[Byte](15)""", "15"),
-		("integer 23", """Array[Byte](23)""", "23"),
-		("integer 0x12", """Array[Byte](24, 0x12)""", "0x12"),
-		("integer 0x1234", """Array[Byte](25, 0x12, 0x34)""", "0x1234"),
-		("integer 0x12345678", """Array[Byte](26, 0x12, 0x34, 0x56, 0x78)""", "0x12345678"),
-		("integer 0x1234567890ABCDEF", """Array(27, 0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF).map{_.byteValue}""", "0x1234567890ABCDEFl"),
-		("integer 43", """Array[Byte](24, 43)""", "43"),
-		("integer -1", """Array[Byte](0x20)""", "-1"),
-		("integer -5", """Array[Byte](0x24)""", "-5"),
-	//	("halffloat 1.5", """ hexArray"F93C00" """, "1.5"),
-		("float 1.5", """ hexArray"FA3FC00000" """, "1.5"),
-		("doublefloat -4.1", """ hexArray"fbc010666666666666" """, "-4.1"),
-		("byte string 0", """Array[Byte](0x40)""", "Array[Byte]()"),
-		("byte string 4", """Array[Byte](0x44, 1,2,3,4)""", "Array[Byte](1,2,3,4)"),
-		("byte string 30", """Array[Byte](0x58, 30) ++ (1 to 30).map{_.byteValue}""", "(1.byteValue to 30.byteValue)"),
-		("byte string INDET", """ hexArray"5F44AABBCCDD43EEFF99FF" """, """ hexArray"AABBCCDDEEFF99" """),
-		("char string 0", """Array[Byte](0x60)""", " \"\" "),
-		("char string 5", """Array(0x65, 'h', 'e', 'l', 'l', 'o').map{_.byteValue}""", """ "hello" """),
-		("char string multibyte char", """hexArray"63e6b0b4" """, """ "\u6c34" """),
-		("char string INDET", """Array(0x7F, 0x62, 'h', 'e', 0x63, 'l', 'l', 'o', 0xFF).map{_.byteValue}""", """ "hello" """),
+		("integer 0", """Array[Byte](0)""", "JsonValueNumber(0)"),
+		("integer 1", """Array[Byte](1)""", "JsonValueNumber(1)"),
+		("integer 15", """Array[Byte](15)""", "JsonValueNumber(15)"),
+		("integer 23", """Array[Byte](23)""", "JsonValueNumber(23)"),
+		("integer 0x12", """Array[Byte](24, 0x12)""", "JsonValueNumber(0x12)"),
+		("integer 0x1234", """Array[Byte](25, 0x12, 0x34)""", "JsonValueNumber(0x1234)"),
+		("integer 0x12345678", """Array[Byte](26, 0x12, 0x34, 0x56, 0x78)""", "JsonValueNumber(0x12345678)"),
+		("integer 0x1234567890ABCDEF", """Array(27, 0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF).map{_.byteValue}""", "JsonValueNumber(0x1234567890ABCDEFl)"),
+		("integer 43", """Array[Byte](24, 43)""", "JsonValueNumber(43)"),
+		("integer -1", """Array[Byte](0x20)""", "JsonValueNumber(-1)"),
+		("integer -5", """Array[Byte](0x24)""", "JsonValueNumber(-5)"),
+	//	("halffloat 1.5", """ hexArray"F93C00" """, "JsonValueNumber(1.5)"),
+		("float 1.5", """ hexArray"FA3FC00000" """, "JsonValueNumber(1.5)"),
+		("doublefloat -4.1", """ hexArray"fbc010666666666666" """, "JsonValueNumber(-4.1)"),
+		("byte string 0", """Array[Byte](0x40)""", "JsonValueByteStr(Array[Byte]())"),
+		("byte string 4", """Array[Byte](0x44, 1,2,3,4)""", "JsonValueByteStr(Array[Byte](1,2,3,4))"),
+		("byte string 30", """Array[Byte](0x58, 30) ++ (1 to 30).map{_.byteValue}""", "JsonValueByteStr((1.byteValue to 30.byteValue).map{_.byteValue}.toArray)"),
+		("byte string INDET", """ hexArray"5F44AABBCCDD43EEFF99FF" """, """ JsonValueByteStr(hexArray"AABBCCDDEEFF99") """),
+		("char string 0", """Array[Byte](0x60)""", " JsonValueString(\"\") "),
+		("char string 5", """Array(0x65, 'h', 'e', 'l', 'l', 'o').map{_.byteValue}""", """ JsonValueString("hello") """),
+		("char string multibyte char", """hexArray"63e6b0b4" """, """ JsonValueString("\u6c34") """),
+		("char string INDET", """Array(0x7F, 0x62, 'h', 'e', 0x63, 'l', 'l', 'o', 0xFF).map{_.byteValue}""", """ JsonValueString("hello") """),
 		("array 0", """ hexArray"80" """, "Map()"),
-		("array 1", """ hexArray"8121" """, """Map("0" -> -2)"""),
-		("array 4", """ hexArray"8400010203" """, """Map("0" -> 0, "1" -> 1, "2" -> 2, "3" -> 3)"""),
-		("array INDET", """ hexArray"9F00010203FF" """, """Map("0" -> 0, "1" -> 1, "2" -> 2, "3" -> 3)"""),
+		("array 1", """ hexArray"8121" """, """Map(JsonValue(0) -> JsonValue(-2))"""),
+		("array 4", """ hexArray"8400010203" """, """Map(JsonValue(0) -> JsonValue(0), JsonValue(1) -> JsonValue(1), JsonValue(2) -> JsonValue(2), JsonValue(3) -> JsonValue(3))"""),
+		("array INDET", """ hexArray"9F00010203FF" """, """Map(JsonValue(0) -> JsonValue(0), JsonValue(1) -> JsonValue(1), JsonValue(2) -> JsonValue(2), JsonValue(3) -> JsonValue(3))"""),
 		("object 0", """ hexArray"A0" """, "Map()"),
-		("object 1", """ hexArray"A10405" """, """Map("4" -> 5)"""),
-		("object 2", """ hexArray"A2600061651865" """, """Map("" -> 0, "e" -> 0x65)"""),
-		("object INDET", """ hexArray"BF600061651865FF" """, """Map("" -> 0, "e" -> 0x65)"""),
+		("object 1", """ hexArray"A10405" """, """Map(JsonValue(4) -> JsonValue(5))"""),
+		("object 2", """ hexArray"A2600061651865" """, """Map(JsonValue("") -> JsonValue(0), JsonValue("e") -> JsonValue(0x65))"""),
+		("object INDET", """ hexArray"BF600061651865FF" """, """Map(JsonValue("") -> JsonValue(0), JsonValue("e") -> JsonValue(0x65))"""),
 		("tag self-describing", """ hexArray"d9d9f780" """, "CborParser.TaggedValue(55799, Map())")
 		
 	)
@@ -80,6 +80,8 @@ import java.text.ParseException;
 import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.MapBuilder;
+import com.rayrobdod.json.union.JsonValue
+import com.rayrobdod.json.union.JsonValue._
 
 class CborParserTest_Happy extends FunSpec {
 
@@ -97,7 +99,7 @@ class CborParserTest_Happy extends FunSpec {
 				)
 			)
 			val expected = """ + expected + """
-			val result = new CborParser(new MapBuilder()).parse(source)
+			val result = new CborParser().parse(new MapBuilder(), source)
 			assertResult(expected){result}
 		}"""
 	}

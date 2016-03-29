@@ -27,6 +27,7 @@
 package com.rayrobdod.json.union
 
 import com.rayrobdod.json.builder.Builder
+import com.rayrobdod.json.parser.Parser
 import scala.language.implicitConversions
 
 /**
@@ -43,17 +44,19 @@ object StringOrInt {
 	implicit def apply(s:String) = Left(s)
 	implicit def apply(i:Int) = Right(i)
 	
-	final class AsStringKeyBuilder[A](inner:Builder[String,A]) extends Builder[StringOrInt,A] {
+	final class AsStringKeyBuilder[V,A](inner:Builder[String,V,A]) extends Builder[StringOrInt,V,A] {
 		def init:A = inner.init
-		def apply(a:A, k:StringOrInt, v:Any):A = {
-			val strKey = k match {
+		def apply[Input](key:StringOrInt):Function3[A, Input, Parser[StringOrInt, V, Input], A] = {(a,b,c) =>
+			val strKey = key match {
 				case Left(s) => s
 				case Right(s) => s.toString
 			}
 			
-			inner.apply(a, strKey, v)
+			inner.apply(strKey).apply(a,b, new AsStringKeyParser(c))
 		}
-		def childBuilder(k:StringOrInt):Builder[StringOrInt,_] = new AsStringKeyBuilder(inner.childBuilder(k.toString))
-		def resultType:Class[A] = inner.resultType
+	}
+	final class AsStringKeyParser[V,A](inner:Parser[StringOrInt,V,A]) extends Parser[String,V,A] {
+		def parseComplex[Output](builder:Builder[String,V,Output], i:A):Output = inner.parseComplex(new AsStringKeyBuilder(builder), i)
+		def parsePrimitive(i:A):V = inner.parsePrimitive(i)
 	}
 }

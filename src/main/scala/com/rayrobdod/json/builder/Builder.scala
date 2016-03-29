@@ -26,35 +26,19 @@
 */
 package com.rayrobdod.json.builder;
 
+import scala.language.higherKinds
+import com.rayrobdod.json.parser.Parser
+
 /**
  * A class that creates an object from a sequence of 'fold'-style method calls
  * 
  * @tparam Subject the type of object to build
  */
-trait Builder[-Key, Subject] {
+trait Builder[Key, Value, Subject] {
 	/**
 	 * The starting point of the folding process
 	 */
 	def init:Subject
 	
-	/**
-	 * The main part of the folding process
-	 * @param foldee the subject of the fold process
-	 * @param key the key of a keyValue pair
-	 * @param value the value of a keyValue pair
-	 * @return the subject of the fold process
-	 */
-	def apply(foldee:Subject, key:Key, value:Any):Subject
-	
-	/**
-	 * A builder that should be used when a parser 
-	 * @param key the key of a keyValue pair
-	 */
-	def childBuilder(key:Key):Builder[Key, _]
-	
-	/**
-	 * The Class object of the Subect class
-	 * This should be constant
-	 */
-	def resultType:Class[Subject]
+	def apply[Input](key:Key):Function3[Subject, Input, Parser[Key, Value, Input], Subject]
 }

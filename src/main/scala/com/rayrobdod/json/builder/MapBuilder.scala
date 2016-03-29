@@ -26,6 +26,7 @@
 */
 package com.rayrobdod.json.builder;
 
+import com.rayrobdod.json.parser.Parser
 import scala.collection.immutable.Map;
 
 /** A builder that creates maps
@@ -35,15 +36,16 @@ import scala.collection.immutable.Map;
  * @param childBuilderMap a function pretty directly called by `childBuilder()`.
  *          By default, it is a function that creates more MapBuilders
  */
-final class MapBuilder[K](childBuilderMap:Function1[K, Builder[K, _ <: Any]] = MapBuilder.defaultChildBuilder[K]) extends Builder[K, Map[K, Any]] {
+final class MapBuilder[K,V](childBuilders:Function1[K, Option[Builder[K, V, _]]] = MapBuilder.defaultChildBuilder[K,V]) extends Builder[K, V, Map[K, Any]] {
 	override val init:Map[K, Any] = Map.empty
-	override def apply(folding:Map[K, Any], key:K, value:Any):Map[K,Any] = {
-		folding + ((key, value))
+	override def apply[Input](key:K):Function3[Map[K,Any], Input, Parser[K, V, Input], Map[K,Any]] = {(folding, innerInput, parser) =>
+		val childBuilder = childBuilders(key)
+		val innerRes:Any = childBuilder.map{x => parser.parseComplex(x, innerInput)}.getOrElse{parser.parsePrimitive(innerInput)}
+		
+		folding + (key -> innerRes)
 	}
-	override def childBuilder(key:K):Builder[K, _ <: Any] = childBuilderMap(key)
-	override val resultType:Class[Map[K,Any]] = classOf[Map[K,Any]]
 }
 
 private object MapBuilder {
-	def defaultChildBuilder[K]:Function1[K, Builder[K, _ <: Any]] = {s:K => new MapBuilder[K]()}
+	def defaultChildBuilder[K,V]:Function1[K, Option[Builder[K, V, _]]] = {s:K => None}
 }

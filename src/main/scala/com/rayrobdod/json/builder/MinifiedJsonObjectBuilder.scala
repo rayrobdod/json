@@ -29,6 +29,8 @@ package com.rayrobdod.json.builder;
 import scala.collection.immutable.Seq;
 import java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.charset.Charset;
+import com.rayrobdod.json.union.JsonValue
+import com.rayrobdod.json.parser.Parser
 import com.rayrobdod.json.parser.{MapParser, SeqParser}
 
 /** A builder that will output a json format string
@@ -40,15 +42,16 @@ import com.rayrobdod.json.parser.{MapParser, SeqParser}
  *           Any characters outside the charset will be u-escaped. Default is to keep all characters verbaitim
  * @param transformer a function to convert non-cbor-primitive objects to cbor-primitive objects
  */
-final class MinifiedJsonObjectBuilder(charset:Charset = UTF_8, transformer:PartialFunction[Any, Any] = PartialFunction.empty) extends Builder[String, String] {
+final class MinifiedJsonObjectBuilder(charset:Charset = UTF_8) extends Builder[String, JsonValue, String] {
 	import MinifiedJsonObjectBuilder._
 	
 	val init:String = "{}"
 	
 	/** @param folding a valid json object, with no characters trailing the final '}' */
-	def apply(folding:String, key:String, value:Any):String = {
+	def apply[Input](key:String):Function3[String, Input, Parser[String, JsonValue, Input], String] = {(folding, innerInput, parser) =>
 		val jsonKey:String = strToJsonStr(key, charset)
-		val jsonObject:String = serialize(value, charset, transformer)
+		val value = parser.parsePrimitive(innerInput)
+		val jsonObject:String = serialize(value, charset)
 		
 		val jsonKeyValuePair = jsonKey + ":" + jsonObject;
 		
@@ -58,8 +61,6 @@ final class MinifiedJsonObjectBuilder(charset:Charset = UTF_8, transformer:Parti
 			folding.init + "," + jsonKeyValuePair + "}"
 		}
 	}
-	def childBuilder(key:String):Builder[String, _ <: Any] = new MapBuilder()
-	val resultType:Class[String] = classOf[String]
 }
 
 /** A builder that will output a json format string
@@ -70,14 +71,15 @@ final class MinifiedJsonObjectBuilder(charset:Charset = UTF_8, transformer:Parti
  * @param charset The output will only contain characters that can be encoded using the specified charset.
  *           Any characters outside the charset will be u-escaped. Default is to keep all characters verbaitim
  */
-final class MinifiedJsonArrayBuilder(charset:Charset = UTF_8, transformer:PartialFunction[Any, Any] = PartialFunction.empty) extends Builder[Any, String] {
+final class MinifiedJsonArrayBuilder(charset:Charset = UTF_8) extends Builder[Any, JsonValue, String] {
 	import MinifiedJsonObjectBuilder._
 	
 	val init:String = "[]"
 	
 	/** @param folding a valid json object, with no characters trailing the final '}' */
-	def apply(folding:String, key:Any, value:Any):String = {
-		val jsonObject:String = serialize(value, charset, transformer)
+	def apply[Input](key:Any):Function3[String, Input, Parser[Any, JsonValue, Input], String] = {(folding, innerInput, parser) =>
+		val value = parser.parsePrimitive(innerInput)
+		val jsonObject:String = serialize(value, charset)
 		
 		if (folding == "[]") {
 			"[" + jsonObject + "]"
@@ -85,20 +87,20 @@ final class MinifiedJsonArrayBuilder(charset:Charset = UTF_8, transformer:Partia
 			folding.init + "," + jsonObject + "]"
 		}
 	}
-	def childBuilder(key:Any):Builder[Any, _ <: Any] = new MapBuilder()
-	val resultType:Class[String] = classOf[String]
 }
 
 /** methods for [[MinifiedJsonObjectBuilder]] and [[MinifiedJsonArrayBuilder]] */
 private[builder] object MinifiedJsonObjectBuilder {
-	private[builder] def serialize(value:Any, charset:Charset, transformer:PartialFunction[Any, Any]):String = value match {
-		case x:Number => x.toString
-		case x:Boolean => x.toString
-		case null => "null"
-		case x:String => strToJsonStr(x, charset)
-		case x:Map[_,_] => new MapParser(new MinifiedJsonObjectBuilder(charset, transformer)).parse(x.map{x => ((x._1.toString, x._2))})
-		case x:Seq[_] => new SeqParser(new MinifiedJsonArrayBuilder(charset, transformer)).parse(x:Seq[Any])
-		case x if (transformer.isDefinedAt(x)) => serialize(transformer(x), charset, transformer)
+	import JsonValue._
+	
+	private[builder] def serialize(value:JsonValue, charset:Charset):String = value match {
+		case JsonValueNumber(x) => x.toString
+		case JsonValueBoolean(x) => x.toString
+		case JsonValueNull => "null"
+		case JsonValueString(x) => strToJsonStr(x, charset)
+//		case x:Map[_,_] => new MapParser(new MinifiedJsonObjectBuilder(charset, transformer)).parse(x.map{x => ((x._1.toString, x._2))})
+//		case x:Seq[_] => new SeqParser(new MinifiedJsonArrayBuilder(charset, transformer)).parse(x:Seq[Any])
+		case JsonValueByteStr(x) => throw new UnsupportedOperationException("Serialize ByteStr to Json")
 	}
 	
 	private[builder] def strToJsonStr(s:String, charset:Charset):String = "\"" + s.flatMap{_ match {

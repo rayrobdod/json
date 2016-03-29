@@ -31,34 +31,41 @@ import java.text.ParseException
 import java.nio.charset.StandardCharsets.UTF_8;
 import scala.collection.immutable.{Seq, Map, Stack}
 import com.rayrobdod.json.builder._
+import com.rayrobdod.json.union.JsonValue
 
 /**
  * A parser that will decode cbor data
- * 
- * == Primitive types ==
- * 
- - null
- - java.lang.Long
- - Array[Byte]
- - java.lang.String
- - java.lang.Boolean
- - java.lang.Float
- - java.lang.Double
  * 
  * @see [[http://tools.ietf.org/html/rfc7049]]
  * 
  * @constructor
  * Creates a CborParser instance.
- * @param topBuilder the builder that this parser will use when constructing objects
  */
 // TODO: widen key to include everything else that a key can be (aka pretty much anything)
-final class CborParser[A](topBuilder:Builder[String, A]) {
+final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 	import CborParser._
+	
+	def parsePrimitive(i:DataInput):JsonValue = {
+		val a = this.parse(new PrimitiveSeqBuilder, i)
+		a match {
+			case x:JsonValue => x
+			case _ => throw new ParseException("Not a Primitive", -1)
+		}
+	}
+	
+	def parseComplex[A](builder:Builder[JsonValue, JsonValue, A], i:DataInput):A = {
+		val a = this.parse(builder, i)
+		a match {
+			case x:A => x
+			case _ => throw new ParseException("Was a Primitive", -1)
+		}
+	}
+	
 	
 	/**
 	 * Decodes the input values to an object.
 	 */
-	def parse(input:DataInput):Any = {
+	def parse[A](topBuilder:Builder[JsonValue, JsonValue, A], input:DataInput):Any = {
 		val headerByte:Byte = input.readByte();
 		val majorType = (headerByte >> 5) & 0x07
 		val additionalInfo = headerByte & 0x1F
@@ -74,29 +81,29 @@ final class CborParser[A](topBuilder:Builder[String, A]) {
 		
 		majorType match {
 			// positive integer
-			case MajorTypeCodes.POSITIVE_INT => additionalInfoData.value
+			case MajorTypeCodes.POSITIVE_INT => JsonValue( additionalInfoData.value )
 			// negative integer
-			case MajorTypeCodes.NEGATIVE_INT => -1 - additionalInfoData.value
+			case MajorTypeCodes.NEGATIVE_INT => JsonValue( -1 - additionalInfoData.value )
 			// byte string
-			case MajorTypeCodes.BYTE_ARRAY => parseByteString(input, additionalInfoData)
+			case MajorTypeCodes.BYTE_ARRAY => JsonValue( parseByteString(input, additionalInfoData) )
 			// text string
-			case MajorTypeCodes.STRING => new String(parseByteString(input, additionalInfoData), UTF_8)
+			case MajorTypeCodes.STRING => JsonValue( new String(parseByteString(input, additionalInfoData), UTF_8) )
 			// array/list
 			case MajorTypeCodes.ARRAY => parseArray(topBuilder, input, additionalInfoData)
 			// map
 			case MajorTypeCodes.OBJECT => parseObject(topBuilder, input, additionalInfoData)
 			// tags
 			case MajorTypeCodes.TAG => {
-				new TaggedValue(additionalInfoData.value, this.parse(input))
+				new TaggedValue(additionalInfoData.value, this.parse(topBuilder, input))
 			}
 			// floats/simple
 			case MajorTypeCodes.SPECIAL => additionalInfo match {
-				case SimpleValueCodes.FALSE => false
-				case SimpleValueCodes.TRUE  => true
-				case SimpleValueCodes.NULL => null
+				case SimpleValueCodes.FALSE => JsonValue( false )
+				case SimpleValueCodes.TRUE  => JsonValue( true )
+				case SimpleValueCodes.NULL => JsonValue.JsonValueNull
 				case SimpleValueCodes.HALF_FLOAT => throw new UnsupportedOperationException("Half float")
-				case SimpleValueCodes.FLOAT => java.lang.Float.intBitsToFloat(additionalInfoData.value.intValue)
-				case SimpleValueCodes.DOUBLE => java.lang.Double.longBitsToDouble(additionalInfoData.value.longValue)
+				case SimpleValueCodes.FLOAT => JsonValue( java.lang.Float.intBitsToFloat(additionalInfoData.value.intValue))
+				case SimpleValueCodes.DOUBLE => JsonValue( java.lang.Double.longBitsToDouble(additionalInfoData.value.longValue))
 				case SimpleValueCodes.END_OF_LIST => EndOfIndeterminateObject()
 				case _  => UnknownSimpleValue(additionalInfoData.value.byteValue)
 			}
@@ -109,15 +116,15 @@ final class CborParser[A](topBuilder:Builder[String, A]) {
 			case AdditionalInfoIndeterminate() => {
 				val stream = new java.io.ByteArrayOutputStream
 				
-				var next:Any = this.parse(input)
+				var next:Any = this.parse(new PrimitiveSeqBuilder, input)
 				while (next != EndOfIndeterminateObject()) {
 					val nextBytes:Array[Byte] = next match {
-						case s:String => s.getBytes(UTF_8)
-						case a:Array[Byte] => a
+						case JsonValue.JsonValueString(s:String) => s.getBytes(UTF_8)
+						case JsonValue.JsonValueByteStr(a:Array[Byte]) => a
 						case _ => throw new ClassCastException("Members of indeterminite-length string must be strings")
 					}
 					stream.write(nextBytes)
-					next = this.parse(input)
+					next = this.parse(new PrimitiveSeqBuilder, input)
 				}
 				stream.toByteArray()
 			}
@@ -129,26 +136,26 @@ final class CborParser[A](topBuilder:Builder[String, A]) {
 		}
 	}
 	
-	private[this] def parseArray(topBuilder:Builder[String, A], input:DataInput, aid:AdditionalInfoData):A = {
+	private[this] def parseArray[A](topBuilder:Builder[JsonValue, JsonValue, A], input:DataInput, aid:AdditionalInfoData):A = {
 		var retVal:A = topBuilder.init
 		
 		aid match {
 			case AdditionalInfoDeterminate(len:Long) => {
 				(0 until len.intValue).foreach{index =>
-					val childParser = new CborParser(topBuilder.childBuilder(index.toString))
-					val childObject = childParser.parse(input)
-					retVal = topBuilder.apply(retVal, index.toString, childObject)
+					val childBuilder = topBuilder.apply[DataInput](JsonValue(index))
+					retVal = childBuilder.apply(retVal, input, this)
 				}
 			}
 			case AdditionalInfoIndeterminate() => {
 				var index:Int = 0
 				var childObject:Any = ""
 				while (childObject != EndOfIndeterminateObject()) {
-					val childParser = new CborParser(topBuilder.childBuilder(index.toString))
-					childObject = childParser.parse(input)
+					val childBuilder = topBuilder.apply[JsonValue](JsonValue(index))
+					
+					childObject = this.parse(new SeqBuilder(new MapBuilder()), input)
 					
 					if (childObject != EndOfIndeterminateObject()) {
-						retVal = topBuilder.apply(retVal, index.toString, childObject)
+						retVal = childBuilder.apply(retVal, childObject.asInstanceOf[JsonValue], new IdentityParser())
 						index = index + 1
 					}
 				}
@@ -157,30 +164,24 @@ final class CborParser[A](topBuilder:Builder[String, A]) {
 		retVal
 	}
 	
-	private[this] def parseObject(topBuilder:Builder[String, A], input:DataInput, aid:AdditionalInfoData):A = {
+	private[this] def parseObject[A](topBuilder:Builder[JsonValue, JsonValue, A], input:DataInput, aid:AdditionalInfoData):A = {
 		var retVal:A = topBuilder.init
 		
 		aid match {
 			case AdditionalInfoDeterminate(len:Long) => {
 				(0 until len.intValue).foreach{index =>
-					val keyParser = new CborParser(topBuilder) // in other words, pray that the key is not an object or array
-					val keyObject = keyParser.parse(input)
-					val childParser = new CborParser(topBuilder.childBuilder(index.toString))
-					val childObject = childParser.parse(input)
-					
-					retVal = topBuilder.apply(retVal, keyObject.toString, childObject)
+					val keyObject = this.parsePrimitive(input)
+					val childBuilder = topBuilder.apply[DataInput](keyObject)
+					retVal = childBuilder.apply(retVal, input, this)
 				}
 			}
 			case AdditionalInfoIndeterminate() => {
 				var keyObject:Any = ""
 				while (keyObject != EndOfIndeterminateObject()) {
-					val keyParser = new CborParser(topBuilder) // in other words, pray that the key is not an object or array
-					keyObject = keyParser.parse(input)
+					keyObject = this.parse(new PrimitiveSeqBuilder, input)
 					if (keyObject != EndOfIndeterminateObject()) {
-						val childParser = new CborParser(topBuilder.childBuilder(keyObject.toString))
-						val childObject = childParser.parse(input)
-						
-						retVal = topBuilder.apply(retVal, keyObject.toString, childObject)
+						val childBuilder = topBuilder.apply[DataInput](keyObject.asInstanceOf[JsonValue])
+						retVal = childBuilder.apply(retVal, input, this)
 					}
 				}
 			}
@@ -193,6 +194,7 @@ final class CborParser[A](topBuilder:Builder[String, A]) {
  * Objects related to Cbor's data model
  */
 object CborParser {
+	
 	private abstract sealed class AdditionalInfoData {
 		def value:Long
 	}
@@ -241,4 +243,5 @@ object CborParser {
 		val DOUBLE:Byte = 27
 		val END_OF_LIST:Byte = 31
 	}
+	
 }

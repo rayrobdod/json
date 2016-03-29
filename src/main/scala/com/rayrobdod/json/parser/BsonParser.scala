@@ -31,19 +31,12 @@ import java.text.ParseException
 import java.nio.charset.StandardCharsets.UTF_8;
 import scala.collection.immutable.{Seq, Map, Stack}
 import com.rayrobdod.json.builder._
+import com.rayrobdod.json.union._
 
 /**
  * A streaming decoder for json data.
  * This parser is intended to be relatively strict.
  * 
- * == Primitive types ==
- * 
- - null
- - java.lang.Integer
- - java.lang.Long
- - java.lang.Double
- - java.lang.String
- - java.lang.Boolean
  * 
  * @see [[http://bsonspec.org/]]
  *
@@ -51,51 +44,63 @@ import com.rayrobdod.json.builder._
  * Creates a BsonParser instance.
  * @param topBuilder the builder that this parser will use when constructing objects
  */
-// TODO: widen key to include everything else that a key can be (aka pretty much anything)
-final class BsonParser[A](topBuilder:Builder[String, A]) {
+final class BsonParser[A] extends Parser[String, JsonValue, DataInput] {
 	import BsonParser.{readCString, TypeCodes}
+	
+	def parsePrimitive(i:DataInput):JsonValue = throw new UnsupportedOperationException
 	
 	/**
 	 * Decodes the input values to an object.
 	 */
-	def parse(input:DataInput):A = {
+	def parseComplex[A](builder:Builder[String, JsonValue, A], input:DataInput):A = {
 		// We don't really care about the document length.
 		/* val length = */ Integer.reverseBytes( input.readInt() );
 		
-		var result:A = topBuilder.init
+		var result:A = builder.init
 		var valueType:Byte = input.readByte();
 		while (valueType != TypeCodes.END_OF_DOCUMENT) {
 			val key:String = readCString(input)
-			val value = valueType match {
+			result = valueType match {
 				case TypeCodes.FLOAT => {
-					java.lang.Double.longBitsToDouble(
+					val value = java.lang.Double.longBitsToDouble(
 						java.lang.Long.reverseBytes( input.readLong() )
 					)
+					// CHEATING
+					builder.apply(key).apply(result, JsonValue(value), new IdentityParser[String, JsonValue])
 				}
 				case TypeCodes.STRING => {
 					val len = Integer.reverseBytes( input.readInt() );
 					val bytes = new Array[Byte](len);
 					input.readFully(bytes);
 					if (bytes(len - 1) != 0) {throw new ParseException("Incorrect string length", -1)}
-					new String(bytes, 0, len - 1, UTF_8)
+					val value = new String(bytes, 0, len - 1, UTF_8)
+					builder.apply(key).apply(result, JsonValue(value), new IdentityParser[String, JsonValue])
 				}
 				case TypeCodes.DOCUMENT => {
-					new BsonParser(topBuilder.childBuilder(key)).parse(input)
+					builder.apply(key).apply(result, input, this)
 				}
 				case TypeCodes.ARRAY => {
-					new BsonParser(topBuilder.childBuilder(key)).parse(input)
+					builder.apply(key).apply(result, input, this)
 				}
 				case TypeCodes.BOOLEAN => {
 					val readValue = input.readByte()
-					(readValue != 0)
+					val value = (readValue != 0)
+					builder.apply(key).apply(result, JsonValue(value), new IdentityParser[String, JsonValue])
 				}
-				case TypeCodes.NULL => null
-				case TypeCodes.INTEGER => Integer.reverseBytes( input.readInt() );
-				case TypeCodes.LONG => java.lang.Long.reverseBytes( input.readLong() );
+				case TypeCodes.NULL => {
+					builder.apply(key).apply(result, JsonValue.JsonValueNull, new IdentityParser[String, JsonValue])
+				}
+				case TypeCodes.INTEGER => {
+					val value = Integer.reverseBytes( input.readInt() );
+					builder.apply(key).apply(result, JsonValue(value), new IdentityParser[String, JsonValue])
+				}
+				case TypeCodes.LONG => {
+					val value = java.lang.Long.reverseBytes( input.readLong() );
+					builder.apply(key).apply(result, JsonValue(value), new IdentityParser[String, JsonValue])
+				}
 				case _ => throw new ParseException("Unknown data type", -1)
 			}
 			
-			result = topBuilder.apply(result, key, value);
 			valueType = input.readByte();
 		}
 		

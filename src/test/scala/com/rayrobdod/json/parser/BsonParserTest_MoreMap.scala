@@ -30,6 +30,7 @@ import java.text.ParseException;
 import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.MapBuilder;
+import com.rayrobdod.json.union.JsonValue;
 
 class BsonParserTest_Happy2 extends FunSpec {
 	describe("BsonParser + MapBuilder can decode") {
@@ -46,8 +47,8 @@ class BsonParserTest_Happy2 extends FunSpec {
 			val source = byteArray2DataInput(
 					Array[Byte](len.byteValue, 0x00, 0x00, 0x00) ++: elementsArray :+ 0x00.byteValue
 			)
-			val expected = (0 until 20).map{i => i.toString -> i}.toMap
-			val result = new BsonParser(new MapBuilder()).parse(source)
+			val expected = (0 until 20).map{i => i.toString -> JsonValue(i)}.toMap
+			val result = new BsonParser().parseComplex(new MapBuilder(), source)
 			
 			assertResult(expected){result}
 		}
