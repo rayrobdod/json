@@ -41,14 +41,13 @@ import com.rayrobdod.json.union.JsonValue
  * @constructor
  * Creates a CborParser instance.
  */
-// TODO: widen key to include everything else that a key can be (aka pretty much anything)
 final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 	import CborParser._
 	
 	def parsePrimitive(i:DataInput):JsonValue = {
 		val a = this.parse(new PrimitiveSeqBuilder, i)
 		a match {
-			case x:JsonValue => x
+			case ParseReturnValueSimple(x:JsonValue) => x
 			case _ => throw new ParseException("Not a Primitive", -1)
 		}
 	}
@@ -56,7 +55,7 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 	def parseComplex[A](builder:Builder[JsonValue, JsonValue, A], i:DataInput):A = {
 		val a = this.parse(builder, i)
 		a match {
-			case x:A => x
+			case ParseReturnValueComplex(x) => x
 			case _ => throw new ParseException("Was a Primitive", -1)
 		}
 	}
@@ -65,7 +64,7 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 	/**
 	 * Decodes the input values to an object.
 	 */
-	def parse[A](topBuilder:Builder[JsonValue, JsonValue, A], input:DataInput):Any = {
+	def parse[A](topBuilder:Builder[JsonValue, JsonValue, A], input:DataInput):ParseReturnValue[A] = {
 		val headerByte:Byte = input.readByte();
 		val majorType = (headerByte >> 5) & 0x07
 		val additionalInfo = headerByte & 0x1F
@@ -81,31 +80,47 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 		
 		majorType match {
 			// positive integer
-			case MajorTypeCodes.POSITIVE_INT => JsonValue( additionalInfoData.value )
+			case MajorTypeCodes.POSITIVE_INT => additionalInfoData match {
+				case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(JsonValue( value ))
+				case x:AdditionalInfoIndeterminate => throw new UnsupportedOperationException("Indeterminate integer value")
+			}
 			// negative integer
-			case MajorTypeCodes.NEGATIVE_INT => JsonValue( -1 - additionalInfoData.value )
+			case MajorTypeCodes.NEGATIVE_INT => additionalInfoData match {
+				case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(JsonValue( -1 - value ))
+				case x:AdditionalInfoIndeterminate => throw new UnsupportedOperationException("Indeterminate integer value")
+			}
 			// byte string
-			case MajorTypeCodes.BYTE_ARRAY => JsonValue( parseByteString(input, additionalInfoData) )
+			case MajorTypeCodes.BYTE_ARRAY => ParseReturnValueSimple(JsonValue( parseByteString(input, additionalInfoData) ))
 			// text string
-			case MajorTypeCodes.STRING => JsonValue( new String(parseByteString(input, additionalInfoData), UTF_8) )
+			case MajorTypeCodes.STRING => ParseReturnValueSimple(JsonValue( new String(parseByteString(input, additionalInfoData), UTF_8) ))
 			// array/list
-			case MajorTypeCodes.ARRAY => parseArray(topBuilder, input, additionalInfoData)
+			case MajorTypeCodes.ARRAY => ParseReturnValueComplex(parseArray(topBuilder, input, additionalInfoData))
 			// map
-			case MajorTypeCodes.OBJECT => parseObject(topBuilder, input, additionalInfoData)
+			case MajorTypeCodes.OBJECT => ParseReturnValueComplex(parseObject(topBuilder, input, additionalInfoData))
 			// tags
-			case MajorTypeCodes.TAG => {
-				new TaggedValue(additionalInfoData.value, this.parse(topBuilder, input))
+			case MajorTypeCodes.TAG => additionalInfoData match {
+				case AdditionalInfoDeterminate(value) => new ParseReturnValueTaggedValue(value, this.parse(topBuilder, input))
+				case x:AdditionalInfoIndeterminate => throw new UnsupportedOperationException("Indeterminate tag value")
 			}
 			// floats/simple
 			case MajorTypeCodes.SPECIAL => additionalInfo match {
-				case SimpleValueCodes.FALSE => JsonValue( false )
-				case SimpleValueCodes.TRUE  => JsonValue( true )
-				case SimpleValueCodes.NULL => JsonValue.JsonValueNull
+				case SimpleValueCodes.FALSE => ParseReturnValueSimple(JsonValue( false ))
+				case SimpleValueCodes.TRUE  => ParseReturnValueSimple(JsonValue( true ))
+				case SimpleValueCodes.NULL => ParseReturnValueSimple(JsonValue.JsonValueNull)
 				case SimpleValueCodes.HALF_FLOAT => throw new UnsupportedOperationException("Half float")
-				case SimpleValueCodes.FLOAT => JsonValue( java.lang.Float.intBitsToFloat(additionalInfoData.value.intValue))
-				case SimpleValueCodes.DOUBLE => JsonValue( java.lang.Double.longBitsToDouble(additionalInfoData.value.longValue))
-				case SimpleValueCodes.END_OF_LIST => EndOfIndeterminateObject()
-				case _  => UnknownSimpleValue(additionalInfoData.value.byteValue)
+				case SimpleValueCodes.FLOAT => additionalInfoData match {
+					case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(JsonValue( java.lang.Float.intBitsToFloat(value.intValue)))
+					case x:AdditionalInfoIndeterminate => throw new UnsupportedOperationException("Indeterminate tag value")
+				}
+				case SimpleValueCodes.DOUBLE => additionalInfoData match {
+					case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(JsonValue( java.lang.Double.longBitsToDouble(value.longValue)))
+					case x:AdditionalInfoIndeterminate => throw new UnsupportedOperationException("Indeterminate tag value")
+				}
+				case SimpleValueCodes.END_OF_LIST => new ParseReturnValueEndOfIndeterminateObject
+				case _  => additionalInfoData match {
+					case AdditionalInfoDeterminate(value) => ParseReturnValueUnknownSimple(value.byteValue)
+					case x:AdditionalInfoIndeterminate => throw new UnsupportedOperationException("Indeterminate tag value")
+				}
 			}
 			case _ => throw new AssertionError("majorType was greater than 7")
 		}
@@ -117,10 +132,10 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 				val stream = new java.io.ByteArrayOutputStream
 				
 				var next:Any = this.parse(new PrimitiveSeqBuilder, input)
-				while (next != EndOfIndeterminateObject()) {
+				while (next != ParseReturnValueEndOfIndeterminateObject()) {
 					val nextBytes:Array[Byte] = next match {
-						case JsonValue.JsonValueString(s:String) => s.getBytes(UTF_8)
-						case JsonValue.JsonValueByteStr(a:Array[Byte]) => a
+						case ParseReturnValueSimple(JsonValue.JsonValueString(s:String)) => s.getBytes(UTF_8)
+						case ParseReturnValueSimple(JsonValue.JsonValueByteStr(a:Array[Byte])) => a
 						case _ => throw new ClassCastException("Members of indeterminite-length string must be strings")
 					}
 					stream.write(nextBytes)
@@ -148,16 +163,22 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 			}
 			case AdditionalInfoIndeterminate() => {
 				var index:Int = 0
-				var childObject:Any = ""
-				while (childObject != EndOfIndeterminateObject()) {
+				var childObject:ParseReturnValue[_] = ParseReturnValueUnknownSimple(0)
+				while (childObject != ParseReturnValueEndOfIndeterminateObject()) {
 					val childBuilder = topBuilder.apply[JsonValue](JsonValue(index))
-					
 					childObject = this.parse(new SeqBuilder(new MapBuilder()), input)
 					
-					if (childObject != EndOfIndeterminateObject()) {
-						retVal = childBuilder.apply(retVal, childObject.asInstanceOf[JsonValue], new IdentityParser())
-						index = index + 1
+					childObject match {
+						case ParseReturnValueEndOfIndeterminateObject() => {}
+						case ParseReturnValueSimple(x) => {
+							retVal = childBuilder.apply(retVal, x, new IdentityParser())
+						}
+						case ParseReturnValueComplex(x) => {
+							throw new UnsupportedOperationException("Value not primitive")
+						}
+						case _ => throw new UnsupportedOperationException("Value not primitive")
 					}
+					index = index + 1
 				}
 			}
 		}
@@ -176,12 +197,16 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 				}
 			}
 			case AdditionalInfoIndeterminate() => {
-				var keyObject:Any = ""
-				while (keyObject != EndOfIndeterminateObject()) {
+				var keyObject:ParseReturnValue[_] = ParseReturnValueUnknownSimple(0)
+				while (keyObject != ParseReturnValueEndOfIndeterminateObject()) {
 					keyObject = this.parse(new PrimitiveSeqBuilder, input)
-					if (keyObject != EndOfIndeterminateObject()) {
-						val childBuilder = topBuilder.apply[DataInput](keyObject.asInstanceOf[JsonValue])
-						retVal = childBuilder.apply(retVal, input, this)
+					keyObject match {
+						case ParseReturnValueEndOfIndeterminateObject() => {}
+						case ParseReturnValueSimple(x) => {
+							val childBuilder = topBuilder.apply[DataInput](x)
+							retVal = childBuilder.apply(retVal, input, this)
+						}
+						case _ => throw new UnsupportedOperationException("Key not primitive")
 					}
 				}
 			}
@@ -195,25 +220,25 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
  */
 object CborParser {
 	
-	private abstract sealed class AdditionalInfoData {
-		def value:Long
-	}
-	private final case class AdditionalInfoDeterminate(override val value:Long) extends AdditionalInfoData {
-		
-	}
-	private final case class AdditionalInfoIndeterminate() extends AdditionalInfoData {
-		override def value:Nothing = throw new UnsupportedOperationException
-	}
+	/** The 'length' value provided in an item's header */
+	private sealed trait AdditionalInfoData
+	private final case class AdditionalInfoDeterminate(val value:Long) extends AdditionalInfoData
+	private final case class AdditionalInfoIndeterminate() extends AdditionalInfoData
 	
+	/** Possible parse return values */
+	sealed trait ParseReturnValue[+A]
+	final case class ParseReturnValueSimple(x:JsonValue) extends ParseReturnValue[Nothing]
+	final case class ParseReturnValueComplex[A](a:A) extends ParseReturnValue[A]
 	/**
 	 * The marker of the end of an indeterminate value. Represented as (0xFF).
 	 * Unless you're trying to see this value, you shouldn't see this value.
 	 */
-	final case class EndOfIndeterminateObject()
-	/** A simple value other than the known ones */
-	final case class UnknownSimpleValue(value:Byte)
+	final case class ParseReturnValueEndOfIndeterminateObject() extends ParseReturnValue[Nothing]
 	/** A tagged value */
-	final case class TaggedValue(tag:Long, item:Any)
+	final case class ParseReturnValueTaggedValue[A](tag:Long, x:ParseReturnValue[A]) extends ParseReturnValue[A]
+	/** A simple value other than the known ones */
+	final case class ParseReturnValueUnknownSimple(value:Byte) extends ParseReturnValue[Nothing]
+	
 	
 	/**
 	 * The CBOR major types.
