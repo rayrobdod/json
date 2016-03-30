@@ -26,6 +26,7 @@
 */
 package com.rayrobdod.json.union
 
+import com.rayrobdod.json.parser.Parser
 import com.rayrobdod.json.builder.Builder
 import scala.language.implicitConversions
 
@@ -51,4 +52,55 @@ object JsonValue {
 	implicit def apply(b:Boolean):JsonValue = JsonValueBoolean(b)
 	implicit def apply(s:Array[Byte]):JsonValue = JsonValueByteStr(s)
 	implicit def apply(i:Number):JsonValue = JsonValueNumber(i)
+	
+	
+	
+	final class FromStringKeyBuilder[V,A](inner:Builder[String,V,A]) extends Builder[JsonValue,V,A] {
+		def init:A = inner.init
+		def apply[Input](key:JsonValue):Function3[A, Input, Parser[JsonValue, V, Input], A] = {(a,b,c) =>
+			val strKey = key match {
+				case JsonValueString(s) => s
+				case JsonValueNumber(s) => s.toString
+				case JsonValueBoolean(s) => s.toString
+				case _ => throw new IllegalArgumentException("")
+			}
+			
+			inner.apply(strKey).apply(a,b, new AsStringKeyParser(c))
+		}
+	}
+	final class AsStringKeyParser[V,A](inner:Parser[JsonValue,V,A]) extends Parser[String,V,A] {
+		def parseComplex[Output](builder:Builder[String,V,Output], i:A):Output = inner.parseComplex(new FromStringKeyBuilder(builder), i)
+		def parsePrimitive(i:A):V = inner.parsePrimitive(i)
+	}
+	
+	final class AsStringKeyBuilder[V,A](inner:Builder[JsonValue,V,A]) extends Builder[String,V,A] {
+		def init:A = inner.init
+		def apply[Input](key:String):Function3[A, Input, Parser[String, V, Input], A] = {(a,b,c) =>
+			inner.apply(JsonValue(key)).apply(a,b, new FromStringKeyParser(c))
+		}
+	}
+	final class FromStringKeyParser[V,A](inner:Parser[String,V,A]) extends Parser[JsonValue,V,A] {
+		def parseComplex[Output](builder:Builder[JsonValue,V,Output], i:A):Output = inner.parseComplex(new AsStringKeyBuilder(builder), i)
+		def parsePrimitive(i:A):V = inner.parsePrimitive(i)
+	}
+	
+	final class AsAnyValueBuilder[K,A](inner:Builder[K,JsonValue,A]) extends Builder[K,Any,A] {
+		def init:A = inner.init
+		def apply[Input](key:K):Function3[A, Input, Parser[K, Any, Input], A] = {(a,b,c) =>
+			inner.apply(key).apply(a,b, new FromAnyValueParser(c))
+		}
+	}
+	final class FromAnyValueParser[K,A](inner:Parser[K,Any,A]) extends Parser[K,JsonValue,A] {
+		def parseComplex[Output](builder:Builder[K,JsonValue,Output], i:A):Output = inner.parseComplex(new AsAnyValueBuilder(builder), i)
+		def parsePrimitive(i:A):JsonValue = {
+			val value1:Any = inner.parsePrimitive(i)
+			val value2:JsonValue = value1 match {
+				case x:String => JsonValue(x)
+				case x:Number => JsonValue(x)
+				case x:Boolean => JsonValue(x)
+				case _ => throw new IllegalArgumentException()
+			}
+			value2
+		}
+	}
 }

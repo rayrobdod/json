@@ -32,6 +32,8 @@ import com.rayrobdod.json.parser.Parser
 /**
  * A class that creates an object from a sequence of 'fold'-style method calls
  * 
+ * @tparam Key the key types
+ * @tparam Value the primitive value types
  * @tparam Subject the type of object to build
  */
 trait Builder[Key, Value, Subject] {

@@ -31,7 +31,6 @@ import java.text.ParseException;
 import scala.collection.immutable.Seq;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.parser.IdentityParser
-import com.rayrobdod.json.union.StringOrInt.AsStringKeyBuilder
 
 class SeqBuilderTest extends FunSpec {
 	
@@ -56,21 +55,24 @@ class SeqBuilderTest extends FunSpec {
 		}
 	}
 	
-	/* 
 	describe("SeqBuilder integration") {
+		import com.rayrobdod.json.union.JsonValue
+		import com.rayrobdod.json.union.StringOrInt.FromStringKeyBuilder
 		import com.rayrobdod.json.parser.JsonParser
 		import BeanBuilderTest.Person
 		
 		it ("SeqBuilder + JsonParser + primitive") {
-			assertResult(Seq("a", "b", "c")){
-				new JsonParser(new SeqBuilder).parse(
+			assertResult(Seq("a", "b", "c").map{JsonValue(_)}){
+				new JsonParser().parseComplex(
+					new FromStringKeyBuilder(new PrimitiveSeqBuilder[String, JsonValue]),
 					"""["a", "b", "c"]"""
 				)
 			}
 		}
 		it ("SeqBuilder + JsonParser + BeanBuilder") {
 			assertResult(Seq(Person("Mario", 32),Person("Luigi", 32),Person("Peach", 28))){
-				new JsonParser(new SeqBuilder(new AsStringKeyBuilder(new BeanBuilder(classOf[Person])))).parse(
+				new JsonParser().parseComplex(
+					new FromStringKeyBuilder(new SeqBuilder(new BeanBuilder[JsonValue, Person](classOf[Person]))),
 					"""[
 						{"name":"Mario", "age":32},
 						{"name":"Luigi", "age":32},
@@ -80,6 +82,5 @@ class SeqBuilderTest extends FunSpec {
 			}
 		}
 	}
-	 */
 }
 

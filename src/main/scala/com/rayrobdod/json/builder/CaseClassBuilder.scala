@@ -57,10 +57,20 @@ final class CaseClassBuilder[Value, A <: Product](
 		
 		val value:Any = childBuilders(key).map{x => parser.parseComplex(x, input)}.getOrElse{parser.parsePrimitive(input)}
 		
+		// Scala doesn't have proper union types.
+		val value2 = value match {
+			case com.rayrobdod.json.union.StringOrInt.Left(x) => x
+			case com.rayrobdod.json.union.StringOrInt.Right(x) => x
+			case com.rayrobdod.json.union.JsonValue.JsonValueString(x) => x
+			case com.rayrobdod.json.union.JsonValue.JsonValueNumber(x) => x
+			case com.rayrobdod.json.union.JsonValue.JsonValueBoolean(x) => x
+			case x => x
+		}
+		
 		indexOfModification match {
 			case None => throw new IllegalArgumentException(key + " is not a member of case class " + folding.toString)
 			case Some(x:Int) => {
-				val newArgs = folding.productIterator.toSeq.updated(x, value)
+				val newArgs = folding.productIterator.toSeq.updated(x, value2)
 				
 				val copyMirror = clazz.getMethods.filter{_.getName == "copy"}.head
 				clazz.cast(copyMirror.invoke(folding, newArgs.map{_.asInstanceOf[Object]}:_*))

@@ -32,10 +32,10 @@ import scala.collection.immutable.{Seq, Map};
 import org.scalatest.FunSpec;
 import java.nio.charset.StandardCharsets.US_ASCII;
 import com.rayrobdod.json.union.JsonValue
+import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue._
 import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.parser.HexArrayStringConverter;
-import com.rayrobdod.json.union.StringOrInt.AsStringKeyBuilder
 
 class CborArrayBuilderTest extends FunSpec {
 	private case class Abc(a:Int, b:Boolean, c:String)
@@ -168,26 +168,30 @@ class CborArrayBuilderTest extends FunSpec {
 		}
 	}
 	
-/*	describe("CborArrayBuilder integration") {
+	/*
+	describe("CborArrayBuilder integration") {
 		import com.rayrobdod.json.parser.{JsonParser, SeqParser, CborParser, CaseClassParser, byteArray2DataInput}
 		
 		it ("CborArrayBuilder + JsonParser + primitive") {
 			assertResult(hexSeq"83 183D 183E 183F"){
-				new JsonParser(new CborArrayBuilder).parse(
+				new JsonParser().parseComplex(
+					new StringOrInt.FromStringKeyBuilder(new JsonValue.AsStringKeyBuilder(new CborArrayBuilder)),
 					"""[61, 62, 63]"""
 				)
 			}
 		}
 		it ("CborArrayBuilder + JsonParser + nested objects") {
 			assertResult(hexSeq"81 A2 616100 616201"){
-				new JsonParser(new AsStringKeyBuilder(new CborArrayBuilder)).parse(
+				new JsonParser().parseComplex(
+					new FromStringKeyBuilder(new CborArrayBuilder),
 					"""[{"a":0,"b":1}]"""
 				)
 			}
 		}
 		it ("CborArrayBuilder + CborParser + primitives") {
 			assertResult(hexSeq"8262202005"){
-				new CborParser(new CborArrayBuilder).parse(
+				new CborParser().parseComplex(
+					new CborArrayBuilder,
 					byteArray2DataInput(
 							hexArray"8262202005"
 					)
@@ -196,17 +200,20 @@ class CborArrayBuilderTest extends FunSpec {
 		}
 		it ("CborArrayBuilder + SeqParser + nested arrays") {
 			assertResult(hexSeq"81818105"){
-				new SeqParser(new CborArrayBuilder).parse(
+				new SeqParser().parseComplex(
+					new CborArrayBuilder,
 					Seq(Seq(Seq(5)))
 				)
 			}
 		}
 		it ("CborArrayBuilder + nested case classes") {
-			val pf:PartialFunction[Any,Any] = {case x:Abc => new CaseClassParser(new MapBuilder).parse(x)}
-			
 			assertResult(hexSeq"81 A3 6161 05 6162 f4 6163 63737472"){
-				new SeqParser(new CborArrayBuilder(transformer = pf)).parse(Seq(Abc(5,false,"str")))
+				new SeqParser().parseComplex(
+					new CborArrayBuilder(),
+					Seq(Abc(5,false,"str"))
+				)
 			}
 		}
 	}
-*/}
+	*/
+}

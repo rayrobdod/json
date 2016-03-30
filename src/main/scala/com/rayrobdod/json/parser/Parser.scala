@@ -8,7 +8,7 @@ import com.rayrobdod.json.builder.Builder
  * @tparam Value the primitive value types
  * @tparam Input the input to the parser
  */
-abstract class Parser[Key, Value, Input] {
+trait Parser[Key, Value, Input] {
 	// NOTE: Either[Throwable, Output] instead of throwing stuff?
 	/**
 	 * Parses the input into a complex value

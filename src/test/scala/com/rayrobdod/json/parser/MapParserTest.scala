@@ -30,7 +30,7 @@ import org.scalatest.FunSpec
 import java.text.ParseException
 import scala.collection.immutable.Map
 import com.rayrobdod.json.builder.{MapBuilder, MinifiedJsonObjectBuilder}
-import com.rayrobdod.json.union.StringOrInt.AsStringKeyBuilder
+import com.rayrobdod.json.union.StringOrInt.FromStringKeyBuilder
 
 class MapParserTest extends FunSpec {
 	describe("MapParser") {
@@ -52,7 +52,7 @@ class MapParserTest extends FunSpec {
 		it ("""can be used with the json stuff to serialze and deserialize a map""") {
 			val src = Map("a" -> 32L, "b" -> false, "c" -> "1.5")
 			val json = new MapParser(new MinifiedJsonObjectBuilder()).parse(src)
-			val res = new JsonParser(new AsStringKeyBuilder(new MapBuilder())).parse(json)
+			val res = new JsonParser(new FromStringKeyBuilder(new MapBuilder())).parse(json)
 			
 			assertResult(src){res}
 		}

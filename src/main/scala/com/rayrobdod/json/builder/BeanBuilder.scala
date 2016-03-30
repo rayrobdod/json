@@ -60,8 +60,18 @@ final class BeanBuilder[Value, A](
 	def apply[Input](key:String):Function3[A, Input, Parser[String, Value, Input], A] = {(folding, input, parser) =>
 		val value:Any = childBuilders(key).map{x => parser.parseComplex(x, input)}.getOrElse{parser.parsePrimitive(input)}
 		
-		val m = clazz.getMethod("set" + key.head.toUpper + key.tail, value.getClass)
-		m.invoke(folding, value.asInstanceOf[Object])
+		// Scala doesn't have proper union types.
+		val value2 = value match {
+			case com.rayrobdod.json.union.StringOrInt.Left(x) => x
+			case com.rayrobdod.json.union.StringOrInt.Right(x) => x
+			case com.rayrobdod.json.union.JsonValue.JsonValueString(x) => x
+			case com.rayrobdod.json.union.JsonValue.JsonValueNumber(x) => x
+			case com.rayrobdod.json.union.JsonValue.JsonValueBoolean(x) => x
+			case x => x
+		}
+		
+		val m = clazz.getMethod("set" + key.head.toUpper + key.tail, value2.getClass)
+		m.invoke(folding, value2.asInstanceOf[Object])
 		// the above line should have mutated `folding`.
 		folding
 	}

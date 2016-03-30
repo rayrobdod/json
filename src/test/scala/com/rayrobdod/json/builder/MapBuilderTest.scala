@@ -31,7 +31,8 @@ import java.text.ParseException;
 import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.parser.IdentityParser
-import com.rayrobdod.json.union.StringOrInt.AsStringKeyBuilder
+import com.rayrobdod.json.union.StringOrInt
+import com.rayrobdod.json.union.JsonValue
 
 class MapBuilderTest extends FunSpec {
 	
@@ -57,14 +58,14 @@ class MapBuilderTest extends FunSpec {
 	}
 	
 	
-/*	describe("MapBuilder integration") {
+	describe("MapBuilder integration") {
 		import com.rayrobdod.json.parser.JsonParser
 		import BeanBuilderTest.Person
 		
 		it ("MapBuilder + JsonParser + primitive") {
-			assertResult(Map("a" -> 61, "b" -> 62, "c" -> 63)){
+			assertResult(Map("a" -> 61, "b" -> 62, "c" -> 63).map{x => ((StringOrInt(x._1), JsonValue(x._2)))}){
 				new JsonParser().parseComplex(
-					new AsStringKeyBuilder(new MapBuilder),
+					new MapBuilder[StringOrInt, JsonValue],
 					"""{"a":61, "b":62, "c":63}"""
 				)
 			}
@@ -72,7 +73,7 @@ class MapBuilderTest extends FunSpec {
 		it ("MapBuilder + JsonParser + BeanBuilder") {
 			assertResult(Map("red" -> Person("Mario", 32),"green" -> Person("Luigi", 32),"pink" -> Person("Peach", 28))){
 				new JsonParser().parseComplex(
-					new AsStringKeyBuilder(new MapBuilder({s:String => Option(new BeanBuilder(classOf[Person]))})),
+					new StringOrInt.FromStringKeyBuilder(new MapBuilder[String, JsonValue]({s:String => Option(new BeanBuilder(classOf[Person]))})),
 					"""{
 						"red":{"name":"Mario", "age":32},
 						"green":{"name":"Luigi", "age":32},
@@ -82,5 +83,4 @@ class MapBuilderTest extends FunSpec {
 			}
 		}
 	}
-	*/
 }

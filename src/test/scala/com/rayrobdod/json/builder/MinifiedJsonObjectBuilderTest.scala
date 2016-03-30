@@ -35,7 +35,7 @@ import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.JsonValue._
 import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter}
-import com.rayrobdod.json.union.StringOrInt.AsStringKeyBuilder
+import com.rayrobdod.json.union.StringOrInt
 
 class MinifiedJsonObjectBuilderTest extends FunSpec {
 	private case class Abc(a:Int, b:Boolean, c:String)
@@ -107,21 +107,22 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 		}
 	}
 	
-	/*
 	describe("MinifiedJsonObjectBuilder integration") {
 		import com.rayrobdod.json.parser.{JsonParser, CborParser, CaseClassParser, MapParser}
-		val builder = new AsStringKeyBuilder(new MinifiedJsonObjectBuilder)
+		val builder = new StringOrInt.FromStringKeyBuilder(new MinifiedJsonObjectBuilder)
 		
 		it ("MinifiedJsonObjectBuilder + JsonParser + primitive") {
 			assertResult("""{"a":61,"b":62,"c":63}"""){
-				new JsonParser(builder).parse(
+				new JsonParser().parseComplex(
+					builder,
 					"""{"a":61,"b":62,"c":63}"""
 				)
 			}
 		}
 		it ("MinifiedJsonObjectBuilder + JsonParser + primitive (whitespace)") {
 			assertResult("""{"a":61,"b":62,"c":63}"""){
-				new JsonParser(builder).parse(
+				new JsonParser().parseComplex(
+					builder,
 					"""{
 	"a" : 61,
 	"b" : 62,
@@ -130,32 +131,39 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 				)
 			}
 		}
-		it ("MinifiedJsonObjectBuilder + JsonParser + nested objects") {
+		ignore ("MinifiedJsonObjectBuilder + JsonParser + nested objects") {
 			assertResult("""{"":{"a":0,"b":1}}"""){
-				new JsonParser(builder).parse(
+				new JsonParser().parseComplex(
+					builder,
 					"""{"":{"a":0,"b":1}}"""
 				)
 			}
 		}
 		it ("MinifiedJsonObjectBuilder + CborParser + primitives") {
 			assertResult("""{"4":5}"""){
-				new CborParser(new MinifiedJsonObjectBuilder).parse(
+				new CborParser().parseComplex(
+					new JsonValue.FromStringKeyBuilder(new MinifiedJsonObjectBuilder),
 					byteArray2DataInput(hexArray"A10405")
 				)
 			}
 		}
-		it ("MinifiedJsonObjectBuilder + case class") {
+		ignore ("MinifiedJsonObjectBuilder + case class") {
 			assertResult("""{"a":5,"b":false,"c":"str"}"""){
-				new CaseClassParser(new MinifiedJsonObjectBuilder).parse(Abc(5,false,"str"))
+				new CaseClassParser().parseComplex(
+					new JsonValue.AsAnyValueBuilder(new MinifiedJsonObjectBuilder),
+					Abc(5,false,"str")
+				)
 			}
 		}
-		it ("MinifiedJsonObjectBuilder + nested case class") {
-			val pf:PartialFunction[Any,Any] = {case x:Abc => new CaseClassParser(new MapBuilder).parse(x)}
-			
+		/*
+		ignore ("MinifiedJsonObjectBuilder + nested case class") {
 			assertResult("""{"5":{"a":5,"b":false,"c":"str"}}"""){
-				new MapParser(new MinifiedJsonObjectBuilder(transformer = pf)).parse(Map("5" -> Abc(5,false,"str")))
+				new MapParser().parseComplex(
+					new MinifiedJsonObjectBuilder(),
+					Map("5" -> Abc(5,false,"str"))
+				)
 			}
 		}
+		*/
 	}
-	*/
 }
