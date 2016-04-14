@@ -17,6 +17,18 @@ If you are building the documentation and have an instance of
 emable scaladoc's class diagrams. The heiarchy isn't very interesting, but
 still.
 
+## Why?
+
+Because, especially in Scala where case classes are easy to write up, but even
+otherwise, I have yet to have an JSON, or even XML, abstract syntax tree escape
+the scope of a function whose sole purpose is to de/serialize a case class - as
+a corallary I've transformed case classes, but never used a zipper. The setup
+provided by this library removes the AST step of serialization or
+deserialization.
+
+Additionally, this forces a separation of de/serialization logic from the rest
+of the program logic. A bit of an enforced dicipline thing.
+
 ## Usage
 There are two types of classes in this library. The first is
 [Builder](src/main/scala/com/rayrobdod/json/builder/Builder.scala),
