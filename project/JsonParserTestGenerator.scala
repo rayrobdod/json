@@ -81,6 +81,7 @@ object JsonParserTestGenerator {
 		("object containing array (whitespace)", """{"":[ [] ]}""", """Map(Left("") -> Map(Right(0) -> Map()))""", 2),
 		("object containing array 2", """{"":[0,1]}""", """Map(Left("") -> Map(Right(0) -> JsonValue(0), Right(1) -> JsonValue(1)))""", 1),
 		("object containing object", """{"":{}}""", """Map(Left("") -> Map())""", 1),
+		("object containing object 2", """{"":{"":{}}}""", """Map(Left("") -> Map(Left("") -> Map()))""", 2),
 		("object containing object (whitespace)", """{ "" : {} }""", """Map(Left("") -> Map())""", 1),
 		
 		("string containing escape codes (newline)", """["\n"]""", """Map(Right(0) -> JsonValue("\n"))""", 0),

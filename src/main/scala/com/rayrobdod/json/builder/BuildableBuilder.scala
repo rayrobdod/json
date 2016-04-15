@@ -32,8 +32,9 @@ import com.rayrobdod.json.parser.Parser
 /** Inspired by https://github.com/scopt/scopt/
  * 
  * @constructor
- * @param init 
- * @param defaultKeyDef the KeyDef executed when 
+ * @param init The starting point of the folding process
+ * @param defaultKeyDef the KeyDef executed when no other keys exist
+ * @param keyDefs the mapping of known keys to actual applies
  */
 final case class BuildableBuilder[Key, Value, Subject](
 		val init:Subject,
@@ -44,6 +45,7 @@ final case class BuildableBuilder[Key, Value, Subject](
 	def addDef(key:Key, fun:BuildableBuilder.KeyDef[Key, Value, Subject]):BuildableBuilder[Key, Value, Subject] = {
 		this.copy(keyDefs = this.keyDefs + ((key, fun)))
 	}
+	/** Change the defaultKeyDef to one that will pass subject through */
 	def ignoreUnknownKeys:BuildableBuilder[Key, Value, Subject] = {
 		this.copy(defaultKeyDef = BuildableBuilder.ignoreKeyDef[Key, Value, Subject])
 	}

@@ -44,7 +44,7 @@ class BuildableBuilderTest extends FunSpec {
 					new BuildableBuilder(new Person("me", 4)).init
 			}
 		}
-		it ("") {
+		it ("Acts upon provided keydef") {
 			val name = "Anony Mouse"
 			assertResult(new Person(name, 0)){
 				new BuildableBuilder(new Person("", 0))
@@ -52,7 +52,7 @@ class BuildableBuilderTest extends FunSpec {
 						.apply("name")(new Person("", 0), name, new IdentityParser)
 			}
 		}
-		it ("Can handle the age bean property") {
+		it ("Acts upon provided keydef (2)") {
 			val age = 9001
 			assertResult(new Person("", age)){
 				new BuildableBuilder(new Person("", 0))
@@ -88,6 +88,24 @@ class BuildableBuilderTest extends FunSpec {
 			assertResult(Person("nqpppnl",1)){
 				new JsonParser().parseComplex(builder, 
 					"""{"name":"nqpppnl","age":1}"""
+				)
+			}
+		}
+		it ("nested") {
+			val exp = Seq(Person("a", 5), Person("b", 6))
+			
+			val personBuilder = new BuildableBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
+				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parsePrimitive(i) match {case JsonValueString(i) => s.copy(name = i); case _ => throw new IllegalArgumentException}}})
+				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parsePrimitive(i) match {case JsonValueNumber(i) => s.copy(age = i.intValue); case _ => throw new IllegalArgumentException}}})
+			
+			val seqBuilder = new BuildableBuilder[StringOrInt, JsonValue, Seq[Person]](
+				Nil,
+				new KeyDef[StringOrInt, JsonValue, Seq[Person]]{ def apply[I] = {(s,i,p) => s :+ p.parseComplex(personBuilder, i)}}
+			)
+				
+			assertResult(exp){
+				new JsonParser().parseComplex(seqBuilder, 
+					"""[{"name":"a","age":5},{"name":"b","age":6}]"""
 				)
 			}
 		}

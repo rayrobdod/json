@@ -31,6 +31,7 @@ import java.text.ParseException;
 import scala.collection.immutable.Seq;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.parser.IdentityParser
+import com.rayrobdod.json.parser.SeqParser
 
 class SeqBuilderTest extends FunSpec {
 	
@@ -68,6 +69,11 @@ class SeqBuilderTest extends FunSpec {
 					"""["a", "b", "c"]"""
 				)
 			}
+		}
+		it ("SeqBuilder + SeqParser") {
+			val exp = Seq(15, -4, 2)
+			val res = new SeqParser[Int]().parseComplex(new PrimitiveSeqBuilder, exp)
+			assertResult(exp){res}
 		}
 		it ("SeqBuilder + JsonParser + BeanBuilder") {
 			assertResult(Seq(Person("Mario", 32),Person("Luigi", 32),Person("Peach", 28))){
