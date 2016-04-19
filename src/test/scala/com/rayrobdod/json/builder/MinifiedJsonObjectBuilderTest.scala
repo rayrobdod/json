@@ -109,7 +109,7 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 	
 	describe("MinifiedJsonObjectBuilder integration") {
 		import com.rayrobdod.json.parser.{JsonParser, CborParser, CaseClassParser, MapParser}
-		val builder = new StringOrInt.FromStringKeyBuilder(new MinifiedJsonObjectBuilder)
+		val builder = new MinifiedJsonObjectBuilder().mapKey[StringOrInt]{StringOrInt.unwrapToString}
 		
 		it ("MinifiedJsonObjectBuilder + JsonParser + primitive") {
 			assertResult("""{"a":61,"b":62,"c":63}"""){
@@ -142,7 +142,7 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 		it ("MinifiedJsonObjectBuilder + CborParser + primitives") {
 			assertResult("""{"4":5}"""){
 				new CborParser().parseComplex(
-					new JsonValue.FromStringKeyBuilder(new MinifiedJsonObjectBuilder),
+					new MinifiedJsonObjectBuilder().mapKey[JsonValue]{_ match {case JsonValueString(x) => x; case JsonValueNumber(x) => x.toString}},
 					byteArray2DataInput(hexArray"A10405")
 				)
 			}
@@ -150,7 +150,7 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 		ignore ("MinifiedJsonObjectBuilder + case class") {
 			assertResult("""{"a":5,"b":false,"c":"str"}"""){
 				new CaseClassParser().parseComplex(
-					new JsonValue.AsAnyValueBuilder(new MinifiedJsonObjectBuilder),
+					new MinifiedJsonObjectBuilder().mapValue[Any]{JsonValue.unsafeWrap},
 					Abc(5,false,"str")
 				)
 			}

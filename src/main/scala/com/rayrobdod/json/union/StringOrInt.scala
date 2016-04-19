@@ -46,30 +46,8 @@ object StringOrInt {
 	
 	
 	
-	final class FromStringKeyBuilder[V,A](inner:Builder[String,V,A]) extends Builder[StringOrInt,V,A] {
-		def init:A = inner.init
-		def apply[Input](key:StringOrInt):Function3[A, Input, Parser[StringOrInt, V, Input], A] = {(a,b,c) =>
-			val strKey = key match {
-				case Left(s) => s
-				case Right(s) => s.toString
-			}
-			
-			inner.apply(strKey).apply(a,b, new AsStringKeyParser(c))
-		}
-	}
-	final class AsStringKeyParser[V,A](inner:Parser[StringOrInt,V,A]) extends Parser[String,V,A] {
-		def parseComplex[Output](builder:Builder[String,V,Output], i:A):Output = inner.parseComplex(new FromStringKeyBuilder(builder), i)
-		def parsePrimitive(i:A):V = inner.parsePrimitive(i)
-	}
-	
-	final class AsStringKeyBuilder[V,A](inner:Builder[StringOrInt,V,A]) extends Builder[String,V,A] {
-		def init:A = inner.init
-		def apply[Input](key:String):Function3[A, Input, Parser[String, V, Input], A] = {(a,b,c) =>
-			inner.apply(StringOrInt(key)).apply(a,b, new FromStringKeyParser(c))
-		}
-	}
-	final class FromStringKeyParser[V,A](inner:Parser[String,V,A]) extends Parser[StringOrInt,V,A] {
-		def parseComplex[Output](builder:Builder[StringOrInt,V,Output], i:A):Output = inner.parseComplex(new AsStringKeyBuilder(builder), i)
-		def parsePrimitive(i:A):V = inner.parsePrimitive(i)
+	def unwrapToString(x:StringOrInt):String = x match {
+		case Left(s) => s
+		case Right(s) => s.toString
 	}
 }

@@ -133,7 +133,6 @@ class PrettyJsonBuilderTest extends FunSpec {
 	
 	describe("PrettyJsonBuilderTest integration") {
 		import com.rayrobdod.json.parser.JsonParser
-		import com.rayrobdod.json.builder.PrettyJsonBuilder.BuilderMapping
 		
 		describe ("with JsonParser") {
 			it ("will echo a properly formatted string") {

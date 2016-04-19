@@ -148,31 +148,6 @@ object PrettyJsonBuilder {
 	import JsonValueOrCollection._
 	
 	
-	implicit class BuilderMapping[K,V,R](inner:Builder[K,V,R]) {
-		def mapKey[K2](implicit fun:Function1[K2,K]):Builder[K2,V,R] = new Builder[K2,V,R] {
-			override def init:R = inner.init
-			override def apply[Input](key:K2):Function3[R, Input, Parser[K2, V, Input], R] = {(a,b,c) =>
-				final class ReverseParser(innerParser:Parser[K2,V,Input]) extends Parser[K,V,Input] {
-					override def parseComplex[Output](builder:Builder[K,V,Output], i:Input):Output = innerParser.parseComplex[Output](builder.mapKey[K2](fun), i)
-					override def parsePrimitive(i:Input):V = innerParser.parsePrimitive(i)
-				}
-				
-				inner.apply(fun(key)).apply(a, b, new ReverseParser(c))
-			}
-		}
-		def mapValue[V2](implicit fun:Function1[V2,V]):Builder[K,V2,R] = new Builder[K,V2,R] {
-			override def init:R = inner.init
-			override def apply[Input](key:K):Function3[R, Input, Parser[K, V2, Input], R] = {(a,b,c) =>
-				final class ReverseParser(innerParser:Parser[K,V2,Input]) extends Parser[K,V,Input] {
-					override def parseComplex[Output](builder:Builder[K,V,Output], i:Input):Output = innerParser.parseComplex[Output](builder.mapValue[V2](fun), i)
-					override def parsePrimitive(i:Input):V = fun(innerParser.parsePrimitive(i))
-				}
-				
-				inner.apply(key).apply(a, b, new ReverseParser(c))
-			}
-		}
-	}
-	
 	private[PrettyJsonBuilder] def serialize(value:JsonValueOrCollection, charset:Charset, recursor:Builder[StringOrInt, JsonValueOrCollection, String]):String = value match {
 		case JVCValue(JsonValueNumber(x)) => x.toString
 		case JVCValue(JsonValueBoolean(x)) => x.toString

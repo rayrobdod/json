@@ -55,52 +55,24 @@ object JsonValue {
 	
 	
 	
-	final class FromStringKeyBuilder[V,A](inner:Builder[String,V,A]) extends Builder[JsonValue,V,A] {
-		def init:A = inner.init
-		def apply[Input](key:JsonValue):Function3[A, Input, Parser[JsonValue, V, Input], A] = {(a,b,c) =>
-			val strKey = key match {
-				case JsonValueString(s) => s
-				case JsonValueNumber(s) => s.toString
-				case JsonValueBoolean(s) => s.toString
-				case _ => throw new IllegalArgumentException("")
-			}
-			
-			inner.apply(strKey).apply(a,b, new AsStringKeyParser(c))
-		}
-	}
-	final class AsStringKeyParser[V,A](inner:Parser[JsonValue,V,A]) extends Parser[String,V,A] {
-		def parseComplex[Output](builder:Builder[String,V,Output], i:A):Output = inner.parseComplex(new FromStringKeyBuilder(builder), i)
-		def parsePrimitive(i:A):V = inner.parsePrimitive(i)
+	// `Int can be converted to either StringOrInt or Number; I don't know which of the identical `apply`s to use` 
+	implicit def stringOrInt2JsonValue(s:StringOrInt):JsonValue = s match {
+		case StringOrInt.Left(s) => JsonValueString(s)
+		case StringOrInt.Right(i) => JsonValueNumber(i)
 	}
 	
-	final class AsStringKeyBuilder[V,A](inner:Builder[JsonValue,V,A]) extends Builder[String,V,A] {
-		def init:A = inner.init
-		def apply[Input](key:String):Function3[A, Input, Parser[String, V, Input], A] = {(a,b,c) =>
-			inner.apply(JsonValue(key)).apply(a,b, new FromStringKeyParser(c))
-		}
-	}
-	final class FromStringKeyParser[V,A](inner:Parser[String,V,A]) extends Parser[JsonValue,V,A] {
-		def parseComplex[Output](builder:Builder[JsonValue,V,Output], i:A):Output = inner.parseComplex(new AsStringKeyBuilder(builder), i)
-		def parsePrimitive(i:A):V = inner.parsePrimitive(i)
+	
+	def unwrap(x:JsonValue):Any = x match {
+		case JsonValueString(s) => s
+		case JsonValueBoolean(b) => b
+		case JsonValueNumber(b) => b
+		case JsonValueByteStr(s) => s
+		case JsonValueNull => null
 	}
 	
-	final class AsAnyValueBuilder[K,A](inner:Builder[K,JsonValue,A]) extends Builder[K,Any,A] {
-		def init:A = inner.init
-		def apply[Input](key:K):Function3[A, Input, Parser[K, Any, Input], A] = {(a,b,c) =>
-			inner.apply(key).apply(a,b, new FromAnyValueParser(c))
-		}
-	}
-	final class FromAnyValueParser[K,A](inner:Parser[K,Any,A]) extends Parser[K,JsonValue,A] {
-		def parseComplex[Output](builder:Builder[K,JsonValue,Output], i:A):Output = inner.parseComplex(new AsAnyValueBuilder(builder), i)
-		def parsePrimitive(i:A):JsonValue = {
-			val value1:Any = inner.parsePrimitive(i)
-			val value2:JsonValue = value1 match {
-				case x:String => JsonValue(x)
-				case x:Number => JsonValue(x)
-				case x:Boolean => JsonValue(x)
-				case _ => throw new IllegalArgumentException()
-			}
-			value2
-		}
+	def unsafeWrap(x:Any):JsonValue = x match {
+		case s:String => JsonValueString(s)
+		case b:Number => JsonValueNumber(b)
+		case b:Boolean => JsonValueBoolean(b)
 	}
 }

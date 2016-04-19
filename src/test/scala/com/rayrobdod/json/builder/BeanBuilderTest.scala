@@ -31,8 +31,7 @@ import scala.beans.BeanProperty;
 import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.parser.IdentityParser
-import com.rayrobdod.json.union.JsonValue
-import com.rayrobdod.json.union.StringOrInt.FromStringKeyBuilder
+import com.rayrobdod.json.union.{StringOrInt, JsonValue}
 
 class BeanBuilderTest extends FunSpec {
 	import BeanBuilderTest.Person;
@@ -68,7 +67,7 @@ class BeanBuilderTest extends FunSpec {
 		
 		it ("works") {
 			assertResult(Person("nqpppnl",1)){
-				new JsonParser().parseComplex(new FromStringKeyBuilder(new BeanBuilder[JsonValue, Person](classOf[Person])),
+				new JsonParser().parseComplex(new BeanBuilder[JsonValue, Person](classOf[Person]).mapKey[StringOrInt]{StringOrInt.unwrapToString},
 					"""{"name":"nqpppnl","age":1}"""
 				)
 			}

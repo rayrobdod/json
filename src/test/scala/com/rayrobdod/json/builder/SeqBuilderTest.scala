@@ -57,15 +57,14 @@ class SeqBuilderTest extends FunSpec {
 	}
 	
 	describe("SeqBuilder integration") {
-		import com.rayrobdod.json.union.JsonValue
-		import com.rayrobdod.json.union.StringOrInt.FromStringKeyBuilder
+		import com.rayrobdod.json.union.{JsonValue, StringOrInt}
 		import com.rayrobdod.json.parser.JsonParser
 		import BeanBuilderTest.Person
 		
 		it ("SeqBuilder + JsonParser + primitive") {
 			assertResult(Seq("a", "b", "c").map{JsonValue(_)}){
 				new JsonParser().parseComplex(
-					new FromStringKeyBuilder(new PrimitiveSeqBuilder[String, JsonValue]),
+					new PrimitiveSeqBuilder[String, JsonValue].mapKey[StringOrInt]{StringOrInt.unwrapToString},
 					"""["a", "b", "c"]"""
 				)
 			}
@@ -78,7 +77,7 @@ class SeqBuilderTest extends FunSpec {
 		it ("SeqBuilder + JsonParser + BeanBuilder") {
 			assertResult(Seq(Person("Mario", 32),Person("Luigi", 32),Person("Peach", 28))){
 				new JsonParser().parseComplex(
-					new FromStringKeyBuilder(new SeqBuilder(new BeanBuilder[JsonValue, Person](classOf[Person]))),
+					new SeqBuilder(new BeanBuilder[JsonValue, Person](classOf[Person])).mapKey[StringOrInt]{StringOrInt.unwrapToString},
 					"""[
 						{"name":"Mario", "age":32},
 						{"name":"Luigi", "age":32},

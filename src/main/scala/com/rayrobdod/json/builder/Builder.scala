@@ -43,4 +43,31 @@ trait Builder[Key, Value, Subject] {
 	def init:Subject
 	
 	def apply[Input](key:Key):Function3[Subject, Input, Parser[Key, Value, Input], Subject]
+	
+	
+	/** Change the type of key that this builder requires */
+	final def mapKey[K2](implicit fun:Function1[K2,Key]):Builder[K2,Value,Subject] = new Builder[K2,Value,Subject] {
+		override def init:Subject = Builder.this.init
+		override def apply[Input](key:K2):Function3[Subject, Input, Parser[K2, Value, Input], Subject] = {(a,b,c) =>
+			final class ReverseParser(innerParser:Parser[K2,Value,Input]) extends Parser[Key,Value,Input] {
+				override def parseComplex[Output](builder:Builder[Key,Value,Output], i:Input):Output = innerParser.parseComplex[Output](builder.mapKey[K2](fun), i)
+				override def parsePrimitive(i:Input):Value = innerParser.parsePrimitive(i)
+			}
+			
+			Builder.this.apply(fun(key)).apply(a, b, new ReverseParser(c))
+		}
+	}
+	/** Change the type of value that this builder requires */
+	final def mapValue[V2](implicit fun:Function1[V2,Value]):Builder[Key,V2,Subject] = new Builder[Key,V2,Subject] {
+		override def init:Subject = Builder.this.init
+		override def apply[Input](key:Key):Function3[Subject, Input, Parser[Key, V2, Input], Subject] = {(a,b,c) =>
+			final class ReverseParser(innerParser:Parser[Key,V2,Input]) extends Parser[Key,Value,Input] {
+				override def parseComplex[Output](builder:Builder[Key,Value,Output], i:Input):Output = innerParser.parseComplex[Output](builder.mapValue[V2](fun), i)
+				override def parsePrimitive(i:Input):Value = fun(innerParser.parsePrimitive(i))
+			}
+			
+			Builder.this.apply(key).apply(a, b, new ReverseParser(c))
+		}
+	}
+	
 }

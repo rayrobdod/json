@@ -30,7 +30,6 @@ import org.scalatest.FunSpec
 import java.text.ParseException
 import scala.collection.immutable.Map
 import com.rayrobdod.json.builder.{MapBuilder, CaseClassBuilder, MinifiedJsonObjectBuilder}
-import com.rayrobdod.json.union.StringOrInt.FromStringKeyBuilder
 
 class CaseClassParserTest extends FunSpec {
 	private implicit def fooClass = classOf[Foo]
