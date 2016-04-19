@@ -31,7 +31,7 @@ import java.text.ParseException;
 import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
 import java.nio.charset.StandardCharsets.US_ASCII;
-import com.rayrobdod.json.union.JsonValue
+import com.rayrobdod.json.union.{StringOrInt, JsonValue}
 import com.rayrobdod.json.union.JsonValue._
 import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter};
@@ -99,19 +99,21 @@ class MinifiedJsonArrayBuilderTest extends FunSpec {
 		}
 	}
 	
-/*	describe("MinifiedJsonArrayBuilder integration") {
+	describe("MinifiedJsonArrayBuilder integration") {
 		import com.rayrobdod.json.parser.{JsonParser, CborParser}
 		
 		it ("MinifiedJsonArrayBuilder + JsonParser + primitive") {
 			assertResult("""[61,62,63]"""){
-				new JsonParser().parseComplex(new MinifiedJsonArrayBuilder,
+				new JsonParser().parseComplex(
+					new MinifiedJsonArrayBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""[61,62,63]"""
 				)
 			}
 		}
 		it ("MinifiedJsonArrayBuilder + JsonParser + primitive (whitespace)") {
 			assertResult("""["a","b","c"]"""){
-				new JsonParser().parseComplex(new MinifiedJsonArrayBuilder,
+				new JsonParser().parseComplex(
+					new MinifiedJsonArrayBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""[
 	"a",
 	"b",
@@ -122,17 +124,19 @@ class MinifiedJsonArrayBuilderTest extends FunSpec {
 		}
 		ignore ("MinifiedJsonArrayBuilder + JsonParser + nested objects") {
 			assertResult("""[{"a":0,"b":1}]"""){
-				new JsonParser().parseComplex(new MinifiedJsonArrayBuilder,
+				new JsonParser().parseComplex(
+					new MinifiedJsonArrayBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""[{"a":0,"b":1}]"""
 				)
 			}
 		}
 		it ("MinifiedJsonArrayBuilder + CborParser + primitives") {
 			assertResult("""[5]"""){
-				new CborParser().parseComplex(new MinifiedJsonArrayBuilder,
+				new CborParser().parseComplex(
+					new MinifiedJsonArrayBuilder().mapKey[JsonValue].mapValue[JsonValue],
 					byteArray2DataInput(hexArray"A10405")
 				)
 			}
 		}
 	}
-*/}
+}

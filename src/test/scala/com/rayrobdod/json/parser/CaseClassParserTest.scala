@@ -30,6 +30,8 @@ import org.scalatest.FunSpec
 import java.text.ParseException
 import scala.collection.immutable.Map
 import com.rayrobdod.json.builder.{MapBuilder, CaseClassBuilder, MinifiedJsonObjectBuilder}
+import com.rayrobdod.json.union.StringOrInt
+import com.rayrobdod.json.union.JsonValue
 
 class CaseClassParserTest extends FunSpec {
 	private implicit def fooClass = classOf[Foo]
@@ -44,15 +46,13 @@ class CaseClassParserTest extends FunSpec {
 			assertResult(exp){res}
 		}
 	}
-	/*
 	describe("CaseClassParser + Json") {
 		it ("""can be used with the json stuff to serialze and deserialize a case class""") {
 			val src = Foo(-5, "asdf", true)
-			val json = new CaseClassParser().parseComplex(new FromStringKeyBuilder(new MinifiedJsonObjectBuilder()), src)
-			val res = new JsonParser().parseComplex(new FromStringKeyBuilder(new CaseClassBuilder(Foo(0,"",false))), json)
+			val json = new CaseClassParser().parseComplex(new MinifiedJsonObjectBuilder().mapKey[String].mapValue[Any]{JsonValue.unsafeWrap _}, src)
+			val res = new JsonParser().parseComplex(new CaseClassBuilder(Foo(0,"",false)).mapKey[StringOrInt]{StringOrInt.unwrapToString _}.mapValue[JsonValue]{JsonValue.unwrap}, json)
 			
 			assertResult(src){res}
 		}
 	}
-	*/
 }

@@ -147,7 +147,7 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 				)
 			}
 		}
-		ignore ("MinifiedJsonObjectBuilder + case class") {
+		it ("MinifiedJsonObjectBuilder + case class") {
 			assertResult("""{"a":5,"b":false,"c":"str"}"""){
 				new CaseClassParser().parseComplex(
 					new MinifiedJsonObjectBuilder().mapValue[Any]{JsonValue.unsafeWrap},
@@ -155,15 +155,13 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 				)
 			}
 		}
-		/*
 		ignore ("MinifiedJsonObjectBuilder + nested case class") {
 			assertResult("""{"5":{"a":5,"b":false,"c":"str"}}"""){
 				new MapParser().parseComplex(
-					new MinifiedJsonObjectBuilder(),
+					new MinifiedJsonObjectBuilder().mapValue[Any]{JsonValue.unsafeWrap},
 					Map("5" -> Abc(5,false,"str"))
 				)
 			}
 		}
-		*/
 	}
 }
