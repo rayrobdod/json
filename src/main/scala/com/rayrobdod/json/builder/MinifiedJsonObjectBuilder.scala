@@ -42,6 +42,7 @@ import com.rayrobdod.json.parser.{MapParser, SeqParser}
  *           Any characters outside the charset will be u-escaped. Default is to keep all characters verbaitim
  * @param transformer a function to convert non-cbor-primitive objects to cbor-primitive objects
  */
+@deprecated("use PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams) instead", "next")
 final class MinifiedJsonObjectBuilder(charset:Charset = UTF_8) extends Builder[String, JsonValue, String] {
 	import MinifiedJsonObjectBuilder._
 	
@@ -71,6 +72,7 @@ final class MinifiedJsonObjectBuilder(charset:Charset = UTF_8) extends Builder[S
  * @param charset The output will only contain characters that can be encoded using the specified charset.
  *           Any characters outside the charset will be u-escaped. Default is to keep all characters verbaitim
  */
+@deprecated("use PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams) instead", "next")
 final class MinifiedJsonArrayBuilder(charset:Charset = UTF_8) extends Builder[Any, JsonValue, String] {
 	import MinifiedJsonObjectBuilder._
 	
