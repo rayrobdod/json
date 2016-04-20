@@ -29,7 +29,7 @@ package com.rayrobdod.json.builder;
 import scala.collection.immutable.Seq
 import java.nio.charset.StandardCharsets.UTF_8
 import com.rayrobdod.json.parser.CborParser.{MajorTypeCodes, SimpleValueCodes}
-import com.rayrobdod.json.union.{JsonValue, JsonValueOrCollection}
+import com.rayrobdod.json.union.{JsonValue}
 import com.rayrobdod.json.parser.Parser
 import com.rayrobdod.json.parser.{MapParser, SeqParser}
 
@@ -40,14 +40,14 @@ import com.rayrobdod.json.parser.{MapParser, SeqParser}
  * @param transformer a function to convert non-cbor-primitive objects to cbor-primitive objects
  */
 // TODO: widen key to include everything else a CBOR key can be
-final class CborObjectBuilder extends Builder[JsonValue, JsonValueOrCollection, Seq[Byte]] {
+final class CborObjectBuilder extends Builder[JsonValue, JsonValue, Seq[Byte]] {
 	import CborObjectBuilder._
 	
 	val init:Seq[Byte] = encodeLength(MajorTypeCodes.OBJECT, 0)
 	
 	/** @param folding a valid cbor object */
-	def apply[Input](key:JsonValue):Function3[Seq[Byte], Input, Parser[JsonValue, JsonValueOrCollection, Input], Seq[Byte]] = {(folding, input, parser) =>
-		val value = parser.parsePrimitive(input)
+	def apply[Input](key:JsonValue):Function3[Seq[Byte], Input, Parser[JsonValue, JsonValue, Input], Seq[Byte]] = {(folding, input, parser) =>
+		val value = parser.parseEither[Seq[Byte]](this, input)
 		
 		val headerByte:Byte = folding.head
 		val additionalInfo = headerByte & 0x1F
@@ -60,7 +60,12 @@ final class CborObjectBuilder extends Builder[JsonValue, JsonValueOrCollection, 
 			case _  => {throw new IllegalArgumentException("input `folding` had illegal length value")}
 		}
 		
-		encodeLength(MajorTypeCodes.OBJECT, objectLength + 1) ++ passData ++ encodeValue(key) ++ encodeValue(value)
+		val encodedValue = value match {
+			case Left(x) => x
+			case Right(x) => encodeValue(x)
+		}
+		
+		encodeLength(MajorTypeCodes.OBJECT, objectLength + 1) ++ passData ++ encodeValue(key) ++ encodedValue
 	}
 }
 
@@ -70,14 +75,14 @@ final class CborObjectBuilder extends Builder[JsonValue, JsonValueOrCollection, 
  * A builder that will create cbor array format byte strings
  * @param transformer a function to convert non-cbor-primitive objects to cbor-primitive objects
  */
-final class CborArrayBuilder() extends Builder[Any, JsonValueOrCollection, Seq[Byte]] {
+final class CborArrayBuilder() extends Builder[Any, JsonValue, Seq[Byte]] {
 	import CborObjectBuilder._
 	
 	val init:Seq[Byte] = encodeLength(MajorTypeCodes.ARRAY, 0)
 	
 	/** @param folding a valid cbor object */
-	def apply[Input](key:Any):Function3[Seq[Byte], Input, Parser[Any, JsonValueOrCollection, Input], Seq[Byte]] = {(folding, input, parser) =>
-		val value = parser.parsePrimitive(input)
+	def apply[Input](key:Any):Function3[Seq[Byte], Input, Parser[Any, JsonValue, Input], Seq[Byte]] = {(folding, input, parser) =>
+		val value = parser.parseEither[Seq[Byte]](this, input)
 		
 		val headerByte:Byte = folding.head
 		val additionalInfo = headerByte & 0x1F
@@ -90,13 +95,17 @@ final class CborArrayBuilder() extends Builder[Any, JsonValueOrCollection, Seq[B
 			case _  => {throw new IllegalArgumentException("input `folding` had illegal length value")}
 		}
 		
-		encodeLength(MajorTypeCodes.ARRAY, objectLength + 1) ++ passData ++ encodeValue(value)
+		val encodedValue = value match {
+			case Left(x) => x
+			case Right(x) => encodeValue(x)
+		}
+		
+		encodeLength(MajorTypeCodes.ARRAY, objectLength + 1) ++ passData ++ encodedValue
 	}
 }
 
 private[builder] object CborObjectBuilder {
 	import com.rayrobdod.json.union.JsonValue._
-	import com.rayrobdod.json.union.JsonValueOrCollection._
 	
 	/**
 	 * Encode a number into CBOR form.
@@ -118,25 +127,19 @@ private[builder] object CborObjectBuilder {
 		headerByte.byteValue +: rest
 	}
 	
-	private[builder] def encodeValue(v:JsonValueOrCollection):Seq[Byte] = v match {
-		case JVCValue(JsonValueBoolean(false)) => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.FALSE)
-		case JVCValue(JsonValueBoolean(true))  => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.TRUE)
-		case JVCValue(JsonValueNull)  => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.NULL)
-		case JVCValue(JsonValueNumber(x:java.lang.Float)) => Seq((0xE0 + SimpleValueCodes.FLOAT).byteValue) ++ long2ByteArray(java.lang.Float.floatToIntBits(x), 4)
-		case JVCValue(JsonValueNumber(x:java.lang.Double)) => Seq((0xE0 + SimpleValueCodes.DOUBLE).byteValue) ++ long2ByteArray(java.lang.Double.doubleToLongBits(x))
-		case JVCValue(JsonValueString(x:String)) => {
+	private[builder] def encodeValue(v:JsonValue):Seq[Byte] = v match {
+		case JsonValueBoolean(false) => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.FALSE)
+		case JsonValueBoolean(true)  => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.TRUE)
+		case JsonValueNull  => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.NULL)
+		case JsonValueNumber(x:java.lang.Float) => Seq((0xE0 + SimpleValueCodes.FLOAT).byteValue) ++ long2ByteArray(java.lang.Float.floatToIntBits(x), 4)
+		case JsonValueNumber(x:java.lang.Double) => Seq((0xE0 + SimpleValueCodes.DOUBLE).byteValue) ++ long2ByteArray(java.lang.Double.doubleToLongBits(x))
+		case JsonValueString(x:String) => {
 			val bytes = x.getBytes(UTF_8)
 			encodeLength(MajorTypeCodes.STRING, bytes.length) ++ bytes
 		}
-		case JVCValue(JsonValueNumber(x:Number)) if (x.longValue >= 0) => encodeLength(MajorTypeCodes.POSITIVE_INT, x.longValue)
-		case JVCValue(JsonValueNumber(x:Number)) if (x.longValue < 0) => encodeLength(MajorTypeCodes.NEGATIVE_INT, -1 - x.longValue)
-		case JVCValue(JsonValueByteStr(bytes:Array[Byte])) => encodeLength(MajorTypeCodes.BYTE_ARRAY, bytes.length) ++ bytes
-		case JVCMap(x:Map[String, JsonValueOrCollection]) => {
-			new MapParser().parseComplex(new CborObjectBuilder().mapKey[String], x)
-		}
-		case JVCSeq(x:Seq[JsonValueOrCollection]) => {
-			new SeqParser().parseComplex(new CborArrayBuilder().mapKey[Int]{x => JsonValue(x)}, x)
-		}
+		case JsonValueNumber(x:Number) if (x.longValue >= 0) => encodeLength(MajorTypeCodes.POSITIVE_INT, x.longValue)
+		case JsonValueNumber(x:Number) if (x.longValue < 0) => encodeLength(MajorTypeCodes.NEGATIVE_INT, -1 - x.longValue)
+		case JsonValueByteStr(bytes:Array[Byte]) => encodeLength(MajorTypeCodes.BYTE_ARRAY, bytes.length) ++ bytes
 	}
 	
 	private[builder] def byteArray2Long(b:Seq[Byte]):Long = {

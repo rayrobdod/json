@@ -42,21 +42,27 @@ import com.rayrobdod.json.parser.{Parser, MapParser, SeqParser}
  *           Any characters outside the charset will be u-escaped. Default is to keep all characters verbaitim
  * @see http://argonaut.io/scaladocs/#argonaut.PrettyParams the only decent idea in argonaut
  */
-final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Charset = UTF_8, level:Int = 0) extends Builder[StringOrInt, JsonValueOrCollection, String] {
-	import PrettyJsonBuilder.serialize
+final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Charset = UTF_8, level:Int = 0) extends Builder[StringOrInt, JsonValue, String] {
+	import MinifiedJsonObjectBuilder.serialize
+//		import MinifiedJsonObjectBuilder.{strToJsonStr, serialize}
+
 	private[this] lazy val nextLevel = new PrettyJsonBuilder(params, charset, level + 1)
 	
 	val init:String = params.lbrace(level) + params.rbrace(level)
 	
-	def apply[Input](key:StringOrInt):Function3[String, Input, Parser[StringOrInt, JsonValueOrCollection, Input], String] = {(folding, innerInput, parser) =>
-		import StringOrInt._
-		val value = parser.parsePrimitive(innerInput)
+	def apply[Input](key:StringOrInt):Function3[String, Input, Parser[StringOrInt, JsonValue, Input], String] = {(folding, innerInput, parser) =>
+		val value = parser.parseEither(nextLevel, innerInput)
+		val encodedValue = value match {
+			case Left(x) => x
+			case Right(x) => serialize(x, charset)
+		}
+			
 		
 		if (init == folding) {
 			key match {
-				case Right(0) => params.lbrace(level) + serialize(value, charset, nextLevel) + params.rbrace(level)
-				case Right(int) => throw new IllegalArgumentException(s"Key: $int") // params.lbracket(level) + serialze(int.toString, charset) + params.colon(level) + serialize(value, charset, nextLevel) + params.rbrace(level)
-				case Left(str) => params.lbracket(level) + serialize(str, charset, nextLevel) + params.colon(level) + serialize(value, charset, nextLevel) + params.rbracket(level)
+				case StringOrInt.Right(0) => params.lbrace(level) + encodedValue + params.rbrace(level)
+				case StringOrInt.Right(int) => throw new IllegalArgumentException(s"Key: $int") // params.lbracket(level) + serialze(int.toString, charset) + params.colon(level) + encodedValue + params.rbrace(level)
+				case StringOrInt.Left(str) => params.lbracket(level) + serialize(str, charset) + params.colon(level) + encodedValue + params.rbracket(level)
 			}
 		} else {
 			val bracket:Boolean = folding.take(params.lbracket(level).length) == params.lbracket(level)
@@ -68,12 +74,11 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 			}
 			
 			key match {
-				case Right(int) if brace => {
-					keptPart + params.comma(level) + serialize(value, charset, nextLevel) + params.rbrace(level)
+				case StringOrInt.Right(int) if brace => {
+					keptPart + params.comma(level) + encodedValue + params.rbrace(level)
 				}
-				case Left(str) if bracket => {
-					keptPart + params.comma(level) + serialize(str, charset, nextLevel) + params.colon(level) + serialize(value, charset, nextLevel) + params.rbracket(level)
-					
+				case StringOrInt.Left(str) if bracket => {
+					keptPart + params.comma(level) + serialize(str, charset) + params.colon(level) + encodedValue + params.rbracket(level)
 				}
 				case _ => throw new IllegalArgumentException("Key type changed mid-object")
 			}
@@ -141,24 +146,5 @@ object PrettyJsonBuilder {
 		def rbraceRight(level:Int):String = ""
 		def rbracketLeft(level:Int):String = newline + indent(level)
 		def rbracketRight(level:Int):String = ""
-	}
-	
-	import MinifiedJsonObjectBuilder.strToJsonStr
-	import JsonValue._
-	import JsonValueOrCollection._
-	
-	
-	private[PrettyJsonBuilder] def serialize(value:JsonValueOrCollection, charset:Charset, recursor:Builder[StringOrInt, JsonValueOrCollection, String]):String = value match {
-		case JVCValue(JsonValueNumber(x)) => x.toString
-		case JVCValue(JsonValueBoolean(x)) => x.toString
-		case JVCValue(JsonValueNull) => "null"
-		case JVCValue(JsonValueString(x)) => strToJsonStr(x, charset)
-		case JVCMap(x:Map[String, JsonValueOrCollection]) => {
-			new MapParser[String, JsonValueOrCollection]().parseComplex(recursor.mapKey[String], x)
-		}
-		case JVCSeq(x:Seq[JsonValueOrCollection]) => {
-			new SeqParser[JsonValueOrCollection]().parseComplex(recursor.mapKey[Int], x)
-		}
-		case JVCValue(JsonValueByteStr(x)) => throw new UnsupportedOperationException("Serialize ByteStr to Json")
 	}
 }

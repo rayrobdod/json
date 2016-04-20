@@ -62,5 +62,7 @@ final class CaseClassParser[Input <: Product](implicit clazz:Class[Input]) exten
 	}
 	
 	def parsePrimitive(i:Input):Any = throw new UnsupportedOperationException
+	def parseEither[Output](builder:Builder[String, Any, Output], obj:Input):Either[Output,Any] = {
+		Left(this.parseComplex(builder, obj))
+	}
 }
-

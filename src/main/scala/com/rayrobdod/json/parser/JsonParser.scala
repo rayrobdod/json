@@ -45,6 +45,15 @@ import com.rayrobdod.json.union.JsonValue
  */
 final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 	
+	def parseEither[A](builder:Builder[StringOrInt, JsonValue, A], chars:Iterable[Char]):Either[A,JsonValue] = {
+		try {
+			Right(this.parsePrimitive(chars))
+		} catch {
+			case e:IllegalArgumentException => 
+				Left(this.parseComplex(builder, chars))
+		}
+	}
+	
 	def parsePrimitive(i:Iterable[Char]):JsonValue = {
 		val numPattern = java.util.regex.Pattern.compile("""-?\d+\.?\d*(?:[eE][\+\-]?\d+)?""")
 		val s = new String(i.toArray).trim

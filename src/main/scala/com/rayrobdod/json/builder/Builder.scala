@@ -52,6 +52,7 @@ trait Builder[Key, Value, Subject] {
 			final class ReverseParser(innerParser:Parser[K2,Value,Input]) extends Parser[Key,Value,Input] {
 				override def parseComplex[Output](builder:Builder[Key,Value,Output], i:Input):Output = innerParser.parseComplex[Output](builder.mapKey[K2](fun), i)
 				override def parsePrimitive(i:Input):Value = innerParser.parsePrimitive(i)
+				override def parseEither[Output](builder:Builder[Key,Value,Output], i:Input):Either[Output, Value] = innerParser.parseEither(builder.mapKey[K2](fun), i)
 			}
 			
 			Builder.this.apply(fun(key)).apply(a, b, new ReverseParser(c))
@@ -64,6 +65,10 @@ trait Builder[Key, Value, Subject] {
 			final class ReverseParser(innerParser:Parser[Key,V2,Input]) extends Parser[Key,Value,Input] {
 				override def parseComplex[Output](builder:Builder[Key,Value,Output], i:Input):Output = innerParser.parseComplex[Output](builder.mapValue[V2](fun), i)
 				override def parsePrimitive(i:Input):Value = fun(innerParser.parsePrimitive(i))
+				override def parseEither[Output](builder:Builder[Key,Value,Output], i:Input):Either[Output, Value] = innerParser.parseEither[Output](builder.mapValue[V2](fun), i) match {
+					case Left(x) => Left(x)
+					case Right(x) => Right(fun(x))
+				}
 			}
 			
 			Builder.this.apply(key).apply(a, b, new ReverseParser(c))

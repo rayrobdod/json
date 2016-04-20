@@ -34,7 +34,9 @@ import com.rayrobdod.json.union.JsonValue._
 
 /**
  * A union type
+ * @since next
  */
+@deprecated("Not actually neccessary", "next")
 sealed trait JsonValueOrCollection
 
 object JsonValueOrCollection {

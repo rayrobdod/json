@@ -60,6 +60,15 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 		}
 	}
 	
+	def parseEither[ComplexOutput](builder:Builder[JsonValue, JsonValue, ComplexOutput], i:DataInput):Either[ComplexOutput, JsonValue] = {
+		val a = this.parse[ComplexOutput](builder, i)
+		a match {
+			case ParseReturnValueSimple(x:JsonValue) => Right(x)
+			case ParseReturnValueComplex(x) => Left(x)
+			case _ => throw new ParseException("Not a public value", -1)
+		}
+	}
+	
 	
 	/**
 	 * Decodes the input values to an object.

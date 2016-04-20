@@ -131,7 +131,7 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 				)
 			}
 		}
-		ignore ("MinifiedJsonObjectBuilder + JsonParser + nested objects") {
+		it ("MinifiedJsonObjectBuilder + JsonParser + nested objects") {
 			assertResult("""{"":{"a":0,"b":1}}"""){
 				new JsonParser().parseComplex(
 					builder,

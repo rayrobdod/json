@@ -47,6 +47,9 @@ final class CsvParser(
 ) extends Parser[Int, String, Iterable[Char]] {
 	
 	def parsePrimitive(i:Iterable[Char]):String = new String(i.toArray)
+	def parseEither[A](builder:Builder[Int, String, A], chars:Iterable[Char]):Either[A,String] = {
+		Left(this.parseComplex(builder, chars))
+	}
 	
 	/**
 	 * Decodes the input values to an object.
@@ -114,6 +117,9 @@ final class CsvParser(
 	/** Splits a CSV record (i.e. one line) into fields */
 	private[this] final class LineParser extends Parser[Int, String, String] {
 		def parsePrimitive(i:String):String = new String(i.toArray)
+		def parseEither[A](builder:Builder[Int, String, A], chars:String):Either[A,String] = {
+			Left(this.parseComplex(builder, chars))
+		}
 		
 		def parseComplex[A](builder:Builder[Int, String, A], chars:String):A = {
 			val endState = chars.zipWithIndex.foldLeft(State(builder.init, 0, "", "", false, false)){(state, ci) => 
@@ -152,7 +158,7 @@ final class CsvParser(
 			if (endState.innerInput.isEmpty) {
 				endState.value
 			} else {
-				builder.apply(endState.innerIndex).apply(endState.value, endState.innerInput, new LineParser)
+				builder.apply(endState.innerIndex).apply(endState.value, endState.innerInput, new IdentityParser)
 			}
 		}
 	}
