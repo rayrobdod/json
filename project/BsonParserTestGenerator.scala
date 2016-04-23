@@ -129,7 +129,7 @@ class BsonParserTest_Happy extends FunSpec {
 				)
 			)
 			val expected = """ + expected + """
-			val result = new BsonParser().parseComplex(""" + builder + """, source)
+			val result = new BsonParser().parseEither(""" + builder + """, source).left.get
 			assertResult(expected){result}
 		}"""
 	}

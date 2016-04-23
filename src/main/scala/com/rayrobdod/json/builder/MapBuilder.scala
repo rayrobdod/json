@@ -39,8 +39,12 @@ import scala.collection.immutable.Map;
 final class MapBuilder[K,V](childBuilders:Function1[K, Option[Builder[K, V, _]]] = MapBuilder.defaultChildBuilder[K,V]) extends Builder[K, V, Map[K, Any]] {
 	override val init:Map[K, Any] = Map.empty
 	override def apply[Input](key:K):Function3[Map[K,Any], Input, Parser[K, V, Input], Map[K,Any]] = {(folding, innerInput, parser) =>
-		val childBuilder = childBuilders(key)
-		val innerRes:Any = childBuilder.map{x => parser.parseComplex(x, innerInput)}.getOrElse{parser.parsePrimitive(innerInput)}
+		val childBuilder = childBuilders(key).getOrElse(new ThrowBuilder())
+		val eitherRes:Any = parser.parseEither(childBuilder, innerInput)
+		val innerRes:Any = eitherRes match {
+			case Left(x) => x
+			case Right(x) => x
+		}
 		
 		folding + (key -> innerRes)
 	}

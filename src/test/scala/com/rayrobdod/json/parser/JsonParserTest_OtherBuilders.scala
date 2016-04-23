@@ -27,9 +27,10 @@
 package com.rayrobdod.json.parser;
 
 import java.text.ParseException;
+import scala.util.{Left, Right}
 import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
-import com.rayrobdod.json.builder.Builder;
+import com.rayrobdod.json.builder.{Builder, ThrowBuilder}
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue
 
@@ -54,8 +55,8 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 			object SetBuilder extends Builder[StringOrInt, JsonValue, Set[String]] {
 				def init:Set[String] = Set.empty
 				def apply[Input](key:StringOrInt):Function3[Set[String], Input, Parser[StringOrInt, JsonValue, Input], Set[String]] = {(folding, input, parser) =>
-					val inputVal = parser.parsePrimitive(input)
-					val inputStr = inputVal match {case JsonValue.JsonValueString(s) => s; case _ => "????????"}
+					val inputVal = parser.parseEither(new ThrowBuilder, input)
+					val inputStr = inputVal match {case Right(JsonValue.JsonValueString(s)) => s; case _ => "????????"}
 					folding + inputStr
 				}
 			}
@@ -63,7 +64,7 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 			object NameBuilder extends Builder[StringOrInt,JsonValue,Name] {
 				def init:Name = Name("", "", "")
 				def apply[Input](key:StringOrInt):Function3[Name, Input, Parser[StringOrInt, JsonValue, Input], Name] = {(folding, input, parser) =>
-					val value = parser.parsePrimitive(input) match {case JsonValue.JsonValueString(s) => s; case _ => "????????"}
+					val value = parser.parseEither(new ThrowBuilder, input) match {case Right(JsonValue.JsonValueString(s)) => s; case _ => "????????"}
 					
 					key match {
 						case StringOrInt.Left("given") => folding.copy(given = value)
@@ -77,15 +78,15 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 			object PersonBuilder extends Builder[StringOrInt, JsonValue, Person] {
 				def init:Person = Person(Name("", "", ""), "", false, Set.empty)
 				def apply[Input](key:StringOrInt):Function3[Person, Input, Parser[StringOrInt, JsonValue, Input], Person] = key match {
-					case StringOrInt.Left("name") => {(folding, input, parser) => folding.copy(n = parser.parseComplex(NameBuilder, input))}
-					case StringOrInt.Left("gender") => {(folding, input, parser) => folding.copy(gender = parser.parsePrimitive(input) match {case JsonValue.JsonValueString(s) => s; case _ => "????????"})}
-					case StringOrInt.Left("isDead") => {(folding, input, parser) => folding.copy(isDead = parser.parsePrimitive(input) match {case JsonValue.JsonValueBoolean(s) => s; case _ => false})}
-					case StringOrInt.Left("interests") => {(folding, input, parser) => folding.copy(interests = parser.parseComplex(SetBuilder, input))}
+					case StringOrInt.Left("name") => {(folding, input, parser) => folding.copy(n = parser.parseEither(NameBuilder, input).fold({x => x}, {x => new Name("","","")}))}
+					case StringOrInt.Left("gender") => {(folding, input, parser) => folding.copy(gender = parser.parseEither(new ThrowBuilder, input) match {case Right(JsonValue.JsonValueString(s)) => s; case _ => "????????"})}
+					case StringOrInt.Left("isDead") => {(folding, input, parser) => folding.copy(isDead = parser.parseEither(new ThrowBuilder, input) match {case Right(JsonValue.JsonValueBoolean(s)) => s; case _ => false})}
+					case StringOrInt.Left("interests") => {(folding, input, parser) => folding.copy(interests = parser.parseEither(SetBuilder, input).fold({x => x}, {x => Set.empty}))}
 					case _ => throw new ParseException("Unexpected key: " + key, -1)
 				}
 			}
 			
-			val result:Person = new JsonParser().parseComplex(PersonBuilder, json)
+			val result:Person = new JsonParser().parseEither(PersonBuilder, json).left.get
 			val expected = Person(
 				Name( "Raymond", "Robert", "Dodge"),
 				"male",

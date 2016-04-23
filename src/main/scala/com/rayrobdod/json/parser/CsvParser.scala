@@ -46,7 +46,6 @@ final class CsvParser(
 		meaningfulCharacters:CsvParser.CharacterMeanings = CsvParser.csvCharacterMeanings
 ) extends Parser[Int, String, Iterable[Char]] {
 	
-	def parsePrimitive(i:Iterable[Char]):String = new String(i.toArray)
 	def parseEither[A](builder:Builder[Int, String, A], chars:Iterable[Char]):Either[A,String] = {
 		Left(this.parseComplex(builder, chars))
 	}
@@ -101,6 +100,13 @@ final class CsvParser(
 	 */
 	def parseComplex[A](builder:Builder[Int, String, A], chars:java.io.Reader):A = this.parseComplex(builder, new Reader2Iterable(chars))
 	
+	/**
+	 * Decodes the input values to an object.
+	 * @param chars the serialized json object or array
+	 * @return the parsed object
+	 */
+	def parseEither[A](builder:Builder[Int, String, A], chars:java.io.Reader):Either[A,String] = this.parseEither(builder, new Reader2Iterable(chars))
+	
 	
 	private[this] case class State[A] (
 		value:A,
@@ -116,7 +122,6 @@ final class CsvParser(
 	
 	/** Splits a CSV record (i.e. one line) into fields */
 	private[this] final class LineParser extends Parser[Int, String, String] {
-		def parsePrimitive(i:String):String = new String(i.toArray)
 		def parseEither[A](builder:Builder[Int, String, A], chars:String):Either[A,String] = {
 			Left(this.parseComplex(builder, chars))
 		}
@@ -143,7 +148,7 @@ final class CsvParser(
 					state.copy(quoted = true)
 				} else if (meaningfulCharacters.fieldDelimeter contains char) {
 					new State(
-						value = builder.apply(state.innerIndex).apply(state.value, state.innerInput, new LineParser),
+						value = builder.apply(state.innerIndex).apply(state.value, state.innerInput, new IdentityParser),
 						innerIndex = state.innerIndex + 1,
 						innerInput = "",
 						endingWhitespace = "",

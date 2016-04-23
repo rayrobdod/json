@@ -63,27 +63,27 @@ class SeqBuilderTest extends FunSpec {
 		
 		it ("SeqBuilder + JsonParser + primitive") {
 			assertResult(Seq("a", "b", "c").map{JsonValue(_)}){
-				new JsonParser().parseComplex(
+				new JsonParser().parseEither(
 					new PrimitiveSeqBuilder[String, JsonValue].mapKey[StringOrInt]{StringOrInt.unwrapToString},
 					"""["a", "b", "c"]"""
-				)
+				).left.get
 			}
 		}
 		it ("SeqBuilder + SeqParser") {
 			val exp = Seq(15, -4, 2)
-			val res = new SeqParser[Int]().parseComplex(new PrimitiveSeqBuilder, exp)
+			val res = new SeqParser[Int]().parseEither(new PrimitiveSeqBuilder, exp).fold({x => x}, {x => throw new IllegalArgumentException()}) 
 			assertResult(exp){res}
 		}
 		it ("SeqBuilder + JsonParser + BeanBuilder") {
 			assertResult(Seq(Person("Mario", 32),Person("Luigi", 32),Person("Peach", 28))){
-				new JsonParser().parseComplex(
+				new JsonParser().parseEither(
 					new SeqBuilder(new BeanBuilder[JsonValue, Person](classOf[Person])).mapKey[StringOrInt]{StringOrInt.unwrapToString},
 					"""[
 						{"name":"Mario", "age":32},
 						{"name":"Luigi", "age":32},
 						{"name":"Peach", "age":28}
 					]"""
-				)
+				).left.get
 			}
 		}
 	}

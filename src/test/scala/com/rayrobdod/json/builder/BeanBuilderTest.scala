@@ -67,9 +67,9 @@ class BeanBuilderTest extends FunSpec {
 		
 		it ("works") {
 			assertResult(Person("nqpppnl",1)){
-				new JsonParser().parseComplex(new BeanBuilder[JsonValue, Person](classOf[Person]).mapKey[StringOrInt]{StringOrInt.unwrapToString},
+				new JsonParser().parseEither(new BeanBuilder[JsonValue, Person](classOf[Person]).mapKey[StringOrInt]{StringOrInt.unwrapToString},
 					"""{"name":"nqpppnl","age":1}"""
-				)
+				).left.get
 			}
 		}
 	}

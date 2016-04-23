@@ -92,14 +92,12 @@ package parser {
 		 * @param vals the sequence containing values
 		 * @return the parsed object
 		 */
-		def parseComplex[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):A = {
+		def parseEither[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):Either[A,V] = Left(
 			vals.foldLeft[A](topBuilder.init){(state:A, keyValue:(K, V)) => 
 				val (key, value) = keyValue;
 				topBuilder.apply(key).apply(state, value, new IdentityParser)
 			}
-		}
-		def parsePrimitive(vals:Map[K,V]):V = throw new UnsupportedOperationException
-		def parseEither[A](b:Builder[K,V,A], vals:Map[K, V]):Either[A,V] = Left(this.parseComplex(b,vals))
+		)
 	}
 	
 	/**
@@ -115,19 +113,16 @@ package parser {
 		 * @param vals the sequence containing values
 		 * @return the parsed object
 		 */
-		def parseComplex[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):A = {
+		def parseEither[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):Either[A,V] = Left(
 			vals.zipWithIndex.foldLeft[A](topBuilder.init){(state:A, valueKey:(V, Int)) => 
 				val (value, key) = valueKey;
 				topBuilder.apply(key).apply(state, value, new IdentityParser)
 			}
-		}
-		def parsePrimitive(vals:Seq[V]):V = throw new UnsupportedOperationException
-		def parseEither[A](b:Builder[Int,V,A], vals:Seq[V]):Either[A,V] = Left(this.parseComplex(b,vals))
+		)
 	}
 	
 	final class IdentityParser[K,V] extends Parser[K,V,V] {
-		def parseComplex[A](b:Builder[K,V,A], v:V):A = throw new UnsupportedOperationException
-		def parsePrimitive(v:V):V = v
 		def parseEither[A](b:Builder[K,V,A], v:V):Either[A,V] = Right(v)
+		def parsePrimitive(v:V):V = v 
 	}
 }

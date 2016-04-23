@@ -46,15 +46,16 @@ import com.rayrobdod.json.union.JsonValue
 final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 	
 	def parseEither[A](builder:Builder[StringOrInt, JsonValue, A], chars:Iterable[Char]):Either[A,JsonValue] = {
+		val str = chars.mkString
 		try {
-			Right(this.parsePrimitive(chars))
+			Right(this.parsePrimitive(str))
 		} catch {
 			case e:IllegalArgumentException => 
-				Left(this.parseComplex(builder, chars))
+				Left(this.parseComplex(builder, str))
 		}
 	}
 	
-	def parsePrimitive(i:Iterable[Char]):JsonValue = {
+	private def parsePrimitive(i:Iterable[Char]):JsonValue = {
 		val numPattern = java.util.regex.Pattern.compile("""-?\d+\.?\d*(?:[eE][\+\-]?\d+)?""")
 		val s = new String(i.toArray).trim
 		
@@ -87,6 +88,13 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 	 * @return the parsed object
 	 */
 	def parseComplex[A](builder:Builder[StringOrInt, JsonValue, A], chars:java.io.Reader):A = this.parseComplex(builder, new Reader2Iterable(chars))
+	
+	/**
+	 * Decodes the input values to an object.
+	 * @param chars the serialized json object or array
+	 * @return the parsed object
+	 */
+	def parseEither[A](builder:Builder[StringOrInt, JsonValue, A], chars:java.io.Reader):Either[A,JsonValue] = this.parseEither(builder, new Reader2Iterable(chars))
 	
 	
 	/** The parser's state. To be placed inside a foldleft. */

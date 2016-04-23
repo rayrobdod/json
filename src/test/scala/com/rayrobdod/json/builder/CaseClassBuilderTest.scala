@@ -78,10 +78,10 @@ class CaseClassBuilderTest extends FunSpec {
 		
 		it ("works") {
 			assertResult(Person("nqpppnl",1)){
-				new JsonParser().parseComplex(
+				new JsonParser().parseEither(
 					new CaseClassBuilder[JsonValue, Person](new Person("", 0)).mapKey[StringOrInt]{StringOrInt.unwrapToString},
 					"""{"name":"nqpppnl","age":1}"""
-				)
+				).left.get
 			}
 		}
 	}

@@ -41,7 +41,7 @@ class CaseClassParserTest extends FunSpec {
 		it ("""recreates an arbitrary case class""") {
 			val exp = Map("hello" -> 43L, "world" -> "world", "bazz" -> true)
 			val src = Foo(43L, "world", true)
-			val res = new CaseClassParser().parseComplex(new MapBuilder(), src)
+			val res = new CaseClassParser().parseEither(new MapBuilder(), src).left.get
 			
 			assertResult(exp){res}
 		}
@@ -49,8 +49,8 @@ class CaseClassParserTest extends FunSpec {
 	describe("CaseClassParser + Json") {
 		it ("""can be used with the json stuff to serialze and deserialize a case class""") {
 			val src = Foo(-5, "asdf", true)
-			val json = new CaseClassParser().parseComplex(new MinifiedJsonObjectBuilder().mapKey[String].mapValue[Any]{JsonValue.unsafeWrap _}, src)
-			val res = new JsonParser().parseComplex(new CaseClassBuilder(Foo(0,"",false)).mapKey[StringOrInt]{StringOrInt.unwrapToString _}.mapValue[JsonValue]{JsonValue.unwrap}, json)
+			val json = new CaseClassParser().parseEither(new MinifiedJsonObjectBuilder().mapKey[String].mapValue[Any]{JsonValue.unsafeWrap _}, src).left.get
+			val res = new JsonParser().parseEither(new CaseClassBuilder(Foo(0,"",false)).mapKey[StringOrInt]{StringOrInt.unwrapToString _}.mapValue[JsonValue]{JsonValue.unwrap}, json).left.get
 			
 			assertResult(src){res}
 		}

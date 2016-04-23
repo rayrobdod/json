@@ -168,38 +168,38 @@ class CborObjectBuilderTest extends FunSpec {
 		
 		it ("CborObjectBuilder + JsonParser + primitive") {
 			assertResult(hexSeq"A3 6161 183D 6162 183E 6163 183F"){
-				new JsonParser().parseComplex(
+				new JsonParser().parseEither(
 					new CborObjectBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""{"a":61,"b":62,"c":63}"""
-				)
+				).left.get
 			}
 		}
 		ignore ("CborObjectBuilder + JsonParser + nested objects") {
 			assertResult(hexSeq"A1 60 A2 616100 616201"){
-				new JsonParser().parseComplex(
+				new JsonParser().parseEither(
 					new CborObjectBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""{"":{"a":0,"b":1}}"""
-				)
+				).left.get
 			}
 		}
 		it ("CborObjectBuilder + CborParser + primitive key") {
 			assertResult(hexSeq"A10405"){
-				new CborParser().parseComplex(
+				new CborParser().parseEither(
 					new CborObjectBuilder().mapValue[JsonValue],
 					byteArray2DataInput(
 							hexArray"A10405"
 					)
-				)
+				).left.get
 			}
 		}
 		it ("CborObjectBuilder + CborParser + primitives") {
 			assertResult(hexSeq"A162202005"){
-				new CborParser().parseComplex(
+				new CborParser().parseEither(
 					new CborObjectBuilder().mapValue[JsonValue],
 					byteArray2DataInput(
 							hexArray"A162202005"
 					)
-				)
+				).left.get
 			}
 		}
 	}

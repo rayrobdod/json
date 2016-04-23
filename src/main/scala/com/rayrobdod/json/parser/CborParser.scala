@@ -52,7 +52,7 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 		}
 	}
 	
-	def parseComplex[A](builder:Builder[JsonValue, JsonValue, A], i:DataInput):A = {
+	private def parseComplex[A](builder:Builder[JsonValue, JsonValue, A], i:DataInput):A = {
 		val a = this.parse(builder, i)
 		a match {
 			case ParseReturnValueComplex(x) => x

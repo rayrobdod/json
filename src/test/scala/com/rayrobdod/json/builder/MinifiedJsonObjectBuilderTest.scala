@@ -113,54 +113,54 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 		
 		it ("MinifiedJsonObjectBuilder + JsonParser + primitive") {
 			assertResult("""{"a":61,"b":62,"c":63}"""){
-				new JsonParser().parseComplex(
+				new JsonParser().parseEither(
 					builder,
 					"""{"a":61,"b":62,"c":63}"""
-				)
+				).left.get
 			}
 		}
 		it ("MinifiedJsonObjectBuilder + JsonParser + primitive (whitespace)") {
 			assertResult("""{"a":61,"b":62,"c":63}"""){
-				new JsonParser().parseComplex(
+				new JsonParser().parseEither(
 					builder,
 					"""{
 	"a" : 61,
 	"b" : 62,
 	"c" : 63
 }"""
-				)
+				).left.get
 			}
 		}
 		it ("MinifiedJsonObjectBuilder + JsonParser + nested objects") {
 			assertResult("""{"":{"a":0,"b":1}}"""){
-				new JsonParser().parseComplex(
+				new JsonParser().parseEither(
 					builder,
 					"""{"":{"a":0,"b":1}}"""
-				)
+				).left.get
 			}
 		}
 		it ("MinifiedJsonObjectBuilder + CborParser + primitives") {
 			assertResult("""{"4":5}"""){
-				new CborParser().parseComplex(
+				new CborParser().parseEither(
 					new MinifiedJsonObjectBuilder().mapKey[JsonValue]{_ match {case JsonValueString(x) => x; case JsonValueNumber(x) => x.toString}},
 					byteArray2DataInput(hexArray"A10405")
-				)
+				).left.get
 			}
 		}
 		it ("MinifiedJsonObjectBuilder + case class") {
 			assertResult("""{"a":5,"b":false,"c":"str"}"""){
-				new CaseClassParser().parseComplex(
+				new CaseClassParser().parseEither(
 					new MinifiedJsonObjectBuilder().mapValue[Any]{JsonValue.unsafeWrap},
 					Abc(5,false,"str")
-				)
+				).fold({x => x}, {x => throw new IllegalArgumentException()})
 			}
 		}
 		ignore ("MinifiedJsonObjectBuilder + nested case class") {
 			assertResult("""{"5":{"a":5,"b":false,"c":"str"}}"""){
-				new MapParser().parseComplex(
+				new MapParser().parseEither(
 					new MinifiedJsonObjectBuilder().mapValue[Any]{JsonValue.unsafeWrap},
 					Map("5" -> Abc(5,false,"str"))
-				)
+				).fold({x => x}, {x => throw new IllegalArgumentException()})
 			}
 		}
 	}

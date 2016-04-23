@@ -11,19 +11,10 @@ import com.rayrobdod.json.builder.Builder
 trait Parser[Key, Value, Input] {
 	// NOTE: Either[Throwable, Output] instead of throwing stuff?
 	/**
-	 * Parses the input into a complex value
-	 */
-	@deprecated("asdf", "next")
-	def parseComplex[Output](builder:Builder[Key, Value, Output], i:Input):Output
-	
-	/**
-	 * Parses the input into a primitive value
-	 */
-	@deprecated("use parseEither instead", "next")
-	def parsePrimitive(i:Input):Value
-	
-	/**
 	 * Parse the input into either a Value or an Output
+	 * @param builder a builder in the case the the parser finds a complex value
+	 * @param i the input to the parser
+	 * @tparam ComplexOutput the type of object the Builder produces
 	 */
 	def parseEither[ComplexOutput](builder:Builder[Key, Value, ComplexOutput], i:Input):Either[ComplexOutput, Value]
 }

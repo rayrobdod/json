@@ -138,22 +138,22 @@ class PrettyJsonBuilderTest extends FunSpec {
 			it ("will echo a properly formatted string") {
 				val exp = "[\n\t61,\n\t62,\n\t63\n]"
 				val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n")).mapValue[JsonValue]
-				assertResult(exp){new JsonParser().parseComplex(dut, exp)}
+				assertResult(exp){new JsonParser().parseEither(dut, exp).left.get}
 			}
 			it ("will pretty-print a compacted string") {
 				val exp = "[\n\t61,\n\t62,\n\t63\n]"
 				val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n")).mapValue[JsonValue]
-				assertResult(exp){new JsonParser().parseComplex(dut, "[61,62,63]")}
+				assertResult(exp){new JsonParser().parseEither(dut, "[61,62,63]").left.get}
 			}
 			it ("will minify with the MinifiedPrettyParams") {
 				val exp = "[61,62,63]"
 				val dut = new PrettyJsonBuilder(MinifiedPrettyParams).mapValue[JsonValue]
-				assertResult(exp){new JsonParser().parseComplex(dut, "[\n\t61,\n\t62,\n\t63\n]")}
+				assertResult(exp){new JsonParser().parseEither(dut, "[\n\t61,\n\t62,\n\t63\n]").left.get}
 			}
 			it ("nested arrays") {
 				val exp = "[\n\t[\n\t\t0\n\t]\n]"
 				val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n")).mapValue[JsonValue]
-				assertResult(exp){new JsonParser().parseComplex(dut, "[[0]]")}
+				assertResult(exp){new JsonParser().parseEither(dut, "[[0]]").left.get}
 			}
 		}
 		

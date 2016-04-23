@@ -58,20 +58,24 @@ final class BeanBuilder[Value, A](
 	 * @todo maybe check for other primitive numeric types - IE a `setVal(Short)` when handed a `Long` or visa versa
 	 */
 	def apply[Input](key:String):Function3[A, Input, Parser[String, Value, Input], A] = {(folding, input, parser) =>
-		val value:Any = childBuilders(key).map{x => parser.parseComplex(x, input)}.getOrElse{parser.parsePrimitive(input)}
+		val builder = childBuilders(key).getOrElse(new ThrowBuilder())
 		
-		// Scala doesn't have proper union types.
-		val value2 = value match {
-			case com.rayrobdod.json.union.StringOrInt.Left(x) => x
-			case com.rayrobdod.json.union.StringOrInt.Right(x) => x
-			case com.rayrobdod.json.union.JsonValue.JsonValueString(x) => x
-			case com.rayrobdod.json.union.JsonValue.JsonValueNumber(x) => x
-			case com.rayrobdod.json.union.JsonValue.JsonValueBoolean(x) => x
-			case x => x
+		// unwrap union values
+		val value = {
+			val a = parser.parseEither(builder, input) match {
+				case Left(x) => x
+				case Right(x) => x
+			} 
+			a match {
+				case com.rayrobdod.json.union.StringOrInt.Left(x) => x
+				case com.rayrobdod.json.union.StringOrInt.Right(x) => x
+				case x:com.rayrobdod.json.union.JsonValue => com.rayrobdod.json.union.JsonValue.unwrap(x)
+				case x => x
+			}
 		}
 		
-		val m = clazz.getMethod("set" + key.head.toUpper + key.tail, value2.getClass)
-		m.invoke(folding, value2.asInstanceOf[Object])
+		val m = clazz.getMethod("set" + key.head.toUpper + key.tail, value.getClass)
+		m.invoke(folding, value.asInstanceOf[Object])
 		// the above line should have mutated `folding`.
 		folding
 	}

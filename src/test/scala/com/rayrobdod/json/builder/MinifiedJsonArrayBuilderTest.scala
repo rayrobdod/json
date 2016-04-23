@@ -104,38 +104,38 @@ class MinifiedJsonArrayBuilderTest extends FunSpec {
 		
 		it ("MinifiedJsonArrayBuilder + JsonParser + primitive") {
 			assertResult("""[61,62,63]"""){
-				new JsonParser().parseComplex(
+				new JsonParser().parseEither(
 					new MinifiedJsonArrayBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""[61,62,63]"""
-				)
+				).left.get
 			}
 		}
 		it ("MinifiedJsonArrayBuilder + JsonParser + primitive (whitespace)") {
 			assertResult("""["a","b","c"]"""){
-				new JsonParser().parseComplex(
+				new JsonParser().parseEither(
 					new MinifiedJsonArrayBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""[
 	"a",
 	"b",
 	"c"
 ]"""
-				)
+				).left.get
 			}
 		}
 		ignore ("MinifiedJsonArrayBuilder + JsonParser + nested objects") {
 			assertResult("""[{"a":0,"b":1}]"""){
-				new JsonParser().parseComplex(
+				new JsonParser().parseEither(
 					new MinifiedJsonArrayBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""[{"a":0,"b":1}]"""
-				)
+				).left.get
 			}
 		}
 		it ("MinifiedJsonArrayBuilder + CborParser + primitives") {
 			assertResult("""[5]"""){
-				new CborParser().parseComplex(
+				new CborParser().parseEither(
 					new MinifiedJsonArrayBuilder().mapKey[JsonValue].mapValue[JsonValue],
 					byteArray2DataInput(hexArray"A10405")
-				)
+				).left.get
 			}
 		}
 	}

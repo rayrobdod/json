@@ -174,52 +174,52 @@ class CborArrayBuilderTest extends FunSpec {
 		
 		it ("CborArrayBuilder + JsonParser + primitive") {
 			assertResult(hexSeq"83 183D 183E 183F"){
-				new JsonParser().parseComplex(
+				new JsonParser().parseEither(
 					new CborArrayBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""[61, 62, 63]"""
-				)
+				).left.get
 			}
 		}
 		ignore ("CborArrayBuilder + JsonParser + nested objects") {
 			assertResult(hexSeq"81 A2 616100 616201"){
-				new JsonParser().parseComplex(
+				new JsonParser().parseEither(
 					new CborArrayBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""[{"a":0,"b":1}]"""
-				)
+				).left.get
 			}
 		}
 		it ("CborArrayBuilder + JsonParser + nested arrays") {
 			assertResult(hexSeq"81 82 00 01"){
-				new JsonParser().parseComplex(
+				new JsonParser().parseEither(
 					new CborArrayBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""[[0,1]]"""
-				)
+				).left.get
 			}
 		}
 		it ("CborArrayBuilder + CborParser + primitives") {
 			assertResult(hexSeq"8262202005"){
-				new CborParser().parseComplex(
+				new CborParser().parseEither(
 					new CborArrayBuilder().mapKey[JsonValue].mapValue[JsonValue],
 					byteArray2DataInput(
 							hexArray"8262202005"
 					)
-				)
+				).left.get
 			}
 		}
 		ignore ("CborArrayBuilder + SeqParser + nested arrays") {
 			assertResult(hexSeq"81818105"){
-				new SeqParser().parseComplex(
+				new SeqParser().parseEither(
 					new CborArrayBuilder().mapKey[Int].mapValue[JsonValue].mapValue[Object]{JsonValue.unsafeWrap _},
 					Seq(Seq(Seq(5)))
-				)
+				).left.get
 			}
 		}
 		ignore ("CborArrayBuilder + nested case classes") {
 			assertResult(hexSeq"81 A3 6161 05 6162 f4 6163 63737472"){
-				new SeqParser().parseComplex(
+				new SeqParser().parseEither(
 					new CborArrayBuilder().mapKey[Int].mapValue[Object]{JsonValue.unsafeWrap _},
 					Seq(Abc(5,false,"str"))
-				)
+				).left.get
 			}
 		}
 	}

@@ -26,6 +26,8 @@
 */
 package com.rayrobdod.json
 
+import com.rayrobdod.json.parser.Parser
+
 /**
  * Contains the various built-in builders.
  *
@@ -34,4 +36,11 @@ package com.rayrobdod.json
  * data types.
  */
 package object builder {
+}
+
+package builder {
+	final class ThrowBuilder[K,V,A] extends Builder[K,V,A] {
+		def init:A = throw new UnsupportedOperationException("using ThrowBuilder")
+		def apply[I](k:K):Function3[A,I,Parser[K,V,I],A] = throw new UnsupportedOperationException("using ThrowBuilder")
+	}
 }
