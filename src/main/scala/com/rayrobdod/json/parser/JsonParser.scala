@@ -45,8 +45,9 @@ import com.rayrobdod.json.union.JsonValue
  */
 final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 	
-	def parseEither[A](builder:Builder[StringOrInt, JsonValue, A], chars:Iterable[Char]):Either[A,JsonValue] = {
+	def parse[A](builder:Builder[StringOrInt, JsonValue, A], chars:Iterable[Char]):Either[A,JsonValue] = {
 		val str = chars.mkString
+		
 		try {
 			Right(this.parsePrimitive(str))
 		} catch {
@@ -72,7 +73,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parseComplex[A](builder:Builder[StringOrInt, JsonValue, A], chars:Iterable[Char]):A = {
+	private def parseComplex[A](builder:Builder[StringOrInt, JsonValue, A], chars:Iterable[Char]):A = {
 		val endstate = chars.zipWithIndex.foldLeft[State[A]](new InitState(builder)){(state, charIndex) =>
 			state.apply(charIndex._1, charIndex._2)
 		}
@@ -87,14 +88,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parseComplex[A](builder:Builder[StringOrInt, JsonValue, A], chars:java.io.Reader):A = this.parseComplex(builder, new Reader2Iterable(chars))
-	
-	/**
-	 * Decodes the input values to an object.
-	 * @param chars the serialized json object or array
-	 * @return the parsed object
-	 */
-	def parseEither[A](builder:Builder[StringOrInt, JsonValue, A], chars:java.io.Reader):Either[A,JsonValue] = this.parseEither(builder, new Reader2Iterable(chars))
+	def parse[A](builder:Builder[StringOrInt, JsonValue, A], chars:java.io.Reader):Either[A,JsonValue] = this.parse(builder, new Reader2Iterable(chars))
 	
 	
 	/** The parser's state. To be placed inside a foldleft. */

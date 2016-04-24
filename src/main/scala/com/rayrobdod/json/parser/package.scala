@@ -92,7 +92,7 @@ package parser {
 		 * @param vals the sequence containing values
 		 * @return the parsed object
 		 */
-		def parseEither[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):Either[A,V] = Left(
+		def parse[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):Either[A,V] = Left(
 			vals.foldLeft[A](topBuilder.init){(state:A, keyValue:(K, V)) => 
 				val (key, value) = keyValue;
 				topBuilder.apply(key).apply(state, value, new IdentityParser)
@@ -113,7 +113,7 @@ package parser {
 		 * @param vals the sequence containing values
 		 * @return the parsed object
 		 */
-		def parseEither[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):Either[A,V] = Left(
+		def parse[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):Either[A,V] = Left(
 			vals.zipWithIndex.foldLeft[A](topBuilder.init){(state:A, valueKey:(V, Int)) => 
 				val (value, key) = valueKey;
 				topBuilder.apply(key).apply(state, value, new IdentityParser)
@@ -122,7 +122,6 @@ package parser {
 	}
 	
 	final class IdentityParser[K,V] extends Parser[K,V,V] {
-		def parseEither[A](b:Builder[K,V,A], v:V):Either[A,V] = Right(v)
-		def parsePrimitive(v:V):V = v 
+		def parse[A](b:Builder[K,V,A], v:V):Either[A,V] = Right(v)
 	}
 }

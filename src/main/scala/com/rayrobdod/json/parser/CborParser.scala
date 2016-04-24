@@ -44,24 +44,8 @@ import com.rayrobdod.json.union.JsonValue
 final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 	import CborParser._
 	
-	def parsePrimitive(i:DataInput):JsonValue = {
-		val a = this.parse(new PrimitiveSeqBuilder, i)
-		a match {
-			case ParseReturnValueSimple(x:JsonValue) => x
-			case _ => throw new ParseException("Not a Primitive", -1)
-		}
-	}
-	
-	private def parseComplex[A](builder:Builder[JsonValue, JsonValue, A], i:DataInput):A = {
-		val a = this.parse(builder, i)
-		a match {
-			case ParseReturnValueComplex(x) => x
-			case _ => throw new ParseException("Was a Primitive", -1)
-		}
-	}
-	
-	def parseEither[ComplexOutput](builder:Builder[JsonValue, JsonValue, ComplexOutput], i:DataInput):Either[ComplexOutput, JsonValue] = {
-		val a = this.parse[ComplexOutput](builder, i)
+	def parse[ComplexOutput](builder:Builder[JsonValue, JsonValue, ComplexOutput], i:DataInput):Either[ComplexOutput, JsonValue] = {
+		val a = this.parseDetailed[ComplexOutput](builder, i)
 		a match {
 			case ParseReturnValueSimple(x:JsonValue) => Right(x)
 			case ParseReturnValueComplex(x) => Left(x)
@@ -73,7 +57,7 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 	/**
 	 * Decodes the input values to an object.
 	 */
-	def parse[A](topBuilder:Builder[JsonValue, JsonValue, A], input:DataInput):ParseReturnValue[A] = {
+	def parseDetailed[A](topBuilder:Builder[JsonValue, JsonValue, A], input:DataInput):ParseReturnValue[A] = {
 		val headerByte:Byte = input.readByte();
 		val majorType = (headerByte >> 5) & 0x07
 		val additionalInfo = headerByte & 0x1F
@@ -108,7 +92,7 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 			case MajorTypeCodes.OBJECT => ParseReturnValueComplex(parseObject(topBuilder, input, additionalInfoData))
 			// tags
 			case MajorTypeCodes.TAG => additionalInfoData match {
-				case AdditionalInfoDeterminate(value) => new ParseReturnValueTaggedValue(value, this.parse(topBuilder, input))
+				case AdditionalInfoDeterminate(value) => new ParseReturnValueTaggedValue(value, this.parseDetailed(topBuilder, input))
 				case x:AdditionalInfoIndeterminate => throw new UnsupportedOperationException("Indeterminate tag value")
 			}
 			// floats/simple
@@ -140,7 +124,7 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 			case AdditionalInfoIndeterminate() => {
 				val stream = new java.io.ByteArrayOutputStream
 				
-				var next:Any = this.parse(new PrimitiveSeqBuilder, input)
+				var next:Any = this.parseDetailed(new PrimitiveSeqBuilder, input)
 				while (next != ParseReturnValueEndOfIndeterminateObject()) {
 					val nextBytes:Array[Byte] = next match {
 						case ParseReturnValueSimple(JsonValue.JsonValueString(s:String)) => s.getBytes(UTF_8)
@@ -148,7 +132,7 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 						case _ => throw new ClassCastException("Members of indeterminite-length string must be strings")
 					}
 					stream.write(nextBytes)
-					next = this.parse(new PrimitiveSeqBuilder, input)
+					next = this.parseDetailed(new PrimitiveSeqBuilder, input)
 				}
 				stream.toByteArray()
 			}
@@ -175,7 +159,7 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 				var childObject:ParseReturnValue[_] = ParseReturnValueUnknownSimple(0)
 				while (childObject != ParseReturnValueEndOfIndeterminateObject()) {
 					val childBuilder = topBuilder.apply[JsonValue](JsonValue(index))
-					childObject = this.parse(new SeqBuilder(new MapBuilder()), input)
+					childObject = this.parseDetailed(new SeqBuilder(new MapBuilder()), input)
 					
 					childObject match {
 						case ParseReturnValueEndOfIndeterminateObject() => {}
@@ -200,7 +184,7 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 		aid match {
 			case AdditionalInfoDeterminate(len:Long) => {
 				(0 until len.intValue).foreach{index =>
-					val keyObject = this.parsePrimitive(input)
+					val keyObject = this.parse(new ThrowBuilder, input).right.get
 					val childBuilder = topBuilder.apply[DataInput](keyObject)
 					retVal = childBuilder.apply(retVal, input, this)
 				}
@@ -208,7 +192,7 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 			case AdditionalInfoIndeterminate() => {
 				var keyObject:ParseReturnValue[_] = ParseReturnValueUnknownSimple(0)
 				while (keyObject != ParseReturnValueEndOfIndeterminateObject()) {
-					keyObject = this.parse(new PrimitiveSeqBuilder, input)
+					keyObject = this.parseDetailed(new PrimitiveSeqBuilder, input)
 					keyObject match {
 						case ParseReturnValueEndOfIndeterminateObject() => {}
 						case ParseReturnValueSimple(x) => {

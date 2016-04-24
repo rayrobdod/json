@@ -46,10 +46,6 @@ final class CsvParser(
 		meaningfulCharacters:CsvParser.CharacterMeanings = CsvParser.csvCharacterMeanings
 ) extends Parser[Int, String, Iterable[Char]] {
 	
-	def parseEither[A](builder:Builder[Int, String, A], chars:Iterable[Char]):Either[A,String] = {
-		Left(this.parseComplex(builder, chars))
-	}
-	
 	/**
 	 * Decodes the input values to an object.
 	 * @tparam A the type of object to create
@@ -57,7 +53,7 @@ final class CsvParser(
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parseComplex[A](builder:Builder[Int, String, A], chars:Iterable[Char]):A = {
+	def parse[A](builder:Builder[Int, String, A], chars:Iterable[Char]):Either[A,String] = Left{
 		val endState = chars.zipWithIndex.foldLeft(State(builder.init, 0, "", "", false, false)){(state, ci) => 
 			val (char, index) = ci
 			
@@ -98,14 +94,7 @@ final class CsvParser(
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parseComplex[A](builder:Builder[Int, String, A], chars:java.io.Reader):A = this.parseComplex(builder, new Reader2Iterable(chars))
-	
-	/**
-	 * Decodes the input values to an object.
-	 * @param chars the serialized json object or array
-	 * @return the parsed object
-	 */
-	def parseEither[A](builder:Builder[Int, String, A], chars:java.io.Reader):Either[A,String] = this.parseEither(builder, new Reader2Iterable(chars))
+	def parse[A](builder:Builder[Int, String, A], chars:java.io.Reader):Either[A,String] = this.parse(builder, new Reader2Iterable(chars))
 	
 	
 	private[this] case class State[A] (
@@ -122,11 +111,7 @@ final class CsvParser(
 	
 	/** Splits a CSV record (i.e. one line) into fields */
 	private[this] final class LineParser extends Parser[Int, String, String] {
-		def parseEither[A](builder:Builder[Int, String, A], chars:String):Either[A,String] = {
-			Left(this.parseComplex(builder, chars))
-		}
-		
-		def parseComplex[A](builder:Builder[Int, String, A], chars:String):A = {
+		def parse[A](builder:Builder[Int, String, A], chars:String):Either[A,String] = Left{
 			val endState = chars.zipWithIndex.foldLeft(State(builder.init, 0, "", "", false, false)){(state, ci) => 
 				val (char, index) = ci
 				
@@ -207,4 +192,3 @@ object CsvParser {
 	 */
 	val asciiCharacterMeanings = CharacterMeanings(Set('\u001E'), Set('\u001F'), Set.empty, Set.empty, Set.empty)
 }
-

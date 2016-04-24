@@ -174,7 +174,7 @@ class CborArrayBuilderTest extends FunSpec {
 		
 		it ("CborArrayBuilder + JsonParser + primitive") {
 			assertResult(hexSeq"83 183D 183E 183F"){
-				new JsonParser().parseEither(
+				new JsonParser().parse(
 					new CborArrayBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""[61, 62, 63]"""
 				).left.get
@@ -182,7 +182,7 @@ class CborArrayBuilderTest extends FunSpec {
 		}
 		ignore ("CborArrayBuilder + JsonParser + nested objects") {
 			assertResult(hexSeq"81 A2 616100 616201"){
-				new JsonParser().parseEither(
+				new JsonParser().parse(
 					new CborArrayBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""[{"a":0,"b":1}]"""
 				).left.get
@@ -190,7 +190,7 @@ class CborArrayBuilderTest extends FunSpec {
 		}
 		it ("CborArrayBuilder + JsonParser + nested arrays") {
 			assertResult(hexSeq"81 82 00 01"){
-				new JsonParser().parseEither(
+				new JsonParser().parse(
 					new CborArrayBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""[[0,1]]"""
 				).left.get
@@ -198,7 +198,7 @@ class CborArrayBuilderTest extends FunSpec {
 		}
 		it ("CborArrayBuilder + CborParser + primitives") {
 			assertResult(hexSeq"8262202005"){
-				new CborParser().parseEither(
+				new CborParser().parse(
 					new CborArrayBuilder().mapKey[JsonValue].mapValue[JsonValue],
 					byteArray2DataInput(
 							hexArray"8262202005"
@@ -208,7 +208,7 @@ class CborArrayBuilderTest extends FunSpec {
 		}
 		ignore ("CborArrayBuilder + SeqParser + nested arrays") {
 			assertResult(hexSeq"81818105"){
-				new SeqParser().parseEither(
+				new SeqParser().parse(
 					new CborArrayBuilder().mapKey[Int].mapValue[JsonValue].mapValue[Object]{JsonValue.unsafeWrap _},
 					Seq(Seq(Seq(5)))
 				).left.get
@@ -216,7 +216,7 @@ class CborArrayBuilderTest extends FunSpec {
 		}
 		ignore ("CborArrayBuilder + nested case classes") {
 			assertResult(hexSeq"81 A3 6161 05 6162 f4 6163 63737472"){
-				new SeqParser().parseEither(
+				new SeqParser().parse(
 					new CborArrayBuilder().mapKey[Int].mapValue[Object]{JsonValue.unsafeWrap _},
 					Seq(Abc(5,false,"str"))
 				).left.get

@@ -40,7 +40,7 @@ final class MapBuilder[K,V](childBuilders:Function1[K, Option[Builder[K, V, _]]]
 	override val init:Map[K, Any] = Map.empty
 	override def apply[Input](key:K):Function3[Map[K,Any], Input, Parser[K, V, Input], Map[K,Any]] = {(folding, innerInput, parser) =>
 		val childBuilder = childBuilders(key).getOrElse(new ThrowBuilder())
-		val eitherRes:Any = parser.parseEither(childBuilder, innerInput)
+		val eitherRes:Any = parser.parse(childBuilder, innerInput)
 		val innerRes:Any = eitherRes match {
 			case Left(x) => x
 			case Right(x) => x

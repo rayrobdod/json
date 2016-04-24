@@ -38,119 +38,119 @@ class JsonParserTest_Unhappy extends FunSpec {
 		it ("""errors when object is incomplete""") {
 			val source = """{"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(1){ex.getErrorOffset()}
 		}
 		it ("""errors when array is incomplete""") {
 			val source = """ ["""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(2){ex.getErrorOffset()}
 		}
 		it ("""errors when string starts with non-space characters""") {
 			val source = """abc"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(0){ex.getErrorOffset()}
 		}
 		it ("""errors when string ends with non-space characters""") {
 			val source = """[]abc"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(2){ex.getErrorOffset()}
 		}
 		it ("""errors when map key is not a string""") {
 			val source = """{2:3}"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(1){ex.getErrorOffset()}
 		}
 		it ("""errors when map key is more than just a string""") {
 			val source = """{"fd" null}"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(6){ex.getErrorOffset()}
 		}
 		it ("""errors when map value is more than just a string""") {
 			val source = """{" ":"hello" "world"}"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(13){ex.getErrorOffset()}
 		}
 		it ("""errors when array value is more than just a string""") {
 			val source = """["hello" "world"]"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(9){ex.getErrorOffset()}
 		}
 		it ("""errors when object value is not alphanumeric""") {
 			val source = """{"fd":%%%}"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(6){ex.getErrorOffset()}
 		}
 		it ("""errors when array value is not alphanumeric""") {
 			val source = """[%%%]"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(1){ex.getErrorOffset()}
 		}
 		it ("""errors when array value is not a keyword""") {
 			val source = """[nothing]"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(8){ex.getErrorOffset()}
 		}
 		it ("""errors when number starts with a decimal point (array)""") {
 			val source = """[.5]"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(1){ex.getErrorOffset()}
 		}
 		it ("""errors when number starts with a decimal point (object)""") {
 			val source = """{"":.5}"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(4){ex.getErrorOffset()}
 		}
 		it ("""errors when number starts with an exponent indicator (array)""") {
 			val source = """[e5]"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(3){ex.getErrorOffset()}
 		}
 		it ("""errors when number starts with a exponent indicator (object)""") {
 			val source = """{"":e5}"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(6){ex.getErrorOffset()}
 		}
 		it ("""errors when number starts with a plus sign (array)""") {
 			val source = """[+5]"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(1){ex.getErrorOffset()}
 		}
 		it ("""errors when number starts with a plus sign (object)""") {
 			val source = """{"":+5}"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(4){ex.getErrorOffset()}
 		}
@@ -160,7 +160,7 @@ class JsonParserTest_Unhappy extends FunSpec {
 			('\u0000' until ' ').foreach{c =>
 				val source = Seq('[', '"', c, '"', ']') 
 				val ex = intercept[ParseException]{
-					new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+					new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 				}
 				assertResult(2){ex.getErrorOffset()}
 			}
@@ -168,77 +168,77 @@ class JsonParserTest_Unhappy extends FunSpec {
 		it ("""errors on illegal escape character inside string""") {
 			val source = """["\a"]"""
 			val ex =intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(3){ex.getErrorOffset()}
 		}
 		it ("""errors on illegal character in unicode escape""") {
 			val source = "[\"\\u1y34\"]"
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(5){ex.getErrorOffset()}
 		}
 		it ("""errors on illegal character in unicode escape 2""") {
 			val source = "[\"\\u1Y4\"]"
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(5){ex.getErrorOffset()}
 		}
 		it ("""errors on illegal character in unicode escape 3""") {
 			val source = "[\"\\u1 4\"]"
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(5){ex.getErrorOffset()}
 		}
 		it ("""errors on illegal character in unicode escape 4""") {
 			val source = "[\"\\u1=4\"]"
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(5){ex.getErrorOffset()}
 		}
 		it ("""errors on trailing comma (array)""") {
 			val source = """[1,2,3,]"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(7){ex.getErrorOffset()}
 		}
 		it ("""errors on empty value (array)""") {
 			val source = """[1,,3]"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(3){ex.getErrorOffset()}
 		}
 		it ("""errors on empty value 2 (array)""") {
 			val source = """[,]"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(1){ex.getErrorOffset()}
 		}
 		it ("""errors on trailing comma (object)""") {
 			val source = """{"a":2,}"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(7){ex.getErrorOffset()}
 		}
 		it ("""errors on empty value (object)""") {
 			val source = """{"":0,,}"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(6){ex.getErrorOffset()}
 		}
 		it ("""errors on empty value 2 (object)""") {
 			val source = """{,}"""
 			val ex = intercept[ParseException]{
-				new JsonParser().parseEither(new MapBuilder[StringOrInt, JsonValue], source)
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 			assertResult(1){ex.getErrorOffset()}
 		}

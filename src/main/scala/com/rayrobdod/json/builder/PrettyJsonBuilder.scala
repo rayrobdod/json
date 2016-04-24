@@ -51,7 +51,7 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 	val init:String = params.lbrace(level) + params.rbrace(level)
 	
 	def apply[Input](key:StringOrInt):Function3[String, Input, Parser[StringOrInt, JsonValue, Input], String] = {(folding, innerInput, parser) =>
-		val value = parser.parseEither(nextLevel, innerInput)
+		val value = parser.parse(nextLevel, innerInput)
 		val encodedValue = value match {
 			case Left(x) => x
 			case Right(x) => serialize(x, charset)

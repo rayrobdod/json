@@ -62,7 +62,7 @@ final class BeanBuilder[Value, A](
 		
 		// unwrap union values
 		val value = {
-			val a = parser.parseEither(builder, input) match {
+			val a = parser.parse(builder, input) match {
 				case Left(x) => x
 				case Right(x) => x
 			} 

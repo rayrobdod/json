@@ -113,7 +113,7 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 		
 		it ("MinifiedJsonObjectBuilder + JsonParser + primitive") {
 			assertResult("""{"a":61,"b":62,"c":63}"""){
-				new JsonParser().parseEither(
+				new JsonParser().parse(
 					builder,
 					"""{"a":61,"b":62,"c":63}"""
 				).left.get
@@ -121,7 +121,7 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 		}
 		it ("MinifiedJsonObjectBuilder + JsonParser + primitive (whitespace)") {
 			assertResult("""{"a":61,"b":62,"c":63}"""){
-				new JsonParser().parseEither(
+				new JsonParser().parse(
 					builder,
 					"""{
 	"a" : 61,
@@ -133,7 +133,7 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 		}
 		it ("MinifiedJsonObjectBuilder + JsonParser + nested objects") {
 			assertResult("""{"":{"a":0,"b":1}}"""){
-				new JsonParser().parseEither(
+				new JsonParser().parse(
 					builder,
 					"""{"":{"a":0,"b":1}}"""
 				).left.get
@@ -141,7 +141,7 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 		}
 		it ("MinifiedJsonObjectBuilder + CborParser + primitives") {
 			assertResult("""{"4":5}"""){
-				new CborParser().parseEither(
+				new CborParser().parse(
 					new MinifiedJsonObjectBuilder().mapKey[JsonValue]{_ match {case JsonValueString(x) => x; case JsonValueNumber(x) => x.toString}},
 					byteArray2DataInput(hexArray"A10405")
 				).left.get
@@ -149,7 +149,7 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 		}
 		it ("MinifiedJsonObjectBuilder + case class") {
 			assertResult("""{"a":5,"b":false,"c":"str"}"""){
-				new CaseClassParser().parseEither(
+				new CaseClassParser().parse(
 					new MinifiedJsonObjectBuilder().mapValue[Any]{JsonValue.unsafeWrap},
 					Abc(5,false,"str")
 				).fold({x => x}, {x => throw new IllegalArgumentException()})
@@ -157,7 +157,7 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 		}
 		ignore ("MinifiedJsonObjectBuilder + nested case class") {
 			assertResult("""{"5":{"a":5,"b":false,"c":"str"}}"""){
-				new MapParser().parseEither(
+				new MapParser().parse(
 					new MinifiedJsonObjectBuilder().mapValue[Any]{JsonValue.unsafeWrap},
 					Map("5" -> Abc(5,false,"str"))
 				).fold({x => x}, {x => throw new IllegalArgumentException()})

@@ -168,7 +168,7 @@ class CborObjectBuilderTest extends FunSpec {
 		
 		it ("CborObjectBuilder + JsonParser + primitive") {
 			assertResult(hexSeq"A3 6161 183D 6162 183E 6163 183F"){
-				new JsonParser().parseEither(
+				new JsonParser().parse(
 					new CborObjectBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""{"a":61,"b":62,"c":63}"""
 				).left.get
@@ -176,7 +176,7 @@ class CborObjectBuilderTest extends FunSpec {
 		}
 		ignore ("CborObjectBuilder + JsonParser + nested objects") {
 			assertResult(hexSeq"A1 60 A2 616100 616201"){
-				new JsonParser().parseEither(
+				new JsonParser().parse(
 					new CborObjectBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""{"":{"a":0,"b":1}}"""
 				).left.get
@@ -184,7 +184,7 @@ class CborObjectBuilderTest extends FunSpec {
 		}
 		it ("CborObjectBuilder + CborParser + primitive key") {
 			assertResult(hexSeq"A10405"){
-				new CborParser().parseEither(
+				new CborParser().parse(
 					new CborObjectBuilder().mapValue[JsonValue],
 					byteArray2DataInput(
 							hexArray"A10405"
@@ -194,7 +194,7 @@ class CborObjectBuilderTest extends FunSpec {
 		}
 		it ("CborObjectBuilder + CborParser + primitives") {
 			assertResult(hexSeq"A162202005"){
-				new CborParser().parseEither(
+				new CborParser().parse(
 					new CborObjectBuilder().mapValue[JsonValue],
 					byteArray2DataInput(
 							hexArray"A162202005"

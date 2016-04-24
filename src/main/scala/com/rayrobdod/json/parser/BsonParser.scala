@@ -47,15 +47,7 @@ import com.rayrobdod.json.union._
 final class BsonParser[A] extends Parser[String, JsonValue, DataInput] {
 	import BsonParser.{readCString, TypeCodes}
 	
-	def parsePrimitive(i:DataInput):JsonValue = throw new UnsupportedOperationException
-	def parseEither[A](builder:Builder[String, JsonValue, A], chars:DataInput):Either[A,JsonValue] = {
-		Left(this.parseComplex(builder, chars))
-	}
-	
-	/**
-	 * Decodes the input values to an object.
-	 */
-	def parseComplex[A](builder:Builder[String, JsonValue, A], input:DataInput):A = {
+	def parse[A](builder:Builder[String, JsonValue, A], input:DataInput):Either[A,JsonValue] = Left{
 		// We don't really care about the document length.
 		/* val length = */ Integer.reverseBytes( input.readInt() );
 		

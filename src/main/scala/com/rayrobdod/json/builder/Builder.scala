@@ -50,7 +50,7 @@ trait Builder[Key, Value, Subject] {
 		override def init:Subject = Builder.this.init
 		override def apply[Input](key:K2):Function3[Subject, Input, Parser[K2, Value, Input], Subject] = {(a,b,c) =>
 			final class ReverseParser(innerParser:Parser[K2,Value,Input]) extends Parser[Key,Value,Input] {
-				override def parseEither[Output](builder:Builder[Key,Value,Output], i:Input):Either[Output, Value] = innerParser.parseEither(builder.mapKey[K2](fun), i)
+				override def parse[Output](builder:Builder[Key,Value,Output], i:Input):Either[Output, Value] = innerParser.parse(builder.mapKey[K2](fun), i)
 			}
 			
 			Builder.this.apply(fun(key)).apply(a, b, new ReverseParser(c))
@@ -61,7 +61,7 @@ trait Builder[Key, Value, Subject] {
 		override def init:Subject = Builder.this.init
 		override def apply[Input](key:Key):Function3[Subject, Input, Parser[Key, V2, Input], Subject] = {(a,b,c) =>
 			final class ReverseParser(innerParser:Parser[Key,V2,Input]) extends Parser[Key,Value,Input] {
-				override def parseEither[Output](builder:Builder[Key,Value,Output], i:Input):Either[Output, Value] = innerParser.parseEither[Output](builder.mapValue[V2](fun), i) match {
+				override def parse[Output](builder:Builder[Key,Value,Output], i:Input):Either[Output, Value] = innerParser.parse[Output](builder.mapValue[V2](fun), i) match {
 					case Left(x) => Left(x)
 					case Right(x) => Right(fun(x))
 				}

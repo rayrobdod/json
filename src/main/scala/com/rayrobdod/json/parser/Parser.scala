@@ -16,5 +16,5 @@ trait Parser[Key, Value, Input] {
 	 * @param i the input to the parser
 	 * @tparam ComplexOutput the type of object the Builder produces
 	 */
-	def parseEither[ComplexOutput](builder:Builder[Key, Value, ComplexOutput], i:Input):Either[ComplexOutput, Value]
+	def parse[ComplexOutput](builder:Builder[Key, Value, ComplexOutput], i:Input):Either[ComplexOutput, Value]
 }

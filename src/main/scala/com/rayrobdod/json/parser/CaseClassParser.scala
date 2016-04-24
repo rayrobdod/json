@@ -46,7 +46,7 @@ final class CaseClassParser[Input <: Product](implicit clazz:Class[Input]) exten
 	 * @param clazz the class of obj
 	 * @return the parsed object
 	 */
-	def parseComplex[Output](builder:Builder[String, Any, Output], obj:Input):Output = {
+	def parse[Output](builder:Builder[String, Any, Output], obj:Input):Either[Output,Any] = Left{
 		val mirror = runtimeMirror( this.getClass.getClassLoader )
 		val typ = mirror.classSymbol( clazz ).toType
 		val copyMethod = typ.declaration(newTermName("copy")).asMethod
@@ -59,10 +59,5 @@ final class CaseClassParser[Input <: Product](implicit clazz:Class[Input]) exten
 			
 			builder.apply(name2).apply(state, value, new IdentityParser)
 		}
-	}
-	
-	def parsePrimitive(i:Input):Any = throw new UnsupportedOperationException
-	def parseEither[Output](builder:Builder[String, Any, Output], obj:Input):Either[Output,Any] = {
-		Left(this.parseComplex(builder, obj))
 	}
 }

@@ -59,7 +59,7 @@ final class CaseClassBuilder[Value, A <: Product](
 		
 		// unwrap union values
 		val value = {
-			val a = parser.parseEither(builder, input) match {
+			val a = parser.parse(builder, input) match {
 				case Left(x) => x
 				case Right(x) => x
 			} 

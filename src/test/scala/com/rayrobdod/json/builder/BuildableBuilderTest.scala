@@ -48,7 +48,7 @@ class BuildableBuilderTest extends FunSpec {
 			val name = "Anony Mouse"
 			assertResult(new Person(name, 0)){
 				new BuildableBuilder(new Person("", 0))
-						.addDef("name", new KeyDef[String, String, Person]{def apply[I] = {(s,i,p) => s.copy(name = p.parseEither(new ThrowBuilder(), i).fold({x => x}, {x => x}))}})
+						.addDef("name", new KeyDef[String, String, Person]{def apply[I] = {(s,i,p) => s.copy(name = p.parse(new ThrowBuilder(), i).fold({x => x}, {x => x}))}})
 						.apply("name")(new Person("", 0), name, new IdentityParser)
 			}
 		}
@@ -56,7 +56,7 @@ class BuildableBuilderTest extends FunSpec {
 			val age = 9001
 			assertResult(new Person("", age)){
 				new BuildableBuilder(new Person("", 0))
-						.addDef("age", new KeyDef[String, Int, Person]{def apply[I] = {(s,i,p) => s.copy(age = p.parseEither(new ThrowBuilder(), i).fold({x => x}, {x => x}))}})
+						.addDef("age", new KeyDef[String, Int, Person]{def apply[I] = {(s,i,p) => s.copy(age = p.parse(new ThrowBuilder(), i).fold({x => x}, {x => x}))}})
 						.apply("age")(new Person("", 0), age, new IdentityParser)
 			}
 		}
@@ -82,11 +82,11 @@ class BuildableBuilderTest extends FunSpec {
 		
 		it ("works") {
 			val builder = new BuildableBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
-				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parseEither(new ThrowBuilder(), i) match {case Right(JsonValueString(i)) => s.copy(name = i); case _ => throw new IllegalArgumentException}}})
-				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parseEither(new ThrowBuilder(), i) match {case Right(JsonValueNumber(i)) => s.copy(age = i.intValue); case _ => throw new IllegalArgumentException}}})
+				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parse(new ThrowBuilder(), i) match {case Right(JsonValueString(i)) => s.copy(name = i); case _ => throw new IllegalArgumentException}}})
+				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parse(new ThrowBuilder(), i) match {case Right(JsonValueNumber(i)) => s.copy(age = i.intValue); case _ => throw new IllegalArgumentException}}})
 			
 			assertResult(Person("nqpppnl",1)){
-				new JsonParser().parseEither(builder, 
+				new JsonParser().parse(builder, 
 					"""{"name":"nqpppnl","age":1}"""
 				).left.get
 			}
@@ -95,16 +95,16 @@ class BuildableBuilderTest extends FunSpec {
 			val exp = Seq(Person("a", 5), Person("b", 6))
 			
 			val personBuilder = new BuildableBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
-				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parseEither(new ThrowBuilder(), i) match {case Right(JsonValueString(i)) => s.copy(name = i); case _ => throw new IllegalArgumentException}}})
-				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parseEither(new ThrowBuilder(), i) match {case Right(JsonValueNumber(i)) => s.copy(age = i.intValue); case _ => throw new IllegalArgumentException}}})
+				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parse(new ThrowBuilder(), i) match {case Right(JsonValueString(i)) => s.copy(name = i); case _ => throw new IllegalArgumentException}}})
+				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parse(new ThrowBuilder(), i) match {case Right(JsonValueNumber(i)) => s.copy(age = i.intValue); case _ => throw new IllegalArgumentException}}})
 			
 			val seqBuilder = new BuildableBuilder[StringOrInt, JsonValue, Seq[Person]](
 				Nil,
-				new KeyDef[StringOrInt, JsonValue, Seq[Person]]{ def apply[I] = {(s,i,p) => s :+ p.parseEither(personBuilder, i).fold({x => x},{x => throw new IllegalArgumentException})}}
+				new KeyDef[StringOrInt, JsonValue, Seq[Person]]{ def apply[I] = {(s,i,p) => s :+ p.parse(personBuilder, i).fold({x => x},{x => throw new IllegalArgumentException})}}
 			)
 				
 			assertResult(exp){
-				new JsonParser().parseEither(seqBuilder, 
+				new JsonParser().parse(seqBuilder, 
 					"""[{"name":"a","age":5},{"name":"b","age":6}]"""
 				).left.get
 			}

@@ -64,7 +64,7 @@ class MapBuilderTest extends FunSpec {
 		
 		it ("MapBuilder + JsonParser + primitive") {
 			assertResult(Map("a" -> 61, "b" -> 62, "c" -> 63).map{x => ((StringOrInt(x._1), JsonValue(x._2)))}){
-				new JsonParser().parseEither(
+				new JsonParser().parse(
 					new MapBuilder[StringOrInt, JsonValue],
 					"""{"a":61, "b":62, "c":63}"""
 				).left.get
@@ -72,7 +72,7 @@ class MapBuilderTest extends FunSpec {
 		}
 		it ("MapBuilder + JsonParser + BeanBuilder") {
 			assertResult(Map("red" -> Person("Mario", 32),"green" -> Person("Luigi", 32),"pink" -> Person("Peach", 28))){
-				new JsonParser().parseEither(
+				new JsonParser().parse(
 					new MapBuilder[String, JsonValue]({s:String => Option(new BeanBuilder(classOf[Person]))}).mapKey[StringOrInt]{StringOrInt.unwrapToString},
 					"""{
 						"red":{"name":"Mario", "age":32},
