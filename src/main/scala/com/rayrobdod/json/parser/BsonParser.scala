@@ -44,7 +44,7 @@ import com.rayrobdod.json.union._
  * Creates a BsonParser instance.
  * @param topBuilder the builder that this parser will use when constructing objects
  */
-final class BsonParser[A] extends Parser[String, JsonValue, DataInput] {
+final class BsonParser extends Parser[String, JsonValue, DataInput] {
 	import BsonParser.{readCString, TypeCodes}
 	
 	def parse[A](builder:Builder[String, JsonValue, A], input:DataInput):Either[A,JsonValue] = Left{
