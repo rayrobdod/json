@@ -39,7 +39,7 @@ import com.rayrobdod.json.parser.{MapParser, SeqParser}
  * A builder that will create cbor object format byte strings
  * @param transformer a function to convert non-cbor-primitive objects to cbor-primitive objects
  */
-// TODO: widen key to include everything else a CBOR key can be
+@deprecated("use CborBuilder(true) instead", "next")
 final class CborObjectBuilder extends Builder[JsonValue, JsonValue, Seq[Byte]] {
 	import CborObjectBuilder._
 	
@@ -75,6 +75,7 @@ final class CborObjectBuilder extends Builder[JsonValue, JsonValue, Seq[Byte]] {
  * A builder that will create cbor array format byte strings
  * @param transformer a function to convert non-cbor-primitive objects to cbor-primitive objects
  */
+@deprecated("use CborBuilder instead", "next")
 final class CborArrayBuilder() extends Builder[Any, JsonValue, Seq[Byte]] {
 	import CborObjectBuilder._
 	
