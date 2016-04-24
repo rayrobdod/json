@@ -206,21 +206,5 @@ class CborArrayBuilderTest extends FunSpec {
 				).left.get
 			}
 		}
-		ignore ("CborArrayBuilder + SeqParser + nested arrays") {
-			assertResult(hexSeq"81818105"){
-				new SeqParser().parse(
-					new CborArrayBuilder().mapKey[Int].mapValue[JsonValue].mapValue[Object]{JsonValue.unsafeWrap _},
-					Seq(Seq(Seq(5)))
-				).left.get
-			}
-		}
-		ignore ("CborArrayBuilder + nested case classes") {
-			assertResult(hexSeq"81 A3 6161 05 6162 f4 6163 63737472"){
-				new SeqParser().parse(
-					new CborArrayBuilder().mapKey[Int].mapValue[Object]{JsonValue.unsafeWrap _},
-					Seq(Abc(5,false,"str"))
-				).left.get
-			}
-		}
 	}
 }

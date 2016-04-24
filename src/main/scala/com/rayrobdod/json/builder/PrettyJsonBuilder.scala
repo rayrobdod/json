@@ -29,7 +29,7 @@ package com.rayrobdod.json.builder;
 import scala.collection.immutable.Seq;
 import java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.charset.Charset;
-import com.rayrobdod.json.union.{StringOrInt, JsonValue, JsonValueOrCollection}
+import com.rayrobdod.json.union.{StringOrInt, JsonValue}
 import com.rayrobdod.json.parser.{Parser, MapParser, SeqParser}
 
 
@@ -44,7 +44,6 @@ import com.rayrobdod.json.parser.{Parser, MapParser, SeqParser}
  */
 final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Charset = UTF_8, level:Int = 0) extends Builder[StringOrInt, JsonValue, String] {
 	import MinifiedJsonObjectBuilder.serialize
-//		import MinifiedJsonObjectBuilder.{strToJsonStr, serialize}
 
 	private[this] lazy val nextLevel = new PrettyJsonBuilder(params, charset, level + 1)
 	

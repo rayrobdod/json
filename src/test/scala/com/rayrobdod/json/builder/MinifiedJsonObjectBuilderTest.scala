@@ -65,11 +65,6 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 				new MinifiedJsonObjectBuilder().apply("").apply("{}", JsonValue(68), new IdentityParser[String,JsonValue])
 			}
 		}
-		ignore ("Appends seq") {
-			assertResult("""{"":[1,2,3]}"""){
-				// new MinifiedJsonObjectBuilder().apply("").apply("{}", JsonValue(Seq(1,2,3)), new IdentityParser[String,JsonValue])
-			}
-		}
 		it ("Appends string") {
 			assertResult("""{"":"abc"}"""){
 				new MinifiedJsonObjectBuilder().apply("").apply("{}", JsonValue("abc"), new IdentityParser[String,JsonValue])

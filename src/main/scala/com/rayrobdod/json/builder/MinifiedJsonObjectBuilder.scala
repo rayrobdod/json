@@ -106,8 +106,6 @@ private[builder] object MinifiedJsonObjectBuilder {
 		case JsonValueBoolean(x) => x.toString
 		case JsonValueNull => "null"
 		case JsonValueString(x) => strToJsonStr(x, charset)
-//		case x:Map[_,_] => new MapParser(new MinifiedJsonObjectBuilder(charset, transformer)).parse(x.map{x => ((x._1.toString, x._2))})
-//		case x:Seq[_] => new SeqParser(new MinifiedJsonArrayBuilder(charset, transformer)).parse(x:Seq[Any])
 		case JsonValueByteStr(x) => throw new UnsupportedOperationException("Serialize ByteStr to Json")
 	}
 	

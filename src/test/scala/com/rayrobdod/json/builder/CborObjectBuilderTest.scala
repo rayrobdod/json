@@ -37,6 +37,9 @@ import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter}
 
 class CborObjectBuilderTest extends FunSpec {
+	private case class Abc(a:Int, b:Boolean, c:String)
+	private implicit def classAbc = classOf[Abc]
+	
 	describe("CborObjectBuilder") {
 		it ("inits correctly") {
 			assertResult(Seq(0xA0.byteValue)){new CborObjectBuilder().init}
@@ -164,7 +167,7 @@ class CborObjectBuilderTest extends FunSpec {
 	}
 	
 	describe("CborObjectBuilder integration") {
-		import com.rayrobdod.json.parser.{JsonParser, CborParser}
+		import com.rayrobdod.json.parser.{JsonParser, CborParser, CaseClassParser}
 		
 		it ("CborObjectBuilder + JsonParser + primitive") {
 			assertResult(hexSeq"A3 6161 183D 6162 183E 6163 183F"){
@@ -174,7 +177,7 @@ class CborObjectBuilderTest extends FunSpec {
 				).left.get
 			}
 		}
-		ignore ("CborObjectBuilder + JsonParser + nested objects") {
+		it ("CborObjectBuilder + JsonParser + nested objects") {
 			assertResult(hexSeq"A1 60 A2 616100 616201"){
 				new JsonParser().parse(
 					new CborObjectBuilder().mapKey[StringOrInt].mapValue[JsonValue],
@@ -199,6 +202,14 @@ class CborObjectBuilderTest extends FunSpec {
 					byteArray2DataInput(
 							hexArray"A162202005"
 					)
+				).left.get
+			}
+		}
+		it ("CborObjectBuilder + CaseClassParser") {
+			assertResult(hexSeq"A3 6161 05 6162 f4 6163 63737472"){
+				new CaseClassParser[Abc]().parse(
+					new CborObjectBuilder().mapKey[String].mapValue[Any]{JsonValue.unsafeWrap _},
+					Abc(5,false,"str")
 				).left.get
 			}
 		}

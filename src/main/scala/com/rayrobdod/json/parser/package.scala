@@ -122,6 +122,7 @@ package parser {
 	}
 	
 	final class IdentityParser[K,V] extends Parser[K,V,V] {
+		/** Returns `scala.util.Right(v)` */
 		def parse[A](b:Builder[K,V,A], v:V):Either[A,V] = Right(v)
 	}
 }

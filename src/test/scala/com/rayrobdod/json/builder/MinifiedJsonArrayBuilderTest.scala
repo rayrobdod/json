@@ -122,14 +122,6 @@ class MinifiedJsonArrayBuilderTest extends FunSpec {
 				).left.get
 			}
 		}
-		ignore ("MinifiedJsonArrayBuilder + JsonParser + nested objects") {
-			assertResult("""[{"a":0,"b":1}]"""){
-				new JsonParser().parse(
-					new MinifiedJsonArrayBuilder().mapKey[StringOrInt].mapValue[JsonValue],
-					"""[{"a":0,"b":1}]"""
-				).left.get
-			}
-		}
 		it ("MinifiedJsonArrayBuilder + CborParser + primitives") {
 			assertResult("""[5]"""){
 				new CborParser().parse(

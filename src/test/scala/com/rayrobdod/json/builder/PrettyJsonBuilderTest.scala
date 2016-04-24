@@ -32,11 +32,9 @@ import org.scalatest.FunSpec;
 import java.nio.charset.StandardCharsets.US_ASCII;
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.JsonValue._
-import com.rayrobdod.json.union.JsonValueOrCollection
-import com.rayrobdod.json.union.JsonValueOrCollection._
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.StringOrInt._
-import com.rayrobdod.json.parser.IdentityParser
+import com.rayrobdod.json.parser.{IdentityParser, SeqParser, MapParser}
 import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter};
 
 class PrettyJsonBuilderTest extends FunSpec {
@@ -79,19 +77,6 @@ class PrettyJsonBuilderTest extends FunSpec {
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"), level = 1)
 			assertResultStr(exp){dut.apply(2).apply("[\n\t\t1,\n\t\t2\n\t]", JsonValue(3), new IdentityParser[StringOrInt,JsonValue])}
 		}
-		ignore ("Nested arrays") {
-			val exp = """[
-	[
-		[
-			
-		]
-	]
-]""".replace("""
-""", "\n")
-			val coll = JsonValueOrCollection(List(JsonValueOrCollection(List())))
-		//	val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-		//	assertResultStr(exp){dut.apply(0).apply(dut.init, coll, new IdentityParser[StringOrInt,JsonValue])}
-		}
 		it ("Appends an integer to an object") {
 			val exp = """{\n\t"a" : 42\n}"""
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
@@ -101,32 +86,6 @@ class PrettyJsonBuilderTest extends FunSpec {
 			val exp = """{\n    "a" : 42\n}"""
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("    ", "\n"))
 			assertResultStr(exp){dut.apply("a").apply(dut.init, JsonValue(42), new IdentityParser[StringOrInt,JsonValue])}
-		}
-		ignore ("Nested objects") {
-			val exp = """{
-	"0" : {
-		"1" : {
-			"2" : null
-		}
-	}
-}""".replace("""
-""", "\n")
-			val coll = JsonValueOrCollection(Map("1" -> JsonValueOrCollection(Map("2" -> JsonValueOrCollection(JsonValueNull)))))
-		//	val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-		//	assertResultStr(exp){dut.apply("0").apply(dut.init, coll, new IdentityParser[StringOrInt,JsonValue])}
-		}
-		ignore ("Can serialize interlaced arrays and objeccts") {
-			val exp = "[\n\t{\n\t\t\"a\" : \"b\"\n\t},\n\t{\n\t\t\"a\" : [\n\t\t\t\n\t\t]\n\t}\n]"
-		//	val coll = Seq(
-		//			JsonValue(Map("a" -> JsonValue("b"))),
-		//			JsonValue(Map("a" -> JsonValue(List())))
-		//	)
-		//	val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-		//	assertResultStr(exp){
-		//		val a = dut.apply(0).apply(dut.init, coll(0), new IdentityParser[StringOrInt,JsonValue])
-		//		val b = dut.apply(1).apply(a, coll(1), new IdentityParser[StringOrInt,JsonValue])
-		//		b
-		//	}
 		}
 	}
 	
@@ -150,13 +109,21 @@ class PrettyJsonBuilderTest extends FunSpec {
 				val dut = new PrettyJsonBuilder(MinifiedPrettyParams).mapValue[JsonValue]
 				assertResult(exp){new JsonParser().parse(dut, "[\n\t61,\n\t62,\n\t63\n]").left.get}
 			}
+			it ("will minify an object using MinifiedPrettyParams") {
+				val exp = """{" a ":65}"""
+				val dut = new PrettyJsonBuilder(MinifiedPrettyParams).mapValue[JsonValue]
+				assertResult(exp){new JsonParser().parse(dut, " { \" a \" : 65 } ").left.get}
+			}
 			it ("nested arrays") {
 				val exp = "[\n\t[\n\t\t0\n\t]\n]"
 				val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n")).mapValue[JsonValue]
 				assertResult(exp){new JsonParser().parse(dut, "[[0]]").left.get}
 			}
+			it ("object inside array") {
+				val exp = "[\n\t{\n\t\t\"value\" : 10\n\t},\n\t{\n\t\t\"value\" : 20\n\t}\n]"
+				val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n")).mapValue[JsonValue]
+				assertResult(exp){new JsonParser().parse(dut, """[{"value":10},{"value":20}]""").left.get}
+			}
 		}
-		
 	}
-	
 }
