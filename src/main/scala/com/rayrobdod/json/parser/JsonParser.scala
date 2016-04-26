@@ -41,39 +41,16 @@ import com.rayrobdod.json.union.JsonValue
  *
  * @constructor
  * Creates a JsonParser instance.
- * @param topBuilder the builder that this parser will use when constructing objects
  */
 final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 	
-	def parse[A](builder:Builder[StringOrInt, JsonValue, A], chars:Iterable[Char]):Either[A,JsonValue] = {
-		val str = chars.mkString
-		
-		try {
-			Right(this.parsePrimitive(str))
-		} catch {
-			case e:IllegalArgumentException => 
-				Left(this.parseComplex(builder, str))
-		}
-	}
-	
-	private def parsePrimitive(i:Iterable[Char]):JsonValue = {
-		val numPattern = java.util.regex.Pattern.compile("""-?\d+\.?\d*(?:[eE][\+\-]?\d+)?""")
-		val s = new String(i.toArray).trim
-		
-		if (s == "null") {JsonValue.JsonValueNull} else
-		if (s == "true") {JsonValue(true)} else
-		if (s == "false") {JsonValue(false)} else
-		if (numPattern.matcher(s).matches) {JsonValue(java.lang.Double.parseDouble(s))} else
-		if (s.head == '"' && s.last == '"') {s.zipWithIndex.foldLeft[State[String]](new StringState("", {x:String => new EndState[String](x)})){(s, ci) => s.apply(ci._1, ci._2)}.asInstanceOf[EndState[String]].result}
-		throw new IllegalArgumentException(s)
-	}
-	
 	/**
 	 * Decodes the input values to an object.
+	 * @param builder the builder that this parser will use when constructing objects
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	private def parseComplex[A](builder:Builder[StringOrInt, JsonValue, A], chars:Iterable[Char]):A = {
+	def parse[A](builder:Builder[StringOrInt, JsonValue, A], chars:Iterable[Char]):Either[A,JsonValue] = Left{
 		val endstate = chars.zipWithIndex.foldLeft[State[A]](new InitState(builder)){(state, charIndex) =>
 			state.apply(charIndex._1, charIndex._2)
 		}
