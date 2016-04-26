@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -41,8 +41,8 @@ object StringOrInt {
 	/** An integer value represented as a StringOrInt union */
 	final case class Right(i:Int) extends StringOrInt
 	
-	implicit def apply(s:String) = Left(s)
-	implicit def apply(i:Int) = Right(i)
+	implicit def apply(s:String):StringOrInt = Left(s)
+	implicit def apply(i:Int):StringOrInt = Right(i)
 	
 	
 	

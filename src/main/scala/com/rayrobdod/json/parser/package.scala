@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -121,8 +121,9 @@ package parser {
 		)
 	}
 	
+	/** A 'parser' that echos the value provided in its parse method */
 	final class IdentityParser[K,V] extends Parser[K,V,V] {
 		/** Returns `scala.util.Right(v)` */
-		def parse[A](b:Builder[K,V,A], v:V):Either[A,V] = Right(v)
+		def parse[A](b:Builder[K,V,A], v:V):Right[A,V] = Right(v)
 	}
 }

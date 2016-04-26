@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@ import scala.reflect.runtime.universe.{runtimeMirror, newTermName}
 /** A builder that builds a Case Class
  * 
  * @tparam A the type of object to build
+ * @tparam Value the primitive values produced by the parser
  * @constructor
  * @param clazz the class of the objects to build
  * @param init the starting point of the builder

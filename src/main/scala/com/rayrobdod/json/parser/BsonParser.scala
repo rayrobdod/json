@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -34,15 +34,13 @@ import com.rayrobdod.json.builder._
 import com.rayrobdod.json.union._
 
 /**
- * A streaming decoder for json data.
- * This parser is intended to be relatively strict.
+ * A streaming parser for Bson values
  * 
  * 
  * @see [[http://bsonspec.org/]]
  *
  * @constructor
  * Creates a BsonParser instance.
- * @param topBuilder the builder that this parser will use when constructing objects
  */
 final class BsonParser extends Parser[String, JsonValue, DataInput] {
 	import BsonParser.{readCString, TypeCodes}

@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,10 @@ import com.rayrobdod.json.parser.Parser
 /**
  * A class that creates an object from a sequence of 'fold'-style method calls
  * 
- * @tparam Key the key types
- * @tparam Value the primitive value types
- * @tparam Subject the type of object to build
+ * @see com.rayrobdod.json.parser.Parser
+ * @tparam Key the type of keys used by the Parser that this Builder will be used by
+ * @tparam Value the type of primitive value types used by the Parser that this Builder will be used by
+ * @tparam Subject the type of object built by this Builder
  */
 trait Builder[Key, Value, Subject] {
 	/**
@@ -56,14 +57,17 @@ trait Builder[Key, Value, Subject] {
 			Builder.this.apply(fun(key)).apply(a, b, new ReverseParser(c))
 		}
 	}
+	
 	/** Change the type of value that this builder requires */
 	final def mapValue[V2](implicit fun:Function1[V2,Value]):Builder[Key,V2,Subject] = new Builder[Key,V2,Subject] {
 		override def init:Subject = Builder.this.init
 		override def apply[Input](key:Key):Function3[Subject, Input, Parser[Key, V2, Input], Subject] = {(a,b,c) =>
 			final class ReverseParser(innerParser:Parser[Key,V2,Input]) extends Parser[Key,Value,Input] {
-				override def parse[Output](builder:Builder[Key,Value,Output], i:Input):Either[Output, Value] = innerParser.parse[Output](builder.mapValue[V2](fun), i) match {
-					case Left(x) => Left(x)
-					case Right(x) => Right(fun(x))
+				override def parse[Output](builder:Builder[Key,Value,Output], i:Input):Either[Output, Value] = {
+					innerParser.parse[Output](builder.mapValue[V2](fun), i) match {
+						case Left(x) => Left(x)
+						case Right(x) => Right(fun(x))
+					}
 				}
 			}
 			

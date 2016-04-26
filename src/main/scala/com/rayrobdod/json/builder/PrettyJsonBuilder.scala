@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -34,13 +34,14 @@ import com.rayrobdod.json.parser.{Parser, MapParser, SeqParser}
 
 
 /**
- * Will build a serialized-json representation of an object
+ * A builder that serializes its input into json format
  * 
  * @param params the pretty-printing parameters.
  * @param level the indentation level of this builder instance
  * @param charset The output will only contain characters that can be encoded using the specified charset.
- *           Any characters outside the charset will be u-escaped. Default is to keep all characters verbaitim
- * @see http://argonaut.io/scaladocs/#argonaut.PrettyParams the only decent idea in argonaut
+ *           Any characters outside the charset will be u-escaped. Default is to keep all characters that are allowed by Json.
+ *           There may be problems if the charset does not include at least ASCII characters.
+ * @see [http://argonaut.io/scaladocs/#argonaut.PrettyParams] the only decent idea in argonaut
  */
 final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Charset = UTF_8, level:Int = 0) extends Builder[StringOrInt, JsonValue, String] {
 	import MinifiedJsonObjectBuilder.serialize

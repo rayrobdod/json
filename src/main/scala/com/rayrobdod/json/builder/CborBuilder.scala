@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -34,16 +34,17 @@ import com.rayrobdod.json.parser.{Parser, CborParser, byteArray2DataInput}
 
 /**
  * A builder that will create a series of bytes in Cbor Object format
+ * 
  * @constructor
  * A builder that will create cbor object format byte strings
- * @param transformer a function to convert non-cbor-primitive objects to cbor-primitive objects
+ * @param forceObject true if the builder should create an object even if it is possible to create an array from the inputs
  */
 final class CborBuilder(forceObject:Boolean = false) extends Builder[JsonValue, JsonValue, Seq[Byte]] {
 	import CborObjectBuilder._
 	
+	/** The bytes to encode a zero-length array or object  */
 	val init:Seq[Byte] = encodeLength((if (forceObject) {MajorTypeCodes.OBJECT} else {MajorTypeCodes.ARRAY}), 0)
 	
-	/** @param folding a valid cbor object */
 	def apply[Input](key:JsonValue):Function3[Seq[Byte], Input, Parser[JsonValue, JsonValue, Input], Seq[Byte]] = {(folding, input, parser) =>
 		val value = parser.parse[Seq[Byte]](this, input)
 		val encodedValue = value match {

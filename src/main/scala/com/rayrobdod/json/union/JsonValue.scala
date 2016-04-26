@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -35,14 +35,17 @@ import scala.language.implicitConversions
  */
 sealed trait JsonValue
 
+/**
+ * Methods used to create JsonValues
+ */
 object JsonValue {
 	final case class JsonValueString(s:String) extends JsonValue
 	final case class JsonValueNumber(i:Number) extends JsonValue
 	final case class JsonValueBoolean(b:Boolean) extends JsonValue
 	object JsonValueNull extends JsonValue
 	final case class JsonValueByteStr(s:Array[Byte]) extends JsonValue {
-		override def hashCode() = java.util.Arrays.hashCode(s)
-		override def equals(other:Any) = other match {
+		override def hashCode:Int = java.util.Arrays.hashCode(s)
+		override def equals(other:Any):Boolean = other match {
 			case JsonValueByteStr(other2) => java.util.Arrays.equals(s, other2)
 			case _ => false
 		}
@@ -55,13 +58,14 @@ object JsonValue {
 	
 	
 	
-	// `Int can be converted to either StringOrInt or Number; I don't know which of the identical `apply`s to use` 
+	/** Convert a StringOrInt value intoa JsonValue */
+	// Can't be called 'apply' as otherwise `JsonValue(x:Int)` confuses the compiler
 	implicit def stringOrInt2JsonValue(s:StringOrInt):JsonValue = s match {
 		case StringOrInt.Left(s) => JsonValueString(s)
 		case StringOrInt.Right(i) => JsonValueNumber(i)
 	}
 	
-	
+	/** Unwraps a JsonValue and returns whatever was inside */
 	def unwrap(x:JsonValue):Any = x match {
 		case JsonValueString(s) => s
 		case JsonValueBoolean(b) => b
@@ -70,6 +74,10 @@ object JsonValue {
 		case JsonValueNull => null
 	}
 	
+	/**
+	 * Attempts to wrap a value inside a JsonValue.
+	 * @throws MatchError if 
+	 */
 	def unsafeWrap(x:Any):JsonValue = x match {
 		case s:String => JsonValueString(s)
 		case b:Number => JsonValueNumber(b)

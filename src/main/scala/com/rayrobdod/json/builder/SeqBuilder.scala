@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -32,8 +32,10 @@ import scala.collection.immutable.Seq;
 
 /** A builder that creates seqs
  * 
+ * @tparam Key the type of keys used by the Parser that this Builder will be used by
+ * @tparam Value the type of primitive value types used by the Parser that this Builder will be used by
  * @constructor
- * A builder that will create seqs, where complex types are built by `childBuilder.getOrElse(this)`
+ * A builder that will create seqs of values built with the specified childbuilder
  * @param childBuilder the type of this seq's complex child elements. If it is Nothing, it will default to making more SeqBuilders
  */
 final class SeqBuilder[Key, Value, Inner](childBuilder:Builder[Key, Value, Inner]) extends Builder[Key, Value, Seq[Inner]] {

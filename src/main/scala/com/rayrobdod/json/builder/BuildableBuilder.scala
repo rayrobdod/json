@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -29,8 +29,16 @@ package com.rayrobdod.json.builder;
 import scala.collection.immutable.Map
 import com.rayrobdod.json.parser.Parser
 
-/** Inspired by https://github.com/scopt/scopt/
+/**
+ * A Builder which can be built piecewise.
  * 
+ * 
+ * 
+ * @see Inspired by https://github.com/scopt/scopt/
+ * 
+ * @tparam Key the key types
+ * @tparam Value the primitive value types
+ * @tparam Subject the type of object to build
  * @constructor
  * @param init The starting point of the folding process
  * @param defaultKeyDef the KeyDef executed when no other keys exist
@@ -58,12 +66,16 @@ final case class BuildableBuilder[Key, Value, Subject](
 }
 
 object BuildableBuilder{
+	/**
+	 * A holder for a Function3 that is allowed to have a variable type parameter
+	 */
 	abstract class KeyDef[Key, Value, Subject] {
 		def apply[Input]:Function3[Subject, Input, Parser[Key, Value, Input], Subject]
 	}
 	
-	/** A KeyDef that throws an exception */
-	def ignoreKeyDef[K,V,A] = new KeyDef[K,V,A]{def apply[Input] = {(s,i,p) => s}}
 	/** A KeyDef that simply passes through the subject */
-	def throwKeyDef[K,V,A] = new KeyDef[K,V,A]{def apply[Input] = {(s,i,p) => throw new IllegalArgumentException("Unknown key")}}
+	def ignoreKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{def apply[Input] = {(s,i,p) => s}}
+	
+	/** A KeyDef that throws an exception */
+	def throwKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{def apply[Input] = {(s,i,p) => throw new IllegalArgumentException("Unknown key")}}
 }

@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -35,11 +35,12 @@ import java.lang.reflect.Method
  * to have a zero-argument constructor and will interact with methods
  * of the form `setX`.
  * 
+ * @tparam Value the parser's primitive values
  * @tparam A the type of object to build
  * @constructor
  * Creates a BeanBuilder
  * @param clazz the class of the objects to build
- * @param childBuilders a map used directly by childBuilder
+ * @param childBuilders a map of keys to builders of non-primitive bean values
  */
 final class BeanBuilder[Value, A](
 			clazz:Class[A],
