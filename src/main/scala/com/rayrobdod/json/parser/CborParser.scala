@@ -152,8 +152,7 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 		aid match {
 			case AdditionalInfoDeterminate(len:Long) => {
 				(0 until len.intValue).foreach{index =>
-					val childBuilder = topBuilder.apply[DataInput](JsonValue(index))
-					retVal = childBuilder.apply(retVal, input, this)
+					retVal = topBuilder.apply[DataInput](JsonValue(index), retVal, input, this)
 				}
 			}
 			case AdditionalInfoIndeterminate() => {
@@ -165,10 +164,10 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 					childObject match {
 						case ParseReturnValueEndOfIndeterminateObject() => {}
 						case ParseReturnValueSimple(x) => {
-							retVal = topBuilder.apply[JsonValue](JsonValue(index)).apply(retVal, x, new IdentityParser())
+							retVal = topBuilder.apply[JsonValue](JsonValue(index), retVal, x, new IdentityParser())
 						}
 						case ParseReturnValueComplex(x) => {
-							retVal = topBuilder.apply[DataInput](JsonValue(index)).apply(retVal, byteArray2DataInput(x.toArray), this)
+							retVal = topBuilder.apply[DataInput](JsonValue(index), retVal, byteArray2DataInput(x.toArray), this)
 						}
 						case _ => throw new UnsupportedOperationException("Value not public")
 					}
@@ -186,8 +185,7 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 			case AdditionalInfoDeterminate(len:Long) => {
 				(0 until len.intValue).foreach{index =>
 					val keyObject = this.parse(new ThrowBuilder, input).right.get
-					val childBuilder = topBuilder.apply[DataInput](keyObject)
-					retVal = childBuilder.apply(retVal, input, this)
+					retVal = topBuilder.apply[DataInput](keyObject, retVal, input, this)
 				}
 			}
 			case AdditionalInfoIndeterminate() => {
@@ -197,8 +195,7 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 					keyObject match {
 						case ParseReturnValueEndOfIndeterminateObject() => {}
 						case ParseReturnValueSimple(x) => {
-							val childBuilder = topBuilder.apply[DataInput](x)
-							retVal = childBuilder.apply(retVal, input, this)
+							retVal = topBuilder.apply[DataInput](x, retVal, input, this)
 						}
 						case _ => throw new UnsupportedOperationException("Key not primitive")
 					}

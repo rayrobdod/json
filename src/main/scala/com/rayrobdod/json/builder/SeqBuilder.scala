@@ -42,7 +42,7 @@ final class SeqBuilder[Key, Value, Inner](childBuilder:Builder[Key, Value, Inner
 	
 	def init:Seq[Inner] = Vector.empty[Inner]
 	
-	def apply[Input](key:Key):Function3[Seq[Inner], Input, Parser[Key, Value, Input], Seq[Inner]] = {(folding, innerInput, parser) =>
+	override def apply[Input](key:Key, folding:Seq[Inner], innerInput:Input, parser:Parser[Key, Value, Input]):Seq[Inner] = {
 		val res = parser.parse(childBuilder, innerInput)
 		res match {
 			case Left(x) => folding :+ x
@@ -57,7 +57,7 @@ final class SeqBuilder[Key, Value, Inner](childBuilder:Builder[Key, Value, Inner
 final class PrimitiveSeqBuilder[Key, Value] extends Builder[Key, Value, Seq[Value]] {
 	def init:Seq[Value] = Vector.empty[Value]
 	
-	def apply[Input](key:Key):Function3[Seq[Value], Input, Parser[Key, Value, Input], Seq[Value]] = {(folding, innerInput, parser) =>
+	override def apply[Input](key:Key, folding:Seq[Value], innerInput:Input, parser:Parser[Key, Value, Input]):Seq[Value] = {
 		val res = parser.parse(new ThrowBuilder(), innerInput)
 		res match {
 			case Left(x) => throw new ParseException("Found complex in SeqBuilder", 0)

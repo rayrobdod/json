@@ -42,7 +42,7 @@ class ThrowBuilderTest extends FunSpec {
 		}
 		it ("throws on apply") {
 			intercept[UnsupportedOperationException] {
-				new ThrowBuilder().apply("a")
+				new ThrowBuilder().apply("a", null, null, null)
 			}
 		}
 	}

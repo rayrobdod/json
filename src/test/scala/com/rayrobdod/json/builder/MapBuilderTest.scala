@@ -44,7 +44,7 @@ class MapBuilderTest extends FunSpec {
 			val myValue = new Object
 			
 			assertResult(Map("sdfa" -> myValue)){
-				new MapBuilder().apply("sdfa").apply(Map.empty, myValue, new IdentityParser[String,Object])
+				new MapBuilder().apply("sdfa", Map.empty, myValue, new IdentityParser[String,Object])
 			}
 		}
 		it ("Appends value 2") {
@@ -52,7 +52,7 @@ class MapBuilderTest extends FunSpec {
 			val myValue2 = new Object
 			
 			assertResult(Map("a" -> myValue1, "b" -> myValue2)){
-				new MapBuilder().apply("b").apply(Map("a" -> myValue1), myValue2, new IdentityParser[String,Object])
+				new MapBuilder().apply("b", Map("a" -> myValue1), myValue2, new IdentityParser[String,Object])
 			}
 		}
 	}

@@ -45,19 +45,19 @@ class BeanBuilderTest extends FunSpec {
 		it ("Can handle the name bean property") {
 			val name = "Anony Mouse"
 			assertResult(new Person(name, 0)){
-				new BeanBuilder(classOf[Person]).apply("name").apply(new Person(), name, new IdentityParser[String,Object])
+				new BeanBuilder(classOf[Person]).apply("name", new Person(), name, new IdentityParser[String,Object])
 			}
 		}
 		it ("Can handle the age bean property") {
 			val age = 9001L
 			assertResult(new Person("", age)){
-				new BeanBuilder(classOf[Person]).apply("age").apply(new Person(), age, new IdentityParser[String,Any])
+				new BeanBuilder(classOf[Person]).apply("age", new Person(), age, new IdentityParser[String,Any])
 			}
 		}
 		it ("Throws excpetion on incorrect type") {
 			val age = "9001"
 			intercept[NoSuchMethodException]{
-				new BeanBuilder(classOf[Person]).apply("age").apply(new Person(), age, new IdentityParser[String,Any])
+				new BeanBuilder(classOf[Person]).apply("age", new Person(), age, new IdentityParser[String,Any])
 			}
 		}
 	}

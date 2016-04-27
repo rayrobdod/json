@@ -59,7 +59,7 @@ final class BsonParser extends Parser[String, JsonValue, DataInput] {
 						java.lang.Long.reverseBytes( input.readLong() )
 					)
 					// CHEATING
-					builder.apply(key).apply(result, JsonValue(value), new IdentityParser[String, JsonValue])
+					builder.apply(key, result, JsonValue(value), new IdentityParser[String, JsonValue])
 				}
 				case TypeCodes.STRING => {
 					val len = Integer.reverseBytes( input.readInt() );
@@ -67,29 +67,29 @@ final class BsonParser extends Parser[String, JsonValue, DataInput] {
 					input.readFully(bytes);
 					if (bytes(len - 1) != 0) {throw new ParseException("Incorrect string length", -1)}
 					val value = new String(bytes, 0, len - 1, UTF_8)
-					builder.apply(key).apply(result, JsonValue(value), new IdentityParser[String, JsonValue])
+					builder.apply(key, result, JsonValue(value), new IdentityParser[String, JsonValue])
 				}
 				case TypeCodes.DOCUMENT => {
-					builder.apply(key).apply(result, input, this)
+					builder.apply(key, result, input, this)
 				}
 				case TypeCodes.ARRAY => {
-					builder.apply(key).apply(result, input, this)
+					builder.apply(key, result, input, this)
 				}
 				case TypeCodes.BOOLEAN => {
 					val readValue = input.readByte()
 					val value = (readValue != 0)
-					builder.apply(key).apply(result, JsonValue(value), new IdentityParser[String, JsonValue])
+					builder.apply(key, result, JsonValue(value), new IdentityParser[String, JsonValue])
 				}
 				case TypeCodes.NULL => {
-					builder.apply(key).apply(result, JsonValue.JsonValueNull, new IdentityParser[String, JsonValue])
+					builder.apply(key, result, JsonValue.JsonValueNull, new IdentityParser[String, JsonValue])
 				}
 				case TypeCodes.INTEGER => {
 					val value = Integer.reverseBytes( input.readInt() );
-					builder.apply(key).apply(result, JsonValue(value), new IdentityParser[String, JsonValue])
+					builder.apply(key, result, JsonValue(value), new IdentityParser[String, JsonValue])
 				}
 				case TypeCodes.LONG => {
 					val value = java.lang.Long.reverseBytes( input.readLong() );
-					builder.apply(key).apply(result, JsonValue(value), new IdentityParser[String, JsonValue])
+					builder.apply(key, result, JsonValue(value), new IdentityParser[String, JsonValue])
 				}
 				case _ => throw new ParseException("Unknown data type", -1)
 			}

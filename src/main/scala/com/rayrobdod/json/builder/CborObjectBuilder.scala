@@ -46,7 +46,7 @@ final class CborObjectBuilder extends Builder[JsonValue, JsonValue, Seq[Byte]] {
 	val init:Seq[Byte] = encodeLength(MajorTypeCodes.OBJECT, 0)
 	
 	/** @param folding a valid cbor object */
-	def apply[Input](key:JsonValue):Function3[Seq[Byte], Input, Parser[JsonValue, JsonValue, Input], Seq[Byte]] = {(folding, input, parser) =>
+	def apply[Input](key:JsonValue, folding:Seq[Byte], input:Input, parser:Parser[JsonValue, JsonValue, Input]):Seq[Byte] = {
 		val value = parser.parse[Seq[Byte]](this, input)
 		
 		val headerByte:Byte = folding.head
@@ -82,7 +82,7 @@ final class CborArrayBuilder() extends Builder[Any, JsonValue, Seq[Byte]] {
 	val init:Seq[Byte] = encodeLength(MajorTypeCodes.ARRAY, 0)
 	
 	/** @param folding a valid cbor object */
-	def apply[Input](key:Any):Function3[Seq[Byte], Input, Parser[Any, JsonValue, Input], Seq[Byte]] = {(folding, input, parser) =>
+	def apply[Input](key:Any, folding:Seq[Byte], input:Input, parser:Parser[Any, JsonValue, Input]):Seq[Byte] = {
 		val value = parser.parse[Seq[Byte]](this, input)
 		
 		val headerByte:Byte = folding.head

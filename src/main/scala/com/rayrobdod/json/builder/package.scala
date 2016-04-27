@@ -41,6 +41,6 @@ package object builder {
 package builder {
 	final class ThrowBuilder[K,V,A] extends Builder[K,V,A] {
 		def init:A = throw new UnsupportedOperationException("using ThrowBuilder")
-		def apply[I](k:K):Function3[A,I,Parser[K,V,I],A] = throw new UnsupportedOperationException("using ThrowBuilder")
+		def apply[I](k:K,a:A,i:I,p:Parser[K,V,I]):A = throw new UnsupportedOperationException("using ThrowBuilder")
 	}
 }

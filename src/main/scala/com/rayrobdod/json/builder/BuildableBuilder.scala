@@ -60,8 +60,8 @@ final case class BuildableBuilder[Key, Value, Subject](
 	
 	
 	/** @see Builder#apply */
-	override def apply[Input](key:Key):Function3[Subject, Input, Parser[Key, Value, Input], Subject] = {
-		keyDefs.getOrElse(key, defaultKeyDef).apply
+	override def apply[Input](key:Key, folding:Subject, input:Input, parser:Parser[Key, Value, Input]):Subject = {
+		keyDefs.getOrElse(key, defaultKeyDef).apply(folding, input, parser)
 	}
 }
 

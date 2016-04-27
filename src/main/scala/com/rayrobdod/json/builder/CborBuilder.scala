@@ -45,7 +45,7 @@ final class CborBuilder(forceObject:Boolean = false) extends Builder[JsonValue, 
 	/** The bytes to encode a zero-length array or object  */
 	val init:Seq[Byte] = encodeLength((if (forceObject) {MajorTypeCodes.OBJECT} else {MajorTypeCodes.ARRAY}), 0)
 	
-	def apply[Input](key:JsonValue):Function3[Seq[Byte], Input, Parser[JsonValue, JsonValue, Input], Seq[Byte]] = {(folding, input, parser) =>
+	def apply[Input](key:JsonValue, folding:Seq[Byte], input:Input, parser:Parser[JsonValue, JsonValue, Input]):Seq[Byte] = {
 		val value = parser.parse[Seq[Byte]](this, input)
 		val encodedValue = value match {
 			case Left(x) => x

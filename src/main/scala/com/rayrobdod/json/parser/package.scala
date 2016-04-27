@@ -95,7 +95,7 @@ package parser {
 		def parse[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):Either[A,V] = Left(
 			vals.foldLeft[A](topBuilder.init){(state:A, keyValue:(K, V)) => 
 				val (key, value) = keyValue;
-				topBuilder.apply(key).apply(state, value, new IdentityParser)
+				topBuilder.apply(key, state, value, new IdentityParser)
 			}
 		)
 	}
@@ -116,7 +116,7 @@ package parser {
 		def parse[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):Either[A,V] = Left(
 			vals.zipWithIndex.foldLeft[A](topBuilder.init){(state:A, valueKey:(V, Int)) => 
 				val (value, key) = valueKey;
-				topBuilder.apply(key).apply(state, value, new IdentityParser)
+				topBuilder.apply(key, state, value, new IdentityParser)
 			}
 		)
 	}

@@ -111,19 +111,19 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 		def apply(c:Char, index:Int):State[A] = c match {
 			case x if x.isWhitespace => this
 			case '"'  => new StringState("", {s:String =>
-				val newObj = builder.apply[JsonValue](key).apply(soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]())
+				val newObj = builder.apply[JsonValue](key, soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]())
 				new ObjectValueEndState(newObj, builder)
 			})
 			case '['  => new InnerObjectState("[", {s:String => 
-				val newObj = builder.apply[Iterable[Char]](key).apply(soFar, s, JsonParser.this)
+				val newObj = builder.apply[Iterable[Char]](key, soFar, s, JsonParser.this)
 				new ObjectValueEndState(newObj, builder)
 			})
 			case '{'  => new InnerObjectState("{", {s:String => 
-				val newObj = builder.apply[Iterable[Char]](key).apply(soFar, s, JsonParser.this)
+				val newObj = builder.apply[Iterable[Char]](key, soFar, s, JsonParser.this)
 				new ObjectValueEndState(newObj, builder)
 			})
 			case '-'  => new IntegerState("-", {s:Number =>
-				val newObj = builder.apply[JsonValue](key).apply(soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]())
+				val newObj = builder.apply[JsonValue](key, soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]())
 				new ObjectValueEndState(newObj, builder)
 			})
 			case '.'  => {
@@ -133,11 +133,11 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 				throw ex;
 			}
 			case x if ('0' <= x && x <= '9') => new IntegerState("" + x, {s:Number =>
-				val newObj = builder.apply[JsonValue](key).apply(soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]())
+				val newObj = builder.apply[JsonValue](key, soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]())
 				new ObjectValueEndState(newObj, builder)
 			})
 			case x if ('a' <= x && x <= 'z') => new KeywordState("" + x, {s:JsonValue =>
-				val newObj = builder.apply[JsonValue](key).apply(soFar, s, new IdentityParser[StringOrInt, JsonValue]())
+				val newObj = builder.apply[JsonValue](key, soFar, s, new IdentityParser[StringOrInt, JsonValue]())
 				new ObjectValueEndState(newObj, builder)
 			})
 			case _ => throw new ParseException("Expecting start of value; found " + c, index)
@@ -162,19 +162,19 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 			case x if x.isWhitespace => this
 			case ']'  if endObjectAllowed => new EndState(soFar)
 			case '"'  => new StringState("", {s:String =>
-				val newObj = builder.apply[JsonValue](arrayIndex).apply(soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]())
+				val newObj = builder.apply[JsonValue](arrayIndex, soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]())
 				new ArrayValueEndState(newObj, builder, arrayIndex)
 			})
 			case '['  => new InnerObjectState("[", {s:String => 
-				val newObj = builder.apply[Iterable[Char]](arrayIndex).apply(soFar, s, JsonParser.this)
+				val newObj = builder.apply[Iterable[Char]](arrayIndex, soFar, s, JsonParser.this)
 				new ArrayValueEndState(newObj, builder, arrayIndex)
 			})
 			case '{'  => new InnerObjectState("{", {s:String => 
-				val newObj = builder.apply[Iterable[Char]](arrayIndex).apply(soFar, s, JsonParser.this)
+				val newObj = builder.apply[Iterable[Char]](arrayIndex, soFar, s, JsonParser.this)
 				new ArrayValueEndState(newObj, builder, arrayIndex)
 			})
 			case '-'  => new IntegerState("-", {s:Number =>
-				val newObj = builder.apply[JsonValue](arrayIndex).apply(soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]())
+				val newObj = builder.apply[JsonValue](arrayIndex, soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]())
 				new ArrayValueEndState(newObj, builder, arrayIndex)
 			})
 			case '.'  => {
@@ -184,11 +184,11 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 				throw ex;
 			}
 			case x if ('0' <= x && x <= '9') => new IntegerState("" + x, {s:Number =>
-				val newObj = builder.apply[JsonValue](arrayIndex).apply(soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]())
+				val newObj = builder.apply[JsonValue](arrayIndex, soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]())
 				new ArrayValueEndState(newObj, builder, arrayIndex)
 			})
 			case x if ('a' <= x && x <= 'z') => new KeywordState("" + x, {s:JsonValue =>
-				val newObj = builder.apply[JsonValue](arrayIndex).apply(soFar, s, new IdentityParser[StringOrInt, JsonValue]())
+				val newObj = builder.apply[JsonValue](arrayIndex, soFar, s, new IdentityParser[StringOrInt, JsonValue]())
 				new ArrayValueEndState(newObj, builder, arrayIndex)
 			})
 			case _ =>

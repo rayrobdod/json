@@ -68,7 +68,7 @@ final class CsvParser(
 				state.appendChar(char).copy(quoted = true)
 			} else if (meaningfulCharacters.recordDelimeter contains char) {
 				new State(
-					value = builder.apply(state.innerIndex).apply(state.value, state.innerInput, new LineParser),
+					value = builder.apply(state.innerIndex, state.value, state.innerInput, new LineParser),
 					innerIndex = state.innerIndex + 1,
 					innerInput = "",
 					endingWhitespace = "",
@@ -83,7 +83,7 @@ final class CsvParser(
 		if (endState.innerInput.isEmpty) {
 			endState.value
 		} else {
-			builder.apply(endState.innerIndex).apply(endState.value, endState.innerInput, new LineParser)
+			builder.apply(endState.innerIndex, endState.value, endState.innerInput, new LineParser)
 		}
 	}
 	
@@ -133,7 +133,7 @@ final class CsvParser(
 					state.copy(quoted = true)
 				} else if (meaningfulCharacters.fieldDelimeter contains char) {
 					new State(
-						value = builder.apply(state.innerIndex).apply(state.value, state.innerInput, new IdentityParser),
+						value = builder.apply(state.innerIndex, state.value, state.innerInput, new IdentityParser),
 						innerIndex = state.innerIndex + 1,
 						innerInput = "",
 						endingWhitespace = "",
@@ -148,7 +148,7 @@ final class CsvParser(
 			if (endState.innerInput.isEmpty) {
 				endState.value
 			} else {
-				builder.apply(endState.innerIndex).apply(endState.value, endState.innerInput, new IdentityParser)
+				builder.apply(endState.innerIndex, endState.value, endState.innerInput, new IdentityParser)
 			}
 		}
 	}

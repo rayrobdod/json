@@ -58,7 +58,7 @@ final class BeanBuilder[Value, A](
 	 * @return the input parameter `folding`
 	 * @todo maybe check for other primitive numeric types - IE a `setVal(Short)` when handed a `Long` or visa versa
 	 */
-	def apply[Input](key:String):Function3[A, Input, Parser[String, Value, Input], A] = {(folding, input, parser) =>
+	def apply[Input](key:String, folding:A, input:Input, parser:Parser[String, Value, Input]):A = {
 		val builder = childBuilders(key).getOrElse(new ThrowBuilder())
 		
 		// unwrap union values
