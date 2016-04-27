@@ -34,7 +34,7 @@ import com.rayrobdod.json.parser.Parser
  * 
  * 
  * 
- * @see Inspired by https://github.com/scopt/scopt/
+ * @see Inspired by [[https://github.com/scopt/scopt/]]
  * 
  * @tparam Key the key types
  * @tparam Value the primitive value types

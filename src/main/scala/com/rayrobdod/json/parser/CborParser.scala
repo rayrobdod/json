@@ -34,7 +34,9 @@ import com.rayrobdod.json.builder._
 import com.rayrobdod.json.union.JsonValue
 
 /**
- * A parser that will decode cbor data
+ * A parser that will decode cbor data.
+ * 
+ * This cannot handle complex values in map keys.
  * 
  * @see [[http://tools.ietf.org/html/rfc7049]]
  * 
@@ -156,20 +158,19 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 			}
 			case AdditionalInfoIndeterminate() => {
 				var index:Int = 0
-				var childObject:ParseReturnValue[_] = ParseReturnValueUnknownSimple(0)
+				var childObject:ParseReturnValue[Seq[Byte]] = ParseReturnValueUnknownSimple(0)
 				while (childObject != ParseReturnValueEndOfIndeterminateObject()) {
-					val childBuilder = topBuilder.apply[JsonValue](JsonValue(index))
-					childObject = this.parseDetailed(new SeqBuilder(new MapBuilder()), input)
+					childObject = this.parseDetailed(new CborBuilder(true), input)
 					
 					childObject match {
 						case ParseReturnValueEndOfIndeterminateObject() => {}
 						case ParseReturnValueSimple(x) => {
-							retVal = childBuilder.apply(retVal, x, new IdentityParser())
+							retVal = topBuilder.apply[JsonValue](JsonValue(index)).apply(retVal, x, new IdentityParser())
 						}
 						case ParseReturnValueComplex(x) => {
-							throw new UnsupportedOperationException("Value not primitive")
+							retVal = topBuilder.apply[DataInput](JsonValue(index)).apply(retVal, byteArray2DataInput(x.toArray), this)
 						}
-						case _ => throw new UnsupportedOperationException("Value not primitive")
+						case _ => throw new UnsupportedOperationException("Value not public")
 					}
 					index = index + 1
 				}
@@ -192,7 +193,7 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 			case AdditionalInfoIndeterminate() => {
 				var keyObject:ParseReturnValue[_] = ParseReturnValueUnknownSimple(0)
 				while (keyObject != ParseReturnValueEndOfIndeterminateObject()) {
-					keyObject = this.parseDetailed(new PrimitiveSeqBuilder, input)
+					keyObject = this.parseDetailed(new ThrowBuilder, input)
 					keyObject match {
 						case ParseReturnValueEndOfIndeterminateObject() => {}
 						case ParseReturnValueSimple(x) => {
@@ -218,7 +219,7 @@ object CborParser {
 	private final case class AdditionalInfoDeterminate(val value:Long) extends AdditionalInfoData
 	private final case class AdditionalInfoIndeterminate() extends AdditionalInfoData
 	
-	/** Possible parse return values */
+	/** Possible return values of [[CborParser#parseDetailed]] */
 	sealed trait ParseReturnValue[+A]
 	final case class ParseReturnValueSimple(x:JsonValue) extends ParseReturnValue[Nothing]
 	final case class ParseReturnValueComplex[A](a:A) extends ParseReturnValue[A]

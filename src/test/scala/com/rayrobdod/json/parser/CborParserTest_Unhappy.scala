@@ -28,7 +28,7 @@ package com.rayrobdod.json.parser;
 
 import org.scalatest.FunSpec;
 import java.text.ParseException;
-import scala.collection.immutable.Map;
+import scala.collection.immutable.{Seq, Map};
 import com.rayrobdod.json.union.JsonValue;
 import com.rayrobdod.json.builder.MapBuilder;
 
@@ -110,6 +110,37 @@ class CborParserTest_Unhappy extends FunSpec {
 			val source = hexArray"DF"
 			val ex = intercept[UnsupportedOperationException]{
 				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
+			}
+		}
+		it ("errors upon finding a standalone END_OF_INDETERMINATE_OBJECT") {
+			val source = hexArray"FF"
+			val ex = intercept[java.text.ParseException]{
+				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
+			}
+		}
+		
+		it ("can handle an indeterminate array with complex values") {
+			val expected = Left(Seq(Seq(JsonValue(0))))
+			val source = hexArray"9F8100FF"
+			val builder = new com.rayrobdod.json.builder.SeqBuilder[JsonValue, JsonValue, Seq[JsonValue]](new com.rayrobdod.json.builder.PrimitiveSeqBuilder[JsonValue, JsonValue])
+			assertResult(expected){
+				new CborParser().parse(builder, byteArray2DataInput(source))
+			}
+		}
+		it ("can handle an indeterminate object with complex values") {
+			val expected = Left(Map(JsonValue(10) -> Seq(JsonValue(0))))
+			val source = hexArray"BF 0A 8100 FF"
+			val builder = new com.rayrobdod.json.builder.MapBuilder[JsonValue, JsonValue]({x:JsonValue => Option(new com.rayrobdod.json.builder.PrimitiveSeqBuilder[JsonValue, JsonValue])})
+			assertResult(expected){
+				new CborParser().parse(builder, byteArray2DataInput(source))
+			}
+		}
+		it ("cannot handle an indeterminate object with complex keys") {
+			val expected = Map(Seq(JsonValue(0)) -> JsonValue(10))
+			val source = hexArray"BF 8100 0A FF"
+			val builder = new com.rayrobdod.json.builder.MapBuilder[JsonValue, JsonValue]({x:JsonValue => Option(new com.rayrobdod.json.builder.PrimitiveSeqBuilder[JsonValue, JsonValue])})
+			val ex = intercept[UnsupportedOperationException]{
+				new CborParser().parse(builder, byteArray2DataInput(source))
 			}
 		}
 	}
