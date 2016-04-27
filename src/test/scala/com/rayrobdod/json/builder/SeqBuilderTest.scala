@@ -61,6 +61,11 @@ class SeqBuilderTest extends FunSpec {
 				new SeqBuilder(new PrimitiveSeqBuilder[String, Object]).apply("sdfa").apply(Nil, myValue2, new IdentityParser[String, Object])
 			}
 		}
+		it ("PrimitiveSeqBuilder throws when builder gives it a complex value") {
+			val ex = intercept[UnsupportedOperationException]{
+				new PrimitiveSeqBuilder[Int,String].apply(5).apply(Nil, Seq("a","b","c"), new SeqParser[String])
+			}
+		}
 	}
 	
 	describe("SeqBuilder integration") {
