@@ -26,6 +26,7 @@
 */
 package com.rayrobdod.json
 
+import scala.util.{Try, Success, Failure}
 import com.rayrobdod.json.parser.Parser
 
 /**
@@ -39,8 +40,12 @@ package object builder {
 }
 
 package builder {
-	final class ThrowBuilder[K,V,A] extends Builder[K,V,A] {
-		def init:A = throw new UnsupportedOperationException("using ThrowBuilder")
-		def apply[I](k:K,a:A,i:I,p:Parser[K,V,I]):A = throw new UnsupportedOperationException("using ThrowBuilder")
+	/**
+	 * A Builder that will always return a failure on call to apply
+	 * @since next
+	 */
+	final class ThrowBuilder[K,V] extends Builder[K,V,Any] {
+		def init:Any = this
+		def apply[I](k:K,a:Any,i:I,p:Parser[K,V,I]):Failure[Any] = Failure(new UnsupportedOperationException("using ThrowBuilder"))
 	}
 }

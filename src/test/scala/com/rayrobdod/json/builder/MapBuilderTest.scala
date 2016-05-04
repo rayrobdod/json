@@ -29,6 +29,7 @@ package com.rayrobdod.json.builder;
 import scala.beans.BeanProperty;
 import java.text.ParseException;
 import scala.collection.immutable.Map;
+import scala.util.{Try, Success, Failure}
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.union.StringOrInt
@@ -43,7 +44,7 @@ class MapBuilderTest extends FunSpec {
 		it ("Appends value") {
 			val myValue = new Object
 			
-			assertResult(Map("sdfa" -> myValue)){
+			assertResult(Success(Map("sdfa" -> myValue))){
 				new MapBuilder().apply("sdfa", Map.empty, myValue, new IdentityParser[String,Object])
 			}
 		}
@@ -51,7 +52,7 @@ class MapBuilderTest extends FunSpec {
 			val myValue1 = new Object
 			val myValue2 = new Object
 			
-			assertResult(Map("a" -> myValue1, "b" -> myValue2)){
+			assertResult(Success(Map("a" -> myValue1, "b" -> myValue2))){
 				new MapBuilder().apply("b", Map("a" -> myValue1), myValue2, new IdentityParser[String,Object])
 			}
 		}
@@ -67,7 +68,7 @@ class MapBuilderTest extends FunSpec {
 				new JsonParser().parse(
 					new MapBuilder[StringOrInt, JsonValue],
 					"""{"a":61, "b":62, "c":63}"""
-				).left.get
+				).get.left.get
 			}
 		}
 		it ("MapBuilder + JsonParser + BeanBuilder") {
@@ -79,7 +80,7 @@ class MapBuilderTest extends FunSpec {
 						"green":{"name":"Luigi", "age":32},
 						"pink":{"name":"Peach", "age":28}
 					}"""
-				).left.get
+				).get.left.get
 			}
 		}
 	}

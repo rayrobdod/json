@@ -27,6 +27,7 @@
 package com.rayrobdod.json.builder;
 
 import scala.collection.immutable.Seq;
+import scala.util.{Try, Success, Failure}
 import java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.charset.Charset;
 import com.rayrobdod.json.union.{StringOrInt, JsonValue}
@@ -36,12 +37,14 @@ import com.rayrobdod.json.parser.{Parser, MapParser, SeqParser}
 /**
  * A builder that serializes its input into json format
  * 
+ * @since next
+ * @see [http://argonaut.io/scaladocs/#argonaut.PrettyParams] the only decent idea in argonaut
+ * @constructor
  * @param params the pretty-printing parameters.
  * @param level the indentation level of this builder instance
  * @param charset The output will only contain characters that can be encoded using the specified charset.
  *           Any characters outside the charset will be u-escaped. Default is to keep all characters that are allowed by Json.
  *           There may be problems if the charset does not include at least ASCII characters.
- * @see [http://argonaut.io/scaladocs/#argonaut.PrettyParams] the only decent idea in argonaut
  */
 final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Charset = UTF_8, level:Int = 0) extends Builder[StringOrInt, JsonValue, String] {
 	import MinifiedJsonObjectBuilder.serialize
@@ -50,45 +53,54 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 	
 	val init:String = params.lbrace(level) + params.rbrace(level)
 	
-	def apply[Input](key:StringOrInt, folding:String, innerInput:Input, parser:Parser[StringOrInt, JsonValue, Input]):String = {
-		val value = parser.parse(nextLevel, innerInput)
-		val encodedValue = value match {
-			case Left(x) => x
-			case Right(x) => serialize(x, charset)
-		}
-			
-		
-		if (init == folding) {
-			key match {
-				case StringOrInt.Right(0) => params.lbrace(level) + encodedValue + params.rbrace(level)
-				case StringOrInt.Right(int) => throw new IllegalArgumentException(s"Key: $int") // params.lbracket(level) + serialze(int.toString, charset) + params.colon(level) + encodedValue + params.rbrace(level)
-				case StringOrInt.Left(str) => params.lbracket(level) + serialize(str, charset) + params.colon(level) + encodedValue + params.rbracket(level)
+	def apply[Input](key:StringOrInt, folding:String, innerInput:Input, parser:Parser[StringOrInt, JsonValue, Input]):Try[String] = {
+		parser.parse(nextLevel, innerInput).flatMap{value =>
+			val encodedValue = value match {
+				case Left(x) => x
+				case Right(x) => serialize(x, charset)
 			}
-		} else {
-			val bracket:Boolean = folding.take(params.lbracket(level).length) == params.lbracket(level)
-			val brace:Boolean = folding.take(params.lbrace(level).length) == params.lbrace(level)
-			val keptPart:String = {
-				if (bracket) {folding.dropRight(params.rbracket(level).length)}
-				else if (brace) {folding.dropRight(params.rbrace(level).length)}
-				else {throw new IllegalArgumentException("folding is wrong")}
-			}
+				
 			
-			key match {
-				case StringOrInt.Right(int) if brace => {
-					keptPart + params.comma(level) + encodedValue + params.rbrace(level)
+			if (init == folding) {
+				key match {
+					case StringOrInt.Right(0) => Try(params.lbrace(level) + encodedValue + params.rbrace(level))
+					case StringOrInt.Right(int) => Failure(new IllegalArgumentException(s"Key: $int")) // params.lbracket(level) + serialze(int.toString, charset) + params.colon(level) + encodedValue + params.rbrace(level)
+					case StringOrInt.Left(str) => Try(params.lbracket(level) + serialize(str, charset) + params.colon(level) + encodedValue + params.rbracket(level))
 				}
-				case StringOrInt.Left(str) if bracket => {
-					keptPart + params.comma(level) + serialize(str, charset) + params.colon(level) + encodedValue + params.rbracket(level)
+			} else {
+				val bracket:Boolean = folding.take(params.lbracket(level).length) == params.lbracket(level)
+				val brace:Boolean = folding.take(params.lbrace(level).length) == params.lbrace(level)
+				val keptPartTry:Try[String] = {
+					if (bracket) {Try(folding.dropRight(params.rbracket(level).length))}
+					else if (brace) {Try(folding.dropRight(params.rbrace(level).length))}
+					else {Failure(new IllegalArgumentException("folding is wrong"))}
 				}
-				case _ => throw new IllegalArgumentException("Key type changed mid-object")
+				
+				keptPartTry.flatMap{keptPart:String =>
+					key match {
+						case StringOrInt.Right(int) if brace => {
+							Try(keptPart + params.comma(level) + encodedValue + params.rbrace(level))
+						}
+						case StringOrInt.Left(str) if bracket => {
+							Try(keptPart + params.comma(level) + serialize(str, charset) + params.colon(level) + encodedValue + params.rbracket(level))
+						}
+						case _ => Failure(new IllegalArgumentException("Key type changed mid-object"))
+					}
+				}
 			}
 		}
 	}
 	
 }
 
+/**
+ * @since next
+ */
 object PrettyJsonBuilder {
-	/** The whitespace strings that will appear between significant portions of a serialized json file */
+	/**
+	 * The whitespace strings that will appear between significant portions of a serialized json file
+	 * @since next
+	 */
 	trait PrettyParams {
 		/** The string that will appear on the left of a ':' mapping separator */
 		def colonLeft(level:Int):String
@@ -116,7 +128,10 @@ object PrettyJsonBuilder {
 		final def rbracket(level:Int):String = rbracketLeft(level) + "}" + rbracketRight(level)
 	}
 	
-	/** A PrettyParams that will result in a minified json string */
+	/**
+	 * A PrettyParams that will result in a minified json string
+	 * @since next
+	 */
 	object MinifiedPrettyParams extends PrettyParams {
 		def colonLeft(level:Int):String = ""
 		def colonRight(level:Int):String = ""
@@ -131,6 +146,11 @@ object PrettyJsonBuilder {
 		def rbracketLeft(level:Int):String = ""
 		def rbracketRight(level:Int):String = ""
 	}
+	
+	/**
+	 * A PrettyParams for indentation
+	 * @since next
+	 */
 	class IndentPrettyParams(tab:String = "\t", newline:String = System.lineSeparator) extends PrettyParams {
 		private def indent(level:Int) = Seq.fill(level)(tab).mkString
 		

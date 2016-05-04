@@ -28,6 +28,7 @@ package com.rayrobdod.json.builder;
 
 import java.text.ParseException;
 import scala.collection.immutable.Map;
+import scala.util.{Try, Success, Failure}
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.StringOrInt
@@ -46,30 +47,30 @@ class BuildableBuilderTest extends FunSpec {
 		}
 		it ("Acts upon provided keydef") {
 			val name = "Anony Mouse"
-			assertResult(new Person(name, 0)){
+			assertResult(Success(new Person(name, 0))){
 				new BuildableBuilder(new Person("", 0))
-						.addDef("name", new KeyDef[String, String, Person]{def apply[I] = {(s,i,p) => s.copy(name = p.parse(new ThrowBuilder(), i).fold({x => x}, {x => x}))}})
+						.addDef("name", new KeyDef[String, String, Person]{def apply[I] = {(s,i,p) => Try(s.copy(name = p.parse(new ThrowBuilder(), i).get.fold({x => ""}, {x => x})))}})
 						.apply("name", new Person("", 0), name, new IdentityParser)
 			}
 		}
 		it ("Acts upon provided keydef (2)") {
 			val age = 9001
-			assertResult(new Person("", age)){
+			assertResult(Success(new Person("", age))){
 				new BuildableBuilder(new Person("", 0))
-						.addDef("age", new KeyDef[String, Int, Person]{def apply[I] = {(s,i,p) => s.copy(age = p.parse(new ThrowBuilder(), i).fold({x => x}, {x => x}))}})
+						.addDef("age", new KeyDef[String, Int, Person]{def apply[I] = {(s,i,p) => Try(s.copy(age = p.parse(new ThrowBuilder(), i).get.fold({x => 0}, {x => x})))}})
 						.apply("age", new Person("", 0), age, new IdentityParser)
 			}
 		}
 		it ("Throws excpetion on unknown key") {
 			val age = "9001"
-			intercept[IllegalArgumentException]{
+			assertFailure(classOf[IllegalArgumentException]){
 				new BuildableBuilder[String, String, Person](new Person("", 0))
 						.apply("asdfjkl;", new Person("", 0), "hello", new IdentityParser)
 			}
 		}
 		it ("ignores unknown key after call to ignoreUnknownKeys") {
 			val age = "9001"
-			assertResult(new Person("", 0)){
+			assertResult(Success(new Person("", 0))){
 				new BuildableBuilder[String, String, Person](new Person("", 0)).ignoreUnknownKeys
 						.apply("asdfjkl;", new Person("", 0), "hello", new IdentityParser)
 			}
@@ -82,33 +83,44 @@ class BuildableBuilderTest extends FunSpec {
 		
 		it ("works") {
 			val builder = new BuildableBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
-				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parse(new ThrowBuilder(), i) match {case Right(JsonValueString(i)) => s.copy(name = i); case _ => throw new IllegalArgumentException}}})
-				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parse(new ThrowBuilder(), i) match {case Right(JsonValueNumber(i)) => s.copy(age = i.intValue); case _ => throw new IllegalArgumentException}}})
+				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parse(new ThrowBuilder(), i) match {case Success(Right(JsonValueString(i))) => Try(s.copy(name = i)); case x => Failure(new IllegalArgumentException)}}})
+				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parse(new ThrowBuilder(), i) match {case Success(Right(JsonValueNumber(i))) => Try(s.copy(age = i.intValue)); case x => Failure(new IllegalArgumentException)}}})
 			
 			assertResult(Person("nqpppnl",1)){
 				new JsonParser().parse(builder, 
 					"""{"name":"nqpppnl","age":1}"""
-				).left.get
+				).get.left.get
 			}
 		}
 		it ("nested") {
 			val exp = Seq(Person("a", 5), Person("b", 6))
 			
 			val personBuilder = new BuildableBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
-				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parse(new ThrowBuilder(), i) match {case Right(JsonValueString(i)) => s.copy(name = i); case _ => throw new IllegalArgumentException}}})
-				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parse(new ThrowBuilder(), i) match {case Right(JsonValueNumber(i)) => s.copy(age = i.intValue); case _ => throw new IllegalArgumentException}}})
+				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parse(new ThrowBuilder(), i) match {case Success(Right(JsonValueString(i))) => Try(s.copy(name = i)); case _ => Failure(new IllegalArgumentException)}}})
+				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parse(new ThrowBuilder(), i) match {case Success(Right(JsonValueNumber(i))) => Try(s.copy(age = i.intValue)); case _ => Failure(new IllegalArgumentException)}}})
 			
 			val seqBuilder = new BuildableBuilder[StringOrInt, JsonValue, Seq[Person]](
 				Nil,
-				new KeyDef[StringOrInt, JsonValue, Seq[Person]]{ def apply[I] = {(s,i,p) => s :+ p.parse(personBuilder, i).fold({x => x},{x => throw new IllegalArgumentException})}}
+				new KeyDef[StringOrInt, JsonValue, Seq[Person]]{ def apply[I] = {(s,i,p) => p.parse(personBuilder, i).flatMap{y => Try(s :+ y.fold({x => x},{x => throw new IllegalArgumentException}))}}}
 			)
 				
 			assertResult(exp){
 				new JsonParser().parse(seqBuilder, 
 					"""[{"name":"a","age":5},{"name":"b","age":6}]"""
-				).left.get
+				).get.left.get
 			}
 		}
+	}
+	
+	
+	
+	def assertFailure[T](clazz:Class[T])(result:Try[_]):Unit = result match {
+		case Failure(x) => {
+			if (! clazz.isInstance(x)) {
+				fail("Wrong type of failure: " + x)
+			}
+		}
+		case x => fail("Not a Failure: " + x)
 	}
 }
 

@@ -48,7 +48,7 @@ class BsonParserTest_Happy2 extends FunSpec {
 					Array[Byte](len.byteValue, 0x00, 0x00, 0x00) ++: elementsArray :+ 0x00.byteValue
 			)
 			val expected = (0 until 20).map{i => i.toString -> JsonValue(i)}.toMap
-			val result = new BsonParser().parse(new MapBuilder(), source).left.get
+			val result = new BsonParser().parse(new MapBuilder(), source).get.left.get
 			
 			assertResult(expected){result}
 		}

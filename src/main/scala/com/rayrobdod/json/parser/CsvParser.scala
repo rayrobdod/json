@@ -28,6 +28,7 @@ package com.rayrobdod.json.parser;
 
 import java.text.ParseException
 import scala.collection.immutable.{Seq, Map, Stack}
+import scala.util.{Try, Success, Failure}
 import com.rayrobdod.json.builder._
 
 
@@ -37,6 +38,7 @@ import com.rayrobdod.json.builder._
  * This parser is lenient, in that it ignores trailing delimiters
  * 
  * A CSV file is always two levels deep - a two dimensional array.
+ * @version next
  * 
  * @constructor
  * Creates a CsvParser instance.
@@ -53,8 +55,8 @@ final class CsvParser(
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse[A](builder:Builder[Int, String, A], chars:Iterable[Char]):Either[A,String] = Left{
-		val endState = chars.zipWithIndex.foldLeft(State(builder.init, 0, "", "", false, false)){(state, ci) => 
+	def parse[A](builder:Builder[Int, String, A], chars:Iterable[Char]):Try[Either[A,String]] = {
+		val endState = chars.zipWithIndex.foldLeft(State(Try(builder.init), 0, "", "", false, false)){(state, ci) => 
 			val (char, index) = ci
 			
 			if (state.escaped) {
@@ -68,7 +70,12 @@ final class CsvParser(
 				state.appendChar(char).copy(quoted = true)
 			} else if (meaningfulCharacters.recordDelimeter contains char) {
 				new State(
-					value = builder.apply(state.innerIndex, state.value, state.innerInput, new LineParser),
+					value = state.value.flatMap{x => builder.apply(state.innerIndex, x, state.innerInput, new LineParser)
+							.recoverWith{
+								case x:ParseException => Failure(new ParseException(x.getMessage, x.getErrorOffset + index).initCause(x))
+								case x => Failure(new ParseException("", index).initCause(x))
+							}
+					},
 					innerIndex = state.innerIndex + 1,
 					innerInput = "",
 					endingWhitespace = "",
@@ -81,9 +88,9 @@ final class CsvParser(
 		}
 		
 		if (endState.innerInput.isEmpty) {
-			endState.value
+			endState.value.map{Left(_)}
 		} else {
-			builder.apply(endState.innerIndex, endState.value, endState.innerInput, new LineParser)
+			endState.value.flatMap{x => builder.apply(endState.innerIndex, x, endState.innerInput, new LineParser)}.map{Left(_)}
 		}
 	}
 	
@@ -94,11 +101,11 @@ final class CsvParser(
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse[A](builder:Builder[Int, String, A], chars:java.io.Reader):Either[A,String] = this.parse(builder, new Reader2Iterable(chars))
+	def parse[A](builder:Builder[Int, String, A], chars:java.io.Reader):Try[Either[A,String]] = this.parse(builder, new Reader2Iterable(chars))
 	
 	
 	private[this] case class State[A] (
-		value:A,
+		value:Try[A],
 		innerIndex:Int,
 		innerInput:String,
 		endingWhitespace:String,
@@ -111,8 +118,8 @@ final class CsvParser(
 	
 	/** Splits a CSV record (i.e. one line) into fields */
 	private[this] final class LineParser extends Parser[Int, String, String] {
-		def parse[A](builder:Builder[Int, String, A], chars:String):Either[A,String] = Left{
-			val endState = chars.zipWithIndex.foldLeft(State(builder.init, 0, "", "", false, false)){(state, ci) => 
+		def parse[A](builder:Builder[Int, String, A], chars:String):Try[Either[A,String]] = {
+			val endState = chars.zipWithIndex.foldLeft(State(Try(builder.init), 0, "", "", false, false)){(state, ci) => 
 				val (char, index) = ci
 				
 				if (state.escaped) {
@@ -133,7 +140,8 @@ final class CsvParser(
 					state.copy(quoted = true)
 				} else if (meaningfulCharacters.fieldDelimeter contains char) {
 					new State(
-						value = builder.apply(state.innerIndex, state.value, state.innerInput, new IdentityParser),
+						value = state.value.flatMap{x => builder.apply(state.innerIndex, x, state.innerInput, new IdentityParser)
+									.recoverWith{case x => Failure(new ParseException("", index).initCause(x))}},
 						innerIndex = state.innerIndex + 1,
 						innerInput = "",
 						endingWhitespace = "",
@@ -146,9 +154,9 @@ final class CsvParser(
 			}
 			
 			if (endState.innerInput.isEmpty) {
-				endState.value
+				endState.value.map{Left(_)}
 			} else {
-				builder.apply(endState.innerIndex, endState.value, endState.innerInput, new IdentityParser)
+				endState.value.flatMap{x => builder.apply(endState.innerIndex, x, endState.innerInput, new IdentityParser)}.map{Left(_)}
 			}
 		}
 	}
@@ -157,10 +165,14 @@ final class CsvParser(
 /**
  * Contains classes used to customize the CsvParser's behavior, as
  * well as a few common instances of those classes.
+ * @since 2.0
+ * @version 2.0
  */
 object CsvParser {
 	/**
 	 * A data container which tells the CsvParser which characters are special
+	 * @since 2.0
+	 * @version 2.0
 	 * 
 	 * @constructor
 	 * @param recordDelimeter first-level separators; separate records
@@ -179,16 +191,22 @@ object CsvParser {
 	
 	/**
 	 * A CharacterMeanings that uses a set of characters similar to most Comma-Separated-Values files
+	 * @since 2.0
+	 * @version 2.0
 	 */
 	val csvCharacterMeanings = CharacterMeanings(Set('\n'), Set(','), Set('"'), Set(' ', '\t', '\uFEFF'), Set('\\'))
 	
 	/**
 	 * A CharacterMeanings that uses a set of characters similar to most Tab-Separated-Values files
+	 * @since 2.0
+	 * @version 2.0
 	 */
 	val tsvCharacterMeanings = CharacterMeanings(Set('\n'), Set('\t'), Set('"'), Set(' ', '\uFEFF'), Set('\\'))
 	
 	/**
 	 * A CharacterMeanings that uses ASCII record and field delimiter characters to separate records and fields
+	 * @since 2.0
+	 * @version 2.0
 	 */
 	val asciiCharacterMeanings = CharacterMeanings(Set('\u001E'), Set('\u001F'), Set.empty, Set.empty, Set.empty)
 }

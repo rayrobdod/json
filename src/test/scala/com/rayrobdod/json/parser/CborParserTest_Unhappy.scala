@@ -29,6 +29,7 @@ package com.rayrobdod.json.parser;
 import org.scalatest.FunSpec;
 import java.text.ParseException;
 import scala.collection.immutable.{Seq, Map};
+import scala.util.{Try, Success, Failure}
 import com.rayrobdod.json.union.JsonValue;
 import com.rayrobdod.json.builder.MapBuilder;
 
@@ -36,91 +37,91 @@ class CborParserTest_Unhappy extends FunSpec {
 	describe("CborParser") {
 		it ("""errors when told to decode a half float""") {
 			val source = hexArray"F93C00"
-			val ex = intercept[UnsupportedOperationException]{
+			assertFailure(classOf[UnsupportedOperationException]){
 				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("""errors when array is incomplete""") {
 			val source = Array[Byte](0x58, 30) ++ (1 to 10).map{_.byteValue}
-			val ex = intercept[java.io.EOFException]{
+			assertFailure(classOf[java.io.EOFException]){
 				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("""illegal additional info field""") {
 			val source = Array[Byte](28) ++ (1 to 50).map{_.byteValue}
-			val ex = intercept[ParseException]{
+			assertFailure(classOf[ParseException]){
 				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("""errors when INDET byte string contains non-string values""") {
 			val source = hexArray"5F44AABBCCDD21FF"
-			val ex = intercept[ClassCastException]{
+			assertFailure(classOf[ClassCastException]){
 				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("errors when an integer has an indeterminate length") {
 			val source = hexArray"1F"
-			val ex = intercept[UnsupportedOperationException]{
+			assertFailure(classOf[UnsupportedOperationException]){
 				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("errors when an integer has an 1E-type length") {
 			val source = hexArray"1E"
-			val ex = intercept[ParseException]{
+			assertFailure(classOf[ParseException]){
 				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("errors when an integer has an 1D-type length") {
 			val source = hexArray"1E"
-			val ex = intercept[ParseException]{
+			assertFailure(classOf[ParseException]){
 				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("errors when an integer has an 1C-type length") {
 			val source = hexArray"1E"
-			val ex = intercept[ParseException]{
+			assertFailure(classOf[ParseException]){
 				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("errors when a byte array has an 1C-type length") {
 			val source = hexArray"5C"
-			val ex = intercept[ParseException]{
+			assertFailure(classOf[ParseException]){
 				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("errors when a string array has an 1E-type length") {
 			val source = hexArray"7E"
-			val ex = intercept[ParseException]{
+			assertFailure(classOf[ParseException]){
 				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("errors when a simple value has an 1C-type length") {
 			val source = hexArray"FC"
-			val ex = intercept[ParseException]{
+			assertFailure(classOf[ParseException]){
 				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("errors when a negative integer has an indeterminate length") {
 			val source = hexArray"3F"
-			val ex = intercept[UnsupportedOperationException]{
+			assertFailure(classOf[UnsupportedOperationException]){
 				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("errors when a tag has an indeterminate length") {
 			val source = hexArray"DF"
-			val ex = intercept[UnsupportedOperationException]{
+			assertFailure(classOf[UnsupportedOperationException]){
 				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		it ("errors upon finding a standalone END_OF_INDETERMINATE_OBJECT") {
 			val source = hexArray"FF"
-			val ex = intercept[java.text.ParseException]{
+			assertFailure(classOf[java.text.ParseException]){
 				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
 			}
 		}
 		
 		it ("can handle an indeterminate array with complex values") {
-			val expected = Left(Seq(Seq(JsonValue(0))))
+			val expected = Success(Left(Seq(Seq(JsonValue(0)))))
 			val source = hexArray"9F8100FF"
 			val builder = new com.rayrobdod.json.builder.SeqBuilder[JsonValue, JsonValue, Seq[JsonValue]](new com.rayrobdod.json.builder.PrimitiveSeqBuilder[JsonValue, JsonValue])
 			assertResult(expected){
@@ -128,7 +129,7 @@ class CborParserTest_Unhappy extends FunSpec {
 			}
 		}
 		it ("can handle an indeterminate object with complex values") {
-			val expected = Left(Map(JsonValue(10) -> Seq(JsonValue(0))))
+			val expected = Success(Left(Map(JsonValue(10) -> Seq(JsonValue(0)))))
 			val source = hexArray"BF 0A 8100 FF"
 			val builder = new com.rayrobdod.json.builder.MapBuilder[JsonValue, JsonValue]({x:JsonValue => Option(new com.rayrobdod.json.builder.PrimitiveSeqBuilder[JsonValue, JsonValue])})
 			assertResult(expected){
@@ -139,9 +140,18 @@ class CborParserTest_Unhappy extends FunSpec {
 			val expected = Map(Seq(JsonValue(0)) -> JsonValue(10))
 			val source = hexArray"BF 8100 0A FF"
 			val builder = new com.rayrobdod.json.builder.MapBuilder[JsonValue, JsonValue]({x:JsonValue => Option(new com.rayrobdod.json.builder.PrimitiveSeqBuilder[JsonValue, JsonValue])})
-			val ex = intercept[UnsupportedOperationException]{
+			assertFailure(classOf[UnsupportedOperationException]){
 				new CborParser().parse(builder, byteArray2DataInput(source))
 			}
 		}
+	}
+	
+	def assertFailure[T](clazz:Class[T])(result:Try[_]):Unit = result match {
+		case Failure(x) => {
+			if (! clazz.isInstance(x)) {
+				fail("Wrong type of failure: " + x)
+			}
+		}
+		case x => fail("Not a Failure: " + x)
 	}
 }

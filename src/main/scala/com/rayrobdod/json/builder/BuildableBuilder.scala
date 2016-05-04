@@ -27,13 +27,15 @@
 package com.rayrobdod.json.builder;
 
 import scala.collection.immutable.Map
+import scala.util.{Try, Success, Failure}
 import com.rayrobdod.json.parser.Parser
 
 /**
  * A Builder which can be built piecewise.
  * 
+ * TODO: mention how
  * 
- * 
+ * @since next
  * @see Inspired by [[https://github.com/scopt/scopt/]]
  * 
  * @tparam Key the key types
@@ -60,22 +62,36 @@ final case class BuildableBuilder[Key, Value, Subject](
 	
 	
 	/** @see Builder#apply */
-	override def apply[Input](key:Key, folding:Subject, input:Input, parser:Parser[Key, Value, Input]):Subject = {
+	override def apply[Input](key:Key, folding:Subject, input:Input, parser:Parser[Key, Value, Input]):Try[Subject] = {
 		keyDefs.getOrElse(key, defaultKeyDef).apply(folding, input, parser)
 	}
 }
 
+/**
+ * @since next
+ */
 object BuildableBuilder{
 	/**
 	 * A holder for a Function3 that is allowed to have a variable type parameter
+	 * @since next
 	 */
 	abstract class KeyDef[Key, Value, Subject] {
-		def apply[Input]:Function3[Subject, Input, Parser[Key, Value, Input], Subject]
+		def apply[Input]:Function3[Subject, Input, Parser[Key, Value, Input], Try[Subject]]
 	}
 	
-	/** A KeyDef that simply passes through the subject */
-	def ignoreKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{def apply[Input] = {(s,i,p) => s}}
+	/** 
+	 * A KeyDef that simply passes through the subject
+	 * @since next
+	 */
+	def ignoreKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
+		def apply[Input] = {(s,i,p) => Success(s)}
+	}
 	
-	/** A KeyDef that throws an exception */
-	def throwKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{def apply[Input] = {(s,i,p) => throw new IllegalArgumentException("Unknown key")}}
+	/**
+	 * A KeyDef that throws an exception
+	 * @since next
+	 */
+	def throwKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
+		def apply[Input] = {(s,i,p) => Failure(new IllegalArgumentException("BuildableBuilder has no KeyDef for given key"))}
+	}
 }

@@ -28,9 +28,11 @@ package com.rayrobdod.json.builder;
 
 import com.rayrobdod.json.parser.Parser
 import scala.collection.immutable.Map;
+import scala.util.{Try, Success, Failure}
 
 /** A builder that creates maps
  * 
+ * @version next
  * @constructor
  * Create a MapBuilder instance
  * @param childBuilderMap a function pretty directly called by `childBuilder()`.
@@ -38,15 +40,16 @@ import scala.collection.immutable.Map;
  */
 final class MapBuilder[K,V](childBuilders:Function1[K, Option[Builder[K, V, _]]] = MapBuilder.defaultChildBuilder[K,V]) extends Builder[K, V, Map[K, Any]] {
 	override val init:Map[K, Any] = Map.empty
-	override def apply[Input](key:K, folding:Map[K,Any], innerInput:Input, parser:Parser[K, V, Input]):Map[K,Any] = {
+	override def apply[Input](key:K, folding:Map[K,Any], innerInput:Input, parser:Parser[K, V, Input]):Try[Map[K,Any]] = {
 		val childBuilder = childBuilders(key).getOrElse(new ThrowBuilder())
-		val eitherRes:Any = parser.parse(childBuilder, innerInput)
-		val innerRes:Any = eitherRes match {
-			case Left(x) => x
-			case Right(x) => x
+		parser.parse(childBuilder, innerInput).map{eitherRes =>
+			val innerRes:Any = eitherRes match {
+				case Left(x) => x
+				case Right(x) => x
+			}
+			
+			folding + (key -> innerRes)
 		}
-		
-		folding + (key -> innerRes)
 	}
 }
 

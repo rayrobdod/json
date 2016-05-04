@@ -106,6 +106,7 @@ package com.rayrobdod.json.parser;
 
 import java.text.ParseException;
 import scala.collection.immutable.Map;
+import scala.util.{Try, Success, Failure}
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.StringOrInt
@@ -128,13 +129,13 @@ class JsonParserTest_Happy extends FunSpec {
 		"\n\t\tit (\"\"\"" + name + "\"\"\"" + """) {
 			val source = """ + "\"\"\"" + source + "\"\"\"" + """
 			val expected = """ + expected + """
-			val result = new JsonParser().parse(""" + parser + """, source).left.get
+			val result = new JsonParser().parse(""" + parser + """, source).get.left.get
 			assertResult(expected){result}
 		}
 		it (""" + '"' + name + """ (reader)") {
 			val source = new java.io.StringReader(""" + "\"\"\"" + source + "\"\"\"" + """)
 			val expected = """ + expected + """
-			val result = new JsonParser().parse(""" + parser + """, source).left.get
+			val result = new JsonParser().parse(""" + parser + """, source).get.left.get
 			assertResult(expected){result}
 		}"""
 	}

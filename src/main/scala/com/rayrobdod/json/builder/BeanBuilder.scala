@@ -26,8 +26,9 @@
 */
 package com.rayrobdod.json.builder;
 
-import com.rayrobdod.json.parser.Parser
 import java.lang.reflect.Method
+import scala.util.{Try, Success, Failure}
+import com.rayrobdod.json.parser.Parser
 
 /** A builder that builds a JavaBean
  * 
@@ -35,6 +36,7 @@ import java.lang.reflect.Method
  * to have a zero-argument constructor and will interact with methods
  * of the form `setX`.
  * 
+ * @version next
  * @tparam Value the parser's primitive values
  * @tparam A the type of object to build
  * @constructor
@@ -58,26 +60,30 @@ final class BeanBuilder[Value, A](
 	 * @return the input parameter `folding`
 	 * @todo maybe check for other primitive numeric types - IE a `setVal(Short)` when handed a `Long` or visa versa
 	 */
-	def apply[Input](key:String, folding:A, input:Input, parser:Parser[String, Value, Input]):A = {
+	def apply[Input](key:String, folding:A, input:Input, parser:Parser[String, Value, Input]):Try[A] = {
 		val builder = childBuilders(key).getOrElse(new ThrowBuilder())
 		
 		// unwrap union values
-		val value = {
-			val a = parser.parse(builder, input) match {
-				case Left(x) => x
-				case Right(x) => x
-			} 
-			a match {
-				case com.rayrobdod.json.union.StringOrInt.Left(x) => x
-				case com.rayrobdod.json.union.StringOrInt.Right(x) => x
-				case x:com.rayrobdod.json.union.JsonValue => com.rayrobdod.json.union.JsonValue.unwrap(x)
-				case x => x
+		parser.parse(builder, input).flatMap{b =>
+			val value = {
+				val a = b match {
+					case Left(x) => x
+					case Right(x) => x
+				} 
+				a match {
+					case com.rayrobdod.json.union.StringOrInt.Left(x) => x
+					case com.rayrobdod.json.union.StringOrInt.Right(x) => x
+					case x:com.rayrobdod.json.union.JsonValue => com.rayrobdod.json.union.JsonValue.unwrap(x)
+					case x => x
+				}
+			}
+			
+			Try{
+				val m = clazz.getMethod("set" + key.head.toUpper + key.tail, value.getClass)
+				m.invoke(folding, value.asInstanceOf[Object])
+				// the above line should have mutated `folding`.
+				folding
 			}
 		}
-		
-		val m = clazz.getMethod("set" + key.head.toUpper + key.tail, value.getClass)
-		m.invoke(folding, value.asInstanceOf[Object])
-		// the above line should have mutated `folding`.
-		folding
 	}
 }

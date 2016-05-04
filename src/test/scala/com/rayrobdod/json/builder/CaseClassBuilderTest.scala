@@ -28,6 +28,7 @@ package com.rayrobdod.json.builder;
 
 import java.text.ParseException;
 import scala.collection.immutable.Map;
+import scala.util.{Try, Success, Failure}
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.union.JsonValue
@@ -45,28 +46,28 @@ class CaseClassBuilderTest extends FunSpec {
 		}
 		it ("Can handle the name bean property") {
 			val name = "Anony Mouse"
-			assertResult(new Person(name, 0)){
+			assertResult(Success(new Person(name, 0))){
 				new CaseClassBuilder(new Person("", 0)).apply("name", 
 						new Person("", 0), name, new IdentityParser[String,Object])
 			}
 		}
 		it ("Can handle the age bean property") {
 			val age = 9001L
-			assertResult(new Person("", age)){
+			assertResult(Success(new Person("", age))){
 				new CaseClassBuilder(new Person("", 0)).apply("age", 
 						new Person("", 0), age, new IdentityParser[String,Any])
 			}
 		}
 		it ("Throws excpetion on incorrect type") {
 			val age = "9001"
-			intercept[IllegalArgumentException]{
+			assertFailure(classOf[IllegalArgumentException]){
 				new CaseClassBuilder(new Person("", 0)).apply("age", 
 						new Person("", 0), age, new IdentityParser[String,Object])
 			}
 		}
 		it ("Throws excpetion on unknown key") {
 			val age = "9001"
-			intercept[IllegalArgumentException]{
+			assertFailure(classOf[IllegalArgumentException]){
 				new CaseClassBuilder(new Person("", 0)).apply("asdfjkl;", 
 						new Person("", 0), age, new IdentityParser[String,Object])
 			}
@@ -81,9 +82,20 @@ class CaseClassBuilderTest extends FunSpec {
 				new JsonParser().parse(
 					new CaseClassBuilder[JsonValue, Person](new Person("", 0)).mapKey[StringOrInt]{StringOrInt.unwrapToString},
 					"""{"name":"nqpppnl","age":1}"""
-				).left.get
+				).get.left.get
 			}
 		}
+	}
+	
+	
+	
+	def assertFailure[T](clazz:Class[T])(result:Try[_]):Unit = result match {
+		case Failure(x) => {
+			if (! clazz.isInstance(x)) {
+				fail("Wrong type of failure: " + x)
+			}
+		}
+		case x => fail("Not a Failure: " + x)
 	}
 }
 

@@ -29,6 +29,7 @@ package com.rayrobdod.json.builder;
 import scala.beans.BeanProperty;
 import java.text.ParseException;
 import scala.collection.immutable.Map;
+import scala.util.{Try, Success, Failure}
 import org.scalatest.FunSpec;
 import java.nio.charset.StandardCharsets.US_ASCII;
 import com.rayrobdod.json.union.JsonValue
@@ -46,57 +47,57 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 			assertResult("{}"){new MinifiedJsonObjectBuilder().init}
 		}
 		it ("Appends null") {
-			assertResult("""{"":null}"""){
+			assertResult(Success("""{"":null}""")){
 				new MinifiedJsonObjectBuilder().apply("", "{}", JsonValueNull, new IdentityParser[String,JsonValue])
 			}
 		}
 		it ("Appends true") {
-			assertResult("""{"":true}"""){
+			assertResult(Success("""{"":true}""")){
 				new MinifiedJsonObjectBuilder().apply("", "{}", JsonValue(true), new IdentityParser[String,JsonValue])
 			}
 		}
 		it ("Appends false") {
-			assertResult("""{"":false}"""){
+			assertResult(Success("""{"":false}""")){
 				new MinifiedJsonObjectBuilder().apply("", "{}", JsonValue(false), new IdentityParser[String,JsonValue])
 			}
 		}
 		it ("Appends integer") {
-			assertResult("""{"":68}"""){
+			assertResult(Success("""{"":68}""")){
 				new MinifiedJsonObjectBuilder().apply("", "{}", JsonValue(68), new IdentityParser[String,JsonValue])
 			}
 		}
 		it ("Appends string") {
-			assertResult("""{"":"abc"}"""){
+			assertResult(Success("""{"":"abc"}""")){
 				new MinifiedJsonObjectBuilder().apply("", "{}", JsonValue("abc"), new IdentityParser[String,JsonValue])
 			}
 		}
 		it ("Appends string with escapes") {
-			assertResult("""{"":"a\tc"}"""){
+			assertResult(Success("""{"":"a\tc"}""")){
 				new MinifiedJsonObjectBuilder().apply("", "{}", JsonValue("a\tc"), new IdentityParser[String,JsonValue])
 			}
 		}
 		it ("Appends string with escapes 2") {
-			assertResult("""{"":"a\""" + """u0000c"}"""){
+			assertResult(Success("""{"":"a\""" + """u0000c"}""")){
 				new MinifiedJsonObjectBuilder().apply("", "{}", JsonValue("a\u0000c"), new IdentityParser[String,JsonValue])
 			}
 		}
 		it ("Appends string with space") {
-			assertResult("""{"":" a c "}"""){
+			assertResult(Success("""{"":" a c "}""")){
 				new MinifiedJsonObjectBuilder().apply("", "{}", JsonValue(" a c "), new IdentityParser[String,JsonValue])
 			}
 		}
 		it ("Appends string with non-ascii char (utf-8)") {
-			assertResult("""{"":"Pokémon"}"""){
+			assertResult(Success("""{"":"Pokémon"}""")){
 				new MinifiedJsonObjectBuilder().apply("", "{}", JsonValue("Pokémon"), new IdentityParser[String,JsonValue])
 			}
 		}
 		it ("Appends string with non-ascii char (ascii)") {
-			assertResult("""{"":"Pok\""" + """u00e9mon"}"""){
+			assertResult(Success("""{"":"Pok\""" + """u00e9mon"}""")){
 				new MinifiedJsonObjectBuilder(US_ASCII).apply("", "{}", JsonValue("Pokémon"), new IdentityParser[String,JsonValue])
 			}
 		}
 		it ("Appends a second value") {
-			assertResult("""{"a":"b","c":"d"}"""){
+			assertResult(Success("""{"a":"b","c":"d"}""")){
 				new MinifiedJsonObjectBuilder().apply("c", """{"a":"b"}""", JsonValue("d"), new IdentityParser[String,JsonValue])
 			}
 		}
@@ -111,7 +112,7 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 				new JsonParser().parse(
 					builder,
 					"""{"a":61,"b":62,"c":63}"""
-				).left.get
+				).get.left.get
 			}
 		}
 		it ("MinifiedJsonObjectBuilder + JsonParser + primitive (whitespace)") {
@@ -123,7 +124,7 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 	"b" : 62,
 	"c" : 63
 }"""
-				).left.get
+				).get.left.get
 			}
 		}
 		it ("MinifiedJsonObjectBuilder + JsonParser + nested objects") {
@@ -131,7 +132,7 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 				new JsonParser().parse(
 					builder,
 					"""{"":{"a":0,"b":1}}"""
-				).left.get
+				).get.left.get
 			}
 		}
 		it ("MinifiedJsonObjectBuilder + CborParser + primitives") {
@@ -139,7 +140,7 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 				new CborParser().parse(
 					new MinifiedJsonObjectBuilder().mapKey[JsonValue]{_ match {case JsonValueString(x) => x; case JsonValueNumber(x) => x.toString}},
 					byteArray2DataInput(hexArray"A10405")
-				).left.get
+				).get.left.get
 			}
 		}
 		it ("MinifiedJsonObjectBuilder + case class") {
@@ -147,7 +148,7 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 				new CaseClassParser().parse(
 					new MinifiedJsonObjectBuilder().mapValue[Any]{JsonValue.unsafeWrap},
 					Abc(5,false,"str")
-				).fold({x => x}, {x => throw new IllegalArgumentException()})
+				).get.fold({x => x}, {x => throw new IllegalArgumentException()})
 			}
 		}
 		ignore ("MinifiedJsonObjectBuilder + nested case class") {
@@ -155,7 +156,7 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 				new MapParser().parse(
 					new MinifiedJsonObjectBuilder().mapValue[Any]{JsonValue.unsafeWrap},
 					Map("5" -> Abc(5,false,"str"))
-				).fold({x => x}, {x => throw new IllegalArgumentException()})
+				).get.fold({x => x}, {x => throw new IllegalArgumentException()})
 			}
 		}
 	}

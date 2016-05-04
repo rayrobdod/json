@@ -28,6 +28,7 @@ package com.rayrobdod.json.builder;
 
 import java.text.ParseException;
 import scala.collection.immutable.Map;
+import scala.util.{Try, Success, Failure}
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.parser.{IdentityParser, SeqParser, MapParser}
 import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter};
@@ -35,15 +36,21 @@ import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter};
 class ThrowBuilderTest extends FunSpec {
 	
 	describe("ThrowBuilder") {
-		it ("throws on init") {
-			intercept[UnsupportedOperationException] {
-				new ThrowBuilder().init
-			}
-		}
-		it ("throws on apply") {
-			intercept[UnsupportedOperationException] {
+		it ("Returns a failure on apply regardless of inputs") {
+			assertFailure(classOf[UnsupportedOperationException]){
 				new ThrowBuilder().apply("a", null, null, null)
 			}
 		}
+	}
+	
+	
+	
+	def assertFailure[T](clazz:Class[T])(result:Try[_]):Unit = result match {
+		case Failure(x) => {
+			if (! clazz.isInstance(x)) {
+				fail("Wrong type of failure: " + x)
+			}
+		}
+		case x => fail("Not a Failure: " + x)
 	}
 }

@@ -28,6 +28,7 @@ package com.rayrobdod.json.parser;
 
 import java.text.ParseException;
 import scala.collection.immutable.Map;
+import scala.util.{Try, Success, Failure}
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.MapBuilder;
 
@@ -40,7 +41,7 @@ class BsonParserTest_UnHappy extends FunSpec {
 					0)
 			);
 			
-			intercept[ParseException] {
+			assertFailureParse("Incorrect string length", -1){
 				new BsonParser().parse(new MapBuilder(), src)
 			}
 		}
@@ -52,7 +53,7 @@ class BsonParserTest_UnHappy extends FunSpec {
 					0)
 			);
 			
-			intercept[ParseException] {
+			assertFailureParse("Incorrect string length", -1){
 				new BsonParser().parse(new MapBuilder(), src)
 			}
 		}
@@ -62,7 +63,7 @@ class BsonParserTest_UnHappy extends FunSpec {
 						0x02,0,  2,0)
 			);
 			
-			intercept[java.io.EOFException] {
+			assertFailureEOF(null){
 				new BsonParser().parse(new MapBuilder(), src)
 			}
 		}
@@ -73,9 +74,26 @@ class BsonParserTest_UnHappy extends FunSpec {
 					0)
 			);
 			
-			intercept[ParseException] {
+			assertFailureParse("Unknown data type", -1){
 				new BsonParser().parse(new MapBuilder(), src)
 			}
 		}
+	}
+	
+	def assertFailureParse(msg:String, idx:Int)(result:Try[_]):Unit = result match {
+		case Failure(x:ParseException) => {
+			assertResult(msg){x.getMessage}
+			assertResult(idx){x.getErrorOffset}
+		}
+		case Failure(x) => fail("Not a ParseException: " + x)
+		case x => fail("Not a Failure: " + x)
+	}
+	
+	def assertFailureEOF(msg:String)(result:Try[_]):Unit = result match {
+		case Failure(x:java.io.EOFException) => {
+			assertResult(msg){x.getMessage}
+		}
+		case Failure(x) => fail("Not a EOFException: " + x)
+		case x => fail("Not a Failure: " + x)
 	}
 }

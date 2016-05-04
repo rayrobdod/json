@@ -27,6 +27,7 @@
 package com.rayrobdod.json.builder;
 
 import scala.collection.immutable.Seq
+import scala.util.{Try, Success, Failure}
 import java.nio.charset.StandardCharsets.UTF_8
 import com.rayrobdod.json.parser.CborParser.{MajorTypeCodes, SimpleValueCodes}
 import com.rayrobdod.json.union.{JsonValue}
@@ -35,6 +36,7 @@ import com.rayrobdod.json.parser.{MapParser, SeqParser}
 
 /**
  * A builder that will create a series of bytes in Cbor Object format
+ * @version next
  * @constructor
  * A builder that will create cbor object format byte strings
  * @param transformer a function to convert non-cbor-primitive objects to cbor-primitive objects
@@ -46,7 +48,7 @@ final class CborObjectBuilder extends Builder[JsonValue, JsonValue, Seq[Byte]] {
 	val init:Seq[Byte] = encodeLength(MajorTypeCodes.OBJECT, 0)
 	
 	/** @param folding a valid cbor object */
-	def apply[Input](key:JsonValue, folding:Seq[Byte], input:Input, parser:Parser[JsonValue, JsonValue, Input]):Seq[Byte] = {
+	def apply[Input](key:JsonValue, folding:Seq[Byte], input:Input, parser:Parser[JsonValue, JsonValue, Input]):Try[Seq[Byte]] = {
 		val value = parser.parse[Seq[Byte]](this, input)
 		
 		val headerByte:Byte = folding.head
@@ -60,17 +62,20 @@ final class CborObjectBuilder extends Builder[JsonValue, JsonValue, Seq[Byte]] {
 			case _  => {throw new IllegalArgumentException("input `folding` had illegal length value")}
 		}
 		
-		val encodedValue = value match {
-			case Left(x) => x
-			case Right(x) => encodeValue(x)
+		value.flatMap{b =>
+			val encodedValue = b match {
+				case Left(x) => x
+				case Right(x) => encodeValue(x)
+			}
+			
+			Try(encodeLength(MajorTypeCodes.OBJECT, objectLength + 1) ++ passData ++ encodeValue(key) ++ encodedValue)
 		}
-		
-		encodeLength(MajorTypeCodes.OBJECT, objectLength + 1) ++ passData ++ encodeValue(key) ++ encodedValue
 	}
 }
 
 /**
  * A builder that will create a series of bytes in Cbor Array format
+ * @version next
  * @constructor
  * A builder that will create cbor array format byte strings
  * @param transformer a function to convert non-cbor-primitive objects to cbor-primitive objects
@@ -82,7 +87,7 @@ final class CborArrayBuilder() extends Builder[Any, JsonValue, Seq[Byte]] {
 	val init:Seq[Byte] = encodeLength(MajorTypeCodes.ARRAY, 0)
 	
 	/** @param folding a valid cbor object */
-	def apply[Input](key:Any, folding:Seq[Byte], input:Input, parser:Parser[Any, JsonValue, Input]):Seq[Byte] = {
+	def apply[Input](key:Any, folding:Seq[Byte], input:Input, parser:Parser[Any, JsonValue, Input]):Try[Seq[Byte]] = {
 		val value = parser.parse[Seq[Byte]](this, input)
 		
 		val headerByte:Byte = folding.head
@@ -96,12 +101,14 @@ final class CborArrayBuilder() extends Builder[Any, JsonValue, Seq[Byte]] {
 			case _  => {throw new IllegalArgumentException("input `folding` had illegal length value")}
 		}
 		
-		val encodedValue = value match {
-			case Left(x) => x
-			case Right(x) => encodeValue(x)
+		value.flatMap{b =>
+			val encodedValue = b match {
+				case Left(x) => x
+				case Right(x) => encodeValue(x)
+			}
+			
+			Try(encodeLength(MajorTypeCodes.ARRAY, objectLength + 1) ++ passData ++ encodedValue)
 		}
-		
-		encodeLength(MajorTypeCodes.ARRAY, objectLength + 1) ++ passData ++ encodedValue
 	}
 }
 

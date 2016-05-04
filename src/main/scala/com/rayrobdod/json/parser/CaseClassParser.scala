@@ -27,12 +27,14 @@
 package com.rayrobdod.json.parser;
 
 import scala.reflect.runtime.universe.{runtimeMirror, newTermName}
+import scala.util.{Try, Success, Failure}
 import com.rayrobdod.json.builder.Builder
 
 
 /**
  * A parser that reports the name and value of each member of a case class
  * 
+ * @version next
  * @tparam Input the type of object to be parsed
  * @constructor
  * Creates a CaseClassParser instance.
@@ -44,18 +46,18 @@ final class CaseClassParser[Input <: Product](implicit clazz:Class[Input]) exten
 	 * Reports the values inside obj to the builder
 	 * @param obj the object to extract values from
 	 */
-	def parse[Output](builder:Builder[String, Any, Output], obj:Input):Either[Output,Any] = Left{
+	def parse[Output](builder:Builder[String, Any, Output], obj:Input):Try[Left[Output,Any]] = {
 		val mirror = runtimeMirror( this.getClass.getClassLoader )
 		val typ = mirror.classSymbol( clazz ).toType
 		val copyMethod = typ.declaration(newTermName("copy")).asMethod
 		val copyParams = copyMethod.paramss(0)
 		
-		copyParams.zipWithIndex.foldLeft(builder.init){(state:Output, keyValue) =>
+		copyParams.zipWithIndex.foldLeft(Try(builder.init)){(state:Try[Output], keyValue) =>
 			val (name, index) = keyValue
 			val name2 = name.name.decodedName.toString
 			val value = obj.productElement(index)
 			
-			builder.apply(name2, state, value, new IdentityParser)
+			state.flatMap{x => builder.apply(name2, x, value, new IdentityParser)}
 		}
-	}
+	}.map{Left(_)}
 }

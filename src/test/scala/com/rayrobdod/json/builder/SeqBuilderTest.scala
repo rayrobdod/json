@@ -27,6 +27,7 @@
 package com.rayrobdod.json.builder;
 
 import scala.beans.BeanProperty;
+import scala.util.{Try, Success, Failure}
 import java.text.ParseException;
 import scala.collection.immutable.Seq;
 import org.scalatest.FunSpec;
@@ -42,7 +43,7 @@ class SeqBuilderTest extends FunSpec {
 		it ("Appends value") {
 			val myValue = new Object
 			
-			assertResult(Seq(myValue)){
+			assertResult(Success(Seq(myValue))){
 				new PrimitiveSeqBuilder().apply("sdfa", Nil, myValue, new IdentityParser[String, Object])
 			}
 		}
@@ -50,19 +51,19 @@ class SeqBuilderTest extends FunSpec {
 			val myValue1 = new Object
 			val myValue2 = new Object
 			
-			assertResult(Seq(myValue1, myValue2)){
+			assertResult(Success(Seq(myValue1, myValue2))){
 				new PrimitiveSeqBuilder().apply("sdfa", Seq(myValue1), myValue2, new IdentityParser[String, Object])
 			}
 		}
 		it ("ComplexSeqBuilder throws when builder gives it a primitive value") {
 			val myValue2 = new Object
 			
-			val ex = intercept[java.text.ParseException]{
+			assertFailure(classOf[java.text.ParseException]){
 				new SeqBuilder(new PrimitiveSeqBuilder[String, Object]).apply("sdfa", Nil, myValue2, new IdentityParser[String, Object])
 			}
 		}
 		it ("PrimitiveSeqBuilder throws when builder gives it a complex value") {
-			val ex = intercept[UnsupportedOperationException]{
+			assertFailure(classOf[UnsupportedOperationException]){
 				new PrimitiveSeqBuilder[Int,String].apply(5, Nil, Seq("a","b","c"), new SeqParser[String])
 			}
 		}
@@ -78,12 +79,12 @@ class SeqBuilderTest extends FunSpec {
 				new JsonParser().parse(
 					new PrimitiveSeqBuilder[String, JsonValue].mapKey[StringOrInt]{StringOrInt.unwrapToString},
 					"""["a", "b", "c"]"""
-				).left.get
+				).get.left.get
 			}
 		}
 		it ("SeqBuilder + SeqParser") {
 			val exp = Seq(15, -4, 2)
-			val res = new SeqParser[Int]().parse(new PrimitiveSeqBuilder, exp).fold({x => x}, {x => throw new IllegalArgumentException()}) 
+			val res = new SeqParser[Int]().parse(new PrimitiveSeqBuilder, exp).get.fold({x => x}, {x => throw new IllegalArgumentException()}) 
 			assertResult(exp){res}
 		}
 		it ("SeqBuilder + JsonParser + BeanBuilder") {
@@ -95,9 +96,19 @@ class SeqBuilderTest extends FunSpec {
 						{"name":"Luigi", "age":32},
 						{"name":"Peach", "age":28}
 					]"""
-				).left.get
+				).get.left.get
 			}
 		}
+	}
+	
+	
+	def assertFailure[T](clazz:Class[T])(result:Try[_]):Unit = result match {
+		case Failure(x) => {
+			if (! clazz.isInstance(x)) {
+				fail("Wrong type of failure: " + x)
+			}
+		}
+		case x => fail("Not a Failure: " + x)
 	}
 }
 

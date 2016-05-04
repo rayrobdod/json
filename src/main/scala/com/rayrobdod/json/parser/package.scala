@@ -30,11 +30,13 @@ import com.rayrobdod.json.builder.Builder
 import scala.collection.{Iterable, Iterator}
 import scala.collection.immutable.{Seq => ISeq}
 // import scala.collection.{AbstractIterable, AbstractIterator}
+import scala.util.{Try, Success, Failure}
 
 /**
  * Contains the various built-in parsers
  */
 package object parser {
+	/** @version 2.0 */
 	private[json] def byteArray2DataInput(ba:Array[Byte]):java.io.DataInput = {
 		new java.io.DataInputStream(
 			new java.io.ByteArrayInputStream(
@@ -44,6 +46,7 @@ package object parser {
 	}
 	
 	// String Interpolation
+	/** @version 2.0 */
 	private[json] implicit class HexArrayStringConverter(val sc: StringContext) extends AnyVal {
 		def hexSeq(args: Any*):ISeq[Byte] = {
 			((sc.parts.head):String)
@@ -62,7 +65,10 @@ package object parser {
 }
 
 package parser {
-	/** An iterable whose iterator reads characters from the reader one at a time */
+	/**
+	 * An iterable whose iterator reads characters from the reader one at a time
+	 * @version 2.0
+	 */
 	private[parser] final class Reader2Iterable(r:java.io.Reader) extends Iterable[Char] {
 		def iterator():Iterator[Char] = {
 			new Iterator[Char]() {
@@ -80,7 +86,8 @@ package parser {
 	}
 	
 	/**
-	* A trivial "parser" that goes through the motions using each element of a map
+	 * A trivial "parser" that goes through the motions using each element of a map
+	 * @version next
 	 * 
 	 * @constructor
 	 * Create a MapParser
@@ -92,16 +99,17 @@ package parser {
 		 * @param vals the sequence containing values
 		 * @return the parsed object
 		 */
-		def parse[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):Either[A,V] = Left(
-			vals.foldLeft[A](topBuilder.init){(state:A, keyValue:(K, V)) => 
+		def parse[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):Try[Left[A,V]] = {
+			vals.foldLeft[Try[A]](Success(topBuilder.init)){(state:Try[A], keyValue:(K, V)) => 
 				val (key, value) = keyValue;
-				topBuilder.apply(key, state, value, new IdentityParser)
+				state.flatMap{x => topBuilder.apply(key, x, value, new IdentityParser)}
 			}
-		)
+		}.map{Left(_)}
 	}
 	
 	/**
 	 * A trivial "parser" that goes through the motions with each element of a seq
+	 * @version next
 	 * 
 	 * @constructor
 	 * Create a SeqParser
@@ -113,17 +121,20 @@ package parser {
 		 * @param vals the sequence containing values
 		 * @return the parsed object
 		 */
-		def parse[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):Either[A,V] = Left(
-			vals.zipWithIndex.foldLeft[A](topBuilder.init){(state:A, valueKey:(V, Int)) => 
+		def parse[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):Try[Left[A,V]] = {
+			vals.zipWithIndex.foldLeft[Try[A]](Success(topBuilder.init)){(state:Try[A], valueKey:(V, Int)) => 
 				val (value, key) = valueKey;
-				topBuilder.apply(key, state, value, new IdentityParser)
+				state.flatMap{x => topBuilder.apply(key, x, value, new IdentityParser)}
 			}
-		)
+		}.map{Left(_)}
 	}
 	
-	/** A 'parser' that echos the value provided in its parse method */
+	/**
+	 * A 'parser' that echos the value provided in its parse method
+	 * @version next
+	 */
 	final class IdentityParser[K,V] extends Parser[K,V,V] {
 		/** Returns `scala.util.Right(v)` */
-		def parse[A](b:Builder[K,V,A], v:V):Right[A,V] = Right(v)
+		def parse[A](b:Builder[K,V,A], v:V):Success[Right[A,V]] = Success(Right(v))
 	}
 }

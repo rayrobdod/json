@@ -36,13 +36,13 @@ class MapParserTest extends FunSpec {
 	describe("MapParser") {
 		it ("""recreates an arbitrary map""") {
 			val src = Map("a" -> 32, "b" -> Some(false), "c" -> new MapBuilder())
-			val res = new MapParser().parse(new MapBuilder[String,Any](), src).fold({x => x}, {x => throw new IllegalArgumentException()})
+			val res = new MapParser().parse(new MapBuilder[String,Any](), src).get.fold({x => x}, {x => throw new IllegalArgumentException()})
 			
 			assertResult(src){res}
 		}
 		it ("""recreates an arbitrary map with nesting""") {
 			val src = Map("a" -> Map.empty, "b" -> Map("x" -> true, "y" -> false))
-			val res = new MapParser().parse(new MapBuilder[String,Any](), src).fold({x => x}, {x => throw new IllegalArgumentException()})
+			val res = new MapParser().parse(new MapBuilder[String,Any](), src).get.fold({x => x}, {x => throw new IllegalArgumentException()})
 			
 			assertResult(src){res}
 		}
@@ -51,8 +51,8 @@ class MapParserTest extends FunSpec {
 	describe("MapParser + Json") {
 		it ("""can be used with the json stuff to serialze and deserialize a map""") {
 			val src = Map("a" -> JsonValue(32L), "b" -> JsonValue(false), "c" -> JsonValue("1.5"))
-			val json = new MapParser().parse(new MinifiedJsonObjectBuilder(), src).fold({x => x}, {x => throw new IllegalArgumentException()})
-			val res = new JsonParser().parse(new MapBuilder[String, JsonValue]().mapKey[StringOrInt]{StringOrInt.unwrapToString}, json).fold({x => x}, {x => throw new IllegalArgumentException()})
+			val json = new MapParser().parse(new MinifiedJsonObjectBuilder(), src).get.fold({x => x}, {x => throw new IllegalArgumentException()})
+			val res = new JsonParser().parse(new MapBuilder[String, JsonValue]().mapKey[StringOrInt]{StringOrInt.unwrapToString}, json).get.fold({x => x}, {x => throw new IllegalArgumentException()})
 			
 			assertResult(src){res}
 		}

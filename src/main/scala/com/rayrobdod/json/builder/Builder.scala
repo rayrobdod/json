@@ -27,11 +27,13 @@
 package com.rayrobdod.json.builder;
 
 import scala.language.higherKinds
+import scala.util.{Try, Success, Failure}
 import com.rayrobdod.json.parser.Parser
 
 /**
  * A class that creates an object from a sequence of 'fold'-style method calls
  * 
+ * @version next
  * @see com.rayrobdod.json.parser.Parser
  * @tparam Key the type of keys used by the Parser that this Builder will be used by
  * @tparam Value the type of primitive value types used by the Parser that this Builder will be used by
@@ -50,15 +52,15 @@ trait Builder[Key, Value, Subject] {
 	 * @param parser a parser for turning input into a value
 	 * @param input the input to a parser
 	 */
-	def apply[Input](key:Key, folding:Subject, input:Input, parser:Parser[Key, Value, Input]):Subject
+	def apply[Input](key:Key, folding:Subject, input:Input, parser:Parser[Key, Value, Input]):Try[Subject]
 	
 	
 	/** Change the type of key that this builder requires */
 	final def mapKey[K2](implicit fun:Function1[K2,Key]):Builder[K2,Value,Subject] = new Builder[K2,Value,Subject] {
 		override def init:Subject = Builder.this.init
-		override def apply[Input](key:K2, a:Subject, b:Input, c:Parser[K2, Value, Input]):Subject = {
+		override def apply[Input](key:K2, a:Subject, b:Input, c:Parser[K2, Value, Input]):Try[Subject] = {
 			final class ReverseParser(innerParser:Parser[K2,Value,Input]) extends Parser[Key,Value,Input] {
-				override def parse[Output](builder:Builder[Key,Value,Output], i:Input):Either[Output, Value] = innerParser.parse(builder.mapKey[K2](fun), i)
+				override def parse[Output](builder:Builder[Key,Value,Output], i:Input):Try[Either[Output, Value]] = innerParser.parse(builder.mapKey[K2](fun), i)
 			}
 			
 			Builder.this.apply(fun(key), a, b, new ReverseParser(c))
@@ -68,12 +70,13 @@ trait Builder[Key, Value, Subject] {
 	/** Change the type of value that this builder requires */
 	final def mapValue[V2](implicit fun:Function1[V2,Value]):Builder[Key,V2,Subject] = new Builder[Key,V2,Subject] {
 		override def init:Subject = Builder.this.init
-		override def apply[Input](key:Key, a:Subject, b:Input, c:Parser[Key, V2, Input]):Subject = {
+		override def apply[Input](key:Key, a:Subject, b:Input, c:Parser[Key, V2, Input]):Try[Subject] = {
 			final class ReverseParser(innerParser:Parser[Key,V2,Input]) extends Parser[Key,Value,Input] {
-				override def parse[Output](builder:Builder[Key,Value,Output], i:Input):Either[Output, Value] = {
+				override def parse[Output](builder:Builder[Key,Value,Output], i:Input):Try[Either[Output, Value]] = {
 					innerParser.parse[Output](builder.mapValue[V2](fun), i) match {
-						case Left(x) => Left(x)
-						case Right(x) => Right(fun(x))
+						case Success(Left(x)) => Success(Left(x))
+						case Success(Right(x)) => Success(Right(fun(x)))
+						case Failure(x) => Failure(x)
 					}
 				}
 			}

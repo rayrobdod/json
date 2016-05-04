@@ -78,6 +78,7 @@ package com.rayrobdod.json.parser;
 
 import java.text.ParseException;
 import scala.collection.immutable.Map;
+import scala.util.{Try, Success, Failure}
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.MapBuilder;
 import com.rayrobdod.json.union.JsonValue

@@ -32,9 +32,14 @@ import scala.language.implicitConversions
 
 /**
  * A union type where the possible values are a String or Int
+ * @since next
  */
 sealed trait StringOrInt
 
+/**
+ * Methods used to create StringOrInts
+ * @since next
+ */
 object StringOrInt {
 	/** A string value represented as a StringOrInt union */
 	final case class Left(s:String) extends StringOrInt

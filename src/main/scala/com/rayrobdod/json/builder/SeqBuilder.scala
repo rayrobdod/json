@@ -29,9 +29,11 @@ package com.rayrobdod.json.builder;
 import java.text.ParseException
 import com.rayrobdod.json.parser.Parser
 import scala.collection.immutable.Seq;
+import scala.util.{Try, Success, Failure}
 
 /** A builder that creates seqs
  * 
+ * @version next
  * @tparam Key the type of keys used by the Parser that this Builder will be used by
  * @tparam Value the type of primitive value types used by the Parser that this Builder will be used by
  * @constructor
@@ -42,26 +44,29 @@ final class SeqBuilder[Key, Value, Inner](childBuilder:Builder[Key, Value, Inner
 	
 	def init:Seq[Inner] = Vector.empty[Inner]
 	
-	override def apply[Input](key:Key, folding:Seq[Inner], innerInput:Input, parser:Parser[Key, Value, Input]):Seq[Inner] = {
+	override def apply[Input](key:Key, folding:Seq[Inner], innerInput:Input, parser:Parser[Key, Value, Input]):Try[Seq[Inner]] = {
 		val res = parser.parse(childBuilder, innerInput)
 		res match {
-			case Left(x) => folding :+ x
-			case Right(x) => throw new ParseException("Found primitive in SeqBuilder", 0)
+			case Success(Left(x)) => Try(folding :+ x)
+			case Success(Right(x)) => Failure(new ParseException("Found primitive in SeqBuilder", 0))
+			case Failure(x) => Failure(x)
 		}
 	}
 }
 
 /**
  * 
+ * @version next
  */
 final class PrimitiveSeqBuilder[Key, Value] extends Builder[Key, Value, Seq[Value]] {
 	def init:Seq[Value] = Vector.empty[Value]
 	
-	override def apply[Input](key:Key, folding:Seq[Value], innerInput:Input, parser:Parser[Key, Value, Input]):Seq[Value] = {
+	override def apply[Input](key:Key, folding:Seq[Value], innerInput:Input, parser:Parser[Key, Value, Input]):Try[Seq[Value]] = {
 		val res = parser.parse(new ThrowBuilder(), innerInput)
 		res match {
-			case Left(x) => throw new ParseException("Found complex in SeqBuilder", 0)
-			case Right(x) => folding :+ x
+			case Success(Left(x)) => Failure(new ParseException("Found complex in SeqBuilder", 0))
+			case Success(Right(x)) => Try(folding :+ x)
+			case Failure(x) => Failure(x)
 		}
 	}
 }

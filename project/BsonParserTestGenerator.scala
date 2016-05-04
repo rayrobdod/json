@@ -108,6 +108,7 @@ package com.rayrobdod.json.parser;
 
 import java.text.ParseException;
 import scala.collection.immutable.Map;
+import scala.util.{Try, Success, Failure}
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.MapBuilder;
 import com.rayrobdod.json.union.JsonValue;
@@ -129,7 +130,7 @@ class BsonParserTest_Happy extends FunSpec {
 				)
 			)
 			val expected = """ + expected + """
-			val result = new BsonParser().parse(""" + builder + """, source).left.get
+			val result = new BsonParser().parse(""" + builder + """, source).get.left.get
 			assertResult(expected){result}
 		}"""
 	}

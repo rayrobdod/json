@@ -30,6 +30,7 @@ import java.io.DataInput
 import java.text.ParseException
 import java.nio.charset.StandardCharsets.UTF_8;
 import scala.collection.immutable.{Seq, Map, Stack}
+import scala.util.{Try, Success, Failure}
 import com.rayrobdod.json.builder._
 import com.rayrobdod.json.union.JsonValue
 
@@ -38,6 +39,7 @@ import com.rayrobdod.json.union.JsonValue
  * 
  * This cannot handle complex values in map keys.
  * 
+ * @version next
  * @see [[http://tools.ietf.org/html/rfc7049]]
  * 
  * @constructor
@@ -46,12 +48,13 @@ import com.rayrobdod.json.union.JsonValue
 final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 	import CborParser._
 	
-	def parse[ComplexOutput](builder:Builder[JsonValue, JsonValue, ComplexOutput], i:DataInput):Either[ComplexOutput, JsonValue] = {
+	override def parse[ComplexOutput](builder:Builder[JsonValue, JsonValue, ComplexOutput], i:DataInput):Try[Either[ComplexOutput, JsonValue]] = {
 		val a = this.parseDetailed[ComplexOutput](builder, i)
 		a match {
-			case ParseReturnValueSimple(x:JsonValue) => Right(x)
-			case ParseReturnValueComplex(x) => Left(x)
-			case _ => throw new ParseException("Not a public value", -1)
+			case ParseReturnValueSimple(x:JsonValue) => Try(Right(x))
+			case ParseReturnValueComplex(x) => Try(Left(x))
+			case ParseReturnValueFailure(x) => Failure(x)
+			case _ => Failure(new ParseException("Not a public value", 0))
 		}
 	}
 	
@@ -63,67 +66,83 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 		val headerByte:Byte = input.readByte();
 		val majorType = (headerByte >> 5) & 0x07
 		val additionalInfo = headerByte & 0x1F
-		val additionalInfoData:AdditionalInfoData = additionalInfo match {
-			case x if (x <= 23) => { AdditionalInfoDeterminate(x) }
-			case 24 => { AdditionalInfoDeterminate(input.readUnsignedByte()) }
-			case 25 => { AdditionalInfoDeterminate(input.readUnsignedShort()) }
-			case 26 => { AdditionalInfoDeterminate(input.readInt()) } //todo unsigned int
-			case 27 => { AdditionalInfoDeterminate(input.readLong()) } // todo unsigned long (?)
-			case 31 => { AdditionalInfoIndeterminate() }
-			case _  => {throw new ParseException("Illegal `additionalInfo` field", -1)}
+		val additionalInfoDataTry = additionalInfo match {
+			case x if (x <= 23) => { Right(AdditionalInfoDeterminate(x)) }
+			case 24 => { Right(AdditionalInfoDeterminate(input.readUnsignedByte())) }
+			case 25 => { Right(AdditionalInfoDeterminate(input.readUnsignedShort())) }
+			case 26 => { Right(AdditionalInfoDeterminate(input.readInt())) } //todo unsigned int
+			case 27 => { Right(AdditionalInfoDeterminate(input.readLong())) } // todo unsigned long (?)
+			case 31 => { Right(AdditionalInfoIndeterminate()) }
+			case _  => { Left(new ParseException("Illegal `additionalInfo` field", -1)) }
 		}
 		
-		majorType match {
-			// positive integer
-			case MajorTypeCodes.POSITIVE_INT => additionalInfoData match {
-				case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(JsonValue( value ))
-				case x:AdditionalInfoIndeterminate => throw new UnsupportedOperationException("Indeterminate integer value")
-			}
-			// negative integer
-			case MajorTypeCodes.NEGATIVE_INT => additionalInfoData match {
-				case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(JsonValue( -1 - value ))
-				case x:AdditionalInfoIndeterminate => throw new UnsupportedOperationException("Indeterminate integer value")
-			}
-			// byte string
-			case MajorTypeCodes.BYTE_ARRAY => ParseReturnValueSimple(JsonValue( parseByteString(input, additionalInfoData) ))
-			// text string
-			case MajorTypeCodes.STRING => ParseReturnValueSimple(JsonValue( new String(parseByteString(input, additionalInfoData), UTF_8) ))
-			// array/list
-			case MajorTypeCodes.ARRAY => ParseReturnValueComplex(parseArray(topBuilder, input, additionalInfoData))
-			// map
-			case MajorTypeCodes.OBJECT => ParseReturnValueComplex(parseObject(topBuilder, input, additionalInfoData))
-			// tags
-			case MajorTypeCodes.TAG => additionalInfoData match {
-				case AdditionalInfoDeterminate(value) => new ParseReturnValueTaggedValue(value, this.parseDetailed(topBuilder, input))
-				case x:AdditionalInfoIndeterminate => throw new UnsupportedOperationException("Indeterminate tag value")
-			}
-			// floats/simple
-			case MajorTypeCodes.SPECIAL => additionalInfo match {
-				case SimpleValueCodes.FALSE => ParseReturnValueSimple(JsonValue( false ))
-				case SimpleValueCodes.TRUE  => ParseReturnValueSimple(JsonValue( true ))
-				case SimpleValueCodes.NULL => ParseReturnValueSimple(JsonValue.JsonValueNull)
-				case SimpleValueCodes.HALF_FLOAT => throw new UnsupportedOperationException("Half float")
-				case SimpleValueCodes.FLOAT => additionalInfoData match {
-					case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(JsonValue( java.lang.Float.intBitsToFloat(value.intValue)))
-					case x:AdditionalInfoIndeterminate => throw new UnsupportedOperationException("Indeterminate tag value")
+		additionalInfoDataTry.fold({x =>
+			new ParseReturnValueFailure(x)
+		}, {additionalInfoData =>
+			majorType match {
+				// positive integer
+				case MajorTypeCodes.POSITIVE_INT => additionalInfoData match {
+					case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(JsonValue( value ))
+					case x:AdditionalInfoIndeterminate => ParseReturnValueFailure(new UnsupportedOperationException("Indeterminate integer value"))
 				}
-				case SimpleValueCodes.DOUBLE => additionalInfoData match {
-					case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(JsonValue( java.lang.Double.longBitsToDouble(value.longValue)))
-					case x:AdditionalInfoIndeterminate => throw new UnsupportedOperationException("Indeterminate tag value")
+				// negative integer
+				case MajorTypeCodes.NEGATIVE_INT => additionalInfoData match {
+					case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(JsonValue( -1 - value ))
+					case x:AdditionalInfoIndeterminate => ParseReturnValueFailure(new UnsupportedOperationException("Indeterminate integer value"))
 				}
-				case SimpleValueCodes.END_OF_LIST => new ParseReturnValueEndOfIndeterminateObject
-				case _  => additionalInfoData match {
-					case AdditionalInfoDeterminate(value) => ParseReturnValueUnknownSimple(value.byteValue)
-					case x:AdditionalInfoIndeterminate => throw new UnsupportedOperationException("Indeterminate tag value")
+				// byte string
+				case MajorTypeCodes.BYTE_ARRAY => parseByteString(input, additionalInfoData) match {
+					case Success(x) => ParseReturnValueSimple(JsonValue(x))
+					case Failure(x) => ParseReturnValueFailure(x)
 				}
+				// text string
+				case MajorTypeCodes.STRING => parseByteString(input, additionalInfoData) match {
+					case Success(x) => ParseReturnValueSimple(JsonValue(new String(x, UTF_8)))
+					case Failure(x) => ParseReturnValueFailure(x)
+				}
+				// array/list
+				case MajorTypeCodes.ARRAY => parseArray(topBuilder, input, additionalInfoData) match {
+					case Success(x) => ParseReturnValueComplex(x)
+					case Failure(x) => ParseReturnValueFailure(x)
+				}
+				// map
+				case MajorTypeCodes.OBJECT => parseObject(topBuilder, input, additionalInfoData) match {
+					case Success(x) => ParseReturnValueComplex(x)
+					case Failure(x) => ParseReturnValueFailure(x)
+				}
+				// tags
+				case MajorTypeCodes.TAG => additionalInfoData match {
+					case AdditionalInfoDeterminate(value) => new ParseReturnValueTaggedValue(value, this.parseDetailed(topBuilder, input))
+					case x:AdditionalInfoIndeterminate => ParseReturnValueFailure(new UnsupportedOperationException("Indeterminate tag value"))
+				}
+				// floats/simple
+				case MajorTypeCodes.SPECIAL => additionalInfo match {
+					case SimpleValueCodes.FALSE => ParseReturnValueSimple(JsonValue( false ))
+					case SimpleValueCodes.TRUE  => ParseReturnValueSimple(JsonValue( true ))
+					case SimpleValueCodes.NULL => ParseReturnValueSimple(JsonValue.JsonValueNull)
+					case SimpleValueCodes.HALF_FLOAT => ParseReturnValueFailure(new UnsupportedOperationException("Half float"))
+					case SimpleValueCodes.FLOAT => additionalInfoData match {
+						case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(JsonValue( java.lang.Float.intBitsToFloat(value.intValue)))
+						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure(new UnsupportedOperationException("Indeterminate tag value"))
+					}
+					case SimpleValueCodes.DOUBLE => additionalInfoData match {
+						case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(JsonValue( java.lang.Double.longBitsToDouble(value.longValue)))
+						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure(new UnsupportedOperationException("Indeterminate tag value"))
+					}
+					case SimpleValueCodes.END_OF_LIST => new ParseReturnValueEndOfIndeterminateObject
+					case _  => additionalInfoData match {
+						case AdditionalInfoDeterminate(value) => ParseReturnValueUnknownSimple(value.byteValue)
+						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure(new UnsupportedOperationException("Indeterminate tag value"))
+					}
+				}
+				case _ => ParseReturnValueFailure(new AssertionError("majorType was greater than 7"))
 			}
-			case _ => throw new AssertionError("majorType was greater than 7")
-		}
+		})
 	}
 	
-	private[this] def parseByteString(input:DataInput, aid:AdditionalInfoData):Array[Byte] = {
+	private[this] def parseByteString(input:DataInput, aid:AdditionalInfoData):Try[Array[Byte]] = {
 		aid match {
-			case AdditionalInfoIndeterminate() => {
+			case AdditionalInfoIndeterminate() => Try{
 				val stream = new java.io.ByteArrayOutputStream
 				
 				var next:Any = this.parseDetailed(new PrimitiveSeqBuilder, input)
@@ -138,7 +157,7 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 				}
 				stream.toByteArray()
 			}
-			case AdditionalInfoDeterminate(len:Long) => {
+			case AdditionalInfoDeterminate(len:Long) => Try{
 				val bytes = new Array[Byte](len.intValue)
 				input.readFully(bytes)
 				bytes
@@ -146,13 +165,13 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 		}
 	}
 	
-	private[this] def parseArray[A](topBuilder:Builder[JsonValue, JsonValue, A], input:DataInput, aid:AdditionalInfoData):A = {
-		var retVal:A = topBuilder.init
+	private[this] def parseArray[A](topBuilder:Builder[JsonValue, JsonValue, A], input:DataInput, aid:AdditionalInfoData):Try[A] = {
+		var retVal:Try[A] = Try(topBuilder.init)
 		
 		aid match {
 			case AdditionalInfoDeterminate(len:Long) => {
 				(0 until len.intValue).foreach{index =>
-					retVal = topBuilder.apply[DataInput](JsonValue(index), retVal, input, this)
+					retVal = retVal.flatMap{x => topBuilder.apply[DataInput](JsonValue(index), x, input, this)}
 				}
 			}
 			case AdditionalInfoIndeterminate() => {
@@ -164,12 +183,12 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 					childObject match {
 						case ParseReturnValueEndOfIndeterminateObject() => {}
 						case ParseReturnValueSimple(x) => {
-							retVal = topBuilder.apply[JsonValue](JsonValue(index), retVal, x, new IdentityParser())
+							retVal = retVal.flatMap{y => topBuilder.apply[JsonValue](JsonValue(index), y, x, new IdentityParser())}
 						}
 						case ParseReturnValueComplex(x) => {
-							retVal = topBuilder.apply[DataInput](JsonValue(index), retVal, byteArray2DataInput(x.toArray), this)
+							retVal = retVal.flatMap{y => topBuilder.apply[DataInput](JsonValue(index), y, byteArray2DataInput(x.toArray), this)}
 						}
-						case _ => throw new UnsupportedOperationException("Value not public")
+						case _ => retVal = Failure( new UnsupportedOperationException("Value not public"))
 					}
 					index = index + 1
 				}
@@ -178,14 +197,20 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 		retVal
 	}
 	
-	private[this] def parseObject[A](topBuilder:Builder[JsonValue, JsonValue, A], input:DataInput, aid:AdditionalInfoData):A = {
-		var retVal:A = topBuilder.init
+	private[this] def parseObject[A](topBuilder:Builder[JsonValue, JsonValue, A], input:DataInput, aid:AdditionalInfoData):Try[A] = {
+		var retVal:Try[A] = Try(topBuilder.init)
 		
 		aid match {
 			case AdditionalInfoDeterminate(len:Long) => {
 				(0 until len.intValue).foreach{index =>
-					val keyObject = this.parse(new ThrowBuilder, input).right.get
-					retVal = topBuilder.apply[DataInput](keyObject, retVal, input, this)
+					val keyTry:Try[JsonValue] = this.parseDetailed(new ThrowBuilder, input) match {
+						case ParseReturnValueSimple(x) => Success(x)
+						case ParseReturnValueFailure(x) => Failure(x)
+						case _ => Failure(new UnsupportedOperationException("Cannot handle non-simple map keys"))
+					}
+					retVal = {for ( foldingObject <- retVal; keyObject <- keyTry ) yield {
+						topBuilder.apply[DataInput](keyObject, foldingObject, input, this)
+					}}.flatten
 				}
 			}
 			case AdditionalInfoIndeterminate() => {
@@ -195,9 +220,10 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 					keyObject match {
 						case ParseReturnValueEndOfIndeterminateObject() => {}
 						case ParseReturnValueSimple(x) => {
-							retVal = topBuilder.apply[DataInput](x, retVal, input, this)
+							retVal = retVal.flatMap{y => topBuilder.apply[DataInput](x, y, input, this)}
 						}
-						case _ => throw new UnsupportedOperationException("Key not primitive")
+						case ParseReturnValueFailure(x) => retVal = Failure(x)
+						case _ => retVal = Failure( new UnsupportedOperationException("Cannot handle non-simple map keys"))
 					}
 				}
 			}
@@ -208,6 +234,7 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 
 /**
  * Objects related to Cbor's data model
+ * @version next
  */
 object CborParser {
 	
@@ -229,6 +256,7 @@ object CborParser {
 	final case class ParseReturnValueTaggedValue[A](tag:Long, x:ParseReturnValue[A]) extends ParseReturnValue[A]
 	/** A simple value other than the known ones */
 	final case class ParseReturnValueUnknownSimple(value:Byte) extends ParseReturnValue[Nothing]
+	final case class ParseReturnValueFailure(ex:Throwable) extends ParseReturnValue[Nothing]
 	
 	
 	/**

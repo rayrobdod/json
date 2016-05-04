@@ -27,6 +27,7 @@
 package com.rayrobdod.json.builder;
 
 import scala.collection.immutable.Seq;
+import scala.util.{Try, Success, Failure}
 import java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.charset.Charset;
 import com.rayrobdod.json.union.JsonValue
@@ -35,6 +36,7 @@ import com.rayrobdod.json.parser.{MapParser, SeqParser}
 
 /** A builder that will output an object as an json format string
  * 
+ * @version next
  * @constructor
  * Creates a JsonObjectBuilder
  * 
@@ -48,26 +50,28 @@ final class MinifiedJsonObjectBuilder(charset:Charset = UTF_8) extends Builder[S
 	val init:String = "{}"
 	
 	/** @param folding a valid json object, with no characters trailing the final '}' */
-	def apply[Input](key:String, folding:String, innerInput:Input, parser:Parser[String, JsonValue, Input]):String = {
+	def apply[Input](key:String, folding:String, innerInput:Input, parser:Parser[String, JsonValue, Input]):Try[String] = {
 		val jsonKey:String = strToJsonStr(key, charset)
-		val value = parser.parse(this, innerInput)
-		val jsonObject:String = value match {
-			case Left(x) => x
-			case Right(x) => serialize(x, charset)
-		}
-		
-		val jsonKeyValuePair = jsonKey + ":" + jsonObject;
-		
-		if (folding == "{}") {
-			"{" + jsonKeyValuePair + "}"
-		} else {
-			folding.init + "," + jsonKeyValuePair + "}"
+		parser.parse(this, innerInput).map{value =>
+			val jsonObject:String = value match {
+				case Left(x) => x
+				case Right(x) => serialize(x, charset)
+			}
+			
+			val jsonKeyValuePair = jsonKey + ":" + jsonObject;
+			
+			if (folding == "{}") {
+				"{" + jsonKeyValuePair + "}"
+			} else {
+				folding.init + "," + jsonKeyValuePair + "}"
+			}	
 		}
 	}
 }
 
 /** A builder that will output an array as a json format string
  * 
+ * @version next
  * @constructor
  * A builder that will create json format strings
  * 
@@ -81,17 +85,18 @@ final class MinifiedJsonArrayBuilder(charset:Charset = UTF_8) extends Builder[An
 	val init:String = "[]"
 	
 	/** @param folding a valid json object, with no characters trailing the final '}' */
-	def apply[Input](key:Any, folding:String, innerInput:Input, parser:Parser[Any, JsonValue, Input]):String = {
-		val value = parser.parse(this, innerInput)
-		val jsonObject:String = value match {
-			case Left(x) => x
-			case Right(x) => serialize(x, charset)
-		}
-		
-		if (folding == "[]") {
-			"[" + jsonObject + "]"
-		} else {
-			folding.init + "," + jsonObject + "]"
+	def apply[Input](key:Any, folding:String, innerInput:Input, parser:Parser[Any, JsonValue, Input]):Try[String] = {
+		parser.parse(this, innerInput).map{value =>
+			val jsonObject:String = value match {
+				case Left(x) => x
+				case Right(x) => serialize(x, charset)
+			}
+			
+			if (folding == "[]") {
+				"[" + jsonObject + "]"
+			} else {
+				folding.init + "," + jsonObject + "]"
+			}
 		}
 	}
 }

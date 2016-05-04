@@ -28,6 +28,7 @@ package com.rayrobdod.json.builder;
 
 import java.text.ParseException;
 import scala.collection.immutable.Map;
+import scala.util.{Try, Success, Failure}
 import org.scalatest.FunSpec;
 import java.nio.charset.StandardCharsets.US_ASCII;
 import java.nio.charset.StandardCharsets.UTF_8
@@ -61,77 +62,77 @@ class PrettyJsonBuilderTest extends FunSpec {
 		it ("Appends null to an array") {
 			val exp = "[\n\tnull\n]"
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-			assertResultStr(exp){dut.apply(0, dut.init, JsonValueNull, new IdentityParser[StringOrInt,JsonValue])}
+			assertResultStr(exp){dut.apply(0, dut.init, JsonValueNull, new IdentityParser[StringOrInt,JsonValue]).get}
 		}
 		it ("Appends true to an array") {
 			val exp = "[\n\ttrue\n]"
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-			assertResultStr(exp){dut.apply(0, dut.init, JsonValue(true), new IdentityParser[StringOrInt,JsonValue])}
+			assertResultStr(exp){dut.apply(0, dut.init, JsonValue(true), new IdentityParser[StringOrInt,JsonValue]).get}
 		}
 		it ("Appends a third value to an array") {
 			val exp = "[\n\t1,\n\t2,\n\t3\n]"
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-			assertResultStr(exp){dut.apply(2, "[\n\t1,\n\t2\n]", JsonValue(3), new IdentityParser[StringOrInt,JsonValue])}
+			assertResultStr(exp){dut.apply(2, "[\n\t1,\n\t2\n]", JsonValue(3), new IdentityParser[StringOrInt,JsonValue]).get}
 		}
 		it ("Appends a third value to an object") {
 			val exp = "{\n\t1,\n\t2,\n\t\"a\" : 3\n}"
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-			assertResultStr(exp){dut.apply("a", "{\n\t1,\n\t2\n]", JsonValue(3), new IdentityParser[StringOrInt,JsonValue])}
+			assertResultStr(exp){dut.apply("a", "{\n\t1,\n\t2\n]", JsonValue(3), new IdentityParser[StringOrInt,JsonValue]).get}
 		}
 		it ("Appends a third value, level 2") {
 			val exp = "[\n\t\t1,\n\t\t2,\n\t\t3\n\t]"
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"), level = 1)
-			assertResultStr(exp){dut.apply(2, "[\n\t\t1,\n\t\t2\n\t]", JsonValue(3), new IdentityParser[StringOrInt,JsonValue])}
+			assertResultStr(exp){dut.apply(2, "[\n\t\t1,\n\t\t2\n\t]", JsonValue(3), new IdentityParser[StringOrInt,JsonValue]).get}
 		}
 		it ("Appends an integer to an object") {
 			val exp = """{\n\t"a" : 42\n}"""
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-			assertResultStr(exp){dut.apply("a", dut.init, JsonValue(42), new IdentityParser[StringOrInt,JsonValue])}
+			assertResultStr(exp){dut.apply("a", dut.init, JsonValue(42), new IdentityParser[StringOrInt,JsonValue]).get}
 		}
 		it ("can handle alternate tab strings") {
 			val exp = """{\n    "a" : 42\n}"""
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("    ", "\n"))
-			assertResultStr(exp){dut.apply("a", dut.init, JsonValue(42), new IdentityParser[StringOrInt,JsonValue])}
+			assertResultStr(exp){dut.apply("a", dut.init, JsonValue(42), new IdentityParser[StringOrInt,JsonValue]).get}
 		}
 		it ("will throw if the folding string is not a valid json object or array (for certain easily detectable invalid values)") {
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-			intercept[IllegalArgumentException] {
+			assertFailure(classOf[IllegalArgumentException]){
 				dut.apply("a", "", JsonValue(42), new IdentityParser[StringOrInt,JsonValue])
 			}
 		}
 		it ("will throw if the folding is an object and the key is a number") {
 			val dut = new PrettyJsonBuilder(MinifiedPrettyParams)
-			intercept[IllegalArgumentException] {
+			assertFailure(classOf[IllegalArgumentException]){
 				dut.apply(1, "{\"a\":\"b\"}", JsonValue(42), new IdentityParser[StringOrInt,JsonValue])
 			}
 		}
 		it ("will throw if the folding is an array and the key is a string") {
 			val dut = new PrettyJsonBuilder(MinifiedPrettyParams)
-			intercept[IllegalArgumentException] {
+			assertFailure(classOf[IllegalArgumentException]){
 				dut.apply("b", "[413]", JsonValue(42), new IdentityParser[StringOrInt,JsonValue])
 			}
 		}
 		it ("will throw the first items key is a non-zero integer") {
 			val dut = new PrettyJsonBuilder(MinifiedPrettyParams)
-			intercept[IllegalArgumentException] {
+			assertFailure(classOf[IllegalArgumentException]){
 				dut.apply(42, "[]", JsonValue(42), new IdentityParser[StringOrInt,JsonValue])
 			}
 		}
 		it ("When the encoding parameter includes all characters of a string, it is included verbaitim") {
 			assertResult("""{rest,"":"Pokémon"}"""){
 				new PrettyJsonBuilder(MinifiedPrettyParams, UTF_8)
-						.apply("", "{rest}", JsonValue("Pokémon"), new IdentityParser[StringOrInt,JsonValue])
+						.apply("", "{rest}", JsonValue("Pokémon"), new IdentityParser[StringOrInt,JsonValue]).get
 			}
 		}
 		it ("When the encoding parameter does not include all characters of a string, the unknown characters are u-encoded") {
 			assertResult("""{rest,"":"Pok\""" + """u00e9mon"}"""){
 				new PrettyJsonBuilder(MinifiedPrettyParams, US_ASCII)
-						.apply("", "{rest}", JsonValue("Pokémon"), new IdentityParser[StringOrInt,JsonValue])
+						.apply("", "{rest}", JsonValue("Pokémon"), new IdentityParser[StringOrInt,JsonValue]).get
 			}
 		}
 		it ("throws on attempt to add a ByteStr to json object") {
 			val dut = new PrettyJsonBuilder(MinifiedPrettyParams)
-			intercept[UnsupportedOperationException] {
+			assertFailure(classOf[UnsupportedOperationException]){
 				dut.apply(1, "[413]", JsonValue(Array[Byte](1,2,3,4,5)), new IdentityParser[StringOrInt,JsonValue])
 			}
 		}
@@ -145,33 +146,44 @@ class PrettyJsonBuilderTest extends FunSpec {
 			it ("will echo a properly formatted string") {
 				val exp = "[\n\t61,\n\t62,\n\t63\n]"
 				val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n")).mapValue[JsonValue]
-				assertResult(exp){new JsonParser().parse(dut, exp).left.get}
+				assertResult(exp){new JsonParser().parse(dut, exp).get.left.get}
 			}
 			it ("will pretty-print a compacted string") {
 				val exp = "[\n\t61,\n\t62,\n\t63\n]"
 				val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n")).mapValue[JsonValue]
-				assertResult(exp){new JsonParser().parse(dut, "[61,62,63]").left.get}
+				assertResult(exp){new JsonParser().parse(dut, "[61,62,63]").get.left.get}
 			}
 			it ("will minify with the MinifiedPrettyParams") {
 				val exp = "[61,62,63]"
 				val dut = new PrettyJsonBuilder(MinifiedPrettyParams).mapValue[JsonValue]
-				assertResult(exp){new JsonParser().parse(dut, "[\n\t61,\n\t62,\n\t63\n]").left.get}
+				assertResult(exp){new JsonParser().parse(dut, "[\n\t61,\n\t62,\n\t63\n]").get.left.get}
 			}
 			it ("will minify an object using MinifiedPrettyParams") {
 				val exp = """{" a ":65}"""
 				val dut = new PrettyJsonBuilder(MinifiedPrettyParams).mapValue[JsonValue]
-				assertResult(exp){new JsonParser().parse(dut, " { \" a \" : 65 } ").left.get}
+				assertResult(exp){new JsonParser().parse(dut, " { \" a \" : 65 } ").get.left.get}
 			}
 			it ("nested arrays") {
 				val exp = "[\n\t[\n\t\t0\n\t]\n]"
 				val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n")).mapValue[JsonValue]
-				assertResult(exp){new JsonParser().parse(dut, "[[0]]").left.get}
+				assertResult(exp){new JsonParser().parse(dut, "[[0]]").get.left.get}
 			}
 			it ("object inside array") {
 				val exp = "[\n\t{\n\t\t\"value\" : 10\n\t},\n\t{\n\t\t\"value\" : 20\n\t}\n]"
 				val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n")).mapValue[JsonValue]
-				assertResult(exp){new JsonParser().parse(dut, """[{"value":10},{"value":20}]""").left.get}
+				assertResult(exp){new JsonParser().parse(dut, """[{"value":10},{"value":20}]""").get.left.get}
 			}
 		}
+	}
+	
+	
+	
+	def assertFailure[T](clazz:Class[T])(result:Try[_]):Unit = result match {
+		case Failure(x) => {
+			if (! clazz.isInstance(x)) {
+				fail("Wrong type of failure: " + x)
+			}
+		}
+		case x => fail("Not a Failure: " + x)
 	}
 }
