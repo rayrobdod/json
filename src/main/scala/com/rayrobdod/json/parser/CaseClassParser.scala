@@ -57,7 +57,7 @@ final class CaseClassParser[Input <: Product](implicit clazz:Class[Input]) exten
 			val name2 = name.name.decodedName.toString
 			val value = obj.productElement(index)
 			
-			state.flatMap{x => builder.apply(name2, x, value, new IdentityParser)}
+			state.flatMap{x => builder.apply(x, name2, value, new IdentityParser)}
 		}
 	}.map{Left(_)}
 }

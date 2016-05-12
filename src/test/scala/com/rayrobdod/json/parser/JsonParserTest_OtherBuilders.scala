@@ -55,7 +55,7 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 			
 			object SetBuilder extends Builder[StringOrInt, JsonValue, Set[String]] {
 				def init:Set[String] = Set.empty
-				def apply[Input](key:StringOrInt, folding:Set[String], input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Try[Set[String]] = Try{
+				def apply[Input](folding:Set[String], key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Try[Set[String]] = Try{
 					val inputVal = parser.parse(new ThrowBuilder, input)
 					val inputStr = inputVal match {case Success(Right(JsonValue.JsonValueString(s))) => s; case _ => "????????"}
 					folding + inputStr
@@ -64,7 +64,7 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 			
 			object NameBuilder extends Builder[StringOrInt,JsonValue,Name] {
 				def init:Name = Name("", "", "")
-				def apply[Input](key:StringOrInt, folding:Name, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Try[Name] = Try{
+				def apply[Input](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Try[Name] = Try{
 					val value = parser.parse(new ThrowBuilder, input) match {case Success(Right(JsonValue.JsonValueString(s))) => s; case _ => "????????"}
 					
 					key match {
@@ -78,7 +78,7 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 			
 			object PersonBuilder extends Builder[StringOrInt, JsonValue, Person] {
 				def init:Person = Person(Name("", "", ""), "", false, Set.empty)
-				def apply[Input](key:StringOrInt, folding:Person, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Try[Person] = Try( key match {
+				def apply[Input](folding:Person, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Try[Person] = Try( key match {
 					case StringOrInt.Left("name") => folding.copy(n = parser.parse(NameBuilder, input).get.fold({x => x}, {x => new Name("","","")}))
 					case StringOrInt.Left("gender") => folding.copy(gender = parser.parse(new ThrowBuilder, input) match {case Success(Right(JsonValue.JsonValueString(s))) => s; case _ => "????????"})
 					case StringOrInt.Left("isDead") => folding.copy(isDead = parser.parse(new ThrowBuilder, input) match {case Success(Right(JsonValue.JsonValueBoolean(s))) => s; case _ => false})

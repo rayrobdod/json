@@ -70,7 +70,7 @@ final class CsvParser(
 				state.appendChar(char).copy(quoted = true)
 			} else if (meaningfulCharacters.recordDelimeter contains char) {
 				new State(
-					value = state.value.flatMap{x => builder.apply(state.innerIndex, x, state.innerInput, new LineParser)
+					value = state.value.flatMap{x => builder.apply(x, state.innerIndex, state.innerInput, new LineParser)
 							.recoverWith{
 								case x:ParseException => Failure(new ParseException(x.getMessage, x.getErrorOffset + index).initCause(x))
 								case x => Failure(new ParseException("", index).initCause(x))
@@ -90,7 +90,7 @@ final class CsvParser(
 		if (endState.innerInput.isEmpty) {
 			endState.value.map{Left(_)}
 		} else {
-			endState.value.flatMap{x => builder.apply(endState.innerIndex, x, endState.innerInput, new LineParser)}.map{Left(_)}
+			endState.value.flatMap{x => builder.apply(x, endState.innerIndex, endState.innerInput, new LineParser)}.map{Left(_)}
 		}
 	}
 	
@@ -140,7 +140,7 @@ final class CsvParser(
 					state.copy(quoted = true)
 				} else if (meaningfulCharacters.fieldDelimeter contains char) {
 					new State(
-						value = state.value.flatMap{x => builder.apply(state.innerIndex, x, state.innerInput, new IdentityParser)
+						value = state.value.flatMap{x => builder.apply(x, state.innerIndex, state.innerInput, new IdentityParser)
 									.recoverWith{case x => Failure(new ParseException("", index).initCause(x))}},
 						innerIndex = state.innerIndex + 1,
 						innerInput = "",
@@ -156,7 +156,7 @@ final class CsvParser(
 			if (endState.innerInput.isEmpty) {
 				endState.value.map{Left(_)}
 			} else {
-				endState.value.flatMap{x => builder.apply(endState.innerIndex, x, endState.innerInput, new IdentityParser)}.map{Left(_)}
+				endState.value.flatMap{x => builder.apply(x, endState.innerIndex, endState.innerInput, new IdentityParser)}.map{Left(_)}
 			}
 		}
 	}

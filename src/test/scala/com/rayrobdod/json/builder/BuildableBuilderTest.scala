@@ -50,7 +50,7 @@ class BuildableBuilderTest extends FunSpec {
 			assertResult(Success(new Person(name, 0))){
 				new BuildableBuilder(new Person("", 0))
 						.addDef("name", new KeyDef[String, String, Person]{def apply[I] = {(s,i,p) => Try(s.copy(name = p.parse(new ThrowBuilder(), i).get.fold({x => ""}, {x => x})))}})
-						.apply("name", new Person("", 0), name, new IdentityParser)
+						.apply(new Person("", 0), "name", name, new IdentityParser)
 			}
 		}
 		it ("Acts upon provided keydef (2)") {
@@ -58,21 +58,21 @@ class BuildableBuilderTest extends FunSpec {
 			assertResult(Success(new Person("", age))){
 				new BuildableBuilder(new Person("", 0))
 						.addDef("age", new KeyDef[String, Int, Person]{def apply[I] = {(s,i,p) => Try(s.copy(age = p.parse(new ThrowBuilder(), i).get.fold({x => 0}, {x => x})))}})
-						.apply("age", new Person("", 0), age, new IdentityParser)
+						.apply(new Person("", 0), "age", age, new IdentityParser)
 			}
 		}
 		it ("Throws excpetion on unknown key") {
 			val age = "9001"
 			assertFailure(classOf[IllegalArgumentException]){
 				new BuildableBuilder[String, String, Person](new Person("", 0))
-						.apply("asdfjkl;", new Person("", 0), "hello", new IdentityParser)
+						.apply(new Person("", 0), "asdfjkl;", "hello", new IdentityParser)
 			}
 		}
 		it ("ignores unknown key after call to ignoreUnknownKeys") {
 			val age = "9001"
 			assertResult(Success(new Person("", 0))){
 				new BuildableBuilder[String, String, Person](new Person("", 0)).ignoreUnknownKeys
-						.apply("asdfjkl;", new Person("", 0), "hello", new IdentityParser)
+						.apply(new Person("", 0), "asdfjkl;", "hello", new IdentityParser)
 			}
 		}
 	}

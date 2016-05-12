@@ -171,7 +171,7 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 		aid match {
 			case AdditionalInfoDeterminate(len:Long) => {
 				(0 until len.intValue).foreach{index =>
-					retVal = retVal.flatMap{x => topBuilder.apply[DataInput](JsonValue(index), x, input, this)}
+					retVal = retVal.flatMap{x => topBuilder.apply[DataInput](x, JsonValue(index), input, this)}
 				}
 			}
 			case AdditionalInfoIndeterminate() => {
@@ -183,10 +183,10 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 					childObject match {
 						case ParseReturnValueEndOfIndeterminateObject() => {}
 						case ParseReturnValueSimple(x) => {
-							retVal = retVal.flatMap{y => topBuilder.apply[JsonValue](JsonValue(index), y, x, new IdentityParser())}
+							retVal = retVal.flatMap{y => topBuilder.apply[JsonValue](y, JsonValue(index), x, new IdentityParser())}
 						}
 						case ParseReturnValueComplex(x) => {
-							retVal = retVal.flatMap{y => topBuilder.apply[DataInput](JsonValue(index), y, byteArray2DataInput(x.toArray), this)}
+							retVal = retVal.flatMap{y => topBuilder.apply[DataInput](y, JsonValue(index), byteArray2DataInput(x.toArray), this)}
 						}
 						case _ => retVal = Failure( new UnsupportedOperationException("Value not public"))
 					}
@@ -209,7 +209,7 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 						case _ => Failure(new UnsupportedOperationException("Cannot handle non-simple map keys"))
 					}
 					retVal = {for ( foldingObject <- retVal; keyObject <- keyTry ) yield {
-						topBuilder.apply[DataInput](keyObject, foldingObject, input, this)
+						topBuilder.apply[DataInput](foldingObject, keyObject, input, this)
 					}}.flatten
 				}
 			}
@@ -220,7 +220,7 @@ final class CborParser extends Parser[JsonValue, JsonValue, DataInput] {
 					keyObject match {
 						case ParseReturnValueEndOfIndeterminateObject() => {}
 						case ParseReturnValueSimple(x) => {
-							retVal = retVal.flatMap{y => topBuilder.apply[DataInput](x, y, input, this)}
+							retVal = retVal.flatMap{y => topBuilder.apply[DataInput](y, x, input, this)}
 						}
 						case ParseReturnValueFailure(x) => retVal = Failure(x)
 						case _ => retVal = Failure( new UnsupportedOperationException("Cannot handle non-simple map keys"))

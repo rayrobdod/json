@@ -102,7 +102,7 @@ package parser {
 		def parse[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):Try[Left[A,V]] = {
 			vals.foldLeft[Try[A]](Success(topBuilder.init)){(state:Try[A], keyValue:(K, V)) => 
 				val (key, value) = keyValue;
-				state.flatMap{x => topBuilder.apply(key, x, value, new IdentityParser)}
+				state.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser)}
 			}
 		}.map{Left(_)}
 	}
@@ -124,7 +124,7 @@ package parser {
 		def parse[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):Try[Left[A,V]] = {
 			vals.zipWithIndex.foldLeft[Try[A]](Success(topBuilder.init)){(state:Try[A], valueKey:(V, Int)) => 
 				val (value, key) = valueKey;
-				state.flatMap{x => topBuilder.apply(key, x, value, new IdentityParser)}
+				state.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser)}
 			}
 		}.map{Left(_)}
 	}

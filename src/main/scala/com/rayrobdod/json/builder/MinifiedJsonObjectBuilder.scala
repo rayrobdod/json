@@ -50,7 +50,7 @@ final class MinifiedJsonObjectBuilder(charset:Charset = UTF_8) extends Builder[S
 	val init:String = "{}"
 	
 	/** @param folding a valid json object, with no characters trailing the final '}' */
-	def apply[Input](key:String, folding:String, innerInput:Input, parser:Parser[String, JsonValue, Input]):Try[String] = {
+	def apply[Input](folding:String, key:String, innerInput:Input, parser:Parser[String, JsonValue, Input]):Try[String] = {
 		val jsonKey:String = strToJsonStr(key, charset)
 		parser.parse(this, innerInput).map{value =>
 			val jsonObject:String = value match {
@@ -85,7 +85,7 @@ final class MinifiedJsonArrayBuilder(charset:Charset = UTF_8) extends Builder[An
 	val init:String = "[]"
 	
 	/** @param folding a valid json object, with no characters trailing the final '}' */
-	def apply[Input](key:Any, folding:String, innerInput:Input, parser:Parser[Any, JsonValue, Input]):Try[String] = {
+	def apply[Input](folding:String, key:Any, innerInput:Input, parser:Parser[Any, JsonValue, Input]):Try[String] = {
 		parser.parse(this, innerInput).map{value =>
 			val jsonObject:String = value match {
 				case Left(x) => x

@@ -52,156 +52,156 @@ class CborBuilderTest extends FunSpec {
 		}
 		it ("Appends null to empty array") {
 			assertResult(Success(hexSeq"81f6")){
-				new CborBuilder().apply(0, hexSeq"80", JsonValueNull, new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"80", 0, JsonValueNull, new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends true") {
 			assertResult(Success(hexSeq"81f5")){
-				new CborBuilder().apply(0, hexSeq"80", JsonValue(true), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"80", 0, JsonValue(true), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends false") {
 			assertResult(Success(hexSeq"81f4")){
-				new CborBuilder().apply(0, hexSeq"80", JsonValue(false), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"80", 0, JsonValue(false), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends 0 as one byte") {
 			assertResult(Success(hexSeq"8100")){
-				new CborBuilder().apply(0, hexSeq"80", JsonValue(0), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"80", 0, JsonValue(0), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends small positive integer") {
 			assertResult(Success(hexSeq"8106")){
-				new CborBuilder().apply(0, hexSeq"80", JsonValue(6), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"80", 0, JsonValue(6), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends 23 as one byte") {
 			assertResult(Success(hexSeq"8117")){
-				new CborBuilder().apply(0, hexSeq"80", JsonValue(23), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"80", 0, JsonValue(23), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends 24 as two bytes") {
 			assertResult(Success(hexSeq"811818")){
-				new CborBuilder().apply(0, hexSeq"80", JsonValue(24), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"80", 0, JsonValue(24), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends 255 as two bytes") {
 			assertResult(Success(hexSeq"8118FF")){
-				new CborBuilder().apply(0, hexSeq"80", JsonValue(255), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"80", 0, JsonValue(255), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends 256 as three bytes") {
 			assertResult(Success(hexSeq"81190100")){
-				new CborBuilder().apply(0, hexSeq"80", JsonValue(256), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"80", 0, JsonValue(256), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends -1 as one byte") {
 			assertResult(Success(hexSeq"8120")){
-				new CborBuilder().apply(0, hexSeq"80", JsonValue(-1), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"80", 0, JsonValue(-1), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends -100 as two bytes") {
 			assertResult(Success(hexSeq"813863")){
-				new CborBuilder().apply(0, hexSeq"80", JsonValue(-100), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"80", 0, JsonValue(-100), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends Float") {
 			assertResult(Success(hexSeq"81 FA3FC00000")){
-				new CborBuilder().apply(0, hexSeq"80", JsonValue(1.5f), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"80", 0, JsonValue(1.5f), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends Double") {
 			assertResult(Success(hexSeq"81 fbc010666666666666")){
-				new CborBuilder().apply(0, hexSeq"80", JsonValue(-4.1D), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"80", 0, JsonValue(-4.1D), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends empty string") {
 			assertResult(Success(hexSeq"8160")){
-				new CborBuilder().apply(0, hexSeq"80", JsonValue(""), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"80", 0, JsonValue(""), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends \"abc\"") {
 			assertResult(Success(hexSeq"8163616263")){
-				new CborBuilder().apply(0, hexSeq"80", JsonValue("abc"), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"80", 0, JsonValue("abc"), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends string containing multibyte char") {
 			assertResult(Success(hexSeq"8163e6b0b4")){
-				new CborBuilder().apply(0, hexSeq"80", JsonValue("\u6c34"), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"80", 0, JsonValue("\u6c34"), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends an empty byte array") {
 			assertResult(Success(hexSeq"8140")){
-				new CborBuilder().apply(0, hexSeq"80", JsonValue(new Array[Byte](0)), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"80", 0, JsonValue(new Array[Byte](0)), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends a non-empty byte array") {
 			assertResult(Success(hexSeq"8143010203")){
-				new CborBuilder().apply(0, hexSeq"80", JsonValue(hexArray"010203"), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"80", 0, JsonValue(hexArray"010203"), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends a second value") {
 			assertResult(Success(hexSeq"""83616161626164""")){
-				new CborBuilder().apply(2, hexSeq"""8261616162""", JsonValue("d"), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"""8261616162""", 2, JsonValue("d"), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends a 24th value") {
 			assertResult(Success(hexSeq"""9818 B7A8B7A8B7A8 60""")){
-				new CborBuilder().apply(23, hexSeq"""97 B7A8B7A8B7A8 """, JsonValue(""), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"""97 B7A8B7A8B7A8 """, 23, JsonValue(""), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends a 256th value") {
 			assertResult(Success(hexSeq"""990100 B7A8B7A8B7A8 60""")){
-				new CborBuilder().apply(255, hexSeq"""98FF B7A8B7A8B7A8 """, JsonValue(""), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"""98FF B7A8B7A8B7A8 """, 255, JsonValue(""), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends a 1001th value") {
 			assertResult(Success(hexSeq"""9903e9 B7A8B7A8B7A8 60""")){
-				new CborBuilder().apply(1000, hexSeq"""9903e8 B7A8B7A8B7A8 """, JsonValue(""), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"""9903e8 B7A8B7A8B7A8 """, 1000, JsonValue(""), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends a 65536th value") {
 			assertResult(Success(hexSeq"""9A00010000 B7A8B7A8B7A8 60""")){
-				new CborBuilder().apply(65535, hexSeq"""99FFFF B7A8B7A8B7A8 """, JsonValue(""), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"""99FFFF B7A8B7A8B7A8 """, 65535, JsonValue(""), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends a 1000001th value") {
 			assertResult(Success(hexSeq"""9a000f4241 B7A8B7A8B7A8 60""")){
-				new CborBuilder().apply(1000000, hexSeq"""9a000f4240 B7A8B7A8B7A8 """, JsonValue(""), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"""9a000f4240 B7A8B7A8B7A8 """, 1000000, JsonValue(""), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		
 		
 		it ("Appends null to empty object") {
 			assertResult(Success(hexSeq"A100f6")){
-				new CborBuilder().apply(0, hexSeq"A0", JsonValueNull, new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"A0", 0, JsonValueNull, new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Converts an empty array into an object when given a non-zero key") {
 			assertResult(Success(hexSeq"A160f6")){
-				new CborBuilder().apply("", hexSeq"80", JsonValueNull, new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"80", "", JsonValueNull, new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Converts an empty array into an object when given a non-zero key (2)") {
 			assertResult(Success(hexSeq"A106f6")){
-				new CborBuilder().apply(6, hexSeq"80", JsonValueNull, new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"80", 6, JsonValueNull, new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Converts a two-element array into an object when given a non-2 key") {
 			assertResult(Success(hexSeq"""A3 006161 016162 056164""")){
-				new CborBuilder().apply(5, hexSeq"""8261616162""", JsonValue("d"), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"""8261616162""", 5, JsonValue("d"), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		it ("Appends a 1001th value to an object") {
 			assertResult(Success(hexSeq"""B903e9 B7A8B7A8B7A8 6060""")){
-				new CborBuilder().apply("", hexSeq"""B903e8 B7A8B7A8B7A8 """, JsonValue(""), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"""B903e8 B7A8B7A8B7A8 """, "", JsonValue(""), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 		
 		
 		it ("Refuses to fold a non-array or non-object") {
 			assertFailureParse("Invalid folding parameter", 0){
-				new CborBuilder().apply("", hexSeq"""00""", JsonValue(""), new IdentityParser[JsonValue, JsonValue])
+				new CborBuilder().apply(hexSeq"""00""", "", JsonValue(""), new IdentityParser[JsonValue, JsonValue])
 			}
 		}
 	}

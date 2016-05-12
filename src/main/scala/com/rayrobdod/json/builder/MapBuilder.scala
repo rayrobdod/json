@@ -40,7 +40,7 @@ import scala.util.{Try, Success, Failure}
  */
 final class MapBuilder[K,V](childBuilders:Function1[K, Option[Builder[K, V, _]]] = MapBuilder.defaultChildBuilder[K,V]) extends Builder[K, V, Map[K, Any]] {
 	override val init:Map[K, Any] = Map.empty
-	override def apply[Input](key:K, folding:Map[K,Any], innerInput:Input, parser:Parser[K, V, Input]):Try[Map[K,Any]] = {
+	override def apply[Input](folding:Map[K,Any], key:K, innerInput:Input, parser:Parser[K, V, Input]):Try[Map[K,Any]] = {
 		val childBuilder = childBuilders(key).getOrElse(new ThrowBuilder())
 		parser.parse(childBuilder, innerInput).map{eitherRes =>
 			val innerRes:Any = eitherRes match {

@@ -114,25 +114,25 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 		def apply(c:Char, index:Int):State[A] = c match {
 			case x if x.isWhitespace => this
 			case '"'  => new StringState("", {s:String =>
-				builder.apply[JsonValue](key, soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]()) match {
+				builder.apply[JsonValue](soFar, key, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]()) match {
 					case Success(x) => new ObjectValueEndState(x, builder)
 					case Failure(x) => new FailureState("", index, x)
 				}
 			})
 			case '['  => new InnerObjectState("[", {s:String => 
-				builder.apply[Iterable[Char]](key, soFar, s, JsonParser.this) match {
+				builder.apply[Iterable[Char]](soFar, key, s, JsonParser.this) match {
 					case Success(x) => new ObjectValueEndState(x, builder)
 					case Failure(x) => new FailureState("", index, x)
 				}
 			})
 			case '{'  => new InnerObjectState("{", {s:String => 
-				builder.apply[Iterable[Char]](key, soFar, s, JsonParser.this) match {
+				builder.apply[Iterable[Char]](soFar, key, s, JsonParser.this) match {
 					case Success(x) => new ObjectValueEndState(x, builder)
 					case Failure(x) => new FailureState("", index, x)
 				}
 			})
 			case '-'  => new IntegerState("-", {s:Number =>
-				builder.apply[JsonValue](key, soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]()) match {
+				builder.apply[JsonValue](soFar, key, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]()) match {
 					case Success(x) => new ObjectValueEndState(x, builder)
 					case Failure(x) => new FailureState("", index, x)
 				}
@@ -142,13 +142,13 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 				new FailureState(msg, index, new NumberFormatException(msg))
 			}
 			case x if ('0' <= x && x <= '9') => new IntegerState("" + x, {s:Number =>
-				builder.apply[JsonValue](key, soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]()) match {
+				builder.apply[JsonValue](soFar, key, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]()) match {
 					case Success(x) => new ObjectValueEndState(x, builder)
 					case Failure(x) => new FailureState("", index, x)
 				}
 			})
 			case x if ('a' <= x && x <= 'z') => new KeywordState("" + x, {s:JsonValue =>
-				builder.apply[JsonValue](key, soFar, s, new IdentityParser[StringOrInt, JsonValue]()) match {
+				builder.apply[JsonValue](soFar, key, s, new IdentityParser[StringOrInt, JsonValue]()) match {
 					case Success(x) => new ObjectValueEndState(x, builder)
 					case Failure(x) => new FailureState("", index, x)
 				}
@@ -175,25 +175,25 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 			case x if x.isWhitespace => this
 			case ']'  if endObjectAllowed => new EndState(soFar)
 			case '"'  => new StringState("", {s:String =>
-				builder.apply[JsonValue](arrayIndex, soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]()) match {
+				builder.apply[JsonValue](soFar, arrayIndex, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]()) match {
 					case Success(x) => new ArrayValueEndState(x, builder, arrayIndex)
 					case Failure(x) => new FailureState("", charIndex, x)
 				}
 			})
 			case '['  => new InnerObjectState("[", {s:String => 
-				builder.apply[Iterable[Char]](arrayIndex, soFar, s, JsonParser.this) match {
+				builder.apply[Iterable[Char]](soFar, arrayIndex, s, JsonParser.this) match {
 					case Success(x) => new ArrayValueEndState(x, builder, arrayIndex)
 					case Failure(x) => new FailureState("", charIndex, x)
 				}
 			})
 			case '{'  => new InnerObjectState("{", {s:String => 
-				builder.apply[Iterable[Char]](arrayIndex, soFar, s, JsonParser.this) match {
+				builder.apply[Iterable[Char]](soFar, arrayIndex, s, JsonParser.this) match {
 					case Success(x) => new ArrayValueEndState(x, builder, arrayIndex)
 					case Failure(x) => new FailureState("", charIndex, x)
 				}
 			})
 			case '-'  => new IntegerState("-", {s:Number =>
-				builder.apply[JsonValue](arrayIndex, soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]()) match {
+				builder.apply[JsonValue](soFar, arrayIndex, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]()) match {
 					case Success(x) => new ArrayValueEndState(x, builder, arrayIndex)
 					case Failure(x) => new FailureState("", charIndex, x)
 				}
@@ -205,13 +205,13 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 				new FailureState(ex);
 			}
 			case x if ('0' <= x && x <= '9') => new IntegerState("" + x, {s:Number =>
-				builder.apply[JsonValue](arrayIndex, soFar, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]()) match {
+				builder.apply[JsonValue](soFar, arrayIndex, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]()) match {
 					case Success(x) => new ArrayValueEndState(x, builder, arrayIndex)
 					case Failure(x) => new FailureState("", charIndex, x)
 				}
 			})
 			case x if ('a' <= x && x <= 'z') => new KeywordState("" + x, {s:JsonValue =>
-				builder.apply[JsonValue](arrayIndex, soFar, s, new IdentityParser[StringOrInt, JsonValue]()) match {
+				builder.apply[JsonValue](soFar, arrayIndex, s, new IdentityParser[StringOrInt, JsonValue]()) match {
 					case Success(x) => new ArrayValueEndState(x, builder, arrayIndex)
 					case Failure(x) => new FailureState("", charIndex, x)
 				}

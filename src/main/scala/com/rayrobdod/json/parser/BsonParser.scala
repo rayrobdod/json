@@ -61,7 +61,7 @@ final class BsonParser extends Parser[String, JsonValue, DataInput] {
 						java.lang.Long.reverseBytes( input.readLong() )
 					)
 					// CHEATING
-					builder.apply(key, result2, JsonValue(value), new IdentityParser[String, JsonValue])
+					builder.apply(result2, key, JsonValue(value), new IdentityParser[String, JsonValue])
 				}
 				case TypeCodes.STRING => {
 					val len = Integer.reverseBytes( input.readInt() );
@@ -69,29 +69,29 @@ final class BsonParser extends Parser[String, JsonValue, DataInput] {
 					input.readFully(bytes);
 					if (bytes(len - 1) != 0) {throw new ParseException("Incorrect string length", -1)}
 					val value = new String(bytes, 0, len - 1, UTF_8)
-					builder.apply(key, result2, JsonValue(value), new IdentityParser[String, JsonValue])
+					builder.apply(result2, key, JsonValue(value), new IdentityParser[String, JsonValue])
 				}
 				case TypeCodes.DOCUMENT => {
-					builder.apply(key, result2, input, this)
+					builder.apply(result2, key, input, this)
 				}
 				case TypeCodes.ARRAY => {
-					builder.apply(key, result2, input, this)
+					builder.apply(result2, key, input, this)
 				}
 				case TypeCodes.BOOLEAN => {
 					val readValue = input.readByte()
 					val value = (readValue != 0)
-					builder.apply(key, result2, JsonValue(value), new IdentityParser[String, JsonValue])
+					builder.apply(result2, key, JsonValue(value), new IdentityParser[String, JsonValue])
 				}
 				case TypeCodes.NULL => {
-					builder.apply(key, result2, JsonValue.JsonValueNull, new IdentityParser[String, JsonValue])
+					builder.apply(result2, key, JsonValue.JsonValueNull, new IdentityParser[String, JsonValue])
 				}
 				case TypeCodes.INTEGER => {
 					val value = Integer.reverseBytes( input.readInt() );
-					builder.apply(key, result2, JsonValue(value), new IdentityParser[String, JsonValue])
+					builder.apply(result2, key, JsonValue(value), new IdentityParser[String, JsonValue])
 				}
 				case TypeCodes.LONG => {
 					val value = java.lang.Long.reverseBytes( input.readLong() );
-					builder.apply(key, result2, JsonValue(value), new IdentityParser[String, JsonValue])
+					builder.apply(result2, key, JsonValue(value), new IdentityParser[String, JsonValue])
 				}
 				case _ => throw new ParseException("Unknown data type", -1)
 			}}

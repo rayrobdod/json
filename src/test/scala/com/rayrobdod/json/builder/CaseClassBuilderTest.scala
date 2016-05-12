@@ -47,29 +47,29 @@ class CaseClassBuilderTest extends FunSpec {
 		it ("Can handle the name bean property") {
 			val name = "Anony Mouse"
 			assertResult(Success(new Person(name, 0))){
-				new CaseClassBuilder(new Person("", 0)).apply("name", 
-						new Person("", 0), name, new IdentityParser[String,Object])
+				new CaseClassBuilder(new Person("", 0)).apply(
+						new Person("", 0), "name", name, new IdentityParser[String,Object])
 			}
 		}
 		it ("Can handle the age bean property") {
 			val age = 9001L
 			assertResult(Success(new Person("", age))){
-				new CaseClassBuilder(new Person("", 0)).apply("age", 
-						new Person("", 0), age, new IdentityParser[String,Any])
+				new CaseClassBuilder(new Person("", 0)).apply(
+						new Person("", 0), "age", age, new IdentityParser[String,Any])
 			}
 		}
 		it ("Throws excpetion on incorrect type") {
 			val age = "9001"
 			assertFailure(classOf[IllegalArgumentException]){
-				new CaseClassBuilder(new Person("", 0)).apply("age", 
-						new Person("", 0), age, new IdentityParser[String,Object])
+				new CaseClassBuilder(new Person("", 0)).apply(
+						new Person("", 0), "age", age, new IdentityParser[String,Object])
 			}
 		}
 		it ("Throws excpetion on unknown key") {
 			val age = "9001"
 			assertFailure(classOf[IllegalArgumentException]){
-				new CaseClassBuilder(new Person("", 0)).apply("asdfjkl;", 
-						new Person("", 0), age, new IdentityParser[String,Object])
+				new CaseClassBuilder(new Person("", 0)).apply(
+						new Person("", 0), "asdfjkl;", age, new IdentityParser[String,Object])
 			}
 		}
 	}

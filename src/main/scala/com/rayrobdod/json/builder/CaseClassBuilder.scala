@@ -51,7 +51,7 @@ final class CaseClassBuilder[Value, A <: Product](
 	 * 
 	 * @todo maybe check for other primitive numeric types - IE a `setVal(Short)` when handed a `Long` or visa versa
 	 */
-	override def apply[Input](key:String, folding:A, input:Input, parser:Parser[String, Value, Input]):Try[A] = {
+	override def apply[Input](folding:A, key:String, input:Input, parser:Parser[String, Value, Input]):Try[A] = {
 		val mirror = runtimeMirror( this.getClass.getClassLoader )
 		val typ = mirror.classSymbol( clazz ).toType
 		val copyMethod = typ.declaration(newTermName("copy")).asMethod

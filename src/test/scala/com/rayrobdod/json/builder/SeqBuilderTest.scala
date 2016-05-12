@@ -44,7 +44,7 @@ class SeqBuilderTest extends FunSpec {
 			val myValue = new Object
 			
 			assertResult(Success(Seq(myValue))){
-				new PrimitiveSeqBuilder().apply("sdfa", Nil, myValue, new IdentityParser[String, Object])
+				new PrimitiveSeqBuilder().apply(Nil, "sdfa", myValue, new IdentityParser[String, Object])
 			}
 		}
 		it ("Appends value 2") {
@@ -52,19 +52,19 @@ class SeqBuilderTest extends FunSpec {
 			val myValue2 = new Object
 			
 			assertResult(Success(Seq(myValue1, myValue2))){
-				new PrimitiveSeqBuilder().apply("sdfa", Seq(myValue1), myValue2, new IdentityParser[String, Object])
+				new PrimitiveSeqBuilder().apply(Seq(myValue1), "sdfa", myValue2, new IdentityParser[String, Object])
 			}
 		}
 		it ("ComplexSeqBuilder throws when builder gives it a primitive value") {
 			val myValue2 = new Object
 			
 			assertFailure(classOf[java.text.ParseException]){
-				new SeqBuilder(new PrimitiveSeqBuilder[String, Object]).apply("sdfa", Nil, myValue2, new IdentityParser[String, Object])
+				new SeqBuilder(new PrimitiveSeqBuilder[String, Object]).apply(Nil, "sdfa", myValue2, new IdentityParser[String, Object])
 			}
 		}
 		it ("PrimitiveSeqBuilder throws when builder gives it a complex value") {
 			assertFailure(classOf[UnsupportedOperationException]){
-				new PrimitiveSeqBuilder[Int,String].apply(5, Nil, Seq("a","b","c"), new SeqParser[String])
+				new PrimitiveSeqBuilder[Int,String].apply(Nil, 5, Seq("a","b","c"), new SeqParser[String])
 			}
 		}
 	}

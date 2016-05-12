@@ -53,7 +53,7 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 	
 	val init:String = params.lbrace(level) + params.rbrace(level)
 	
-	def apply[Input](key:StringOrInt, folding:String, innerInput:Input, parser:Parser[StringOrInt, JsonValue, Input]):Try[String] = {
+	def apply[Input](folding:String, key:StringOrInt, innerInput:Input, parser:Parser[StringOrInt, JsonValue, Input]):Try[String] = {
 		parser.parse(nextLevel, innerInput).flatMap{value =>
 			val encodedValue = value match {
 				case Left(x) => x
