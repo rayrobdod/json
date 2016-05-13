@@ -33,6 +33,8 @@ import scala.collection.immutable.Seq;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.parser.SeqParser
+import com.rayrobdod.json.parser.PrimitiveSeqParser
+import com.rayrobdod.json.parser.CaseClassParser
 
 class SeqBuilderTest extends FunSpec {
 	
@@ -64,7 +66,7 @@ class SeqBuilderTest extends FunSpec {
 		}
 		it ("PrimitiveSeqBuilder throws when builder gives it a complex value") {
 			assertFailure(classOf[UnsupportedOperationException]){
-				new PrimitiveSeqBuilder[Int,String].apply(Nil, 5, Seq("a","b","c"), new SeqParser[String])
+				new PrimitiveSeqBuilder[Int,String].apply(Nil, 5, Seq("a","b","c"), new PrimitiveSeqParser[String])
 			}
 		}
 	}
@@ -74,7 +76,7 @@ class SeqBuilderTest extends FunSpec {
 		import com.rayrobdod.json.parser.JsonParser
 		import BeanBuilderTest.Person
 		
-		it ("SeqBuilder + JsonParser + primitive") {
+		it ("PrimitiveSeqBuilder + JsonParser + primitive") {
 			assertResult(Seq("a", "b", "c").map{JsonValue(_)}){
 				new JsonParser().parse(
 					new PrimitiveSeqBuilder[String, JsonValue].mapKey[StringOrInt]{StringOrInt.unwrapToString},
@@ -82,10 +84,17 @@ class SeqBuilderTest extends FunSpec {
 				).get.left.get
 			}
 		}
-		it ("SeqBuilder + SeqParser") {
+		it ("PrimitiveSeqBuilder + PrimitiveSeqParser") {
 			val exp = Seq(15, -4, 2)
-			val res = new SeqParser[Int]().parse(new PrimitiveSeqBuilder, exp).get.fold({x => x}, {x => throw new IllegalArgumentException()}) 
+			val res = new PrimitiveSeqParser[Int]().parse(new PrimitiveSeqBuilder[Int, Int], exp).get.fold({x => x}, {x => throw new IllegalArgumentException()}) 
 			assertResult(exp){res}
+		}
+		it ("SeqBuilder + SeqParser") {
+			val exp = Seq(Person("Mario", 32),Person("Luigi", 32),Person("Peach", 28))
+			val builder = new SeqBuilder(new CaseClassBuilder[JsonValue, Person](Person("", -1))(classOf[Person])).mapValue[Any]{_ match {case x:Long => JsonValue(x); case x:String => JsonValue(x)}}
+			val parser = new SeqParser[String, Any, Person](new CaseClassParser[Person]()(classOf[Person]))(x => x.toString)
+			
+			assertResult(exp){parser.parse(builder, exp).get.left.get}
 		}
 		it ("SeqBuilder + JsonParser + BeanBuilder") {
 			assertResult(Seq(Person("Mario", 32),Person("Luigi", 32),Person("Peach", 28))){

@@ -181,14 +181,6 @@ class CborArrayBuilderTest extends FunSpec {
 				).get.left.get
 			}
 		}
-		ignore ("CborArrayBuilder + JsonParser + nested objects") {
-			assertResult(hexSeq"81 A2 616100 616201"){
-				new JsonParser().parse(
-					new CborArrayBuilder().mapKey[StringOrInt].mapValue[JsonValue],
-					"""[{"a":0,"b":1}]"""
-				).get.left.get
-			}
-		}
 		it ("CborArrayBuilder + JsonParser + nested arrays") {
 			assertResult(hexSeq"81 82 00 01"){
 				new JsonParser().parse(

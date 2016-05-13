@@ -31,7 +31,9 @@ import scala.util.{Try, Success, Failure}
 import com.rayrobdod.json.parser.Parser
 
 /**
- * A class that creates an object from a sequence of 'fold'-style method calls
+ * An object used by a [[Builder]] to generate an object using a sequence of 'fold'-style method calls
+ * 
+ * 
  * 
  * @version next
  * @see com.rayrobdod.json.parser.Parser
@@ -41,16 +43,23 @@ import com.rayrobdod.json.parser.Parser
  */
 trait Builder[Key, Value, Subject] {
 	/**
-	 * The starting point of the folding process
+	 * An 'empty' object to be used to start the folding process
 	 */
 	def init:Subject
 	
 	/**
-	 * A folding function
-	 * @param folding the object to be modified. Must be either the return value of [[init]] or the return value of [[apply]]
+	 * Add a key-value pair to `folding`
+	 * 
+	 * The key is key, and the value is the result of [[Parser#parse]] on the provided `input`.
+	 * 
+	 * 
+	 * @param folding the object to be added to. Must be either the return value of [[init]] or the return value of [[apply]]
 	 * @param key the key of a key-value pair
 	 * @param parser a parser for turning input into a value
 	 * @param input the input to a parser
+	 * @return 
+	 * 	# The result of adding the key-value pair to folding, or
+	 *  	# A [[scala.util.Failure]] indicating that the insertion failed
 	 */
 	def apply[Input](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, Input]):Try[Subject]
 	

@@ -91,7 +91,6 @@ package parser {
 	 * 
 	 * @constructor
 	 * Create a MapParser
-	 * @param topBuilder the builder that this parser will use when constructing objects
 	 */
 	final class MapParser[K,V] extends Parser[K,V,Map[K,V]] {
 		/**
@@ -113,9 +112,8 @@ package parser {
 	 * 
 	 * @constructor
 	 * Create a SeqParser
-	 * @param topBuilder the builder that this parser will use when constructing objects
 	 */
-	final class SeqParser[V] extends Parser[Int,V,Seq[V]] {
+	final class PrimitiveSeqParser[V] extends Parser[Int,V,Seq[V]] {
 		/**
 		 * Decodes the input values to an object.
 		 * @param vals the sequence containing values
@@ -125,6 +123,23 @@ package parser {
 			vals.zipWithIndex.foldLeft[Try[A]](Success(topBuilder.init)){(state:Try[A], valueKey:(V, Int)) => 
 				val (value, key) = valueKey;
 				state.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser)}
+			}
+		}.map{Left(_)}
+	}
+	
+	/**
+	 * A trivial "parser" that goes through the motions with each element of a seq
+	 * @version next
+	 * 
+	 * @constructor
+	 * Create a SeqParser
+	 */
+	final class SeqParser[K,V,Inner](recurse:Parser[K,V,Inner])(implicit keyMapping:Function1[Int, K]) extends Parser[K,V,Seq[Inner]] {
+		def parse[A](topBuilder:Builder[K,V,A], vals:Seq[Inner]):Try[Left[A,V]] = {
+			vals.zipWithIndex.foldLeft[Try[A]](Success(topBuilder.init)){(state:Try[A], valueKey:(Inner, Int)) => 
+				val (value, key2) = valueKey
+				val key = keyMapping(key2)
+				state.flatMap{x => topBuilder.apply(x, key, value, recurse)}
 			}
 		}.map{Left(_)}
 	}

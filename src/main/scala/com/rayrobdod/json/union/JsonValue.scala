@@ -31,7 +31,7 @@ import com.rayrobdod.json.builder.Builder
 import scala.language.implicitConversions
 
 /**
- * A union type
+ * A union type represting primitive types in Json objects
  * @since next
  */
 sealed trait JsonValue
