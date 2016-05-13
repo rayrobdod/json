@@ -76,7 +76,7 @@ object BuildableBuilder{
 	 * @since next
 	 */
 	abstract class KeyDef[Key, Value, Subject] {
-		def apply[Input]:Function3[Subject, Input, Parser[Key, Value, Input], Try[Subject]]
+		def apply[Input](s:Subject, i:Input, p:Parser[Key, Value, Input]):Try[Subject]
 	}
 	
 	/** 
@@ -84,7 +84,7 @@ object BuildableBuilder{
 	 * @since next
 	 */
 	def ignoreKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
-		def apply[Input] = {(s,i,p) => Success(s)}
+		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):Try[A] = Success(s)
 	}
 	
 	/**
@@ -92,6 +92,6 @@ object BuildableBuilder{
 	 * @since next
 	 */
 	def throwKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
-		def apply[Input] = {(s,i,p) => Failure(new IllegalArgumentException("BuildableBuilder has no KeyDef for given key"))}
+		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):Try[A] = Failure(new IllegalArgumentException("BuildableBuilder has no KeyDef for given key"))
 	}
 }

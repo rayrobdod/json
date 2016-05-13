@@ -32,7 +32,7 @@ import scala.util.{Try, Success, Failure}
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.StringOrInt
-import com.rayrobdod.json.parser.IdentityParser
+import com.rayrobdod.json.parser.{Parser, IdentityParser}
 import com.rayrobdod.json.builder.BuildableBuilder.KeyDef
 
 class BuildableBuilderTest extends FunSpec {
@@ -49,7 +49,7 @@ class BuildableBuilderTest extends FunSpec {
 			val name = "Anony Mouse"
 			assertResult(Success(new Person(name, 0))){
 				new BuildableBuilder(new Person("", 0))
-						.addDef("name", new KeyDef[String, String, Person]{def apply[I] = {(s,i,p) => Try(s.copy(name = p.parse(new ThrowBuilder(), i).get.fold({x => ""}, {x => x})))}})
+						.addDef("name", new KeyDef[String, String, Person]{def apply[I](s:Person, i:I, p:Parser[String, String, I]) = {Try(s.copy(name = p.parse(new ThrowBuilder(), i).get.fold({x => ""}, {x => x})))}})
 						.apply(new Person("", 0), "name", name, new IdentityParser)
 			}
 		}
@@ -57,7 +57,7 @@ class BuildableBuilderTest extends FunSpec {
 			val age = 9001
 			assertResult(Success(new Person("", age))){
 				new BuildableBuilder(new Person("", 0))
-						.addDef("age", new KeyDef[String, Int, Person]{def apply[I] = {(s,i,p) => Try(s.copy(age = p.parse(new ThrowBuilder(), i).get.fold({x => 0}, {x => x})))}})
+						.addDef("age", new KeyDef[String, Int, Person]{def apply[I](s:Person, i:I, p:Parser[String, Int, I]) = {Try(s.copy(age = p.parse(new ThrowBuilder(), i).get.fold({x => 0}, {x => x})))}})
 						.apply(new Person("", 0), "age", age, new IdentityParser)
 			}
 		}
@@ -83,8 +83,8 @@ class BuildableBuilderTest extends FunSpec {
 		
 		it ("works") {
 			val builder = new BuildableBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
-				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parse(new ThrowBuilder(), i) match {case Success(Right(JsonValueString(i))) => Try(s.copy(name = i)); case x => Failure(new IllegalArgumentException)}}})
-				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parse(new ThrowBuilder(), i) match {case Success(Right(JsonValueNumber(i))) => Try(s.copy(age = i.intValue)); case x => Failure(new IllegalArgumentException)}}})
+				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parse(new ThrowBuilder(), i) match {case Success(Right(JsonValueString(i))) => Try(s.copy(name = i)); case x => Failure(new IllegalArgumentException)}}})
+				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parse(new ThrowBuilder(), i) match {case Success(Right(JsonValueNumber(i))) => Try(s.copy(age = i.intValue)); case x => Failure(new IllegalArgumentException)}}})
 			
 			assertResult(Person("nqpppnl",1)){
 				new JsonParser().parse(builder, 
@@ -96,12 +96,12 @@ class BuildableBuilderTest extends FunSpec {
 			val exp = Seq(Person("a", 5), Person("b", 6))
 			
 			val personBuilder = new BuildableBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
-				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parse(new ThrowBuilder(), i) match {case Success(Right(JsonValueString(i))) => Try(s.copy(name = i)); case _ => Failure(new IllegalArgumentException)}}})
-				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I] = {(s,i,p) => p.parse(new ThrowBuilder(), i) match {case Success(Right(JsonValueNumber(i))) => Try(s.copy(age = i.intValue)); case _ => Failure(new IllegalArgumentException)}}})
+				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parse(new ThrowBuilder(), i) match {case Success(Right(JsonValueString(i))) => Try(s.copy(name = i)); case _ => Failure(new IllegalArgumentException)}}})
+				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parse(new ThrowBuilder(), i) match {case Success(Right(JsonValueNumber(i))) => Try(s.copy(age = i.intValue)); case _ => Failure(new IllegalArgumentException)}}})
 			
 			val seqBuilder = new BuildableBuilder[StringOrInt, JsonValue, Seq[Person]](
 				Nil,
-				new KeyDef[StringOrInt, JsonValue, Seq[Person]]{ def apply[I] = {(s,i,p) => p.parse(personBuilder, i).flatMap{y => Try(s :+ y.fold({x => x},{x => throw new IllegalArgumentException}))}}}
+				new KeyDef[StringOrInt, JsonValue, Seq[Person]]{ def apply[I](s:Seq[Person], i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parse(personBuilder, i).flatMap{y => Try(s :+ y.fold({x => x},{x => throw new IllegalArgumentException}))}}}
 			)
 				
 			assertResult(exp){
