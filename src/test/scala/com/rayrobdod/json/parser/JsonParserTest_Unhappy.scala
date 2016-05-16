@@ -30,9 +30,8 @@ import java.text.ParseException;
 import scala.collection.immutable.Map;
 import scala.util.{Try, Success, Failure}
 import org.scalatest.FunSpec;
-import com.rayrobdod.json.union.JsonValue
-import com.rayrobdod.json.union.StringOrInt
-import com.rayrobdod.json.builder.MapBuilder;
+import com.rayrobdod.json.union.{JsonValue, StringOrInt}
+import com.rayrobdod.json.builder._
 
 class JsonParserTest_Unhappy extends FunSpec {
 	describe("JsonParser") {
@@ -138,6 +137,12 @@ class JsonParserTest_Unhappy extends FunSpec {
 				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
 			}
 		}
+		it ("""number format""") {
+			val source = """{"":51sfd}"""
+			assertFailureParse("",9){
+				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
+			}
+		}
 		
 		
 		it ("""errors on control character inside string""") {
@@ -212,6 +217,78 @@ class JsonParserTest_Unhappy extends FunSpec {
 			val source = """{,}"""
 			assertFailureParse("",1){
 				new JsonParser().parse(new MapBuilder[StringOrInt, JsonValue], source)
+			}
+		}
+		it ("""provides a correct index in a nested value (array, array)""") {
+			val source = """[[,]]"""
+			assertFailureParse("",2){
+				new JsonParser().parse(new SeqBuilder(new PrimitiveSeqBuilder[StringOrInt, JsonValue]), source)
+			}
+		}
+		it ("""provides a correct index in a nested value (array, object)""") {
+			val source = """[{},{,}]"""
+			assertFailureParse("",5){
+				new JsonParser().parse(new SeqBuilder(new PrimitiveSeqBuilder[StringOrInt, JsonValue]), source)
+			}
+		}
+		it ("""provides a correct index in a nested value (object, array)""") {
+			val source = """{"":[,]}"""
+			assertFailureParse("",5){
+				new JsonParser().parse(new SeqBuilder(new PrimitiveSeqBuilder[StringOrInt, JsonValue]), source)
+			}
+		}
+		it ("""provides a correct index in a nested value (object, object)""") {
+			val source = """{"" : {,}}"""
+			assertFailureParse("",7){
+				new JsonParser().parse(new SeqBuilder(new PrimitiveSeqBuilder[StringOrInt, JsonValue]), source)
+			}
+		}
+		it ("""Throwbuilder (array of string)""") {
+			val source = """["ab"]"""
+			assertFailureParse("",1){
+				new JsonParser().parse(new ThrowBuilder[StringOrInt, JsonValue], source)
+			}
+		}
+		it ("""Throwbuilder (array of int -2)""") {
+			val source = """[-2]"""
+			assertFailureParse("",1){
+				new JsonParser().parse(new ThrowBuilder[StringOrInt, JsonValue], source)
+			}
+		}
+		it ("""Throwbuilder (array of int 5.5)""") {
+			val source = """[5.5]"""
+			assertFailureParse("",1){
+				new JsonParser().parse(new ThrowBuilder[StringOrInt, JsonValue], source)
+			}
+		}
+		it ("""Throwbuilder (array of true)""") {
+			val source = """[true]"""
+			assertFailureParse("",1){
+				new JsonParser().parse(new ThrowBuilder[StringOrInt, JsonValue], source)
+			}
+		}
+		it ("""Throwbuilder (object of string)""") {
+			val source = """{"":"ab"}"""
+			assertFailureParse("",4){
+				new JsonParser().parse(new ThrowBuilder[StringOrInt, JsonValue], source)
+			}
+		}
+		it ("""Throwbuilder (object of int -2)""") {
+			val source = """{"":-2}"""
+			assertFailureParse("",4){
+				new JsonParser().parse(new ThrowBuilder[StringOrInt, JsonValue], source)
+			}
+		}
+		it ("""Throwbuilder (object of int 5.5)""") {
+			val source = """{"":5.5}"""
+			assertFailureParse("",4){
+				new JsonParser().parse(new ThrowBuilder[StringOrInt, JsonValue], source)
+			}
+		}
+		it ("""Throwbuilder (object of true)""") {
+			val source = """{"":true}"""
+			assertFailureParse("",4){
+				new JsonParser().parse(new ThrowBuilder[StringOrInt, JsonValue], source)
 			}
 		}
 	}

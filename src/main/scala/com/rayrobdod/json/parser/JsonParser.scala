@@ -325,7 +325,10 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 	}
 	
 	private[this] class FailureState[A](val ex:ParseException) extends State[A] {
-		def this(msg:String, index:Int, cause:Throwable) = this({val a = new ParseException(msg, index); a.initCause(cause); a})
+		def this(msg:String, index:Int, cause:Throwable) = this({cause match{
+			case x:ParseException => val a = new ParseException(msg, index + x.getErrorOffset); a.initCause(x.getCause); a
+			case x => val a = new ParseException(msg, index); a.initCause(cause); a
+		}})
 		def apply(c:Char, charIndex:Int):State[A] = this
 	}
 }

@@ -16,5 +16,3 @@ tagged	no	no	yes	yes	yes	no
 datetime - don't know which representation to use
 bytestr - Array[Byte]?
 
-
-https://en.wikipedia.org/wiki/X.690#BER_encoding

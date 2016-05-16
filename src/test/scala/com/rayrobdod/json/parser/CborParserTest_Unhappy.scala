@@ -31,7 +31,7 @@ import java.text.ParseException;
 import scala.collection.immutable.{Seq, Map};
 import scala.util.{Try, Success, Failure}
 import com.rayrobdod.json.union.JsonValue;
-import com.rayrobdod.json.builder.MapBuilder;
+import com.rayrobdod.json.builder._
 
 class CborParserTest_Unhappy extends FunSpec {
 	describe("CborParser") {
@@ -57,6 +57,13 @@ class CborParserTest_Unhappy extends FunSpec {
 			val source = hexArray"5F44AABBCCDD21FF"
 			assertFailure(classOf[ClassCastException]){
 				new CborParser().parse(new MapBuilder(), byteArray2DataInput(source))
+			}
+		}
+		it ("errors when INDET utf-8 string contains non-string values") {
+			val source = hexArray"7F00FF"
+			val builder = new ThrowBuilder[JsonValue, JsonValue]
+			assertFailure(classOf[ClassCastException]){
+				new CborParser().parse(new PrimitiveSeqBuilder, byteArray2DataInput(source))
 			}
 		}
 		it ("errors when an integer has an indeterminate length") {
@@ -123,7 +130,7 @@ class CborParserTest_Unhappy extends FunSpec {
 		it ("can handle an indeterminate array with complex values") {
 			val expected = Success(Left(Seq(Seq(JsonValue(0)))))
 			val source = hexArray"9F8100FF"
-			val builder = new com.rayrobdod.json.builder.SeqBuilder[JsonValue, JsonValue, Seq[JsonValue]](new com.rayrobdod.json.builder.PrimitiveSeqBuilder[JsonValue, JsonValue])
+			val builder = new SeqBuilder[JsonValue, JsonValue, Seq[JsonValue]](new PrimitiveSeqBuilder[JsonValue, JsonValue])
 			assertResult(expected){
 				new CborParser().parse(builder, byteArray2DataInput(source))
 			}
@@ -131,7 +138,7 @@ class CborParserTest_Unhappy extends FunSpec {
 		it ("can handle an indeterminate object with complex values") {
 			val expected = Success(Left(Map(JsonValue(10) -> Seq(JsonValue(0)))))
 			val source = hexArray"BF 0A 8100 FF"
-			val builder = new com.rayrobdod.json.builder.MapBuilder[JsonValue, JsonValue]({x:JsonValue => Option(new com.rayrobdod.json.builder.PrimitiveSeqBuilder[JsonValue, JsonValue])})
+			val builder = new MapBuilder[JsonValue, JsonValue]({x:JsonValue => Option(new PrimitiveSeqBuilder[JsonValue, JsonValue])})
 			assertResult(expected){
 				new CborParser().parse(builder, byteArray2DataInput(source))
 			}
@@ -139,9 +146,28 @@ class CborParserTest_Unhappy extends FunSpec {
 		it ("cannot handle an indeterminate object with complex keys") {
 			val expected = Map(Seq(JsonValue(0)) -> JsonValue(10))
 			val source = hexArray"BF 8100 0A FF"
-			val builder = new com.rayrobdod.json.builder.MapBuilder[JsonValue, JsonValue]({x:JsonValue => Option(new com.rayrobdod.json.builder.PrimitiveSeqBuilder[JsonValue, JsonValue])})
+			val builder = new MapBuilder[JsonValue, JsonValue]({x:JsonValue => Option(new PrimitiveSeqBuilder[JsonValue, JsonValue])})
 			assertFailure(classOf[UnsupportedOperationException]){
 				new CborParser().parse(builder, byteArray2DataInput(source))
+			}
+		}
+		
+		it ("IDENT Array of tag fails") {
+			val source = hexArray"9F d9d9f7 00 FF"
+			assertFailure(classOf[UnsupportedOperationException]){
+				new CborParser().parse(new PrimitiveSeqBuilder, byteArray2DataInput(source))
+			}
+		}
+		it ("IDENT Object with non-primitive key fails") {
+			val source = hexArray"A1 80 00"
+			assertFailure(classOf[UnsupportedOperationException]){
+				new CborParser().parse(new PrimitiveSeqBuilder, byteArray2DataInput(source))
+			}
+		}
+		it ("Object with non-primitive key fails") {
+			val source = hexArray"BF 80 00 FF"
+			assertFailure(classOf[UnsupportedOperationException]){
+				new CborParser().parse(new PrimitiveSeqBuilder, byteArray2DataInput(source))
 			}
 		}
 	}
@@ -150,6 +176,7 @@ class CborParserTest_Unhappy extends FunSpec {
 		case Failure(x) => {
 			if (! clazz.isInstance(x)) {
 				fail("Wrong type of failure: " + x)
+				// throw x
 			}
 		}
 		case x => fail("Not a Failure: " + x)
