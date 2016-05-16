@@ -79,8 +79,13 @@ final class BeanBuilder[Value, A](
 			}
 			
 			Try{
-				val m = clazz.getMethod("set" + key.head.toUpper + key.tail, value.getClass)
-				m.invoke(folding, value.asInstanceOf[Object])
+				val m = clazz.getMethods.filter{_.getName == ("set" + key.head.toUpper + key.tail)}.head
+				val newValue = value match {
+					case y:scala.math.BigDecimal if m.getParameterTypes.apply(0) == classOf[java.lang.Long] => y.longValue
+					case y if m.getParameterTypes.apply(0) == y.getClass => y
+					case y => throw new NoSuchMethodException(clazz.getName + "::set" + key.head.toUpper + key.tail + " with parameter " + y.getClass.getName)
+				}
+				m.invoke(folding, newValue.asInstanceOf[Object])
 				// the above line should have mutated `folding`.
 				folding
 			}

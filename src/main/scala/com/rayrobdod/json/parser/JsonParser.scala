@@ -290,12 +290,14 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 		def apply(c:Char, charIndex:Int):State[A] = {
 			if (c == '}' || c == ']' || c == ',') {
 				val rawNewValue = str.toString.trim
-				val newValue:Number = try {
-					rawNewValue.toLong
+				try {
+					val newValue:Number = scala.math.BigDecimal(rawNewValue)
+					pop(newValue).apply(c, charIndex)
 				} catch {
-					case _:NumberFormatException => rawNewValue.toDouble
+					case _:NumberFormatException => {
+						new FailureState(new ParseException("Not a number: " + rawNewValue, charIndex))
+					}
 				}
-				pop(newValue).apply(c, charIndex)
 			} else {
 				new IntegerState(str + c, pop)
 			}

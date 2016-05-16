@@ -79,12 +79,17 @@ final class CaseClassBuilder[Value, A <: Product](
 		indexOfModification match {
 			case None => Failure(new IllegalArgumentException(key + " is not a member of case class " + folding.toString))
 			case Some(x:Int) => {
-				value.flatMap{valueUnwrapped =>
-					val newArgs = folding.productIterator.toSeq.updated(x, valueUnwrapped)
-					
+				value.flatMap{valueUnwrapped => Try{
 					val copyMirror = clazz.getMethods.filter{_.getName == "copy"}.head
-					Try(clazz.cast(copyMirror.invoke(folding, newArgs.map{_.asInstanceOf[Object]}:_*)))
-				}
+					
+					val newArgs = folding.productIterator.toSeq.updated(x, (valueUnwrapped match {
+						case y:scala.math.BigDecimal if copyMirror.getParameterTypes.apply(x) == classOf[Long] => y.longValue
+						case y:scala.math.BigDecimal if copyMirror.getParameterTypes.apply(x) == classOf[java.lang.Long] => y.longValue
+						case y => y
+					}))
+					
+					clazz.cast(copyMirror.invoke(folding, newArgs.map{_.asInstanceOf[Object]}:_*))
+				}}
 			}
 		}
 	}

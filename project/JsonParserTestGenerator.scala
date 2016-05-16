@@ -70,12 +70,12 @@ object JsonParserTestGenerator {
 		("object containing multiple numbers", """{"a":-1,"b":0,"c":1}""", """Map(Left("a") -> JsonValue(-1), Left("b") -> JsonValue(0), Left("c") -> JsonValue(1))""", 0),
 		("object containing positive number (whitespace)", """{"": 24601 }""", """Map(Left("") -> JsonValue(24601))""", 0),
 		
-		("object containing float", """{"": 1.2}""", """Map(Left("") -> JsonValue(1.2))""", 0),
+		("object containing float", """{"": 1.2}""", """Map(Left("") -> JsonValue(scala.math.BigDecimal("1.2")))""", 0),
 		// leading zeros are required?
-		("object containing float (negative)", """{"": -1.2}""", """Map(Left("") -> JsonValue(-1.2))""", 0),
+		("object containing float (negative)", """{"": -1.2}""", """Map(Left("") -> JsonValue(scala.math.BigDecimal("-1.2")))""", 0),
 		("object containing float (exponent)", """{"": 1e5}""", """Map(Left("") -> JsonValue(1e5))""", 0),
 		("object containing float (decimal and exponent)", """{"": 1.2e5}""", """Map(Left("") -> JsonValue(1.2e5))""", 0),
-		("object containing float (decimal and neg exponent)", """{"": 1.2e-5}""", """Map(Left("") -> JsonValue(1.2e-5))""", 0),
+		("object containing float (decimal and neg exponent)", """{"": 1.2e-5}""", """Map(Left("") -> JsonValue(scala.math.BigDecimal("1.2e-5")))""", 0),
 		
 		("object containing array", """{"":[[]]}""", """Map(Left("") -> Map(Right(0) -> Map()))""", 2),
 		("object containing array (whitespace)", """{"":[ [] ]}""", """Map(Left("") -> Map(Right(0) -> Map()))""", 2),
