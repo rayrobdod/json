@@ -152,4 +152,12 @@ package parser {
 		/** Returns `scala.util.Right(v)` */
 		def parse[A](b:Builder[K,V,A], v:V):Success[Right[A,V]] = Success(Right(v))
 	}
+	
+	/**
+	 * A 'parser' that always returns a Failure
+	 * @version next
+	 */
+	private[json] final class FailureParser[K,V,I](t:Throwable) extends Parser[K,V,I] {
+		def parse[A](b:Builder[K,V,A], v:I):Failure[Nothing] = Failure(t)
+	}
 }

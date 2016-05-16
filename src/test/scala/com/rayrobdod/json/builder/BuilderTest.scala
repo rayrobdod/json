@@ -24,26 +24,42 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json.parser
+package com.rayrobdod.json.builder;
 
+import scala.beans.BeanProperty;
 import scala.util.{Try, Success, Failure}
-import com.rayrobdod.json.builder.Builder
+import java.text.ParseException;
+import scala.collection.immutable.Seq;
+import org.scalatest.FunSpec;
+import com.rayrobdod.json.parser.FailureParser
+import com.rayrobdod.json.parser.IdentityParser
+import com.rayrobdod.json.parser.SeqParser
+import com.rayrobdod.json.parser.PrimitiveSeqParser
+import com.rayrobdod.json.parser.CaseClassParser
 
-/**
- * A parser
- * @since next
- * @tparam Key the key types
- * @tparam Value the primitive value types
- * @tparam Input the input to the parser
- */
-trait Parser[Key, Value, Input] {
+class BuilderTest extends FunSpec {
 	
-	/**
-	 * Parse the input into either a Value or an Output
-	 * @param builder a builder in the case the the parser finds a complex value
-	 * @param i the input to the parser
-	 * @tparam ComplexOutput the type of object the Builder produces
-	 */
-	def parse[ComplexOutput](builder:Builder[Key, Value, ComplexOutput], i:Input):Try[Either[ComplexOutput, Value]]
+	describe("Builder.mapKey") {
+	}
+	describe("Builder.mapValue") {
+		it ("passes through a parser's falure") {
+			val myValue2 = new Object
+			
+			assertFailure(classOf[NoSuchElementException]){
+				new SeqBuilder(new PrimitiveSeqBuilder[String, Object]).mapValue[Object].apply(Nil, "sdfa", myValue2, new FailureParser(new NoSuchElementException))
+			}
+		}
+	}
 	
+	
+	
+	def assertFailure[T](clazz:Class[T])(result:Try[_]):Unit = result match {
+		case Failure(x) => {
+			if (! clazz.isInstance(x)) {
+				fail("Wrong type of failure: " + x)
+			}
+		}
+		case x => fail("Not a Failure: " + x)
+	}
 }
+

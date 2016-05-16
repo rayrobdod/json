@@ -31,7 +31,8 @@ import com.rayrobdod.json.parser.Parser
 import scala.collection.immutable.Seq;
 import scala.util.{Try, Success, Failure}
 
-/** A builder that creates seqs
+/** 
+ * A Builder that will build a Vector of values, where each inner value was c
  * 
  * @version next
  * @tparam Key the type of keys used by the Parser that this Builder will be used by
@@ -56,7 +57,7 @@ final class SeqBuilder[Key, Value, Inner](childBuilder:Builder[Key, Value, Inner
 
 /**
  * 
- * @version next
+ * @since next
  */
 final class PrimitiveSeqBuilder[Key, Value] extends Builder[Key, Value, Seq[Value]] {
 	def init:Seq[Value] = Vector.empty[Value]

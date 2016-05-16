@@ -31,6 +31,7 @@ import scala.util.{Try, Success, Failure}
 import java.text.ParseException;
 import scala.collection.immutable.Seq;
 import org.scalatest.FunSpec;
+import com.rayrobdod.json.parser.FailureParser
 import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.parser.SeqParser
 import com.rayrobdod.json.parser.PrimitiveSeqParser
@@ -38,7 +39,7 @@ import com.rayrobdod.json.parser.CaseClassParser
 
 class SeqBuilderTest extends FunSpec {
 	
-	describe("SeqBuilder") {
+	describe("PrimitiveSeqBuilder") {
 		it ("inits correctly") {
 			assertResult(Nil){new PrimitiveSeqBuilder().init}
 		}
@@ -57,16 +58,25 @@ class SeqBuilderTest extends FunSpec {
 				new PrimitiveSeqBuilder().apply(Seq(myValue1), "sdfa", myValue2, new IdentityParser[String, Object])
 			}
 		}
-		it ("ComplexSeqBuilder throws when builder gives it a primitive value") {
+		it ("throws when builder gives it a complex value") {
+			assertFailure(classOf[UnsupportedOperationException]){
+				new PrimitiveSeqBuilder[Int,String].apply(Nil, 5, Seq("a","b","c"), new PrimitiveSeqParser[String])
+			}
+		}
+	}
+	describe("SeqBuilder") {
+		it ("fails when builder gives it a primitive value") {
 			val myValue2 = new Object
 			
 			assertFailure(classOf[java.text.ParseException]){
 				new SeqBuilder(new PrimitiveSeqBuilder[String, Object]).apply(Nil, "sdfa", myValue2, new IdentityParser[String, Object])
 			}
 		}
-		it ("PrimitiveSeqBuilder throws when builder gives it a complex value") {
-			assertFailure(classOf[UnsupportedOperationException]){
-				new PrimitiveSeqBuilder[Int,String].apply(Nil, 5, Seq("a","b","c"), new PrimitiveSeqParser[String])
+		it ("fails when builder gives it a failure") {
+			val myValue2 = new Object
+			
+			assertFailure(classOf[NoSuchElementException]){
+				new SeqBuilder(new PrimitiveSeqBuilder[String, Object]).apply(Nil, "sdfa", myValue2, new FailureParser(new NoSuchElementException))
 			}
 		}
 	}
