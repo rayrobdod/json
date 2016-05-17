@@ -41,9 +41,9 @@ class CaseClassParserTest extends FunSpec {
 		it ("""recreates an arbitrary case class""") {
 			val exp = Map("hello" -> 43L, "world" -> "world", "bazz" -> true)
 			val src = Foo(43L, "world", true)
-			val res = new CaseClassParser().parse(new MapBuilder(), src).get.left.get
+			val res = new CaseClassParser().parse(MapBuilder.apply, src).get.left.get
 			
-			assertResult(exp){res}
+			assertResult(exp.mapValues{x => Right(x)}){res}
 		}
 	}
 	describe("CaseClassParser + Json") {

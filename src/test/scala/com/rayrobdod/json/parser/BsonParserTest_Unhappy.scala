@@ -42,7 +42,7 @@ class BsonParserTest_UnHappy extends FunSpec {
 			);
 			
 			assertFailureParse("Incorrect string length", -1){
-				new BsonParser().parse(new MapBuilder(), src)
+				new BsonParser().parse(MapBuilder.apply, src)
 			}
 		}
 		it ("String is shorter than prefix") {
@@ -54,7 +54,7 @@ class BsonParserTest_UnHappy extends FunSpec {
 			);
 			
 			assertFailureParse("Incorrect string length", -1){
-				new BsonParser().parse(new MapBuilder(), src)
+				new BsonParser().parse(MapBuilder.apply, src)
 			}
 		}
 		it ("data ends early") {
@@ -64,7 +64,7 @@ class BsonParserTest_UnHappy extends FunSpec {
 			);
 			
 			assertFailureEOF(null){
-				new BsonParser().parse(new MapBuilder(), src)
+				new BsonParser().parse(MapBuilder.apply, src)
 			}
 		}
 		it ("Does not parse on unknown data type") {
@@ -75,7 +75,7 @@ class BsonParserTest_UnHappy extends FunSpec {
 			);
 			
 			assertFailureParse("Unknown data type", -1){
-				new BsonParser().parse(new MapBuilder(), src)
+				new BsonParser().parse(MapBuilder.apply, src)
 			}
 		}
 	}

@@ -42,60 +42,60 @@ object JsonParserTestGenerator {
 		("empty object with middle whitespace", """{  }""", "Map.empty", 0),
 		("empty object with ending whitespace", """{}  """, "Map.empty", 0),
 		
-		("array containing empty string", """[""]""", """Map(Right(0) -> JsonValue(""))""", 0),
-		("array containing single char string", """["1"]""", """Map(Right(0) -> JsonValue("1"))""", 0),
-		("array containing multi char string", """["abcde"]""", """Map(Right(0) -> JsonValue("abcde"))""", 0),
-		("array containing multiple strings", """["a","b","c"]""", """Map(Right(0) -> JsonValue("a"), Right(1) -> JsonValue("b"), Right(2) -> JsonValue("c"))""", 0),
+		("array containing empty string", """[""]""", """Map(SIRight(0) -> Right(JsonValue("")))""", 0),
+		("array containing single char string", """["1"]""", """Map(SIRight(0) -> Right(JsonValue("1")))""", 0),
+		("array containing multi char string", """["abcde"]""", """Map(SIRight(0) -> Right(JsonValue("abcde")))""", 0),
+		("array containing multiple strings", """["a","b","c"]""", """Map(SIRight(0) -> Right(JsonValue("a")), SIRight(1) -> Right(JsonValue("b")), SIRight(2) -> Right(JsonValue("c")))""", 0),
 		
-		("array containing positive number", """[24601]""", """Map(Right(0) -> JsonValue(24601))""", 0),
-		("array containing positive number (whitespace)", """[ 24601 ]""", """Map(Right(0) -> JsonValue(24601))""", 0),
-		("array containing zero", """[0]""", """Map(Right(0) -> JsonValue(0))""", 0),
-		("array containing negative number", """[-42]""", """Map(Right(0) -> JsonValue(-42))""", 0),
-		("array containing multiple numbers", """[-1,0,1]""", """Map(Right(0) -> JsonValue(-1), Right(1) -> JsonValue(0), Right(2) -> JsonValue(1))""", 0),
+		("array containing positive number", """[24601]""", """Map(SIRight(0) -> Right(JsonValue(24601)))""", 0),
+		("array containing positive number (whitespace)", """[ 24601 ]""", """Map(SIRight(0) -> Right(JsonValue(24601)))""", 0),
+		("array containing zero", """[0]""", """Map(SIRight(0) -> Right(JsonValue(0)))""", 0),
+		("array containing negative number", """[-42]""", """Map(SIRight(0) -> Right(JsonValue(-42)))""", 0),
+		("array containing multiple numbers", """[-1,0,1]""", """Map(SIRight(0) -> Right(JsonValue(-1)), SIRight(1) -> Right(JsonValue(0)), SIRight(2) -> Right(JsonValue(1)))""", 0),
 		
-		("array containing array", """[[[]]]""", """Map(Right(0) -> Map(Right(0) -> Map()))""", 2),
-		("array containing array (whitespace)", """[ [ [ ] ] ]""", """Map(Right(0) -> Map(Right(0) -> Map()))""", 2),
-		("array containing array 2", """[[0,1]]""", """Map(Right(0) -> Map(Right(0) -> JsonValue(0), Right(1) -> JsonValue(1)))""", 1),
-		("array containing object", """[{}]""", """Map(Right(0) -> Map())""", 1),
+		("array containing array", """[[[]]]""", """Map(SIRight(0) -> Left(Map(SIRight(0) -> Left(Map()))))""", 2),
+		("array containing array (whitespace)", """[ [ [ ] ] ]""", """Map(SIRight(0) -> Left(Map(SIRight(0) -> Left(Map()))))""", 2),
+		("array containing array 2", """[[0,1]]""", """Map(SIRight(0) -> Left(Map(SIRight(0) -> Right(JsonValue(0)), SIRight(1) -> Right(JsonValue(1)))))""", 1),
+		("array containing object", """[{}]""", """Map(SIRight(0) -> Left(Map()))""", 1),
 		
-		("object containing empty string", """{"":""}""", """Map(Left("") -> JsonValue(""))""", 0),
-		("object containing single char string", """{"a":"b"}""", """Map(Left("a") -> JsonValue("b"))""", 0),
-		("object containing multi char string", """{"abcde":"12345"}""", """Map(Left("abcde") -> JsonValue("12345"))""", 0),
-		("object containing multi char string (whitespace)", """{ "abcde" : "12345" }""", """Map(Left("abcde") -> JsonValue("12345"))""", 0),
-		("object containing multiple string", """{"a":"b","c":"d"}""", """Map(Left("a") -> JsonValue("b"), Left("c") -> JsonValue("d"))""", 0),
+		("object containing empty string", """{"":""}""", """Map(SILeft("") -> Right(JsonValue("")))""", 0),
+		("object containing single char string", """{"a":"b"}""", """Map(SILeft("a") -> Right(JsonValue("b")))""", 0),
+		("object containing multi char string", """{"abcde":"12345"}""", """Map(SILeft("abcde") -> Right(JsonValue("12345")))""", 0),
+		("object containing multi char string (whitespace)", """{ "abcde" : "12345" }""", """Map(SILeft("abcde") -> Right(JsonValue("12345")))""", 0),
+		("object containing multiple string", """{"a":"b","c":"d"}""", """Map(SILeft("a") -> Right(JsonValue("b")), SILeft("c") -> Right(JsonValue("d")))""", 0),
 		
-		("object containing positive number", """{"":24601}""", """Map(Left("") -> JsonValue(24601))""", 0),
-		("object containing zero", """{"":0}""", """Map(Left("") -> JsonValue(0))""", 0),
-		("object containing negative number", """{"":-42}""", """Map(Left("") -> JsonValue(-42))""", 0),
-		("object containing multiple numbers", """{"a":-1,"b":0,"c":1}""", """Map(Left("a") -> JsonValue(-1), Left("b") -> JsonValue(0), Left("c") -> JsonValue(1))""", 0),
-		("object containing positive number (whitespace)", """{"": 24601 }""", """Map(Left("") -> JsonValue(24601))""", 0),
+		("object containing positive number", """{"":24601}""", """Map(SILeft("") -> Right(JsonValue(24601)))""", 0),
+		("object containing zero", """{"":0}""", """Map(SILeft("") -> Right(JsonValue(0)))""", 0),
+		("object containing negative number", """{"":-42}""", """Map(SILeft("") -> Right(JsonValue(-42)))""", 0),
+		("object containing multiple numbers", """{"a":-1,"b":0,"c":1}""", """Map(SILeft("a") -> Right(JsonValue(-1)), SILeft("b") -> Right(JsonValue(0)), SILeft("c") -> Right(JsonValue(1)))""", 0),
+		("object containing positive number (whitespace)", """{"": 24601 }""", """Map(SILeft("") -> Right(JsonValue(24601)))""", 0),
 		
-		("object containing float", """{"": 1.2}""", """Map(Left("") -> JsonValue(scala.math.BigDecimal("1.2")))""", 0),
+		("object containing float", """{"": 1.2}""", """Map(SILeft("") -> Right(JsonValue(scala.math.BigDecimal("1.2"))))""", 0),
 		// leading zeros are required?
-		("object containing float (negative)", """{"": -1.2}""", """Map(Left("") -> JsonValue(scala.math.BigDecimal("-1.2")))""", 0),
-		("object containing float (exponent)", """{"": 1e5}""", """Map(Left("") -> JsonValue(1e5))""", 0),
-		("object containing float (decimal and exponent)", """{"": 1.2e5}""", """Map(Left("") -> JsonValue(1.2e5))""", 0),
-		("object containing float (decimal and neg exponent)", """{"": 1.2e-5}""", """Map(Left("") -> JsonValue(scala.math.BigDecimal("1.2e-5")))""", 0),
+		("object containing float (negative)", """{"": -1.2}""", """Map(SILeft("") -> Right(JsonValue(scala.math.BigDecimal("-1.2"))))""", 0),
+		("object containing float (exponent)", """{"": 1e5}""", """Map(SILeft("") -> Right(JsonValue(1e5)))""", 0),
+		("object containing float (decimal and exponent)", """{"": 1.2e5}""", """Map(SILeft("") -> Right(JsonValue(1.2e5)))""", 0),
+		("object containing float (decimal and neg exponent)", """{"": 1.2e-5}""", """Map(SILeft("") -> Right(JsonValue(scala.math.BigDecimal("1.2e-5"))))""", 0),
 		
-		("object containing array", """{"":[[]]}""", """Map(Left("") -> Map(Right(0) -> Map()))""", 2),
-		("object containing array (whitespace)", """{"":[ [] ]}""", """Map(Left("") -> Map(Right(0) -> Map()))""", 2),
-		("object containing array 2", """{"":[0,1]}""", """Map(Left("") -> Map(Right(0) -> JsonValue(0), Right(1) -> JsonValue(1)))""", 1),
-		("object containing object", """{"":{}}""", """Map(Left("") -> Map())""", 1),
-		("object containing object 2", """{"":{"":{}}}""", """Map(Left("") -> Map(Left("") -> Map()))""", 2),
-		("object containing object (whitespace)", """{ "" : {} }""", """Map(Left("") -> Map())""", 1),
+		("object containing array", """{"":[[]]}""", """Map(SILeft("") -> Left(Map(SIRight(0) -> Left(Map()))))""", 2),
+		("object containing array (whitespace)", """{"":[ [] ]}""", """Map(SILeft("") -> Left(Map(SIRight(0) -> Left(Map()))))""", 2),
+		("object containing array 2", """{"":[0,1]}""", """Map(SILeft("") -> Left(Map(SIRight(0) -> Right(JsonValue(0)), SIRight(1) -> Right(JsonValue(1)))))""", 1),
+		("object containing object", """{"":{}}""", """Map(SILeft("") -> Left(Map()))""", 1),
+		("object containing object 2", """{"":{"":{}}}""", """Map(SILeft("") -> Left(Map(SILeft("") -> Left(Map()))))""", 2),
+		("object containing object (whitespace)", """{ "" : {} }""", """Map(SILeft("") -> Left(Map()))""", 1),
 		
-		("string containing escape codes (newline)", """["\n"]""", """Map(Right(0) -> JsonValue("\n"))""", 0),
-		("string containing escape codes (tab)", """["\t"]""", """Map(Right(0) -> JsonValue("\t"))""", 0),
-		("string containing escape codes (backslash)", """["\\"]""", """Map(Right(0) -> JsonValue("\\"))""", 0),
-		("string containing escape codes (other)", """["\"\/\b\f\r"]""", """Map(Right(0) -> JsonValue("\"/\b\f\r"))""", 0),
+		("string containing escape codes (newline)", """["\n"]""", """Map(SIRight(0) -> Right(JsonValue("\n")))""", 0),
+		("string containing escape codes (tab)", """["\t"]""", """Map(SIRight(0) -> Right(JsonValue("\t")))""", 0),
+		("string containing escape codes (backslash)", """["\\"]""", """Map(SIRight(0) -> Right(JsonValue("\\")))""", 0),
+		("string containing escape codes (other)", """["\"\/\b\f\r"]""", """Map(SIRight(0) -> Right(JsonValue("\"/\b\f\r")))""", 0),
 		// that time where I have to perform a 'bobby tables' to force the thing to put unicode escapes into a JSON Parser 
-		("string containing escape codes (unicode)", "[\"\\\"\"\" + \"\"\"u0123\"]", """Map(Right(0) -> JsonValue("ģ"))""", 0),
-		("string containing escape codes (unicode) 2", "[\"\\\"\"\" + \"\"\"u221E\"]", """Map(Right(0) -> JsonValue("\u221E"))""", 0),
-		("string containing escape codes (unicode) 3", "[\"\\\"\"\" + \"\"\"u0041A\"]", """Map(Right(0) -> JsonValue("AA"))""", 0),
-		("array containing keyword (true)", """[true]""", """Map(Right(0) -> JsonValue(true))""", 0),
-		("array containing keyword (false)", """[false]""", """Map(Right(0) -> JsonValue(false))""", 0),
-		("array containing keyword (null)", """[null]""", """Map(Right(0) -> JsonValue.JsonValueNull)""", 0),
-		("array containing keyword (null) (whitespace)", """[ null ]""", """Map(Right(0) -> JsonValue.JsonValueNull)""", 0)
+		("string containing escape codes (unicode)", "[\"\\\"\"\" + \"\"\"u0123\"]", """Map(SIRight(0) -> Right(JsonValue("ģ")))""", 0),
+		("string containing escape codes (unicode) 2", "[\"\\\"\"\" + \"\"\"u221E\"]", """Map(SIRight(0) -> Right(JsonValue("\u221E")))""", 0),
+		("string containing escape codes (unicode) 3", "[\"\\\"\"\" + \"\"\"u0041A\"]", """Map(SIRight(0) -> Right(JsonValue("AA")))""", 0),
+		("array containing keyword (true)", """[true]""", """Map(SIRight(0) -> Right(JsonValue(true)))""", 0),
+		("array containing keyword (false)", """[false]""", """Map(SIRight(0) -> Right(JsonValue(false)))""", 0),
+		("array containing keyword (null)", """[null]""", """Map(SIRight(0) -> Right(JsonValue.JsonValueNull))""", 0),
+		("array containing keyword (null) (whitespace)", """[ null ]""", """Map(SIRight(0) -> Right(JsonValue.JsonValueNull))""", 0)
 		
 	)
 	
@@ -111,7 +111,7 @@ import org.scalatest.FunSpec;
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.builder.MapBuilder;
-import com.rayrobdod.json.union.StringOrInt.{Left, Right}
+import com.rayrobdod.json.union.StringOrInt.{Left => SILeft, Right => SIRight}
 
 class JsonParserTest_Happy extends FunSpec {
 	describe("JsonParser + MapBuilder can decode") {"""
@@ -121,8 +121,8 @@ class JsonParserTest_Happy extends FunSpec {
 	private val testStrings:Seq[String] = testValues.toSeq.map{abc =>
 		val (name:String, source:String, expected:String, nesting:Int) = abc
 		
-		val parser = (0 until nesting).foldLeft("new MapBuilder[StringOrInt, JsonValue]"){(f, i) =>
-			"new MapBuilder[StringOrInt, JsonValue]({k:StringOrInt => Some(" + f + ")})"
+		val parser = (0 until nesting).foldLeft("MapBuilder[StringOrInt, JsonValue]"){(f, i) =>
+			"MapBuilder({k:StringOrInt => " + f + "})"
 		}
 		
 		

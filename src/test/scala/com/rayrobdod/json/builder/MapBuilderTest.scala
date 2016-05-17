@@ -39,13 +39,13 @@ class MapBuilderTest extends FunSpec {
 	
 	describe("MapBuilder") {
 		it ("inits correctly") {
-			assertResult(Map.empty){new MapBuilder().init}
+			assertResult(Map.empty){MapBuilder.apply.init}
 		}
 		it ("Appends value") {
 			val myValue = new Object
 			
 			assertResult(Success(Map("sdfa" -> myValue))){
-				new MapBuilder().apply(Map.empty, "sdfa", myValue, new IdentityParser[String,Object])
+				MapBuilder.apply[String, Object].apply(Map.empty, "sdfa", myValue, new IdentityParser[String,Object]).map{_.mapValues{_.right.get}}
 			}
 		}
 		it ("Appends value 2") {
@@ -53,7 +53,7 @@ class MapBuilderTest extends FunSpec {
 			val myValue2 = new Object
 			
 			assertResult(Success(Map("a" -> myValue1, "b" -> myValue2))){
-				new MapBuilder().apply(Map("a" -> myValue1), "b", myValue2, new IdentityParser[String,Object])
+				MapBuilder.apply[String, Object].apply(Map("a" -> Right(myValue1)), "b", myValue2, new IdentityParser[String,Object]).map{_.mapValues{_.right.get}}
 			}
 		}
 	}
@@ -64,17 +64,17 @@ class MapBuilderTest extends FunSpec {
 		import BeanBuilderTest.Person
 		
 		it ("MapBuilder + JsonParser + primitive") {
-			assertResult(Map("a" -> 61, "b" -> 62, "c" -> 63).map{x => ((StringOrInt(x._1), JsonValue(x._2)))}){
+			assertResult(Map("a" -> 61, "b" -> 62, "c" -> 63).map{x => ((StringOrInt(x._1), Right(JsonValue(x._2))))}){
 				new JsonParser().parse(
-					new MapBuilder[StringOrInt, JsonValue],
+					MapBuilder[StringOrInt, JsonValue],
 					"""{"a":61, "b":62, "c":63}"""
 				).get.left.get
 			}
 		}
 		it ("MapBuilder + JsonParser + BeanBuilder") {
-			assertResult(Map("red" -> Person("Mario", 32),"green" -> Person("Luigi", 32),"pink" -> Person("Peach", 28))){
+			assertResult(Map("red" -> Left(Person("Mario", 32)), "green" -> Left(Person("Luigi", 32)), "pink" -> Left(Person("Peach", 28)))){
 				new JsonParser().parse(
-					new MapBuilder[String, JsonValue]({s:String => Option(new BeanBuilder(classOf[Person]))}).mapKey[StringOrInt]{StringOrInt.unwrapToString},
+					MapBuilder[String, JsonValue, Person](new BeanBuilder[JsonValue, Person](classOf[Person])).mapKey[StringOrInt]{StringOrInt.unwrapToString},
 					"""{
 						"red":{"name":"Mario", "age":32},
 						"green":{"name":"Luigi", "age":32},

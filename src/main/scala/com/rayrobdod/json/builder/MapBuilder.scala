@@ -38,21 +38,28 @@ import scala.util.{Try, Success, Failure}
  * @param childBuilderMap a function pretty directly called by `childBuilder()`.
  *          By default, it is a function that creates more MapBuilders
  */
-final class MapBuilder[K,V](childBuilders:Function1[K, Option[Builder[K, V, _]]] = MapBuilder.defaultChildBuilder[K,V]) extends Builder[K, V, Map[K, Any]] {
-	override val init:Map[K, Any] = Map.empty
-	override def apply[Input](folding:Map[K,Any], key:K, innerInput:Input, parser:Parser[K, V, Input]):Try[Map[K,Any]] = {
-		val childBuilder = childBuilders(key).getOrElse(new ThrowBuilder())
-		parser.parse(childBuilder, innerInput).map{eitherRes =>
-			val innerRes:Any = eitherRes match {
-				case Left(x) => x
-				case Right(x) => x
-			}
-			
-			folding + (key -> innerRes)
+final class MapBuilder[K, V, Inner](childBuilders:Function1[K, MapBuilder.MapChildBuilder[K, V, _, Inner]]) extends Builder[K, V, Map[K, Either[Inner, V]]] {
+	override val init:Map[K, Either[Inner, V]] = Map.empty
+	override def apply[Input](folding:Map[K, Either[Inner, V]], key:K, innerInput:Input, parser:Parser[K, V, Input]):Try[Map[K, Either[Inner, V]]] = {
+		val childBuilder = childBuilders(key)
+		childBuilder.apply(innerInput, parser).map{eitherRes =>
+			folding + (key -> eitherRes)
 		}
 	}
 }
 
-private object MapBuilder {
-	def defaultChildBuilder[K,V]:Function1[K, Option[Builder[K, V, _]]] = {s:K => None}
+/** @since next */
+object MapBuilder {
+	class MapChildBuilder[K, V, A, Inner](builder:Builder[K, V, A], result:Function1[A, Inner]) {
+		def apply[Input](innerInput:Input, parser:Parser[K, V, Input]):Try[Either[Inner, V]] = {
+			parser.parse(builder, innerInput).map{_ match {case Left(x) => Left(result(x)); case Right(x) => Right(x)}}
+		}
+	}
+	
+	def apply[K,V]:MapBuilder[K,V,Any] = MapBuilder(new ThrowBuilder[K,V])
+	def apply[K,V,Inner](cb:Builder[K,V,Inner]):MapBuilder[K,V,Inner] = MapBuilder(new MapChildBuilder(cb, {x:Inner => x}))
+	def apply[K,V,Inner](cb:MapChildBuilder[K,V,_,Inner]):MapBuilder[K,V,Inner] = new MapBuilder({x => cb})
+	def apply[K,V,Inner](cbs:Function1[K, Builder[K,V,Inner]]):MapBuilder[K,V,Inner] = new MapBuilder({x => new MapChildBuilder(cbs(x), {x:Inner => x})}) 
+	/* Type erasure */
+	def apply2[K,V,Inner](cbs:Function1[K, MapChildBuilder[K,V,_,Inner]]):MapBuilder[K,V,Inner] = new MapBuilder(cbs) 
 }

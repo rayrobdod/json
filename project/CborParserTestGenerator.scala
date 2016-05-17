@@ -60,13 +60,13 @@ object CborParserTestGenerator {
 		("char string multibyte char", """hexArray"63e6b0b4" """, """CborParser.ParseReturnValueSimple(JsonValueString("\u6c34") )"""),
 		("char string INDET", """Array(0x7F, 0x62, 'h', 'e', 0x63, 'l', 'l', 'o', 0xFF).map{_.byteValue}""", """CborParser.ParseReturnValueSimple(JsonValueString("hello") )"""),
 		("array 0", """ hexArray"80" """, "CborParser.ParseReturnValueComplex(Map())"),
-		("array 1", """ hexArray"8121" """, """CborParser.ParseReturnValueComplex(Map(JsonValue(0) -> JsonValue(-2)))"""),
-		("array 4", """ hexArray"8400010203" """, """CborParser.ParseReturnValueComplex(Map(JsonValue(0) -> JsonValue(0), JsonValue(1) -> JsonValue(1), JsonValue(2) -> JsonValue(2), JsonValue(3) -> JsonValue(3)))"""),
-		("array INDET", """ hexArray"9F00010203FF" """, """CborParser.ParseReturnValueComplex(Map(JsonValue(0) -> JsonValue(0), JsonValue(1) -> JsonValue(1), JsonValue(2) -> JsonValue(2), JsonValue(3) -> JsonValue(3)))"""),
+		("array 1", """ hexArray"8121" """, """CborParser.ParseReturnValueComplex(Map(JsonValue(0) -> Right(JsonValue(-2))))"""),
+		("array 4", """ hexArray"8400010203" """, """CborParser.ParseReturnValueComplex(Map(JsonValue(0) -> Right(JsonValue(0)), JsonValue(1) -> Right(JsonValue(1)), JsonValue(2) -> Right(JsonValue(2)), JsonValue(3) -> Right(JsonValue(3))))"""),
+		("array INDET", """ hexArray"9F00010203FF" """, """CborParser.ParseReturnValueComplex(Map(JsonValue(0) -> Right(JsonValue(0)), JsonValue(1) -> Right(JsonValue(1)), JsonValue(2) -> Right(JsonValue(2)), JsonValue(3) -> Right(JsonValue(3))))"""),
 		("object 0", """ hexArray"A0" """, "CborParser.ParseReturnValueComplex(Map())"),
-		("object 1", """ hexArray"A10405" """, """CborParser.ParseReturnValueComplex(Map(JsonValue(4) -> JsonValue(5)))"""),
-		("object 2", """ hexArray"A2600061651865" """, """CborParser.ParseReturnValueComplex(Map(JsonValue("") -> JsonValue(0), JsonValue("e") -> JsonValue(0x65)))"""),
-		("object INDET", """ hexArray"BF600061651865FF" """, """CborParser.ParseReturnValueComplex(Map(JsonValue("") -> JsonValue(0), JsonValue("e") -> JsonValue(0x65)))"""),
+		("object 1", """ hexArray"A10405" """, """CborParser.ParseReturnValueComplex(Map(JsonValue(4) -> Right(JsonValue(5))))"""),
+		("object 2", """ hexArray"A2600061651865" """, """CborParser.ParseReturnValueComplex(Map(JsonValue("") -> Right(JsonValue(0)), JsonValue("e") -> Right(JsonValue(0x65))))"""),
+		("object INDET", """ hexArray"BF600061651865FF" """, """CborParser.ParseReturnValueComplex(Map(JsonValue("") -> Right(JsonValue(0)), JsonValue("e") -> Right(JsonValue(0x65))))"""),
 		("tag self-describing", """ hexArray"d9d9f780" """, "CborParser.ParseReturnValueTaggedValue(55799, CborParser.ParseReturnValueComplex(Map()))")
 		
 	)
@@ -100,7 +100,7 @@ class CborParserTest_Happy extends FunSpec {
 				)
 			)
 			val expected = """ + expected + """
-			val result = new CborParser().parseDetailed(new MapBuilder(), source)
+			val result = new CborParser().parseDetailed(MapBuilder.apply, source)
 			assertResult(expected){result}
 		}"""
 	}
