@@ -46,4 +46,23 @@ trait Parser[Key, Value, Input] {
 	 */
 	def parse[ComplexOutput](builder:Builder[Key, Value, ComplexOutput], i:Input):Try[Either[ComplexOutput, Value]]
 	
+	
+	/** Change the type of key that this builder requires */
+	final def mapKey[K2](implicit fun:Function1[Key,K2]):Parser[K2,Value,Input] = new Parser[K2,Value,Input] {
+		override def parse[Output](builder:Builder[K2,Value,Output], i:Input):Try[Either[Output, Value]] = {
+			Parser.this.parse(builder.mapKey[Key](fun), i)
+		}
+	}
+	
+	/** Change the type of value that this builder requires */
+	final def mapValue[V2](implicit fun:Function1[Value,V2]):Parser[Key,V2,Input] = new Parser[Key,V2,Input] {
+		override def parse[Output](builder:Builder[Key,V2,Output], i:Input):Try[Either[Output, V2]] = {
+			Parser.this.parse[Output](builder.mapValue[Value](fun), i) match {
+				case Success(Left(x)) => Success(Left(x))
+				case Success(Right(x)) => Success(Right(fun(x)))
+				case Failure(x) => Failure(x)
+			}
+		}
+	}
+	
 }

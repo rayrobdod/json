@@ -64,33 +64,23 @@ trait Builder[Key, Value, Subject] {
 	def apply[Input](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, Input]):Try[Subject]
 	
 	
-	/** Change the type of key that this builder requires */
+	/** Change the type of key that this builder requires
+	 * @version next
+	 */
 	final def mapKey[K2](implicit fun:Function1[K2,Key]):Builder[K2,Value,Subject] = new Builder[K2,Value,Subject] {
 		override def init:Subject = Builder.this.init
 		override def apply[Input](a:Subject, key:K2, b:Input, c:Parser[K2, Value, Input]):Try[Subject] = {
-			final class ReverseParser(innerParser:Parser[K2,Value,Input]) extends Parser[Key,Value,Input] {
-				override def parse[Output](builder:Builder[Key,Value,Output], i:Input):Try[Either[Output, Value]] = innerParser.parse(builder.mapKey[K2](fun), i)
-			}
-			
-			Builder.this.apply(a, fun(key), b, new ReverseParser(c))
+			Builder.this.apply(a, fun(key), b, c.mapKey(fun))
 		}
 	}
 	
-	/** Change the type of value that this builder requires */
+	/** Change the type of value that this builder requires
+	 * @version next
+	 */
 	final def mapValue[V2](implicit fun:Function1[V2,Value]):Builder[Key,V2,Subject] = new Builder[Key,V2,Subject] {
 		override def init:Subject = Builder.this.init
 		override def apply[Input](a:Subject, key:Key, b:Input, c:Parser[Key, V2, Input]):Try[Subject] = {
-			final class ReverseParser(innerParser:Parser[Key,V2,Input]) extends Parser[Key,Value,Input] {
-				override def parse[Output](builder:Builder[Key,Value,Output], i:Input):Try[Either[Output, Value]] = {
-					innerParser.parse[Output](builder.mapValue[V2](fun), i) match {
-						case Success(Left(x)) => Success(Left(x))
-						case Success(Right(x)) => Success(Right(fun(x)))
-						case Failure(x) => Failure(x)
-					}
-				}
-			}
-			
-			Builder.this.apply(a, key, b, new ReverseParser(c))
+			Builder.this.apply(a, key, b, c.mapValue(fun))
 		}
 	}
 	
