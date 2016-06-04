@@ -3,16 +3,18 @@
 
 
 // other imports
+import scala.util.{Try, Success, Failure}
+import scala.util.{Either, Left, Right}
 import java.text.ParseException
 
 // imports from this library;
-import com.rayrobdod.json.parser.JsonParser
-import com.rayrobdod.json.builder.Builder
-import com.rayrobdod.json.builder.BuildableBuilder
+import com.rayrobdod.json.parser.{Parser, JsonParser}
+import com.rayrobdod.json.builder.{Builder, BuildableBuilder, PrimitiveSeqBuilder, ThrowBuilder}
+import com.rayrobdod.json.union.{StringOrInt, JsonValue}
 
 // the data classes
 case class Name(given:String, middle:String, family:String)
-case class Person(n:Name, gender:String, isDead:Boolean, interests:Set[String])
+case class Person(n:Name, gender:String, isDead:Boolean, interests:Seq[String])
 
 // the json data to parse- presumably in a real system this would be read from a file rather than direct
 val json = """{
@@ -26,40 +28,55 @@ val json = """{
     "interests":["bowling", "tennis", "programming", "twitch plays pokémon"]
 }"""
 
-// the classes that extend Builder and convert the data into the data classes
-object SetBuilder extends Builder[Set[String]] {
-  def init:Set[String] = Set.empty
-  def apply(folding:Set[String], key:String, value:Any) = {
-    folding + value.toString
+// Exaple using subclassing of Builder
+object NameBuilder extends Builder[StringOrInt, JsonValue, Name] {
+  override def init:Name = Name("", "", "")
+  override def apply[Input](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Try[Name] = {
+    // we only expect strings, so might as well parse the value here
+    parser.parse(new ThrowBuilder, input).flatMap{value:Either[Any, JsonValue] =>
+      ((key, value)) match {
+        case ((StringOrInt.Left("given"), Right(JsonValue.JsonValueString(x)))) => Try(folding.copy(given = x))
+        case ((StringOrInt.Left("middle"), Right(JsonValue.JsonValueString(x)))) => Try(folding.copy(middle = x))
+        case ((StringOrInt.Left("family"), Right(JsonValue.JsonValueString(x)))) => Try(folding.copy(family = x))
+        case x => Failure(new ParseException("Unexpected key/value for name: " + x, -1))
+      }
+    }
   }
-  def childBuilder(key:String):Builder[Set[String]] = this
-  def resultType:Class[Set[String]] = classOf[Set[String]]
 }
 
-// Exaple using subclassing of Builder
-object NameBuilder extends Builder[Name] {
-  def init:Name = Name("", "", "")
-  def apply(folding:Name, key:String, value:Any) = key match {
-    case "given" => folding.copy(given = value.toString)
-    case "middle" => folding.copy(middle = value.toString)
-    case "family" => folding.copy(family = value.toString)
-    case _ => throw new ParseException("Unexpected key: " + key, -1)
+final class ASDF[BuilderResult, ZXCV](
+    builder:Builder[StringOrInt, JsonValue, BuilderResult],
+    convert:PartialFunction[Either[BuilderResult, JsonValue], Try[ZXCV]],
+    fold:Function2[Person, ZXCV, Person]
+) extends BuildableBuilder.KeyDef[StringOrInt, JsonValue, Person] {
+  def apply[Input](folding:Person, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Try[Person] = {
+    parser.parse(builder, input).flatMap{convert.orElse{case x => Failure(new ParseException("Unexpected value: " + x, -1))}}.map{x => fold(folding, x)}
   }
-  def childBuilder(key:String):Builder[_] = SetBuilder
-  override val resultType:Class[Name] = classOf[Name]
 }
 
 // example using BuildableBuilder
 val PersonBuilder = {
-  new BuildableBuilder(Person(Name("", "", ""), "", false, Set.empty))(classOf[Person])
-    .addDef("name", (folding, value) => folding.copy(n = value.asInstanceOf[Name]), NameBuilder)
-    .addDef("gender", (folding, value) => folding.copy(gender = value.toString), SetBuilder)
-    .addDef("isDead", (folding, value) => folding.copy(isDead = (value == true)), SetBuilder)
-    .addDef("interests", (folding, value) => folding.copy(interests = value.asInstanceOf[Set[String]]), SetBuilder)
-  }
+  new BuildableBuilder[StringOrInt, JsonValue, Person](Person(Name("", "", ""), "", false, Seq.empty))
+    .addDef("name", new ASDF[Name, Name](NameBuilder, {case Left(name) => Try(name)}, {(folding, name) => folding.copy(n = name)}))
+    .addDef("gender", new ASDF[Any, String](new ThrowBuilder, {case Right(JsonValue.JsonValueString(g)) => Try(g)}, {(folding,x) => folding.copy(gender = x)}))
+    .addDef("isDead", new BuildableBuilder.KeyDef[StringOrInt, JsonValue, Person]{ override def apply[Input](folding:Person, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Try[Person] = {
+      parser.parse(new ThrowBuilder, input).flatMap{_ match { case Right(JsonValue.JsonValueBoolean(b)) => Try(folding.copy(isDead = b)); case unknown => Failure(new ParseException("isDead not boolean: " + unknown, -1))}}
+    }})
+    .addDef("interests", new BuildableBuilder.KeyDef[StringOrInt, JsonValue, Person]{ override def apply[Input](folding:Person, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Try[Person] = {
+      parser.parse(new PrimitiveSeqBuilder, input).flatMap{_ match {
+        case Left(seq) => {
+          seq.foldLeft[Try[Vector[String]]](Success(Vector.empty)){(folding:Try[Vector[String]], value:JsonValue) => folding.flatMap(sequence => value match {
+            case JsonValue.JsonValueString(s) => Try(sequence :+ s)
+            case _ => Failure(new ParseException("interests not a seq of strings", -1))
+          })}.map{x => folding.copy(interests = x)}
+        }
+        case unknown => Failure(new ParseException("interests not Seq: " + unknown, -1))
+      }}
+    }})
+}
 
 // parse the json file
-val p:Person = new JsonParser(PersonBuilder).parse(json)
+val p:Person = new JsonParser().parse(PersonBuilder, json).get.left.get
 
 // at this point, do something with p
 System.out.println(p)
