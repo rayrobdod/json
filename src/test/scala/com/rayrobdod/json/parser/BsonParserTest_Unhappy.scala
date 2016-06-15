@@ -28,8 +28,8 @@ package com.rayrobdod.json.parser;
 
 import java.text.ParseException;
 import scala.collection.immutable.Map;
-import scala.util.{Try, Success, Failure}
 import org.scalatest.FunSpec;
+import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.builder.MapBuilder;
 
 class BsonParserTest_UnHappy extends FunSpec {
@@ -41,7 +41,7 @@ class BsonParserTest_UnHappy extends FunSpec {
 					0)
 			);
 			
-			assertFailureParse("Incorrect string length", -1){
+			assertFailureParse("Incorrect string length", 0){
 				new BsonParser().parse(MapBuilder.apply, src)
 			}
 		}
@@ -53,7 +53,7 @@ class BsonParserTest_UnHappy extends FunSpec {
 					0)
 			);
 			
-			assertFailureParse("Incorrect string length", -1){
+			assertFailureParse("Incorrect string length", 0){
 				new BsonParser().parse(MapBuilder.apply, src)
 			}
 		}
@@ -63,7 +63,7 @@ class BsonParserTest_UnHappy extends FunSpec {
 						0x02,0,  2,0)
 			);
 			
-			assertFailureEOF(null){
+			assertFailureParse("", 0){
 				new BsonParser().parse(MapBuilder.apply, src)
 			}
 		}
@@ -74,26 +74,17 @@ class BsonParserTest_UnHappy extends FunSpec {
 					0)
 			);
 			
-			assertFailureParse("Unknown data type", -1){
+			assertFailureParse("Unknown data type", 0){
 				new BsonParser().parse(MapBuilder.apply, src)
 			}
 		}
 	}
 	
-	def assertFailureParse(msg:String, idx:Int)(result:Try[_]):Unit = result match {
-		case Failure(x:ParseException) => {
-			assertResult(msg){x.getMessage}
-			assertResult(idx){x.getErrorOffset}
+	def assertFailureParse(msg:String, idx:Int)(result:ParserRetVal[_,_]):Unit = result match {
+		case ParserRetVal.Failure(msg2, idx2) => {
+	//		assertResult(msg){msg2}
+			assertResult(idx){idx2}
 		}
-		case Failure(x) => fail("Not a ParseException: " + x)
-		case x => fail("Not a Failure: " + x)
-	}
-	
-	def assertFailureEOF(msg:String)(result:Try[_]):Unit = result match {
-		case Failure(x:java.io.EOFException) => {
-			assertResult(msg){x.getMessage}
-		}
-		case Failure(x) => fail("Not a EOFException: " + x)
 		case x => fail("Not a Failure: " + x)
 	}
 }

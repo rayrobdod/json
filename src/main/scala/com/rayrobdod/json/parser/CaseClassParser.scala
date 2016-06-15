@@ -27,8 +27,8 @@
 package com.rayrobdod.json.parser;
 
 import scala.reflect.runtime.universe.{runtimeMirror, newTermName}
-import scala.util.{Try, Success, Failure}
 import com.rayrobdod.json.builder.Builder
+import com.rayrobdod.json.union.ParserRetVal
 
 
 /**
@@ -46,18 +46,18 @@ final class CaseClassParser[Input <: Product](implicit clazz:Class[Input]) exten
 	 * Reports the values inside obj to the builder
 	 * @param obj the object to extract values from
 	 */
-	def parse[Output](builder:Builder[String, Any, Output], obj:Input):Try[Left[Output,Any]] = {
+	def parse[Output](builder:Builder[String, Any, Output], obj:Input):ParserRetVal[Output,Nothing] = {
 		val mirror = runtimeMirror( this.getClass.getClassLoader )
 		val typ = mirror.classSymbol( clazz ).toType
 		val copyMethod = typ.declaration(newTermName("copy")).asMethod
 		val copyParams = copyMethod.paramss(0)
 		
-		copyParams.zipWithIndex.foldLeft(Try(builder.init)){(state:Try[Output], keyValue) =>
+		copyParams.zipWithIndex.foldLeft[Either[(String,Int),Output]](Right(builder.init)){(state:Either[(String,Int),Output], keyValue) =>
 			val (name, index) = keyValue
 			val name2 = name.name.decodedName.toString
 			val value = obj.productElement(index)
 			
-			state.flatMap{x => builder.apply(x, name2, value, new IdentityParser)}
+			state.right.flatMap{x => builder.apply(x, name2, value, new IdentityParser)}
 		}
-	}.map{Left(_)}
+	}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{x => ParserRetVal.Complex(x)})
 }

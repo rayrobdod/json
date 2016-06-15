@@ -27,7 +27,6 @@
 package com.rayrobdod.json.builder;
 
 import scala.beans.BeanProperty;
-import scala.util.{Try, Success, Failure}
 import java.text.ParseException;
 import scala.collection.immutable.Seq;
 import org.scalatest.FunSpec;
@@ -46,7 +45,7 @@ class SeqBuilderTest extends FunSpec {
 		it ("Appends value") {
 			val myValue = new Object
 			
-			assertResult(Success(Seq(myValue))){
+			assertResult(Right(Seq(myValue))){
 				new PrimitiveSeqBuilder().apply(Nil, "sdfa", myValue, new IdentityParser[String, Object])
 			}
 		}
@@ -54,12 +53,12 @@ class SeqBuilderTest extends FunSpec {
 			val myValue1 = new Object
 			val myValue2 = new Object
 			
-			assertResult(Success(Seq(myValue1, myValue2))){
+			assertResult(Right(Seq(myValue1, myValue2))){
 				new PrimitiveSeqBuilder().apply(Seq(myValue1), "sdfa", myValue2, new IdentityParser[String, Object])
 			}
 		}
 		it ("throws when builder gives it a complex value") {
-			assertFailure(classOf[UnsupportedOperationException]){
+			assertFailure("", 0){
 				new PrimitiveSeqBuilder[Int,String].apply(Nil, 5, Seq("a","b","c"), new PrimitiveSeqParser[String])
 			}
 		}
@@ -68,15 +67,15 @@ class SeqBuilderTest extends FunSpec {
 		it ("fails when builder gives it a primitive value") {
 			val myValue2 = new Object
 			
-			assertFailure(classOf[java.text.ParseException]){
+			assertFailure("",0){
 				new SeqBuilder(new PrimitiveSeqBuilder[String, Object]).apply(Nil, "sdfa", myValue2, new IdentityParser[String, Object])
 			}
 		}
 		it ("fails when builder gives it a failure") {
 			val myValue2 = new Object
 			
-			assertFailure(classOf[NoSuchElementException]){
-				new SeqBuilder(new PrimitiveSeqBuilder[String, Object]).apply(Nil, "sdfa", myValue2, new FailureParser(new NoSuchElementException))
+			assertFailure("",0){
+				new SeqBuilder(new PrimitiveSeqBuilder[String, Object]).apply(Nil, "sdfa", myValue2, new FailureParser)
 			}
 		}
 	}
@@ -91,12 +90,12 @@ class SeqBuilderTest extends FunSpec {
 				new JsonParser().parse(
 					new PrimitiveSeqBuilder[String, JsonValue].mapKey[StringOrInt]{StringOrInt.unwrapToString},
 					"""["a", "b", "c"]"""
-				).get.left.get
+				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}
 		}
 		it ("PrimitiveSeqBuilder + PrimitiveSeqParser") {
 			val exp = Seq(15, -4, 2)
-			val res = new PrimitiveSeqParser[Int]().parse(new PrimitiveSeqBuilder[Int, Int], exp).get.fold({x => x}, {x => throw new IllegalArgumentException()}) 
+			val res = new PrimitiveSeqParser[Int]().parse(new PrimitiveSeqBuilder[Int, Int], exp).fold({x => x}, {x => throw new IllegalArgumentException()}, {(m,i) => throw new IllegalArgumentException()}) 
 			assertResult(exp){res}
 		}
 		it ("SeqBuilder + SeqParser") {
@@ -104,7 +103,7 @@ class SeqBuilderTest extends FunSpec {
 			val builder = new SeqBuilder(new CaseClassBuilder[JsonValue, Person](Person("", -1))(classOf[Person])).mapValue[Any]{_ match {case x:Long => JsonValue(x); case x:String => JsonValue(x)}}
 			val parser = new SeqParser[String, Any, Person](new CaseClassParser[Person]()(classOf[Person]))(x => x.toString)
 			
-			assertResult(exp){parser.parse(builder, exp).get.left.get}
+			assertResult(exp){parser.parse(builder, exp).fold({x => x}, {x => x}, {(s,i) => ((s,i))})}
 		}
 		it ("SeqBuilder + JsonParser + BeanBuilder") {
 			assertResult(Seq(Person("Mario", 32),Person("Luigi", 32),Person("Peach", 28))){
@@ -115,18 +114,14 @@ class SeqBuilderTest extends FunSpec {
 						{"name":"Luigi", "age":32},
 						{"name":"Peach", "age":28}
 					]"""
-				).get.left.get
+				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}
 		}
 	}
 	
 	
-	def assertFailure[T](clazz:Class[T])(result:Try[_]):Unit = result match {
-		case Failure(x) => {
-			if (! clazz.isInstance(x)) {
-				fail("Wrong type of failure: " + x)
-			}
-		}
+	def assertFailure[T](msg:String, idx:Int)(result:Either[_,_]):Unit = result match {
+		case Left(x) => {}
 		case x => fail("Not a Failure: " + x)
 	}
 }

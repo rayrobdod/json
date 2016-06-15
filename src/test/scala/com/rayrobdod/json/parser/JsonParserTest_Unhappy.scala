@@ -28,9 +28,8 @@ package com.rayrobdod.json.parser;
 
 import java.text.ParseException;
 import scala.collection.immutable.Map;
-import scala.util.{Try, Success, Failure}
 import org.scalatest.FunSpec;
-import com.rayrobdod.json.union.{JsonValue, StringOrInt}
+import com.rayrobdod.json.union.{JsonValue, StringOrInt, ParserRetVal}
 import com.rayrobdod.json.builder._
 
 class JsonParserTest_Unhappy extends FunSpec {
@@ -293,12 +292,11 @@ class JsonParserTest_Unhappy extends FunSpec {
 		}
 	}
 	
-	def assertFailureParse(msg:String, idx:Int)(result:Try[_]):Unit = result match {
-		case Failure(x:ParseException) => {
-	//		assertResult(msg){x.getMessage}
-			assertResult(idx){x.getErrorOffset}
+	def assertFailureParse(msg:String, idx:Int)(result:ParserRetVal[_,_]):Unit = result match {
+		case ParserRetVal.Failure(msg2, idx2) => {
+	//		assertResult(msg){msg2}
+			assertResult(idx){idx2}
 		}
-		case Failure(x) => fail("Not a ParseException: " + x)
 		case x => fail("Not a Failure: " + x)
 	}
 }

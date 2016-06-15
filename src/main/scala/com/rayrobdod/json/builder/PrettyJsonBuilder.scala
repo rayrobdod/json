@@ -27,7 +27,7 @@
 package com.rayrobdod.json.builder;
 
 import scala.collection.immutable.Seq;
-import scala.util.{Try, Success, Failure}
+import scala.util.{Either, Left, Right}
 import java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.charset.Charset;
 import com.rayrobdod.json.union.{StringOrInt, JsonValue}
@@ -53,38 +53,32 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 	
 	val init:String = params.lbrace(level) + params.rbrace(level)
 	
-	def apply[Input](folding:String, key:StringOrInt, innerInput:Input, parser:Parser[StringOrInt, JsonValue, Input]):Try[String] = {
-		parser.parse(nextLevel, innerInput).flatMap{value =>
-			val encodedValue = value match {
-				case Left(x) => x
-				case Right(x) => serialize(x, charset)
-			}
-				
-			
+	def apply[Input](folding:String, key:StringOrInt, innerInput:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), String] = {
+		parser.parse(nextLevel, innerInput).fold({s => Right(s)}, {p => Right(serialize(p, charset))}, {(s,i) => Left((s,i))}).right.flatMap{encodedValue =>
 			if (init == folding) {
 				key match {
-					case StringOrInt.Right(0) => Try(params.lbrace(level) + encodedValue + params.rbrace(level))
-					case StringOrInt.Right(int) => Failure(new IllegalArgumentException(s"Key: $int")) // params.lbracket(level) + serialze(int.toString, charset) + params.colon(level) + encodedValue + params.rbrace(level)
-					case StringOrInt.Left(str) => Try(params.lbracket(level) + serialize(str, charset) + params.colon(level) + encodedValue + params.rbracket(level))
+					case StringOrInt.Right(0) => Right(params.lbrace(level) + encodedValue + params.rbrace(level))
+					case StringOrInt.Right(int) => Left(s"Key: $int", 0) // params.lbracket(level) + serialze(int.toString, charset) + params.colon(level) + encodedValue + params.rbrace(level)
+					case StringOrInt.Left(str) => Right(params.lbracket(level) + serialize(str, charset) + params.colon(level) + encodedValue + params.rbracket(level))
 				}
 			} else {
 				val bracket:Boolean = folding.take(params.lbracket(level).length) == params.lbracket(level)
 				val brace:Boolean = folding.take(params.lbrace(level).length) == params.lbrace(level)
-				val keptPartTry:Try[String] = {
-					if (bracket) {Try(folding.dropRight(params.rbracket(level).length))}
-					else if (brace) {Try(folding.dropRight(params.rbrace(level).length))}
-					else {Failure(new IllegalArgumentException("folding is wrong"))}
+				val keptPartTry:Either[(String, Int), String] = {
+					if (bracket) {Right(folding.dropRight(params.rbracket(level).length))}
+					else if (brace) {Right(folding.dropRight(params.rbrace(level).length))}
+					else {Left("folding is wrong", 0)}
 				}
 				
-				keptPartTry.flatMap{keptPart:String =>
+				keptPartTry.right.flatMap{keptPart:String =>
 					key match {
 						case StringOrInt.Right(int) if brace => {
-							Try(keptPart + params.comma(level) + encodedValue + params.rbrace(level))
+							Right(keptPart + params.comma(level) + encodedValue + params.rbrace(level))
 						}
 						case StringOrInt.Left(str) if bracket => {
-							Try(keptPart + params.comma(level) + serialize(str, charset) + params.colon(level) + encodedValue + params.rbracket(level))
+							Right(keptPart + params.comma(level) + serialize(str, charset) + params.colon(level) + encodedValue + params.rbracket(level))
 						}
-						case _ => Failure(new IllegalArgumentException("Key type changed mid-object"))
+						case _ => Left("Key type changed mid-object", 0)
 					}
 				}
 			}

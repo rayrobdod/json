@@ -30,7 +30,7 @@ import com.rayrobdod.json.builder.Builder
 import scala.collection.{Iterable, Iterator}
 import scala.collection.immutable.{Seq => ISeq}
 // import scala.collection.{AbstractIterable, AbstractIterator}
-import scala.util.{Try, Success, Failure}
+import com.rayrobdod.json.union.ParserRetVal
 
 /**
  * Contains the various built-in parsers
@@ -98,12 +98,12 @@ package parser {
 		 * @param vals the sequence containing values
 		 * @return the parsed object
 		 */
-		def parse[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):Try[Left[A,V]] = {
-			vals.foldLeft[Try[A]](Success(topBuilder.init)){(state:Try[A], keyValue:(K, V)) => 
+		def parse[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):ParserRetVal[A,V] = {
+			vals.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], keyValue:(K, V)) => 
 				val (key, value) = keyValue;
-				state.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser)}
+				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser)}
 			}
-		}.map{Left(_)}
+		}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{a => ParserRetVal.Complex(a)})
 	}
 	
 	/**
@@ -119,12 +119,12 @@ package parser {
 		 * @param vals the sequence containing values
 		 * @return the parsed object
 		 */
-		def parse[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):Try[Left[A,V]] = {
-			vals.zipWithIndex.foldLeft[Try[A]](Success(topBuilder.init)){(state:Try[A], valueKey:(V, Int)) => 
+		def parse[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):ParserRetVal[A,V] = {
+			vals.zipWithIndex.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], valueKey:(V, Int)) => 
 				val (value, key) = valueKey;
-				state.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser)}
+				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser)}
 			}
-		}.map{Left(_)}
+		}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{a => ParserRetVal.Complex(a)})
 	}
 	
 	/**
@@ -135,13 +135,13 @@ package parser {
 	 * Create a SeqParser
 	 */
 	final class SeqParser[K,V,Inner](recurse:Parser[K,V,Inner])(implicit keyMapping:Function1[Int, K]) extends Parser[K,V,Seq[Inner]] {
-		def parse[A](topBuilder:Builder[K,V,A], vals:Seq[Inner]):Try[Left[A,V]] = {
-			vals.zipWithIndex.foldLeft[Try[A]](Success(topBuilder.init)){(state:Try[A], valueKey:(Inner, Int)) => 
+		def parse[A](topBuilder:Builder[K,V,A], vals:Seq[Inner]):ParserRetVal[A,V] = {
+			vals.zipWithIndex.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], valueKey:(Inner, Int)) => 
 				val (value, key2) = valueKey
 				val key = keyMapping(key2)
-				state.flatMap{x => topBuilder.apply(x, key, value, recurse)}
+				state.right.flatMap{x => topBuilder.apply(x, key, value, recurse)}
 			}
-		}.map{Left(_)}
+		}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{a => ParserRetVal.Complex(a)})
 	}
 	
 	/**
@@ -150,14 +150,14 @@ package parser {
 	 */
 	final class IdentityParser[K,V] extends Parser[K,V,V] {
 		/** Returns `scala.util.Right(v)` */
-		def parse[A](b:Builder[K,V,A], v:V):Success[Right[A,V]] = Success(Right(v))
+		def parse[A](b:Builder[K,V,A], v:V):ParserRetVal.Primitive[V] = ParserRetVal.Primitive(v)
 	}
 	
 	/**
 	 * A 'parser' that always returns a Failure
 	 * @version next
 	 */
-	private[json] final class FailureParser[K,V,I](t:Throwable) extends Parser[K,V,I] {
-		def parse[A](b:Builder[K,V,A], v:I):Failure[Nothing] = Failure(t)
+	private[json] final class FailureParser[K,V,I] extends Parser[K,V,I] {
+		def parse[A](b:Builder[K,V,A], v:I):ParserRetVal.Failure = ParserRetVal.Failure("FailureParser", 0)
 	}
 }

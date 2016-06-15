@@ -42,16 +42,9 @@ import scala.util.{Try, Success, Failure}
  * @param childBuilder the type of this seq's complex child elements. If it is Nothing, it will default to making more SeqBuilders
  */
 final class SeqBuilder[Key, Value, Inner](childBuilder:Builder[Key, Value, Inner]) extends Builder[Key, Value, Seq[Inner]] {
-	
-	def init:Seq[Inner] = Vector.empty[Inner]
-	
-	override def apply[Input](folding:Seq[Inner], key:Key, innerInput:Input, parser:Parser[Key, Value, Input]):Try[Seq[Inner]] = {
-		val res = parser.parse(childBuilder, innerInput)
-		res match {
-			case Success(Left(x)) => Try(folding :+ x)
-			case Success(Right(x)) => Failure(new ParseException("Found primitive in SeqBuilder", 0))
-			case Failure(x) => Failure(x)
-		}
+	override def init:Seq[Inner] = Vector.empty[Inner]
+	override def apply[Input](folding:Seq[Inner], key:Key, innerInput:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Seq[Inner]] = {
+		parser.parse(childBuilder, innerInput).fold({x => Right(folding :+ x)}, {x => Left("Found primitive in SeqBuilder", 0)}, {(m,i) => Left(m,i)})
 	}
 }
 
@@ -60,14 +53,8 @@ final class SeqBuilder[Key, Value, Inner](childBuilder:Builder[Key, Value, Inner
  * @since next
  */
 final class PrimitiveSeqBuilder[Key, Value] extends Builder[Key, Value, Seq[Value]] {
-	def init:Seq[Value] = Vector.empty[Value]
-	
-	override def apply[Input](folding:Seq[Value], key:Key, innerInput:Input, parser:Parser[Key, Value, Input]):Try[Seq[Value]] = {
-		val res = parser.parse(new ThrowBuilder(), innerInput)
-		res match {
-			case Success(Left(x)) => Failure(new ParseException("Found complex in SeqBuilder", 0))
-			case Success(Right(x)) => Try(folding :+ x)
-			case Failure(x) => Failure(x)
-		}
+	override def init:Seq[Value] = Vector.empty[Value]
+	override def apply[Input](folding:Seq[Value], key:Key, innerInput:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Seq[Value]] = {
+		parser.parsePrimitive(innerInput).right.map{x => folding :+ x}
 	}
 }

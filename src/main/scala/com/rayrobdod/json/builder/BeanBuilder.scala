@@ -27,7 +27,6 @@
 package com.rayrobdod.json.builder;
 
 import java.lang.reflect.Method
-import scala.util.{Try, Success, Failure}
 import com.rayrobdod.json.parser.Parser
 
 /** A builder that builds a JavaBean
@@ -60,16 +59,12 @@ final class BeanBuilder[Value, A](
 	 * @return the input parameter `folding`
 	 * @todo maybe check for other primitive numeric types - IE a `setVal(Short)` when handed a `Long` or visa versa
 	 */
-	def apply[Input](folding:A, key:String, input:Input, parser:Parser[String, Value, Input]):Try[A] = {
+	def apply[Input](folding:A, key:String, input:Input, parser:Parser[String, Value, Input]):Either[(String, Int), A] = {
 		val builder = childBuilders(key).getOrElse(new ThrowBuilder())
 		
 		// unwrap union values
-		parser.parse(builder, input).flatMap{b =>
+		parser.parse(builder, input).fold({x => Right(x)},{x => Right(x)},{(msg,idx) => Left((msg,idx))}).right.flatMap{a =>
 			val value = {
-				val a = b match {
-					case Left(x) => x
-					case Right(x) => x
-				} 
 				a match {
 					case com.rayrobdod.json.union.StringOrInt.Left(x) => x
 					case com.rayrobdod.json.union.StringOrInt.Right(x) => x
@@ -78,7 +73,7 @@ final class BeanBuilder[Value, A](
 				}
 			}
 			
-			Try{
+			try {
 				val m = clazz.getMethods.filter{_.getName == ("set" + key.head.toUpper + key.tail)}.head
 				val newValue = value match {
 					case y:scala.math.BigDecimal if m.getParameterTypes.apply(0) == classOf[java.lang.Long] => y.longValue
@@ -87,7 +82,9 @@ final class BeanBuilder[Value, A](
 				}
 				m.invoke(folding, newValue.asInstanceOf[Object])
 				// the above line should have mutated `folding`.
-				folding
+				Right(folding)
+			} catch {
+				case ex:NoSuchMethodException => Left(ex.getMessage(), 0)
 			}
 		}
 	}

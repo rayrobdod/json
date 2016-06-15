@@ -27,10 +27,10 @@
 package com.rayrobdod.json.builder;
 
 import scala.collection.immutable.Seq
-import scala.util.{Try, Success, Failure}
 import java.nio.charset.StandardCharsets.UTF_8
 import com.rayrobdod.json.parser.CborParser.{MajorTypeCodes, SimpleValueCodes}
-import com.rayrobdod.json.union.JsonValue
+import com.rayrobdod.json.union.CborValue
+import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.parser.{Parser, CborParser, byteArray2DataInput}
 
 /**
@@ -41,19 +41,22 @@ import com.rayrobdod.json.parser.{Parser, CborParser, byteArray2DataInput}
  * A builder that will create cbor object format byte strings
  * @param forceObject true if the builder should create an object even if it is possible to create an array from the inputs
  */
-final class CborBuilder(forceObject:Boolean = false) extends Builder[JsonValue, JsonValue, Seq[Byte]] {
+final class CborBuilder(forceObject:Boolean = false) extends Builder[CborValue, CborValue, Seq[Byte]] {
 	import CborObjectBuilder._
+	import ParserRetVal._
 	
 	/** The bytes to encode a zero-length array or object  */
-	val init:Seq[Byte] = encodeLength((if (forceObject) {MajorTypeCodes.OBJECT} else {MajorTypeCodes.ARRAY}), 0)
+	override val init:Seq[Byte] = encodeLength((if (forceObject) {MajorTypeCodes.OBJECT} else {MajorTypeCodes.ARRAY}), 0)
 	
-	def apply[Input](folding:Seq[Byte], key:JsonValue, input:Input, parser:Parser[JsonValue, JsonValue, Input]):Try[Seq[Byte]] = {
-		parser.parse[Seq[Byte]](this, input).flatMap{value =>
-			val encodedValue = value match {
-				case Left(x) => x
-				case Right(x) => encodeValue(x)
-			}
-			
+	override def apply[Input](folding:Seq[Byte], key:CborValue, input:Input, parser:Parser[CborValue, CborValue, Input]):Either[(String, Int), Seq[Byte]] = {
+		val value = parser.parse[Seq[Byte]](this, input)
+		val encodedValueOpt = value match {
+			case Failure(a,b) => Left((a,b))
+			case Complex(x) => Right(x)
+			case Primitive(x) => Right(encodeValue(x))
+		}
+		encodedValueOpt.right.flatMap{encodedValue =>
+		
 			val headerByte:Byte = folding.head
 			val majorType = (headerByte >> 5) & 0x07
 			val additionalInfo = headerByte & 0x1F
@@ -67,24 +70,26 @@ final class CborBuilder(forceObject:Boolean = false) extends Builder[JsonValue, 
 			}
 			
 			if (majorType == MajorTypeCodes.ARRAY) {
-				Try(key match {
-					case JsonValue.JsonValueNumber(x) if (x == objectLength) => {
+				key match {
+					case CborValue.CborValueNumber(x) if (x == objectLength) => {
 						// continue being array
-						encodeLength(MajorTypeCodes.ARRAY, objectLength + 1) ++ passData ++ encodedValue
+						Right(encodeLength(MajorTypeCodes.ARRAY, objectLength + 1) ++ passData ++ encodedValue)
 					}
 					case _ => {
 						// convert into object
 						val newBuilder = new CborBuilder(true)
-						val convertedBytes = new CborParser().parse(newBuilder, byteArray2DataInput(folding.toArray)).get.left.get
-						encodeLength(MajorTypeCodes.OBJECT, objectLength + 1) ++ convertedBytes.drop(folding.length - passData.length) ++ encodeValue(key) ++ encodedValue
+						val convertedBytesTry = new CborParser().parse(newBuilder, byteArray2DataInput(folding.toArray)).fold({s => Right(s)}, {p => Left("invalid folding param: " + java.util.Arrays.toString(folding.toArray), 0)}, {(s,i) => Left((s,i))})
+						convertedBytesTry.right.map{convertedBytes =>
+							encodeLength(MajorTypeCodes.OBJECT, objectLength + 1) ++ convertedBytes.drop(folding.length - passData.length) ++ encodeValue(key) ++ encodedValue
+						}
 					}
-				})
+				}
 			} else if (majorType == MajorTypeCodes.OBJECT) {
 				
-				Try(encodeLength(MajorTypeCodes.OBJECT, objectLength + 1) ++ passData ++ encodeValue(key) ++ encodedValue)
+				Right(encodeLength(MajorTypeCodes.OBJECT, objectLength + 1) ++ passData ++ encodeValue(key) ++ encodedValue)
 			} else {
 				
-				Failure(new java.text.ParseException("Invalid folding parameter", 0))
+				Left("Invalid folding parameter", 0)
 			}
 		}
 	}

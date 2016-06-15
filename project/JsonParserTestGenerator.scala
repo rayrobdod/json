@@ -129,13 +129,13 @@ class JsonParserTest_Happy extends FunSpec {
 		"\n\t\tit (\"\"\"" + name + "\"\"\"" + """) {
 			val source = """ + "\"\"\"" + source + "\"\"\"" + """
 			val expected = """ + expected + """
-			val result = new JsonParser().parse(""" + parser + """, source).get.left.get
+			val result = new JsonParser().parse(""" + parser + """, source).fold({x => x},{x => x},{(a,b) => a})
 			assertResult(expected){result}
 		}
 		it (""" + '"' + name + """ (reader)") {
 			val source = new java.io.StringReader(""" + "\"\"\"" + source + "\"\"\"" + """)
 			val expected = """ + expected + """
-			val result = new JsonParser().parse(""" + parser + """, source).get.left.get
+			val result = new JsonParser().parse(""" + parser + """, source).fold({x => x},{x => x},{(a,b) => a})
 			assertResult(expected){result}
 		}"""
 	}

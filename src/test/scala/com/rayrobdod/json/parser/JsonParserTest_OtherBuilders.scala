@@ -34,6 +34,7 @@ import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.{Builder, ThrowBuilder}
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue
+import com.rayrobdod.json.union.ParserRetVal
 
 class JsonParserTest_OtherBuilders extends FunSpec {
 	describe("JsonParser with other builders") {
@@ -55,39 +56,39 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 			
 			object SetBuilder extends Builder[StringOrInt, JsonValue, Set[String]] {
 				def init:Set[String] = Set.empty
-				def apply[Input](folding:Set[String], key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Try[Set[String]] = Try{
+				def apply[Input](folding:Set[String], key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Set[String]] = {
 					val inputVal = parser.parse(new ThrowBuilder, input)
-					val inputStr = inputVal match {case Success(Right(JsonValue.JsonValueString(s))) => s; case _ => "????????"}
-					folding + inputStr
+					val inputStr = inputVal match {case ParserRetVal.Primitive(JsonValue.JsonValueString(s)) => s; case _ => "????????"}
+					Right(folding + inputStr)
 				}
 			}
 			
 			object NameBuilder extends Builder[StringOrInt,JsonValue,Name] {
 				def init:Name = Name("", "", "")
-				def apply[Input](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Try[Name] = Try{
-					val value = parser.parse(new ThrowBuilder, input) match {case Success(Right(JsonValue.JsonValueString(s))) => s; case _ => "????????"}
+				def apply[Input](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Name] = {
+					val value = parser.parse(new ThrowBuilder, input) match {case ParserRetVal.Primitive(JsonValue.JsonValueString(s)) => s; case _ => "????????"}
 					
 					key match {
-						case StringOrInt.Left("given") => folding.copy(given = value)
-						case StringOrInt.Left("middle") => folding.copy(middle = value)
-						case StringOrInt.Left("family") => folding.copy(family = value)
-						case _ => throw new ParseException("Unexpected key: " + key, -1)
+						case StringOrInt.Left("given") => Right(folding.copy(given = value))
+						case StringOrInt.Left("middle") => Right(folding.copy(middle = value))
+						case StringOrInt.Left("family") => Right(folding.copy(family = value))
+						case _ => Left("Unexpected key: " + key, 0)
 					}
 				}
 			}
 			
 			object PersonBuilder extends Builder[StringOrInt, JsonValue, Person] {
 				def init:Person = Person(Name("", "", ""), "", false, Set.empty)
-				def apply[Input](folding:Person, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Try[Person] = Try( key match {
-					case StringOrInt.Left("name") => folding.copy(n = parser.parse(NameBuilder, input).get.fold({x => x}, {x => new Name("","","")}))
-					case StringOrInt.Left("gender") => folding.copy(gender = parser.parse(new ThrowBuilder, input) match {case Success(Right(JsonValue.JsonValueString(s))) => s; case _ => "????????"})
-					case StringOrInt.Left("isDead") => folding.copy(isDead = parser.parse(new ThrowBuilder, input) match {case Success(Right(JsonValue.JsonValueBoolean(s))) => s; case _ => false})
-					case StringOrInt.Left("interests") => folding.copy(interests = parser.parse(SetBuilder, input).get.fold({x => x}, {x => Set.empty}))
-					case _ => throw new ParseException("Unexpected key: " + key, -1)
-				})
+				def apply[Input](folding:Person, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Person] = key match {
+					case StringOrInt.Left("name") => Right(folding.copy(n = parser.parse(NameBuilder, input) match {case ParserRetVal.Complex(x) => x; case _ => new Name("","","")}))
+					case StringOrInt.Left("gender") => Right(folding.copy(gender = parser.parse(new ThrowBuilder, input) match {case ParserRetVal.Primitive(JsonValue.JsonValueString(s)) => s; case _ => "????????"}))
+					case StringOrInt.Left("isDead") => Right(folding.copy(isDead = parser.parse(new ThrowBuilder, input) match {case ParserRetVal.Primitive(JsonValue.JsonValueBoolean(s)) => s; case _ => false}))
+					case StringOrInt.Left("interests") => Right(folding.copy(interests = parser.parse(SetBuilder, input).fold({x => x}, {x => Set.empty}, {(a,b) => Set.empty})))
+					case _ => Left("Unexpected key: " + key, 0)
+				}
 			}
 			
-			val result:Person = new JsonParser().parse(PersonBuilder, json).get.left.get
+			val result:Person = new JsonParser().parse(PersonBuilder, json).fold({x => x}, {x => x}, {(s,i) => Person(Name("", "", ""), "", false, Set.empty)})
 			val expected = Person(
 				Name( "Raymond", "Robert", "Dodge"),
 				"male",

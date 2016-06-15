@@ -29,10 +29,10 @@ package com.rayrobdod.json.builder;
 import scala.beans.BeanProperty;
 import java.text.ParseException;
 import scala.collection.immutable.Map;
-import scala.util.{Try, Success, Failure}
+import scala.util.{Try, Right, Failure}
 import org.scalatest.FunSpec;
 import java.nio.charset.StandardCharsets.US_ASCII;
-import com.rayrobdod.json.union.{StringOrInt, JsonValue}
+import com.rayrobdod.json.union.{StringOrInt, JsonValue, CborValue}
 import com.rayrobdod.json.union.JsonValue._
 import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter};
@@ -44,57 +44,57 @@ class MinifiedJsonArrayBuilderTest extends FunSpec {
 			assertResult("[]"){new MinifiedJsonArrayBuilder().init}
 		}
 		it ("Appends null") {
-			assertResult(Success("""[null]""")){
+			assertResult(Right("""[null]""")){
 				new MinifiedJsonArrayBuilder().apply("[]", "",JsonValueNull, new IdentityParser[Any,JsonValue])
 			}
 		}
 		it ("Appends true") {
-			assertResult(Success("""[true]""")){
+			assertResult(Right("""[true]""")){
 				new MinifiedJsonArrayBuilder().apply("[]", "",JsonValue(true), new IdentityParser[Any,JsonValue])
 			}
 		}
 		it ("Appends false") {
-			assertResult(Success("""[false]""")){
+			assertResult(Right("""[false]""")){
 				new MinifiedJsonArrayBuilder().apply("[]", "",JsonValue(false), new IdentityParser[Any,JsonValue])
 			}
 		}
 		it ("Appends integer") {
-			assertResult(Success("""[68]""")){
+			assertResult(Right("""[68]""")){
 				new MinifiedJsonArrayBuilder().apply("[]", "",JsonValue(68), new IdentityParser[Any,JsonValue])
 			}
 		}
 		it ("Appends string") {
-			assertResult(Success("""["abc"]""")){
+			assertResult(Right("""["abc"]""")){
 				new MinifiedJsonArrayBuilder().apply("[]", "",JsonValue("abc"), new IdentityParser[Any,JsonValue])
 			}
 		}
 		it ("Appends string with escapes") {
-			assertResult(Success("""["a\tc"]""")){
+			assertResult(Right("""["a\tc"]""")){
 				new MinifiedJsonArrayBuilder().apply("[]", "",JsonValue("a\tc"), new IdentityParser[Any,JsonValue])
 			}
 		}
 		it ("Appends string with escapes 2") {
-			assertResult(Success("""["a\""" + """u0000c"]""")){
+			assertResult(Right("""["a\""" + """u0000c"]""")){
 				new MinifiedJsonArrayBuilder().apply("[]", "",JsonValue("a\u0000c"), new IdentityParser[Any,JsonValue])
 			}
 		}
 		it ("Appends string with space") {
-			assertResult(Success("""[" a c "]""")){
+			assertResult(Right("""[" a c "]""")){
 				new MinifiedJsonArrayBuilder().apply("[]", "",JsonValue(" a c "), new IdentityParser[Any,JsonValue])
 			}
 		}
 		it ("Appends string with non-ascii char (utf-8)") {
-			assertResult(Success("""["Pokémon"]""")){
+			assertResult(Right("""["Pokémon"]""")){
 				new MinifiedJsonArrayBuilder().apply("[]", "",JsonValue("Pokémon"), new IdentityParser[Any,JsonValue])
 			}
 		}
 		it ("Appends string with non-ascii char (ascii)") {
-			assertResult(Success("""["Pok\""" + """u00e9mon"]""")){
+			assertResult(Right("""["Pok\""" + """u00e9mon"]""")){
 				new MinifiedJsonArrayBuilder(US_ASCII).apply("[]", "",JsonValue("Pokémon"), new IdentityParser[Any,JsonValue])
 			}
 		}
 		it ("Appends a second value") {
-			assertResult(Success("""["a","b","c","d"]""")){
+			assertResult(Right("""["a","b","c","d"]""")){
 				new MinifiedJsonArrayBuilder(US_ASCII).apply("""["a","b","c"]""", 3, JsonValue("d"), new IdentityParser[Any,JsonValue])
 			}
 		}
@@ -108,7 +108,7 @@ class MinifiedJsonArrayBuilderTest extends FunSpec {
 				new JsonParser().parse(
 					new MinifiedJsonArrayBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""[61,62,63]"""
-				).get.left.get
+				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}
 		}
 		it ("MinifiedJsonArrayBuilder + JsonParser + primitive (whitespace)") {
@@ -120,15 +120,15 @@ class MinifiedJsonArrayBuilderTest extends FunSpec {
 	"b",
 	"c"
 ]"""
-				).get.left.get
+				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}
 		}
 		it ("MinifiedJsonArrayBuilder + CborParser + primitives") {
 			assertResult("""[5]"""){
 				new CborParser().parse(
-					new MinifiedJsonArrayBuilder().mapKey[JsonValue].mapValue[JsonValue],
+					new MinifiedJsonArrayBuilder().mapKey[CborValue].mapValue[CborValue](cborValueHexencodeByteStr),
 					byteArray2DataInput(hexArray"A10405")
-				).get.left.get
+				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}
 		}
 	}

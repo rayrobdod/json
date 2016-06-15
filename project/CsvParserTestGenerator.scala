@@ -87,13 +87,13 @@ class CsvParserTest_Happy extends FunSpec {
 		"\n\t\tit (\"\"\"" + name + "\"\"\"" + """) {
 			val source = """ + source + """
 			val expected = """ + expected + """
-			val result = new CsvParser(""" + charMeans + """).parse(new SeqBuilder(new PrimitiveSeqBuilder[Int, String]), source).get.left.get
+			val result = new CsvParser(""" + charMeans + """).parse(new SeqBuilder(new PrimitiveSeqBuilder[Int, String]), source).fold({x => x},{x => x},{(a,b) => a})
 			assertResult(expected){result}
 		}"""
 		"\n\t\tit (\"\"\"" + name + " (reader)\"\"\"" + """) {
 			val source = new java.io.StringReader(""" + source + """)
 			val expected = """ + expected + """
-			val result = new CsvParser(""" + charMeans + """).parse(new SeqBuilder(new PrimitiveSeqBuilder[Int, String]), source).get.left.get
+			val result = new CsvParser(""" + charMeans + """).parse(new SeqBuilder(new PrimitiveSeqBuilder[Int, String]), source).fold({x => x},{x => x},{(a,b) => a})
 			assertResult(expected){result}
 		}"""
 	}

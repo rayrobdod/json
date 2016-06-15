@@ -27,7 +27,7 @@
 package com.rayrobdod.json.builder;
 
 import scala.beans.BeanProperty;
-import scala.util.{Try, Success, Failure}
+import scala.util.{Try, Right, Failure}
 import java.text.ParseException;
 import scala.collection.immutable.Seq;
 import org.scalatest.FunSpec;
@@ -45,21 +45,11 @@ class BuilderTest extends FunSpec {
 		it ("passes through a parser's falure") {
 			val myValue2 = new Object
 			
-			assertFailure(classOf[NoSuchElementException]){
-				new SeqBuilder(new PrimitiveSeqBuilder[String, Object]).mapValue[Object].apply(Nil, "sdfa", myValue2, new FailureParser(new NoSuchElementException))
+			assertResult(Left("FailureParser", 0)){
+				new SeqBuilder(new PrimitiveSeqBuilder[String, Object]).mapValue[Object].apply(Nil, "sdfa", myValue2, new FailureParser())
 			}
 		}
 	}
 	
-	
-	
-	def assertFailure[T](clazz:Class[T])(result:Try[_]):Unit = result match {
-		case Failure(x) => {
-			if (! clazz.isInstance(x)) {
-				fail("Wrong type of failure: " + x)
-			}
-		}
-		case x => fail("Not a Failure: " + x)
-	}
 }
 

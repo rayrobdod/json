@@ -62,7 +62,7 @@ final case class BuildableBuilder[Key, Value, Subject](
 	
 	
 	/** @see Builder#apply */
-	override def apply[Input](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, Input]):Try[Subject] = {
+	override def apply[Input](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject] = {
 		keyDefs.getOrElse(key, defaultKeyDef).apply(folding, input, parser)
 	}
 }
@@ -76,7 +76,7 @@ object BuildableBuilder{
 	 * @since next
 	 */
 	abstract class KeyDef[Key, Value, Subject] {
-		def apply[Input](s:Subject, i:Input, p:Parser[Key, Value, Input]):Try[Subject]
+		def apply[Input](s:Subject, i:Input, p:Parser[Key, Value, Input]):Either[(String, Int), Subject]
 	}
 	
 	/** 
@@ -84,7 +84,7 @@ object BuildableBuilder{
 	 * @since next
 	 */
 	def ignoreKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
-		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):Try[A] = Success(s)
+		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):Either[(String, Int), A] = Right(s)
 	}
 	
 	/**
@@ -92,6 +92,6 @@ object BuildableBuilder{
 	 * @since next
 	 */
 	def throwKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
-		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):Try[A] = Failure(new IllegalArgumentException("BuildableBuilder has no KeyDef for given key"))
+		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):Either[(String, Int), A] = Left("BuildableBuilder has no KeyDef for given key", 0)
 	}
 }

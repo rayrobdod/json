@@ -27,7 +27,6 @@
 package com.rayrobdod.json.builder;
 
 import com.rayrobdod.json.parser.Parser
-import scala.util.{Try, Success, Failure}
 import scala.reflect.runtime.universe.{runtimeMirror, newTermName}
 
 /** A builder that builds a Case Class
@@ -51,7 +50,7 @@ final class CaseClassBuilder[Value, A <: Product](
 	 * 
 	 * @todo maybe check for other primitive numeric types - IE a `setVal(Short)` when handed a `Long` or visa versa
 	 */
-	override def apply[Input](folding:A, key:String, input:Input, parser:Parser[String, Value, Input]):Try[A] = {
+	override def apply[Input](folding:A, key:String, input:Input, parser:Parser[String, Value, Input]):Either[(String, Int), A] = {
 		val mirror = runtimeMirror( this.getClass.getClassLoader )
 		val typ = mirror.classSymbol( clazz ).toType
 		val copyMethod = typ.declaration(newTermName("copy")).asMethod
@@ -62,12 +61,7 @@ final class CaseClassBuilder[Value, A <: Product](
 		
 		// unwrap union values
 		val value = {
-			parser.parse(builder, input).map{b =>
-				val a = b match {
-					case Left(x) => x
-					case Right(x) => x
-				} 
-				a match {
+			parser.parse(builder, input).fold({x => Right(x)},{x => Right(x)},{(msg,idx) => Left((msg,idx))}).right.map{_ match {
 					case com.rayrobdod.json.union.StringOrInt.Left(x) => x
 					case com.rayrobdod.json.union.StringOrInt.Right(x) => x
 					case x:com.rayrobdod.json.union.JsonValue => com.rayrobdod.json.union.JsonValue.unwrap(x)
@@ -77,20 +71,23 @@ final class CaseClassBuilder[Value, A <: Product](
 		}
 		
 		indexOfModification match {
-			case None => Failure(new IllegalArgumentException(key + " is not a member of case class " + folding.toString))
-			case Some(x:Int) => {
-				value.flatMap{valueUnwrapped => Try{
-					val copyMirror = clazz.getMethods.filter{_.getName == "copy"}.head
-					
-					val newArgs = folding.productIterator.toSeq.updated(x, (valueUnwrapped match {
-						case y:scala.math.BigDecimal if copyMirror.getParameterTypes.apply(x) == classOf[Long] => y.longValue
-						case y:scala.math.BigDecimal if copyMirror.getParameterTypes.apply(x) == classOf[java.lang.Long] => y.longValue
-						case y => y
-					}))
-					
-					clazz.cast(copyMirror.invoke(folding, newArgs.map{_.asInstanceOf[Object]}:_*))
-				}}
-			}
+			case None => Left(key + " is not a member of case class " + folding.toString, 0)
+			case Some(x:Int) => value.right.flatMap{valueUnwrapped => {
+				val copyMirror = clazz.getMethods.filter{_.getName == "copy"}.head
+				
+				val newArgs = folding.productIterator.toSeq.updated(x, (valueUnwrapped match {
+					case y:scala.math.BigDecimal if copyMirror.getParameterTypes.apply(x) == classOf[Long] => y.longValue
+					case y:scala.math.BigDecimal if copyMirror.getParameterTypes.apply(x) == classOf[java.lang.Long] => y.longValue
+					case y => y
+				}))
+				
+				try {
+					Right(clazz.cast(copyMirror.invoke(folding, newArgs.map{_.asInstanceOf[Object]}:_*)))
+				} catch {
+					case ex:ClassCastException => Left(ex.getMessage(), 0)
+					case ex:IllegalArgumentException => Left(ex.getMessage(), 0)
+				}
+			}}
 		}
 	}
 }

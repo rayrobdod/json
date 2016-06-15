@@ -34,24 +34,24 @@ object BsonParserTestGenerator {
 		("empty object", """Array[Byte](0,0,0,0,0)""", "Map.empty", false),
 		("object containing one null", """Array[Byte](2,0,0,0,
 						0x0A, 0,
-					0)""", """Map("" -> Right(JsonValue.JsonValueNull))""", false),
+					0)""", """Map("" -> Right(CborValue.CborValueNull))""", false),
 		("object containing one int", """Array[Byte](5,0,0,0,
 						0x10, 0, 0x78, 0x56, 0x34, 0x12,
-					0)""", """Map("" -> Right(JsonValue(0x12345678)))""", false),
+					0)""", """Map("" -> Right(CborValue(0x12345678)))""", false),
 		("object containing one long", """Array(5,0,0,0,
 						0x12, 0, 0xEF, 0xCD, 0xAB, 0x90, 0x78, 0x56, 0x34, 0x12,
-					0).map{_.byteValue}""", """Map("" -> Right(JsonValue(0x1234567890ABCDEFl)))""", false),
+					0).map{_.byteValue}""", """Map("" -> Right(CborValue(0x1234567890ABCDEFl)))""", false),
 		("object containing one false", """Array[Byte](5,0,0,0,
 						0x08, 0, 0,
-					0)""", """Map("" -> Right(JsonValue(false)))""", false),
+					0)""", """Map("" -> Right(CborValue(false)))""", false),
 		("object containing one true", """Array[Byte](5,0,0,0,
 						0x08, 0, 1,
-					0)""", """Map("" -> Right(JsonValue(true)))""", false),
+					0)""", """Map("" -> Right(CborValue(true)))""", false),
 		("The hello world object", """
 						Array[Byte](
 							0x16, 0x00, 0x00, 0x00, 0x02, 0x68, 0x65, 0x6C, 0x6C, 0x6F, 0x00,
 							0x06, 0x00, 0x00, 0x00, 0x77, 0x6F, 0x72, 0x6C, 0x64, 0x00, 0x00 
-						)""", """Map("hello" -> Right(JsonValue("world")))""", false),
+						)""", """Map("hello" -> Right(CborValue("world")))""", false),
 		("The specs sample document", """
 						Array[Int](
 							0x31, 0x00, 0x00, 0x00,
@@ -62,10 +62,10 @@ object BsonParserTestGenerator {
 									0x10, '2', 0x00, 0xC2, 0x07, 0x00, 0x00,
 								0x00,
 							0x00
-						).map{_.byteValue}""", """Map("BSON" -> Left(Map("0" -> Right(JsonValue("awesome")), "1" -> Right(JsonValue(5.05)), "2" -> Right(JsonValue(1986)))))""", true),
+						).map{_.byteValue}""", """Map("BSON" -> Left(Map("0" -> Right(CborValue("awesome")), "1" -> Right(CborValue(5.05)), "2" -> Right(CborValue(1986)))))""", true),
 		("value contains Nul", """Array[Int](14,0,0,0,
 							0x02,'0',0, 2,0,0,0, 0,0,
-						0).map{_.byteValue}""", """Map("0" -> Right(JsonValue("\u0000")))""", false),
+						0).map{_.byteValue}""", """Map("0" -> Right(CborValue("\u0000")))""", false),
 		("Object containing object", """Array[Int](
 					27,0,0,0,
 						0x04,'0',0, 19,0,0,0,
@@ -73,7 +73,7 @@ object BsonParserTestGenerator {
 							0x10,'1',0, 2,0,0,0,
 						0,
 					0
-				).map{_.byteValue}""", """Map("0" -> Left(Map("0" -> Right(JsonValue(1)), "1" -> Right(JsonValue(2)))))""", true),
+				).map{_.byteValue}""", """Map("0" -> Left(Map("0" -> Right(CborValue(1)), "1" -> Right(CborValue(2)))))""", true),
 		("Object containing two objects", """Array[Int](
 					27,0,0,0,
 						0x04,'0',0, 19,0,0,0,
@@ -85,7 +85,7 @@ object BsonParserTestGenerator {
 							0x10,'1',0, 4,0,0,0,
 						0,
 					0
-				).map{_.byteValue}""", """Map("0" -> Left(Map("0" -> Right(JsonValue(1)), "1" -> Right(JsonValue(2)))), "1" -> Left(Map("0" -> Right(JsonValue(3)), "1" -> Right(JsonValue(4)))))""", true),
+				).map{_.byteValue}""", """Map("0" -> Left(Map("0" -> Right(CborValue(1)), "1" -> Right(CborValue(2)))), "1" -> Left(Map("0" -> Right(CborValue(3)), "1" -> Right(CborValue(4)))))""", true),
 		("Object containing two objects (0x03)", """Array[Int](
 					27,0,0,0,
 						0x03,'0',0, 19,0,0,0,
@@ -97,7 +97,7 @@ object BsonParserTestGenerator {
 							0x10,'1',0, 4,0,0,0,
 						0,
 					0
-				).map{_.byteValue}""", """Map("0" -> Left(Map("0" -> Right(JsonValue(1)), "1" -> Right(JsonValue(2)))), "1" -> Left(Map("0" -> Right(JsonValue(3)), "1" -> Right(JsonValue(4)))))""", true)
+				).map{_.byteValue}""", """Map("0" -> Left(Map("0" -> Right(CborValue(1)), "1" -> Right(CborValue(2)))), "1" -> Left(Map("0" -> Right(CborValue(3)), "1" -> Right(CborValue(4)))))""", true)
 						
 	)
 	
@@ -111,7 +111,7 @@ import scala.collection.immutable.Map;
 import scala.util.{Try, Success, Failure}
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.MapBuilder;
-import com.rayrobdod.json.union.JsonValue;
+import com.rayrobdod.json.union.CborValue;
 
 class BsonParserTest_Happy extends FunSpec {
 	describe("BsonParser + MapBuilder can decode") {"""
@@ -130,7 +130,7 @@ class BsonParserTest_Happy extends FunSpec {
 				)
 			)
 			val expected = """ + expected + """
-			val result = new BsonParser().parse(""" + builder + """, source).get.left.get
+			val result = new BsonParser().parse(""" + builder + """, source).fold({x => x},{x => x},{(a,b) => a})
 			assertResult(expected){result}
 		}"""
 	}

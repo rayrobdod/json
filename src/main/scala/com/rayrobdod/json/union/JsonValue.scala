@@ -45,17 +45,9 @@ object JsonValue {
 	final case class JsonValueNumber(i:Number) extends JsonValue
 	final case class JsonValueBoolean(b:Boolean) extends JsonValue
 	object JsonValueNull extends JsonValue
-	final case class JsonValueByteStr(s:Array[Byte]) extends JsonValue {
-		override def hashCode:Int = java.util.Arrays.hashCode(s)
-		override def equals(other:Any):Boolean = other match {
-			case JsonValueByteStr(other2) => java.util.Arrays.equals(s, other2)
-			case _ => false
-		}
-	}
 	
 	implicit def apply(s:String):JsonValue = JsonValueString(s)
 	implicit def apply(b:Boolean):JsonValue = JsonValueBoolean(b)
-	implicit def apply(s:Array[Byte]):JsonValue = JsonValueByteStr(s)
 	implicit def apply(i:Number):JsonValue = JsonValueNumber(i)
 	
 	
@@ -67,12 +59,22 @@ object JsonValue {
 		case StringOrInt.Right(i) => JsonValueNumber(i)
 	}
 	
+	/** Unwraps a CborValue and returns whatever was inside */
+	def cborValueHexencodeByteStr(x:CborValue):JsonValue = x match {
+		case CborValue.CborValueString(s) => JsonValueString(s)
+		case CborValue.CborValueBoolean(b) => JsonValueBoolean(b)
+		case CborValue.CborValueNumber(b) => JsonValueNumber(b)
+		case CborValue.CborValueByteStr(s) => JsonValueString(new String(
+			s.flatMap{byte => (0xFF & byte.intValue).toHexString}
+		))
+		case CborValue.CborValueNull => JsonValueNull
+	}
+	
 	/** Unwraps a JsonValue and returns whatever was inside */
 	def unwrap(x:JsonValue):Any = x match {
 		case JsonValueString(s) => s
 		case JsonValueBoolean(b) => b
 		case JsonValueNumber(b) => b
-		case JsonValueByteStr(s) => s
 		case JsonValueNull => null
 	}
 	

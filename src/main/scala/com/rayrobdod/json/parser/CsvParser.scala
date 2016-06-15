@@ -30,7 +30,7 @@ import java.text.ParseException
 import scala.collection.immutable.{Seq, Map, Stack}
 import scala.util.{Try, Success, Failure}
 import com.rayrobdod.json.builder._
-
+import com.rayrobdod.json.union.ParserRetVal
 
 /**
  * A streaming decoder for csv data.
@@ -55,8 +55,8 @@ final class CsvParser(
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse[A](builder:Builder[Int, String, A], chars:Iterable[Char]):Try[Either[A,String]] = {
-		val endState = chars.zipWithIndex.foldLeft(State(Try(builder.init), 0, "", "", false, false)){(state, ci) => 
+	def parse[A](builder:Builder[Int, String, A], chars:Iterable[Char]):ParserRetVal[A,Nothing] = {
+		val endState = chars.zipWithIndex.foldLeft(State(Right(builder.init), 0, "", "", false, false)){(state, ci) => 
 			val (char, index) = ci
 			
 			if (state.escaped) {
@@ -70,12 +70,7 @@ final class CsvParser(
 				state.appendChar(char).copy(quoted = true)
 			} else if (meaningfulCharacters.recordDelimeter contains char) {
 				new State(
-					value = state.value.flatMap{x => builder.apply(x, state.innerIndex, state.innerInput, new LineParser)
-							.recoverWith{
-								case x:ParseException => Failure(new ParseException(x.getMessage, x.getErrorOffset + index).initCause(x))
-								case x => Failure(new ParseException("", index).initCause(x))
-							}
-					},
+					value = state.value.right.flatMap{x => builder.apply(x, state.innerIndex, state.innerInput, new LineParser).left.map{x => ((x._1, x._2 + index))}},
 					innerIndex = state.innerIndex + 1,
 					innerInput = "",
 					endingWhitespace = "",
@@ -87,11 +82,11 @@ final class CsvParser(
 			}
 		}
 		
-		if (endState.innerInput.isEmpty) {
-			endState.value.map{Left(_)}
+		(if (endState.innerInput.isEmpty) {
+			endState.value
 		} else {
-			endState.value.flatMap{x => builder.apply(x, endState.innerIndex, endState.innerInput, new LineParser)}.map{Left(_)}
-		}
+			endState.value.right.flatMap{x => builder.apply(x, endState.innerIndex, endState.innerInput, new LineParser)}
+		}).fold({case (msg,idx) => ParserRetVal.Failure(msg,idx)}, {x => ParserRetVal.Complex(x)})
 	}
 	
 	/**
@@ -101,11 +96,11 @@ final class CsvParser(
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse[A](builder:Builder[Int, String, A], chars:java.io.Reader):Try[Either[A,String]] = this.parse(builder, new Reader2Iterable(chars))
+	def parse[A](builder:Builder[Int, String, A], chars:java.io.Reader):ParserRetVal[A,String] = this.parse(builder, new Reader2Iterable(chars))
 	
 	
 	private[this] case class State[A] (
-		value:Try[A],
+		value:Either[(String,Int),A],
 		innerIndex:Int,
 		innerInput:String,
 		endingWhitespace:String,
@@ -118,8 +113,8 @@ final class CsvParser(
 	
 	/** Splits a CSV record (i.e. one line) into fields */
 	private[this] final class LineParser extends Parser[Int, String, String] {
-		def parse[A](builder:Builder[Int, String, A], chars:String):Try[Either[A,String]] = {
-			val endState = chars.zipWithIndex.foldLeft(State(Try(builder.init), 0, "", "", false, false)){(state, ci) => 
+		def parse[A](builder:Builder[Int, String, A], chars:String):ParserRetVal[A,Nothing] = {
+			val endState = chars.zipWithIndex.foldLeft(State(Right(builder.init), 0, "", "", false, false)){(state, ci) => 
 				val (char, index) = ci
 				
 				if (state.escaped) {
@@ -140,8 +135,7 @@ final class CsvParser(
 					state.copy(quoted = true)
 				} else if (meaningfulCharacters.fieldDelimeter contains char) {
 					new State(
-						value = state.value.flatMap{x => builder.apply(x, state.innerIndex, state.innerInput, new IdentityParser)
-									.recoverWith{case x => Failure(new ParseException("", index).initCause(x))}},
+						value = state.value.right.flatMap{x => builder.apply(x, state.innerIndex, state.innerInput, new IdentityParser).left.map{x => ((x._1, x._2 + index))}},
 						innerIndex = state.innerIndex + 1,
 						innerInput = "",
 						endingWhitespace = "",
@@ -153,11 +147,11 @@ final class CsvParser(
 				}
 			}
 			
-			if (endState.innerInput.isEmpty) {
-				endState.value.map{Left(_)}
+			(if (endState.innerInput.isEmpty) {
+				endState.value
 			} else {
-				endState.value.flatMap{x => builder.apply(x, endState.innerIndex, endState.innerInput, new IdentityParser)}.map{Left(_)}
-			}
+				endState.value.right.flatMap{x => builder.apply(x, endState.innerIndex, endState.innerInput, new IdentityParser)}
+			}).fold({case (msg,idx) => ParserRetVal.Failure(msg,idx)}, {x => ParserRetVal.Complex(x)})
 		}
 	}
 }

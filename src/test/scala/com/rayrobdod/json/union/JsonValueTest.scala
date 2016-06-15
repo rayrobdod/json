@@ -31,28 +31,6 @@ import java.text.ParseException
 import com.rayrobdod.json.union.JsonValue._
 
 class JsonValueTest extends FunSpec {
-	describe("JsonValueByteStr") {
-		it ("""is equal to a similar JsonValueByteStr""") {
-			val a = JsonValueByteStr(Array(1,2,3,4,5))
-			val b = JsonValueByteStr(Array(1,2,3,4,5))
-			
-			assert(a.hashCode == b.hashCode)
-			assert(a == b)
-		}
-		it ("""is not equal to a dissimilar JsonValueByteStr""") {
-			val a = JsonValueByteStr(Array(1,2,3,4,5))
-			val b = JsonValueByteStr(Array(6,7,8,9,10))
-			
-			assert(a.hashCode != b.hashCode)
-			assert(a != b)
-		}
-		it ("""is not equal to a completely different class""") {
-			val a = JsonValueByteStr(Array(1,2,3,4,5))
-			val b = "asdf"
-			
-			assert(a != b)
-		}
-	}
 	
 	describe("JsonValue$") {
 		it ("""implicit StringOrInt to JsonValue""") {

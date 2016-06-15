@@ -29,7 +29,7 @@ package com.rayrobdod.json.builder;
 import scala.beans.BeanProperty;
 import java.text.ParseException;
 import scala.collection.immutable.Map;
-import scala.util.{Try, Success, Failure}
+import scala.util.{Either, Right, Left}
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.union.StringOrInt
@@ -44,16 +44,16 @@ class MapBuilderTest extends FunSpec {
 		it ("Appends value") {
 			val myValue = new Object
 			
-			assertResult(Success(Map("sdfa" -> myValue))){
-				MapBuilder.apply[String, Object].apply(Map.empty, "sdfa", myValue, new IdentityParser[String,Object]).map{_.mapValues{_.right.get}}
+			assertResult(Right(Map("sdfa" -> Right(myValue)))){
+				MapBuilder.apply[String, Object].apply(Map.empty, "sdfa", myValue, new IdentityParser[String,Object])
 			}
 		}
 		it ("Appends value 2") {
 			val myValue1 = new Object
 			val myValue2 = new Object
 			
-			assertResult(Success(Map("a" -> myValue1, "b" -> myValue2))){
-				MapBuilder.apply[String, Object].apply(Map("a" -> Right(myValue1)), "b", myValue2, new IdentityParser[String,Object]).map{_.mapValues{_.right.get}}
+			assertResult(Right(Map("a" -> Right(myValue1), "b" -> Right(myValue2)))){
+				MapBuilder.apply[String, Object].apply(Map("a" -> Right(myValue1)), "b", myValue2, new IdentityParser[String,Object])
 			}
 		}
 	}
@@ -68,7 +68,7 @@ class MapBuilderTest extends FunSpec {
 				new JsonParser().parse(
 					MapBuilder[StringOrInt, JsonValue],
 					"""{"a":61, "b":62, "c":63}"""
-				).get.left.get
+				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}
 		}
 		it ("MapBuilder + JsonParser + BeanBuilder") {
@@ -80,7 +80,7 @@ class MapBuilderTest extends FunSpec {
 						"green":{"name":"Luigi", "age":32},
 						"pink":{"name":"Peach", "age":28}
 					}"""
-				).get.left.get
+				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}
 		}
 	}

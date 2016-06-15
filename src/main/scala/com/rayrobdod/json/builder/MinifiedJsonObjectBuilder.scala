@@ -27,7 +27,7 @@
 package com.rayrobdod.json.builder;
 
 import scala.collection.immutable.Seq;
-import scala.util.{Try, Success, Failure}
+import scala.util.{Either, Left, Right}
 import java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.charset.Charset;
 import com.rayrobdod.json.union.JsonValue
@@ -50,14 +50,9 @@ final class MinifiedJsonObjectBuilder(charset:Charset = UTF_8) extends Builder[S
 	val init:String = "{}"
 	
 	/** @param folding a valid json object, with no characters trailing the final '}' */
-	def apply[Input](folding:String, key:String, innerInput:Input, parser:Parser[String, JsonValue, Input]):Try[String] = {
+	def apply[Input](folding:String, key:String, innerInput:Input, parser:Parser[String, JsonValue, Input]):Either[(String, Int), String] = {
 		val jsonKey:String = strToJsonStr(key, charset)
-		parser.parse(this, innerInput).map{value =>
-			val jsonObject:String = value match {
-				case Left(x) => x
-				case Right(x) => serialize(x, charset)
-			}
-			
+		parser.parse(this, innerInput).fold({s => Right(s)}, {p => Right(serialize(p, charset))}, {(s,i) => Left((s,i))}).right.map{jsonObject =>
 			val jsonKeyValuePair = jsonKey + ":" + jsonObject;
 			
 			if (folding == "{}") {
@@ -85,13 +80,8 @@ final class MinifiedJsonArrayBuilder(charset:Charset = UTF_8) extends Builder[An
 	val init:String = "[]"
 	
 	/** @param folding a valid json object, with no characters trailing the final '}' */
-	def apply[Input](folding:String, key:Any, innerInput:Input, parser:Parser[Any, JsonValue, Input]):Try[String] = {
-		parser.parse(this, innerInput).map{value =>
-			val jsonObject:String = value match {
-				case Left(x) => x
-				case Right(x) => serialize(x, charset)
-			}
-			
+	def apply[Input](folding:String, key:Any, innerInput:Input, parser:Parser[Any, JsonValue, Input]):Either[(String, Int), String] = {
+		parser.parse(this, innerInput).fold({s => Right(s)}, {p => Right(serialize(p, charset))}, {(s,i) => Left((s,i))}).right.map{jsonObject =>
 			if (folding == "[]") {
 				"[" + jsonObject + "]"
 			} else {
@@ -111,7 +101,6 @@ private[builder] object MinifiedJsonObjectBuilder {
 		case JsonValueBoolean(x) => x.toString
 		case JsonValueNull => "null"
 		case JsonValueString(x) => strToJsonStr(x, charset)
-		case JsonValueByteStr(x) => throw new UnsupportedOperationException("Serialize ByteStr to Json")
 	}
 	
 	/** Encode a string as a serialized json value */
