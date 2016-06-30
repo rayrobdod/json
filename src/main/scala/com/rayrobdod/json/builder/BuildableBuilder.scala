@@ -53,6 +53,7 @@ final case class BuildableBuilder[Key, Value, Subject](
 		keyDefs:Map[Key, BuildableBuilder.KeyDef[Key, Value, Subject]] = Map.empty[Key, BuildableBuilder.KeyDef[Key, Value, Subject]]
 ) extends Builder[Key, Value, Subject] {
 	
+	/** add a buildableBuilder that will be used upon recieving the given key */
 	def addDef(key:Key, fun:BuildableBuilder.KeyDef[Key, Value, Subject]):BuildableBuilder[Key, Value, Subject] = {
 		this.copy(keyDefs = this.keyDefs + ((key, fun)))
 	}
@@ -108,7 +109,11 @@ object BuildableBuilder{
 	}
 	
 	/**
+	 * A KeyDef that is partitioned into a set of component functions
+	 * 
 	 * @since next
+	 * @param builder the builder that handles input.
+	 * @param fold combine the previous subject and a successful convert into a new subject.
 	 */
 	def partitionedComplexKeyDef[Key, Value, Subject, BuilderResult](
 		builder:Builder[Key, Value, BuilderResult],
@@ -126,7 +131,12 @@ object BuildableBuilder{
 	}
 	
 	/**
+	 * A KeyDef that is partitioned into a set of component functions
+	 * 
 	 * @since next
+	 * @param convert convert a builder result into a value usable by fold. This is a partial function;
+	 *       anything not defined by this function is turned into an error value.
+	 * @param fold combine the previous subject and a successful convert into a new subject.
 	 */
 	def partitionedPrimitiveKeyDef[Key, Value, Subject, MiddleType](
 		convert:PartialFunction[Value, Either[(String, Int), MiddleType]],

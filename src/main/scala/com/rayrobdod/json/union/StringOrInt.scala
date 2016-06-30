@@ -34,7 +34,10 @@ import scala.language.implicitConversions
  * A union type where the possible values are a String or Int
  * @since next
  */
-sealed trait StringOrInt
+sealed trait StringOrInt{
+	/** Applies `fs` if this is a String or `fi` if this is an Int */
+	def fold[Out](fs:Function1[String,Out], fi:Function1[Int,Out]):Out
+}
 
 /**
  * Methods used to create StringOrInts
@@ -42,17 +45,20 @@ sealed trait StringOrInt
  */
 object StringOrInt {
 	/** A string value represented as a StringOrInt union */
-	final case class Left(s:String) extends StringOrInt
+	final case class Left(s:String) extends StringOrInt {
+		def fold[Out](fs:Function1[String,Out], fi:Function1[Int,Out]):Out = fs(s)
+	}
 	/** An integer value represented as a StringOrInt union */
-	final case class Right(i:Int) extends StringOrInt
+	final case class Right(i:Int) extends StringOrInt {
+		def fold[Out](fs:Function1[String,Out], fi:Function1[Int,Out]):Out = fi(i)
+	}
 	
+	/** Convert a String to a StringOrInt */
 	implicit def apply(s:String):StringOrInt = Left(s)
+	/** Convert an Int to a StringOrInt */
 	implicit def apply(i:Int):StringOrInt = Right(i)
 	
 	
 	
-	def unwrapToString(x:StringOrInt):String = x match {
-		case Left(s) => s
-		case Right(s) => s.toString
-	}
+	def unwrapToString(x:StringOrInt):String = x.fold({s => s}, {i => i.toString})
 }
