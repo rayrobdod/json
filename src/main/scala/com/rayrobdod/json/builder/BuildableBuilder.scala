@@ -29,6 +29,7 @@ package com.rayrobdod.json.builder;
 import scala.collection.immutable.Map
 import scala.util.{Try, Success, Failure}
 import com.rayrobdod.json.parser.Parser
+import com.rayrobdod.json.union.ParserRetVal
 
 /**
  * A Builder which can be built piecewise.
@@ -71,12 +72,71 @@ final case class BuildableBuilder[Key, Value, Subject](
  * @since next
  */
 object BuildableBuilder{
+	private[this] val unexpectedValueErrorMessage:Function1[Any, Left[(String, Int), Nothing]] = {x => Left("Unexpected value: " + x, 0)}
+	
 	/**
 	 * A holder for a Function3 that is allowed to have a variable type parameter
 	 * @since next
 	 */
 	abstract class KeyDef[Key, Value, Subject] {
+		/** add a key-value pair to `s`; where `p.parse(someBuilder, i)` is the value, and the key is hard-coded. */
 		def apply[Input](s:Subject, i:Input, p:Parser[Key, Value, Input]):Either[(String, Int), Subject]
+	}
+	
+	/**
+	 * A KeyDef that is partitioned into a set of component functions
+	 * 
+	 * @since next
+	 * @param builder the builder that handles input.
+	 * @param convert convert a builder result into a value usable by fold. This is a partial function;
+	 *       anything not defined by this function is turned into an error value.
+	 * @param fold combine the previous subject and a successful convert into a new subject.
+	 */
+	def partitionedKeyDef[Key, Value, Subject, BuilderResult, MiddleType](
+		builder:Builder[Key, Value, BuilderResult],
+		convert:PartialFunction[ParserRetVal[BuilderResult, Value], Either[(String, Int), MiddleType]],
+		fold:Function2[Subject, MiddleType, Subject]
+	):KeyDef[Key, Value, Subject] = new KeyDef[Key, Value, Subject]{
+		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject] = {
+			val parserRetVal = parser.parse(builder, input)
+			if (convert.isDefinedAt(parserRetVal)) {
+				convert(parserRetVal).right.map{x:MiddleType => fold(folding, x)}
+			} else {
+				parserRetVal.fold(unexpectedValueErrorMessage, unexpectedValueErrorMessage, {(s, i) => Left(s,i)})
+			}
+		}
+	}
+	
+	/**
+	 * @since next
+	 */
+	def partitionedComplexKeyDef[Key, Value, Subject, BuilderResult](
+		builder:Builder[Key, Value, BuilderResult],
+		fold:Function2[Subject, BuilderResult, Either[(String, Int), Subject]]
+	):KeyDef[Key, Value, Subject] = new KeyDef[Key, Value, Subject]{
+		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject] = {
+			parser.parse(builder, input)
+				.fold(
+					{x => Right(x)},
+					unexpectedValueErrorMessage,
+					{(s,i) => Left(s,i)}
+				)
+				.right.flatMap{x:BuilderResult => fold(folding, x)}
+		}
+	}
+	
+	/**
+	 * @since next
+	 */
+	def partitionedPrimitiveKeyDef[Key, Value, Subject, MiddleType](
+		convert:PartialFunction[Value, Either[(String, Int), MiddleType]],
+		fold:Function2[Subject, MiddleType, Subject]
+	):KeyDef[Key, Value, Subject] = new KeyDef[Key, Value, Subject]{
+		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject] = {
+			parser.parsePrimitive(input)
+				.right.flatMap{value => (if (convert.isDefinedAt(value)) { convert.apply(value) } else { unexpectedValueErrorMessage(value) } )}
+				.right.map{x:MiddleType => fold(folding, x)}
+		}
 	}
 	
 	/** 

@@ -27,12 +27,12 @@
 package com.rayrobdod.json.builder;
 
 import java.text.ParseException;
-import scala.collection.immutable.Map;
+import scala.collection.immutable.{Seq, Map}
 import scala.util.{Either, Left, Right}
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.union.JsonValue
-import com.rayrobdod.json.union.StringOrInt
-import com.rayrobdod.json.parser.{Parser, IdentityParser}
+import com.rayrobdod.json.union.{StringOrInt, ParserRetVal}
+import com.rayrobdod.json.parser.{Parser, IdentityParser, PrimitiveSeqParser}
 import com.rayrobdod.json.builder.BuildableBuilder.KeyDef
 
 class BuildableBuilderTest extends FunSpec {
@@ -58,6 +58,14 @@ class BuildableBuilderTest extends FunSpec {
 			assertResult(Right(new Person("", age))){
 				new BuildableBuilder(new Person("", 0))
 						.addDef("age", new KeyDef[String, Int, Person]{def apply[I](s:Person, i:I, p:Parser[String, Int, I]) = {Right(s.copy(age = p.parsePrimitive(i).fold({x => 0}, {x => x})))}})
+						.apply(new Person("", 0), "age", age, new IdentityParser)
+			}
+		}
+		it ("Acts upon provided keydef (partitionedPrimitive)") {
+			val age = 9001
+			assertResult(Right(new Person("", age))){
+				new BuildableBuilder(new Person("", 0))
+						.addDef("age", BuildableBuilder.partitionedPrimitiveKeyDef[String, Int, Person, Int]({case x:Int => Right(x)}, {(f,i) => f.copy(age = i)}))
 						.apply(new Person("", 0), "age", age, new IdentityParser)
 			}
 		}
@@ -108,6 +116,100 @@ class BuildableBuilderTest extends FunSpec {
 				new JsonParser().parse(seqBuilder, 
 					"""[{"name":"a","age":5},{"name":"b","age":6}]"""
 				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
+			}
+		}
+	}
+	
+	describe("KeyDef") {
+		import BuildableBuilder._
+		
+		it ("ignoreKeyDef") {
+			assertResult(Right("abc")){
+				ignoreKeyDef.apply("abc", null, null)
+			}
+		}
+		it ("throwKeyDef") {
+			assertResult(Left("BuildableBuilder has no KeyDef for given key", 0)){
+				throwKeyDef.apply("abc", null, null)
+			}
+		}
+		it ("partitionedPrimitiveKeyDef (isDefinedAt)") {
+			val builder = partitionedPrimitiveKeyDef[Any, String, Option[Int], Int]({case "abc" => Right(3)}, {(a,b) => Some(b)})
+			assertResult(Right(Some(3))){
+				builder.apply(None, "abc", new IdentityParser)
+			}
+		}
+		it ("partitionedPrimitiveKeyDef (not isDefinedAt)") {
+			val builder = partitionedPrimitiveKeyDef[Any, String, Option[Int], Int]({case "abc" => Right(3)}, {(a,b) => Some(b)})
+			assertResult(Left("Unexpected value: asdf", 0)){
+				builder.apply(None, "asdf", new IdentityParser)
+			}
+		}
+		it ("partitionedKeyDef (isDefinedAt)") {
+			val builder = partitionedKeyDef[Int, Int, String, Seq[Int], Int](
+				new PrimitiveSeqBuilder[Int, Int],
+				{case ParserRetVal.Complex(x) => Right(x.sum)},
+				{(a,b) => a + " " + b}
+			)
+			assertResult(Right("z 6")){
+				builder.apply("z", Seq(1,2,3), new PrimitiveSeqParser[Int])
+			}
+		}
+		it ("partitionedKeyDef (not isDefinedAt)") {
+			val builder = partitionedKeyDef[Int, Int, String, Seq[Int], Int](
+				new PrimitiveSeqBuilder[Int, Int],
+				{case ParserRetVal.Primitive(x) => Right(x)},
+				{(a,b) => a + " " + b}
+			)
+			assertResult(Left("Unexpected value: Vector(1, 2, 3)", 0)){
+				builder.apply("z", Seq(1,2,3), new PrimitiveSeqParser[Int])
+			}
+		}
+		it ("partitionedKeyDef (not isDefinedAt; throwBuilder)") {
+			val builder = partitionedKeyDef[Int, Int, String, Any, Int](
+				new ThrowBuilder[Int, Int],
+				{case ParserRetVal.Primitive(x) => Right(x)},
+				{(a,b) => a + " " + b}
+			)
+			assertResult(Left("using ThrowBuilder::apply", 0)){
+				builder.apply("z", Seq(1,2,3), new PrimitiveSeqParser[Int])
+			}
+		}
+		it ("partitionedKeyDef (isDefinedAt; left)") {
+			val builder = partitionedKeyDef[Int, Int, String, Seq[Int], Int](
+				new PrimitiveSeqBuilder[Int, Int],
+				{case ParserRetVal.Complex(x) => Left("Error", 0)},
+				{(a,b) => a + " " + b}
+			)
+			assertResult(Left("Error", 0)){
+				builder.apply("z", Seq(1,2,3), new PrimitiveSeqParser[Int])
+			}
+		}
+		it ("partitionedComplexKeyDef (Complex)") {
+			val builder = partitionedComplexKeyDef[Int, Int, String, Seq[Int]](
+				new PrimitiveSeqBuilder[Int, Int],
+				{(a,b) => Right(a + " " + b)}
+			)
+			assertResult(Right("z Vector(1, 2, 3)")){
+				builder.apply("z", Vector(1,2,3), new PrimitiveSeqParser[Int])
+			}
+		}
+		it ("partitionedComplexKeyDef (Primitive)") {
+			val builder = partitionedComplexKeyDef[Int, Int, String, Seq[Int]](
+				new PrimitiveSeqBuilder[Int, Int],
+				{(a,b) => Right(a + " " + b)}
+			)
+			assertResult(Left("Unexpected value: 5", 0)){
+				builder.apply("z", 5, new IdentityParser[Int, Int])
+			}
+		}
+		it ("partitionedComplexKeyDef (Throw)") {
+			val builder = partitionedComplexKeyDef[Int, Int, String, Any](
+				new ThrowBuilder[Int, Int],
+				{(a,b) => Right(a + " " + b)}
+			)
+			assertResult(Left("using ThrowBuilder::apply", 0)){
+				builder.apply("z", Vector(1,2,3), new PrimitiveSeqParser[Int])
 			}
 		}
 	}

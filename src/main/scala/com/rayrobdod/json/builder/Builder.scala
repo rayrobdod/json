@@ -36,7 +36,7 @@ import com.rayrobdod.json.parser.Parser
  * 
  * 
  * @version next
- * @see com.rayrobdod.json.parser.Parser
+ * @see [[com.rayrobdod.json.parser.Parser]]
  * @tparam Key the type of keys used by the Parser that this Builder will be used by
  * @tparam Value the type of primitive value types used by the Parser that this Builder will be used by
  * @tparam Subject the type of object built by this Builder
@@ -50,7 +50,7 @@ trait Builder[Key, Value, Subject] {
 	/**
 	 * Add a key-value pair to `folding`
 	 * 
-	 * The key is key, and the value is the result of [[Parser#parse]] on the provided `input`.
+	 * The key is key, and the value is the result of [[com.rayrobdod.json.parser.Parser.parse]] on the provided `input`.
 	 * 
 	 * 
 	 * @param folding the object to be added to. Must be either the return value of [[init]] or the return value of [[apply]]

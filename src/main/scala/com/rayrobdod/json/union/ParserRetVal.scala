@@ -31,9 +31,9 @@ import com.rayrobdod.json.parser.Parser
 import scala.language.implicitConversions
 
 /**
- * A union type where
+ * A union type representing possible return values of Parser.parse
  * @since next
- * @see [[Parser#parse]]
+ * @see [[com.rayrobdod.json.parser.Parser.parse]]
  */
 sealed trait ParserRetVal[+Complex, +Primitive]{
 	def fold[Out](c:Function1[Complex,Out], p:Function1[Primitive,Out], f:Function2[String,Int,Out]):Out
