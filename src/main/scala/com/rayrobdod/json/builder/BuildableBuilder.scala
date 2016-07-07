@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -27,37 +27,141 @@
 package com.rayrobdod.json.builder;
 
 import scala.collection.immutable.Map
+import scala.util.{Try, Success, Failure}
+import com.rayrobdod.json.parser.Parser
+import com.rayrobdod.json.union.ParserRetVal
 
-/** Inspired by https://github.com/scopt/scopt/
+/**
+ * A Builder which can be built piecewise.
  * 
+ * TODO: mention how
+ * 
+ * @since next
+ * @see Inspired by [[https://github.com/scopt/scopt/]]
+ * 
+ * @tparam Key the key types
+ * @tparam Value the primitive value types
+ * @tparam Subject the type of object to build
  * @constructor
- * 
- * @param init 
+ * @param init The starting point of the folding process
+ * @param defaultKeyDef the KeyDef executed when no other keys exist
+ * @param keyDefs the mapping of known keys to actual applies
  */
-final class BuildableBuilder[A](
-		val init:A,
-		defaultKeyDef:BuildableBuilder.KeyDef[A] = BuildableBuilder.throwKeyDef[A],
-		keyDefs:Map[String, BuildableBuilder.KeyDef[A]] = Map.empty[String, BuildableBuilder.KeyDef[A]]
-		)(implicit val resultType:Class[A]
-) extends Builder[A] {
+final case class BuildableBuilder[Key, Value, Subject](
+		val init:Subject,
+		defaultKeyDef:BuildableBuilder.KeyDef[Key, Value, Subject] = BuildableBuilder.throwKeyDef[Key, Value, Subject],
+		keyDefs:Map[Key, BuildableBuilder.KeyDef[Key, Value, Subject]] = Map.empty[Key, BuildableBuilder.KeyDef[Key, Value, Subject]]
+) extends Builder[Key, Value, Subject] {
 	
-	def addDef(key:String, apply:(A, Any) => A, childBuilder:Builder[_]):BuildableBuilder[A] = {
-		new BuildableBuilder[A](init, defaultKeyDef, keyDefs + (key -> BuildableBuilder.KeyDef[A](apply, childBuilder)))
+	/** add a buildableBuilder that will be used upon recieving the given key */
+	def addDef(key:Key, fun:BuildableBuilder.KeyDef[Key, Value, Subject]):BuildableBuilder[Key, Value, Subject] = {
+		this.copy(keyDefs = this.keyDefs + ((key, fun)))
 	}
-	def ignoreUnknownKeys:BuildableBuilder[A] = {
-		new BuildableBuilder[A](init, BuildableBuilder.ignoreKeyDef[A], keyDefs)
+	/** Change the defaultKeyDef to one that will pass subject through */
+	def ignoreUnknownKeys:BuildableBuilder[Key, Value, Subject] = {
+		this.copy(defaultKeyDef = BuildableBuilder.ignoreKeyDef[Key, Value, Subject])
 	}
 	
 	
-	def apply(folding:A, key:String, value:Any):A = {
-		keyDefs.getOrElse(key, defaultKeyDef).apply(folding, value)
+	/** @see Builder#apply */
+	override def apply[Input](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject] = {
+		keyDefs.getOrElse(key, defaultKeyDef).apply(folding, input, parser)
 	}
-	def childBuilder(key:String):Builder[_ <: Any] = keyDefs.getOrElse(key, defaultKeyDef).childBuilder
 }
 
+/**
+ * @since next
+ */
 object BuildableBuilder{
-	final case class KeyDef[A](apply:(A, Any) => A, childBuilder:Builder[_])
+	private[this] val unexpectedValueErrorMessage:Function1[Any, Left[(String, Int), Nothing]] = {x => Left("Unexpected value: " + x, 0)}
 	
-	def ignoreKeyDef[A] = KeyDef[A]({(a,b) => a}, new SeqBuilder)
-	def throwKeyDef[A] = KeyDef[A]({(a,b) => throw new IllegalArgumentException("Unknown key")}, new SeqBuilder)
+	/**
+	 * A holder for a Function3 that is allowed to have a variable type parameter
+	 * @since next
+	 */
+	abstract class KeyDef[Key, Value, Subject] {
+		/** add a key-value pair to `s`; where `p.parse(someBuilder, i)` is the value, and the key is hard-coded. */
+		def apply[Input](s:Subject, i:Input, p:Parser[Key, Value, Input]):Either[(String, Int), Subject]
+	}
+	
+	/**
+	 * A KeyDef that is partitioned into a set of component functions
+	 * 
+	 * @since next
+	 * @param builder the builder that handles input.
+	 * @param convert convert a builder result into a value usable by fold. This is a partial function;
+	 *       anything not defined by this function is turned into an error value.
+	 * @param fold combine the previous subject and a successful convert into a new subject.
+	 */
+	def partitionedKeyDef[Key, Value, Subject, BuilderResult, MiddleType](
+		builder:Builder[Key, Value, BuilderResult],
+		convert:PartialFunction[ParserRetVal[BuilderResult, Value], Either[(String, Int), MiddleType]],
+		fold:Function2[Subject, MiddleType, Subject]
+	):KeyDef[Key, Value, Subject] = new KeyDef[Key, Value, Subject]{
+		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject] = {
+			val parserRetVal = parser.parse(builder, input)
+			if (convert.isDefinedAt(parserRetVal)) {
+				convert(parserRetVal).right.map{x:MiddleType => fold(folding, x)}
+			} else {
+				parserRetVal.fold(unexpectedValueErrorMessage, unexpectedValueErrorMessage, {(s, i) => Left(s,i)})
+			}
+		}
+	}
+	
+	/**
+	 * A KeyDef that is partitioned into a set of component functions
+	 * 
+	 * @since next
+	 * @param builder the builder that handles input.
+	 * @param fold combine the previous subject and a successful convert into a new subject.
+	 */
+	def partitionedComplexKeyDef[Key, Value, Subject, BuilderResult](
+		builder:Builder[Key, Value, BuilderResult],
+		fold:Function2[Subject, BuilderResult, Either[(String, Int), Subject]]
+	):KeyDef[Key, Value, Subject] = new KeyDef[Key, Value, Subject]{
+		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject] = {
+			parser.parse(builder, input)
+				.fold(
+					{x => Right(x)},
+					unexpectedValueErrorMessage,
+					{(s,i) => Left(s,i)}
+				)
+				.right.flatMap{x:BuilderResult => fold(folding, x)}
+		}
+	}
+	
+	/**
+	 * A KeyDef that is partitioned into a set of component functions
+	 * 
+	 * @since next
+	 * @param convert convert a builder result into a value usable by fold. This is a partial function;
+	 *       anything not defined by this function is turned into an error value.
+	 * @param fold combine the previous subject and a successful convert into a new subject.
+	 */
+	def partitionedPrimitiveKeyDef[Key, Value, Subject, MiddleType](
+		convert:PartialFunction[Value, Either[(String, Int), MiddleType]],
+		fold:Function2[Subject, MiddleType, Subject]
+	):KeyDef[Key, Value, Subject] = new KeyDef[Key, Value, Subject]{
+		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject] = {
+			parser.parsePrimitive(input)
+				.right.flatMap{value => (if (convert.isDefinedAt(value)) { convert.apply(value) } else { unexpectedValueErrorMessage(value) } )}
+				.right.map{x:MiddleType => fold(folding, x)}
+		}
+	}
+	
+	/** 
+	 * A KeyDef that simply passes through the subject
+	 * @since next
+	 */
+	def ignoreKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
+		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):Either[(String, Int), A] = Right(s)
+	}
+	
+	/**
+	 * A KeyDef that throws an exception
+	 * @since next
+	 */
+	def throwKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
+		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):Either[(String, Int), A] = Left("BuildableBuilder has no KeyDef for given key", 0)
+	}
 }

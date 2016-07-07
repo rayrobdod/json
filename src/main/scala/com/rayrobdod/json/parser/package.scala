@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -30,11 +30,13 @@ import com.rayrobdod.json.builder.Builder
 import scala.collection.{Iterable, Iterator}
 import scala.collection.immutable.{Seq => ISeq}
 // import scala.collection.{AbstractIterable, AbstractIterator}
+import com.rayrobdod.json.union.ParserRetVal
 
 /**
  * Contains the various built-in parsers
  */
 package object parser {
+	/** @version 2.0 */
 	private[json] def byteArray2DataInput(ba:Array[Byte]):java.io.DataInput = {
 		new java.io.DataInputStream(
 			new java.io.ByteArrayInputStream(
@@ -44,6 +46,7 @@ package object parser {
 	}
 	
 	// String Interpolation
+	/** @version 2.0 */
 	private[json] implicit class HexArrayStringConverter(val sc: StringContext) extends AnyVal {
 		def hexSeq(args: Any*):ISeq[Byte] = {
 			((sc.parts.head):String)
@@ -62,7 +65,10 @@ package object parser {
 }
 
 package parser {
-	/** An iterable whose iterator reads characters from the reader one at a time */
+	/**
+	 * An iterable whose iterator reads characters from the reader one at a time
+	 * @version 2.0
+	 */
 	private[parser] final class Reader2Iterable(r:java.io.Reader) extends Iterable[Char] {
 		def iterator():Iterator[Char] = {
 			new Iterator[Char]() {
@@ -80,42 +86,78 @@ package parser {
 	}
 	
 	/**
-	* A trivial "parser" that goes through the motions using each element of a map
+	 * A trivial "parser" that goes through the motions using each element of a map
+	 * @version next
 	 * 
 	 * @constructor
 	 * Create a MapParser
-	 * @param topBuilder the builder that this parser will use when constructing objects
 	 */
-	final class MapParser[A](topBuilder:Builder[A]) {
+	final class MapParser[K,V] extends Parser[K,V,Map[K,V]] {
 		/**
 		 * Decodes the input values to an object.
 		 * @param vals the sequence containing values
 		 * @return the parsed object
 		 */
-		def parse(vals:Map[_ <: Any, _ <: Any]):A = {
-			vals.foldLeft[A](topBuilder.init){
-				(state:A, keyValue:(Any, Any)) => topBuilder.apply(state, keyValue._1.toString, keyValue._2)
+		def parse[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):ParserRetVal[A,V] = {
+			vals.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], keyValue:(K, V)) => 
+				val (key, value) = keyValue;
+				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser)}
 			}
-		}
+		}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{a => ParserRetVal.Complex(a)})
 	}
 	
 	/**
 	 * A trivial "parser" that goes through the motions with each element of a seq
+	 * @version next
 	 * 
 	 * @constructor
 	 * Create a SeqParser
-	 * @param topBuilder the builder that this parser will use when constructing objects
 	 */
-	final class SeqParser[A](topBuilder:Builder[A]) {
+	final class PrimitiveSeqParser[V] extends Parser[Int,V,Seq[V]] {
 		/**
 		 * Decodes the input values to an object.
 		 * @param vals the sequence containing values
 		 * @return the parsed object
 		 */
-		def parse(vals:Seq[_ <: Any]):A = {
-			vals.zipWithIndex.foldLeft[A](topBuilder.init){
-				(state:A, valueKey:(Any, Int)) => topBuilder.apply(state, valueKey._2.toString, valueKey._1)
+		def parse[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):ParserRetVal[A,V] = {
+			vals.zipWithIndex.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], valueKey:(V, Int)) => 
+				val (value, key) = valueKey;
+				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser)}
 			}
-		}
+		}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{a => ParserRetVal.Complex(a)})
+	}
+	
+	/**
+	 * A trivial "parser" that goes through the motions with each element of a seq
+	 * @version next
+	 * 
+	 * @constructor
+	 * Create a SeqParser
+	 */
+	final class SeqParser[K,V,Inner](recurse:Parser[K,V,Inner])(implicit keyMapping:Function1[Int, K]) extends Parser[K,V,Seq[Inner]] {
+		def parse[A](topBuilder:Builder[K,V,A], vals:Seq[Inner]):ParserRetVal[A,V] = {
+			vals.zipWithIndex.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], valueKey:(Inner, Int)) => 
+				val (value, key2) = valueKey
+				val key = keyMapping(key2)
+				state.right.flatMap{x => topBuilder.apply(x, key, value, recurse)}
+			}
+		}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{a => ParserRetVal.Complex(a)})
+	}
+	
+	/**
+	 * A 'parser' that echos the value provided in its parse method
+	 * @version next
+	 */
+	final class IdentityParser[K,V] extends Parser[K,V,V] {
+		/** Returns `scala.util.Right(v)` */
+		def parse[A](b:Builder[K,V,A], v:V):ParserRetVal.Primitive[V] = ParserRetVal.Primitive(v)
+	}
+	
+	/**
+	 * A 'parser' that always returns a Failure
+	 * @version next
+	 */
+	private[json] final class FailureParser[K,V,I] extends Parser[K,V,I] {
+		def parse[A](b:Builder[K,V,A], v:I):ParserRetVal.Failure = ParserRetVal.Failure("FailureParser", 0)
 	}
 }

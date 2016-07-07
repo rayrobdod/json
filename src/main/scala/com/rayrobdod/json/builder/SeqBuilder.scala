@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,35 @@
 */
 package com.rayrobdod.json.builder;
 
+import java.text.ParseException
+import com.rayrobdod.json.parser.Parser
 import scala.collection.immutable.Seq;
+import scala.util.{Try, Success, Failure}
 
-/** A builder that creates seqs
+/** 
+ * A Builder that will build a Vector of values, where each inner value was c
  * 
+ * @version next
+ * @tparam Key the type of keys used by the Parser that this Builder will be used by
+ * @tparam Value the type of primitive value types used by the Parser that this Builder will be used by
  * @constructor
- * A builder that will create seqs, where complex types are built by `childBuilder.getOrElse(this)`
+ * A builder that will create seqs of values built with the specified childbuilder
  * @param childBuilder the type of this seq's complex child elements. If it is Nothing, it will default to making more SeqBuilders
  */
-final class SeqBuilder(childBuilder:Option[Builder[_ <: Any]]) extends Builder[Seq[Any]] {
-	/** A Builder that creates seqs, where every complex type child is also a seq */
-	def this() = {this(None)}
-	/** A Builder that creates seqs, where every complex type is of type `childBuilder` */
-	def this(childBuilder:Builder[_ <: Any]) = {this(Some(childBuilder))}
-	
-	val init:Seq[Nothing] = Nil
-	def apply(folding:Seq[Any], key:String, value:Any):Seq[Any] = {
-		folding :+ value
+final class SeqBuilder[Key, Value, Inner](childBuilder:Builder[Key, Value, Inner]) extends Builder[Key, Value, Seq[Inner]] {
+	override def init:Seq[Inner] = Vector.empty[Inner]
+	override def apply[Input](folding:Seq[Inner], key:Key, innerInput:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Seq[Inner]] = {
+		parser.parse(childBuilder, innerInput).fold({x => Right(folding :+ x)}, {x => Left("Found primitive in SeqBuilder", 0)}, {(m,i) => Left(m,i)})
 	}
-	def childBuilder(key:String):Builder[_ <: Any] = childBuilder.getOrElse(new SeqBuilder)
-	val resultType:Class[Seq[_]] = classOf[Seq[_]]
+}
+
+/**
+ * 
+ * @since next
+ */
+final class PrimitiveSeqBuilder[Key, Value] extends Builder[Key, Value, Seq[Value]] {
+	override def init:Seq[Value] = Vector.empty[Value]
+	override def apply[Input](folding:Seq[Value], key:Key, innerInput:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Seq[Value]] = {
+		parser.parsePrimitive(innerInput).right.map{x => folding :+ x}
+	}
 }

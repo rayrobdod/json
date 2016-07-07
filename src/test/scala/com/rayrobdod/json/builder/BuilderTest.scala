@@ -26,62 +26,30 @@
 */
 package com.rayrobdod.json.builder;
 
-import java.text.ParseException;
 import scala.beans.BeanProperty;
-import scala.collection.immutable.Map;
-import scala.util.{Either, Left, Right}
+import scala.util.{Try, Right, Failure}
+import java.text.ParseException;
+import scala.collection.immutable.Seq;
 import org.scalatest.FunSpec;
+import com.rayrobdod.json.parser.FailureParser
 import com.rayrobdod.json.parser.IdentityParser
-import com.rayrobdod.json.union.{StringOrInt, JsonValue}
+import com.rayrobdod.json.parser.SeqParser
+import com.rayrobdod.json.parser.PrimitiveSeqParser
+import com.rayrobdod.json.parser.CaseClassParser
 
-class BeanBuilderTest extends FunSpec {
-	import BeanBuilderTest.Person;
+class BuilderTest extends FunSpec {
 	
-	describe("BeanBuilder") {
-		it ("inits correctly") {
-			assertResult(new Person()){
-					new BeanBuilder(classOf[Person]).init
-			}
-		}
-		it ("Can handle the name bean property") {
-			val name = "Anony Mouse"
-			assertResult(Right(new Person(name, 0))){
-				new BeanBuilder(classOf[Person]).apply(new Person(), "name", name, new IdentityParser[String,Object])
-			}
-		}
-		it ("Can handle the age bean property") {
-			val age = 9001L
-			assertResult(Right(new Person("", age))){
-				new BeanBuilder(classOf[Person]).apply(new Person(), "age", age, new IdentityParser[String,Any])
-			}
-		}
-		it ("Throws excpetion on incorrect type") {
-			val age = "9001"
-			assertResult(Left(("com.rayrobdod.json.builder.BeanBuilderTest$Person::setAge with parameter java.lang.String", 0))){
-				new BeanBuilder(classOf[Person]).apply(new Person(), "age", age, new IdentityParser[String,Any])
+	describe("Builder.mapKey") {
+	}
+	describe("Builder.mapValue") {
+		it ("passes through a parser's falure") {
+			val myValue2 = new Object
+			
+			assertResult(Left("FailureParser", 0)){
+				new SeqBuilder(new PrimitiveSeqBuilder[String, Object]).mapValue[Object].apply(Nil, "sdfa", myValue2, new FailureParser())
 			}
 		}
 	}
 	
-	describe("BeanBuilder + JsonParser") {
-		import com.rayrobdod.json.parser.JsonParser
-		
-		it ("works") {
-			assertResult(Person("nqpppnl",1)){
-				new JsonParser().parse(new BeanBuilder[JsonValue, Person](classOf[Person]).mapKey[StringOrInt]{StringOrInt.unwrapToString},
-					"""{"name":"nqpppnl","age":1}"""
-				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
-			}
-		}
-	}
 }
 
-
-object BeanBuilderTest {
-	case class Person(
-			@BeanProperty var name:String,
-			@BeanProperty var age:java.lang.Long
-	) {
-		def this() = this("", 0)
-	}
-}

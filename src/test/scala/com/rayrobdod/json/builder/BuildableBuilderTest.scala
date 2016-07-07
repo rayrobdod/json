@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -27,8 +27,13 @@
 package com.rayrobdod.json.builder;
 
 import java.text.ParseException;
-import scala.collection.immutable.Map;
+import scala.collection.immutable.{Seq, Map}
+import scala.util.{Either, Left, Right}
 import org.scalatest.FunSpec;
+import com.rayrobdod.json.union.JsonValue
+import com.rayrobdod.json.union.{StringOrInt, ParserRetVal}
+import com.rayrobdod.json.parser.{Parser, IdentityParser, PrimitiveSeqParser}
+import com.rayrobdod.json.builder.BuildableBuilder.KeyDef
 
 class BuildableBuilderTest extends FunSpec {
 	import BuildableBuilderTest.Person;
@@ -40,58 +45,171 @@ class BuildableBuilderTest extends FunSpec {
 					new BuildableBuilder(new Person("me", 4)).init
 			}
 		}
-		it ("") {
+		it ("Acts upon provided keydef") {
 			val name = "Anony Mouse"
-			assertResult(new Person(name, 0)){
-				new BuildableBuilder(new Person("", 0)).addDef("name", {(a,b) => a.copy(name = b.toString)}, BuildableBuilderTest.MockBuilder)
-						.apply(new Person("", 0), "name", name)
+			assertResult(Right(new Person(name, 0))){
+				new BuildableBuilder(new Person("", 0))
+						.addDef("name", new KeyDef[String, String, Person]{def apply[I](s:Person, i:I, p:Parser[String, String, I]) = {Right(s.copy(name = p.parsePrimitive(i).fold({x => ""}, {x => x})))}})
+						.apply(new Person("", 0), "name", name, new IdentityParser)
 			}
 		}
-		it ("Can handle the age bean property") {
+		it ("Acts upon provided keydef (2)") {
 			val age = 9001
-			assertResult(new Person("", age)){
-				new BuildableBuilder(new Person("", 0)).addDef("age", {(a,b) => a.copy(age = b.toString.toInt)}, BuildableBuilderTest.MockBuilder)
-						.apply(new Person("", 0), "age", age)
+			assertResult(Right(new Person("", age))){
+				new BuildableBuilder(new Person("", 0))
+						.addDef("age", new KeyDef[String, Int, Person]{def apply[I](s:Person, i:I, p:Parser[String, Int, I]) = {Right(s.copy(age = p.parsePrimitive(i).fold({x => 0}, {x => x})))}})
+						.apply(new Person("", 0), "age", age, new IdentityParser)
+			}
+		}
+		it ("Acts upon provided keydef (partitionedPrimitive)") {
+			val age = 9001
+			assertResult(Right(new Person("", age))){
+				new BuildableBuilder(new Person("", 0))
+						.addDef("age", BuildableBuilder.partitionedPrimitiveKeyDef[String, Int, Person, Int]({case x:Int => Right(x)}, {(f,i) => f.copy(age = i)}))
+						.apply(new Person("", 0), "age", age, new IdentityParser)
 			}
 		}
 		it ("Throws excpetion on unknown key") {
 			val age = "9001"
-			intercept[IllegalArgumentException]{
-				new BuildableBuilder(new Person("", 0)).apply(new Person("", 0), "asdfjkl;", age)
+			assertResult(Left("BuildableBuilder has no KeyDef for given key", 0)){
+				new BuildableBuilder[String, String, Person](new Person("", 0))
+						.apply(new Person("", 0), "asdfjkl;", "hello", new IdentityParser)
 			}
 		}
 		it ("ignores unknown key after call to ignoreUnknownKeys") {
 			val age = "9001"
-			assertResult(new Person("", 0)){
-				new BuildableBuilder(new Person("", 0)).ignoreUnknownKeys.apply(new Person("", 0), "asdfjkl;", age)
-			}
-		}
-		it ("childBuilder returns value from constructor") {
-			import BuildableBuilderTest.MockBuilder
-			
-			assertResult(MockBuilder){
-				new BuildableBuilder(new Person("", 0)).addDef("key", {(a,b) => a}, MockBuilder).childBuilder("key")
-			}
-		}
-		it ("resultType returns constructor parameter `clazz`") {
-			assertResult(classOf[Person]){
-				new BuildableBuilder(new Person("", 0)).resultType
+			assertResult(Right(new Person("", 0))){
+				new BuildableBuilder[String, String, Person](new Person("", 0)).ignoreUnknownKeys
+						.apply(new Person("", 0), "asdfjkl;", "hello", new IdentityParser)
 			}
 		}
 	}
 	
 	describe("BuildableBuilder + JsonParser") {
 		import com.rayrobdod.json.parser.JsonParser
+		import com.rayrobdod.json.union.JsonValue._
 		
 		it ("works") {
-			val builder = new BuildableBuilder(new Person("", 0))
-					.addDef("name", {(a,b) => a.copy(name = b.toString)}, BuildableBuilderTest.MockBuilder)
-					.addDef("age", {(a,b) => a.copy(age = b.toString.toInt)}, BuildableBuilderTest.MockBuilder)
+			val builder = new BuildableBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
+				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parsePrimitive(i).right.flatMap{_ match {case JsonValueString(i) => Right(s.copy(name = i)); case ex => Left("name not string: " + ex, 0)}}}})
+				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parsePrimitive(i).right.flatMap{_ match {case JsonValueNumber(i) => Right(s.copy(age = i.intValue)); case ex => Left("age not number: " + ex, 0)}}}})
 			
 			assertResult(Person("nqpppnl",1)){
-				new JsonParser(builder).parse(
+				new JsonParser().parse(builder, 
 					"""{"name":"nqpppnl","age":1}"""
-				)
+				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
+			}
+		}
+		it ("nested") {
+			val exp = Seq(Person("a", 5), Person("b", 6))
+			
+			val personBuilder = new BuildableBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
+				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parsePrimitive(i).right.flatMap{_ match {case JsonValueString(i) => Right(s.copy(name = i)); case ex => Left("name not string: " + ex, 0)}}}})
+				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parsePrimitive(i).right.flatMap{_ match {case JsonValueNumber(i) => Right(s.copy(age = i.intValue)); case ex => Left("age not number: " + ex, 0)}}}})
+			
+			val seqBuilder = new BuildableBuilder[StringOrInt, JsonValue, Seq[Person]](
+				Nil,
+				new KeyDef[StringOrInt, JsonValue, Seq[Person]]{ def apply[I](s:Seq[Person], i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parse(personBuilder, i).fold({x => Right(x)},{x => Left("ASFD",0)},{(a,b) => Left(a,b)}).right.map{y => s :+ y}}}
+			)
+				
+			assertResult(exp){
+				new JsonParser().parse(seqBuilder, 
+					"""[{"name":"a","age":5},{"name":"b","age":6}]"""
+				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
+			}
+		}
+	}
+	
+	describe("KeyDef") {
+		import BuildableBuilder._
+		
+		it ("ignoreKeyDef") {
+			assertResult(Right("abc")){
+				ignoreKeyDef.apply("abc", null, null)
+			}
+		}
+		it ("throwKeyDef") {
+			assertResult(Left("BuildableBuilder has no KeyDef for given key", 0)){
+				throwKeyDef.apply("abc", null, null)
+			}
+		}
+		it ("partitionedPrimitiveKeyDef (isDefinedAt)") {
+			val builder = partitionedPrimitiveKeyDef[Any, String, Option[Int], Int]({case "abc" => Right(3)}, {(a,b) => Some(b)})
+			assertResult(Right(Some(3))){
+				builder.apply(None, "abc", new IdentityParser)
+			}
+		}
+		it ("partitionedPrimitiveKeyDef (not isDefinedAt)") {
+			val builder = partitionedPrimitiveKeyDef[Any, String, Option[Int], Int]({case "abc" => Right(3)}, {(a,b) => Some(b)})
+			assertResult(Left("Unexpected value: asdf", 0)){
+				builder.apply(None, "asdf", new IdentityParser)
+			}
+		}
+		it ("partitionedKeyDef (isDefinedAt)") {
+			val builder = partitionedKeyDef[Int, Int, String, Seq[Int], Int](
+				new PrimitiveSeqBuilder[Int, Int],
+				{case ParserRetVal.Complex(x) => Right(x.sum)},
+				{(a,b) => a + " " + b}
+			)
+			assertResult(Right("z 6")){
+				builder.apply("z", Seq(1,2,3), new PrimitiveSeqParser[Int])
+			}
+		}
+		it ("partitionedKeyDef (not isDefinedAt)") {
+			val builder = partitionedKeyDef[Int, Int, String, Seq[Int], Int](
+				new PrimitiveSeqBuilder[Int, Int],
+				{case ParserRetVal.Primitive(x) => Right(x)},
+				{(a,b) => a + " " + b}
+			)
+			assertResult(Left("Unexpected value: Vector(1, 2, 3)", 0)){
+				builder.apply("z", Seq(1,2,3), new PrimitiveSeqParser[Int])
+			}
+		}
+		it ("partitionedKeyDef (not isDefinedAt; throwBuilder)") {
+			val builder = partitionedKeyDef[Int, Int, String, Any, Int](
+				new ThrowBuilder[Int, Int],
+				{case ParserRetVal.Primitive(x) => Right(x)},
+				{(a,b) => a + " " + b}
+			)
+			assertResult(Left("using ThrowBuilder::apply", 0)){
+				builder.apply("z", Seq(1,2,3), new PrimitiveSeqParser[Int])
+			}
+		}
+		it ("partitionedKeyDef (isDefinedAt; left)") {
+			val builder = partitionedKeyDef[Int, Int, String, Seq[Int], Int](
+				new PrimitiveSeqBuilder[Int, Int],
+				{case ParserRetVal.Complex(x) => Left("Error", 0)},
+				{(a,b) => a + " " + b}
+			)
+			assertResult(Left("Error", 0)){
+				builder.apply("z", Seq(1,2,3), new PrimitiveSeqParser[Int])
+			}
+		}
+		it ("partitionedComplexKeyDef (Complex)") {
+			val builder = partitionedComplexKeyDef[Int, Int, String, Seq[Int]](
+				new PrimitiveSeqBuilder[Int, Int],
+				{(a,b) => Right(a + " " + b)}
+			)
+			assertResult(Right("z Vector(1, 2, 3)")){
+				builder.apply("z", Vector(1,2,3), new PrimitiveSeqParser[Int])
+			}
+		}
+		it ("partitionedComplexKeyDef (Primitive)") {
+			val builder = partitionedComplexKeyDef[Int, Int, String, Seq[Int]](
+				new PrimitiveSeqBuilder[Int, Int],
+				{(a,b) => Right(a + " " + b)}
+			)
+			assertResult(Left("Unexpected value: 5", 0)){
+				builder.apply("z", 5, new IdentityParser[Int, Int])
+			}
+		}
+		it ("partitionedComplexKeyDef (Throw)") {
+			val builder = partitionedComplexKeyDef[Int, Int, String, Any](
+				new ThrowBuilder[Int, Int],
+				{(a,b) => Right(a + " " + b)}
+			)
+			assertResult(Left("using ThrowBuilder::apply", 0)){
+				builder.apply("z", Vector(1,2,3), new PrimitiveSeqParser[Int])
 			}
 		}
 	}
@@ -100,11 +218,4 @@ class BuildableBuilderTest extends FunSpec {
 
 object BuildableBuilderTest {
 	case class Person(val name:String, val age:Int)
-	
-	object MockBuilder extends Builder[Nothing] {
-		def init:Nothing = {throw new UnsupportedOperationException}
-		def apply(folding:Nothing, key:String, value:Any):Nothing = {throw new UnsupportedOperationException}
-		def childBuilder(key:String):Nothing = {throw new UnsupportedOperationException}
-		def resultType:Class[Nothing] = {throw new UnsupportedOperationException}
-	}
 }

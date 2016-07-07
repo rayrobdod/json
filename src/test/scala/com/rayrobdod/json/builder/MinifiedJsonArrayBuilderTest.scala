@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -29,8 +29,12 @@ package com.rayrobdod.json.builder;
 import scala.beans.BeanProperty;
 import java.text.ParseException;
 import scala.collection.immutable.Map;
+import scala.util.{Try, Right, Failure}
 import org.scalatest.FunSpec;
 import java.nio.charset.StandardCharsets.US_ASCII;
+import com.rayrobdod.json.union.{StringOrInt, JsonValue, CborValue}
+import com.rayrobdod.json.union.JsonValue._
+import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter};
 
 class MinifiedJsonArrayBuilderTest extends FunSpec {
@@ -40,68 +44,58 @@ class MinifiedJsonArrayBuilderTest extends FunSpec {
 			assertResult("[]"){new MinifiedJsonArrayBuilder().init}
 		}
 		it ("Appends null") {
-			assertResult("""[null]"""){
-				new MinifiedJsonArrayBuilder().apply("[]", "", null)
+			assertResult(Right("""[null]""")){
+				new MinifiedJsonArrayBuilder().apply("[]", "",JsonValueNull, new IdentityParser[Any,JsonValue])
 			}
 		}
 		it ("Appends true") {
-			assertResult("""[true]"""){
-				new MinifiedJsonArrayBuilder().apply("[]", "", true)
+			assertResult(Right("""[true]""")){
+				new MinifiedJsonArrayBuilder().apply("[]", "",JsonValue(true), new IdentityParser[Any,JsonValue])
 			}
 		}
 		it ("Appends false") {
-			assertResult("""[false]"""){
-				new MinifiedJsonArrayBuilder().apply("[]", "", false)
+			assertResult(Right("""[false]""")){
+				new MinifiedJsonArrayBuilder().apply("[]", "",JsonValue(false), new IdentityParser[Any,JsonValue])
 			}
 		}
 		it ("Appends integer") {
-			assertResult("""[68]"""){
-				new MinifiedJsonArrayBuilder().apply("[]", "", 68)
+			assertResult(Right("""[68]""")){
+				new MinifiedJsonArrayBuilder().apply("[]", "",JsonValue(68), new IdentityParser[Any,JsonValue])
 			}
 		}
 		it ("Appends string") {
-			assertResult("""["abc"]"""){
-				new MinifiedJsonArrayBuilder().apply("[]", "", "abc")
+			assertResult(Right("""["abc"]""")){
+				new MinifiedJsonArrayBuilder().apply("[]", "",JsonValue("abc"), new IdentityParser[Any,JsonValue])
 			}
 		}
 		it ("Appends string with escapes") {
-			assertResult("""["a\tc"]"""){
-				new MinifiedJsonArrayBuilder().apply("[]", "", "a\tc")
+			assertResult(Right("""["a\tc"]""")){
+				new MinifiedJsonArrayBuilder().apply("[]", "",JsonValue("a\tc"), new IdentityParser[Any,JsonValue])
 			}
 		}
 		it ("Appends string with escapes 2") {
-			assertResult("""["a\""" + """u0000c"]"""){
-				new MinifiedJsonArrayBuilder().apply("[]", "", "a\u0000c")
+			assertResult(Right("""["a\""" + """u0000c"]""")){
+				new MinifiedJsonArrayBuilder().apply("[]", "",JsonValue("a\u0000c"), new IdentityParser[Any,JsonValue])
 			}
 		}
 		it ("Appends string with space") {
-			assertResult("""[" a c "]"""){
-				new MinifiedJsonArrayBuilder().apply("[]", "", " a c ")
+			assertResult(Right("""[" a c "]""")){
+				new MinifiedJsonArrayBuilder().apply("[]", "",JsonValue(" a c "), new IdentityParser[Any,JsonValue])
 			}
 		}
 		it ("Appends string with non-ascii char (utf-8)") {
-			assertResult("""["Pokémon"]"""){
-				new MinifiedJsonArrayBuilder().apply("[]", "", "Pokémon")
+			assertResult(Right("""["Pokémon"]""")){
+				new MinifiedJsonArrayBuilder().apply("[]", "",JsonValue("Pokémon"), new IdentityParser[Any,JsonValue])
 			}
 		}
 		it ("Appends string with non-ascii char (ascii)") {
-			assertResult("""["Pok\""" + """u00e9mon"]"""){
-				new MinifiedJsonArrayBuilder(US_ASCII).apply("[]", "", "Pokémon")
+			assertResult(Right("""["Pok\""" + """u00e9mon"]""")){
+				new MinifiedJsonArrayBuilder(US_ASCII).apply("[]", "",JsonValue("Pokémon"), new IdentityParser[Any,JsonValue])
 			}
 		}
 		it ("Appends a second value") {
-			assertResult("""["a","b","c","d"]"""){
-				new MinifiedJsonArrayBuilder().apply("""["a","b","c"]""", "3", "d")
-			}
-		}
-		it ("childBuilder returns MapBuilder") {
-			val builder = new MinifiedJsonArrayBuilder()
-			
-			assert{builder.childBuilder("").isInstanceOf[MapBuilder]}
-		}
-		it ("resultType returns constructor parameter `clazz`") {
-			assertResult(classOf[String]){
-				new MinifiedJsonArrayBuilder().resultType
+			assertResult(Right("""["a","b","c","d"]""")){
+				new MinifiedJsonArrayBuilder(US_ASCII).apply("""["a","b","c"]""", 3, JsonValue("d"), new IdentityParser[Any,JsonValue])
 			}
 		}
 	}
@@ -111,34 +105,30 @@ class MinifiedJsonArrayBuilderTest extends FunSpec {
 		
 		it ("MinifiedJsonArrayBuilder + JsonParser + primitive") {
 			assertResult("""[61,62,63]"""){
-				new JsonParser(new MinifiedJsonArrayBuilder).parse(
+				new JsonParser().parse(
+					new MinifiedJsonArrayBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""[61,62,63]"""
-				)
+				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}
 		}
 		it ("MinifiedJsonArrayBuilder + JsonParser + primitive (whitespace)") {
 			assertResult("""["a","b","c"]"""){
-				new JsonParser(new MinifiedJsonArrayBuilder).parse(
+				new JsonParser().parse(
+					new MinifiedJsonArrayBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""[
 	"a",
 	"b",
 	"c"
 ]"""
-				)
-			}
-		}
-		it ("MinifiedJsonArrayBuilder + JsonParser + nested objects") {
-			assertResult("""[{"a":0,"b":1}]"""){
-				new JsonParser(new MinifiedJsonArrayBuilder).parse(
-					"""[{"a":0,"b":1}]"""
-				)
+				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}
 		}
 		it ("MinifiedJsonArrayBuilder + CborParser + primitives") {
 			assertResult("""[5]"""){
-				new CborParser(new MinifiedJsonArrayBuilder).parse(
+				new CborParser().parse(
+					new MinifiedJsonArrayBuilder().mapKey[CborValue].mapValue[CborValue](cborValueHexencodeByteStr),
 					byteArray2DataInput(hexArray"A10405")
-				)
+				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}
 		}
 	}

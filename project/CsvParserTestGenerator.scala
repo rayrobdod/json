@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -34,10 +34,10 @@ object CsvParserTestGenerator {
 	
 	private val testValues:Seq[(String, String, String, String)] = Seq(
 		("empty object", """ "" """, "Seq()", "CsvParser.csvCharacterMeanings"),
-		("empty object with whitespace csv", """ "  " """, "Seq()", "CsvParser.csvCharacterMeanings"),
-		("empty object with whitespace tsv", """ "  " """, "Seq()", "CsvParser.tsvCharacterMeanings"),
-		("empty object with byteordermark csv", """ "\ufeff" """, "Seq()", "CsvParser.csvCharacterMeanings"),
-		("empty object with byteordermark tsv", """ "\ufeff" """, "Seq()", "CsvParser.tsvCharacterMeanings"),
+		("empty object with whitespace csv", """ "  " """, "Seq(Seq())", "CsvParser.csvCharacterMeanings"),
+		("empty object with whitespace tsv", """ "  " """, "Seq(Seq())", "CsvParser.tsvCharacterMeanings"),
+		("empty object with byteordermark csv", """ "\ufeff" """, "Seq(Seq())", "CsvParser.csvCharacterMeanings"),
+		("empty object with byteordermark tsv", """ "\ufeff" """, "Seq(Seq())", "CsvParser.tsvCharacterMeanings"),
 		("single element csv", """ "4" """, """Seq(Seq("4"))""", "CsvParser.csvCharacterMeanings"),
 		("single element tsv", """ "4" """, """Seq(Seq("4"))""", "CsvParser.tsvCharacterMeanings"),
 		("single element ascii", """ "4" """, """Seq(Seq("4"))""", "CsvParser.asciiCharacterMeanings"),
@@ -57,7 +57,7 @@ object CsvParserTestGenerator {
 		("does not error if input ends in middle of escape", """ "1 , 2 \n 3 , 4\\" """, """Seq(Seq("1", "2"),Seq("3", "4" ))""", "CsvParser.csvCharacterMeanings"),
 		
 		// LibreOffice, at least, ignores trailing commas and lines
-		("two empty rows", """ "\n" """, """Seq(Seq(""))""", "CsvParser.csvCharacterMeanings"),
+		("two empty rows", """ "\n" """, """Seq(Seq())""", "CsvParser.csvCharacterMeanings"),
 		("three empty fields", """ ",,," """, """Seq(Seq("","",""))""", "CsvParser.csvCharacterMeanings"),
 		("2x2 empty", "\",,\\n,,\"", """Seq(Seq("",""),Seq("",""))""", "CsvParser.csvCharacterMeanings"),
 		("2x2 empty w/ ending newline", "\",,\\n,,\\n\"", """Seq(Seq("",""),Seq("",""))""", "CsvParser.csvCharacterMeanings")
@@ -70,7 +70,9 @@ package com.rayrobdod.json.parser;
 
 import java.text.ParseException;
 import scala.collection.immutable.Map;
+import scala.util.{Try, Success, Failure}
 import org.scalatest.FunSpec;
+import com.rayrobdod.json.builder.PrimitiveSeqBuilder;
 import com.rayrobdod.json.builder.SeqBuilder;
 import com.rayrobdod.json.builder.MapBuilder;
 
@@ -85,13 +87,13 @@ class CsvParserTest_Happy extends FunSpec {
 		"\n\t\tit (\"\"\"" + name + "\"\"\"" + """) {
 			val source = """ + source + """
 			val expected = """ + expected + """
-			val result = new CsvParser(new SeqBuilder(), """ + charMeans + """).parse(source)
+			val result = new CsvParser(""" + charMeans + """).parse(new SeqBuilder(new PrimitiveSeqBuilder[Int, String]), source).fold({x => x},{x => x},{(a,b) => a})
 			assertResult(expected){result}
 		}"""
 		"\n\t\tit (\"\"\"" + name + " (reader)\"\"\"" + """) {
 			val source = new java.io.StringReader(""" + source + """)
 			val expected = """ + expected + """
-			val result = new CsvParser(new SeqBuilder(), """ + charMeans + """).parse(source)
+			val result = new CsvParser(""" + charMeans + """).parse(new SeqBuilder(new PrimitiveSeqBuilder[Int, String]), source).fold({x => x},{x => x},{(a,b) => a})
 			assertResult(expected){result}
 		}"""
 	}
