@@ -39,7 +39,6 @@ import com.rayrobdod.json.union.ParserRetVal
 class JsonParserTest_OtherBuilders extends FunSpec {
 	describe("JsonParser with other builders") {
 		it ("works") {
-		
 			case class Name(given:String, middle:String, family:String)
 			case class Person(n:Name, gender:String, isDead:Boolean, interests:Set[String])
 			
@@ -63,16 +62,17 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 				}
 			}
 			
-			object NameBuilder extends Builder[StringOrInt,JsonValue,Name] {
-				def init:Name = Name("", "", "")
-				def apply[Input](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Name] = {
-					val value = parser.parse(new ThrowBuilder, input) match {case ParserRetVal.Primitive(JsonValue.JsonValueString(s)) => s; case _ => "????????"}
-					
-					key match {
-						case StringOrInt.Left("given") => Right(folding.copy(given = value))
-						case StringOrInt.Left("middle") => Right(folding.copy(middle = value))
-						case StringOrInt.Left("family") => Right(folding.copy(family = value))
-						case _ => Left("Unexpected key: " + key, 0)
+			object NameBuilder extends Builder[StringOrInt, JsonValue, Name] {
+				override def init:Name = Name("", "", "")
+				override def apply[Input](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Name] = {
+					// we only expect strings, so might as well parse the value at the beginning
+					parser.parsePrimitive(input).right.flatMap{value:JsonValue =>
+						((key, value)) match {
+							case ((StringOrInt.Left("given"), JsonValue.JsonValueString(x))) => Right(folding.copy(given = x))
+							case ((StringOrInt.Left("middle"), JsonValue.JsonValueString(x))) => Right(folding.copy(middle = x))
+							case ((StringOrInt.Left("family"), JsonValue.JsonValueString(x))) => Right(folding.copy(family = x))
+							case x => Left("NameBuilder: Unexpected key/value: " + x, 0)
+						}
 					}
 				}
 			}
