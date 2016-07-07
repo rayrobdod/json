@@ -24,28 +24,41 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json
+package com.rayrobdod.json.union
 
-import scala.util.{Try, Success, Failure}
+import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.parser.Parser
+import scala.language.implicitConversions
 
 /**
- * Contains the various built-in builders.
- *
- * Pretty much every parser will require a Builder when parsing data.
- * The builder will basically determine how the parser will treat complex
- * data types.
+ * A union type where the possible values are a String or Int
+ * @since next
  */
-package object builder {
+sealed trait StringOrInt{
+	/** Applies `fs` if this is a String or `fi` if this is an Int */
+	def fold[Out](fs:Function1[String,Out], fi:Function1[Int,Out]):Out
 }
 
-package builder {
-	/**
-	 * A Builder that will always return a failure on call to apply
-	 * @since next
-	 */
-	final class ThrowBuilder[K,V] extends Builder[K,V,Any] {
-		override def init:Any = "using ThrowBuilder::init"
-		override def apply[I](a:Any,k:K,i:I,p:Parser[K,V,I]):Left[(String, Int), Any] = Left("using ThrowBuilder::apply", 0)
+/**
+ * Methods used to create StringOrInts
+ * @since next
+ */
+object StringOrInt {
+	/** A string value represented as a StringOrInt union */
+	final case class Left(s:String) extends StringOrInt {
+		def fold[Out](fs:Function1[String,Out], fi:Function1[Int,Out]):Out = fs(s)
 	}
+	/** An integer value represented as a StringOrInt union */
+	final case class Right(i:Int) extends StringOrInt {
+		def fold[Out](fs:Function1[String,Out], fi:Function1[Int,Out]):Out = fi(i)
+	}
+	
+	/** Convert a String to a StringOrInt */
+	implicit def apply(s:String):StringOrInt = Left(s)
+	/** Convert an Int to a StringOrInt */
+	implicit def apply(i:Int):StringOrInt = Right(i)
+	
+	
+	
+	def unwrapToString(x:StringOrInt):String = x.fold({s => s}, {i => i.toString})
 }

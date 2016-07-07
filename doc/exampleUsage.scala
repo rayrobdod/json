@@ -3,17 +3,19 @@
 
 
 // other imports
+import scala.util.{Either, Left, Right}
 import java.text.ParseException
 
 // imports from this library;
-import com.rayrobdod.json.parser.JsonParser;
-import com.rayrobdod.json.builder.Builder;
+import com.rayrobdod.json.parser.{Parser, JsonParser}
+import com.rayrobdod.json.builder.{Builder, BuildableBuilder, PrimitiveSeqBuilder, ThrowBuilder}
+import com.rayrobdod.json.union.{StringOrInt, JsonValue, ParserRetVal}
 
 // the data classes
 case class Name(given:String, middle:String, family:String)
-case class Person(n:Name, gender:String, isDead:Boolean, interests:Set[String])
+case class Person(n:Name, gender:String, isDead:Boolean, interests:Seq[String])
 
-// the json data to parse- presumably in a real system this would be read from a file rather than direct
+// the json data to parse- presumably in a real system this would be read from a file rather than hardcoded
 val json = """{
     "name":{
       "given":"Raymond",
@@ -25,46 +27,70 @@ val json = """{
     "interests":["bowling", "tennis", "programming", "twitch plays pokémon"]
 }"""
 
-// the classes that extend Builder and convert the data into the data classes
-object SetBuilder extends Builder[Set[String]] {
-  def init:Set[String] = Set.empty
-  def apply(folding:Set[String], key:String, value:Any) = {
-    folding + value.toString
+// Exaple using subclassing of Builder
+object NameBuilder extends Builder[StringOrInt, JsonValue, Name] {
+  override def init:Name = Name("", "", "")
+  override def apply[Input](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Name] = {
+    // we only expect strings, so might as well parse the value at the beginning
+    parser.parsePrimitive(input).right.flatMap{value:JsonValue =>
+      ((key, value)) match {
+        case ((StringOrInt.Left("given"), JsonValue.JsonValueString(x))) => Right(folding.copy(given = x))
+        case ((StringOrInt.Left("middle"), JsonValue.JsonValueString(x))) => Right(folding.copy(middle = x))
+        case ((StringOrInt.Left("family"), JsonValue.JsonValueString(x))) => Right(folding.copy(family = x))
+        case x => Left("NameBuilder: Unexpected key/value: " + x, 0)
+      }
+    }
   }
-  def childBuilder(key:String):Builder[Set[String]] = this
-  def resultType:Class[Set[String]] = classOf[Set[String]]
 }
 
-object NameBuilder extends Builder[Name] {
-  def init:Name = Name("", "", "")
-  def apply(folding:Name, key:String, value:Any) = key match {
-    case "given" => folding.copy(given = value.toString)
-    case "middle" => folding.copy(middle = value.toString)
-    case "family" => folding.copy(family = value.toString)
-    case _ => throw new ParseException("Unexpected key: " + key, -1)
-  }
-  def childBuilder(key:String):Builder[_] = SetBuilder
-  override val resultType:Class[Name] = classOf[Name]
-}
-
-object PersonBuilder extends Builder[Person] {
-  def init:Person = Person(Name("", "", ""), "", false, Set.empty)
-  def apply(folding:Person, key:String, value:Any) = key match {
-    case "name" => folding.copy(n = value.asInstanceOf[Name])
-    case "gender" => folding.copy(gender = value.toString)
-    case "isDead" => folding.copy(isDead = (value == true))
-    case "interests" => folding.copy(interests = value.asInstanceOf[Set[String]])
-    case _ => throw new ParseException("Unexpected key: " + key, -1)
-  }
-  def childBuilder(key:String):Builder[_] = key match {
-    case "name" => NameBuilder
-    case _ => SetBuilder
-  }
-  override val resultType:Class[Person] = classOf[Person]
+// example using BuildableBuilder
+val PersonBuilder = {
+  new BuildableBuilder[StringOrInt, JsonValue, Person](Person(Name("", "", ""), "", false, Seq.empty))
+    // paritioned complex key def
+    .addDef("name", BuildableBuilder.partitionedComplexKeyDef[StringOrInt, JsonValue, Person, Name](
+      NameBuilder,
+      {(folding, name) => Right(folding.copy(n = name))}
+    ))
+    // paritioned private key def
+    .addDef("gender", BuildableBuilder.partitionedPrimitiveKeyDef[StringOrInt, JsonValue, Person, String](
+      {case JsonValue.JsonValueString(g) => Right(g)},
+      {(folding,x) => folding.copy(gender = x)}
+    ))
+    // raw private key def
+    .addDef("isDead", new BuildableBuilder.KeyDef[StringOrInt, JsonValue, Person]{
+      override def apply[Input](folding:Person, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Person] = {
+        parser.parsePrimitive(input) match {
+          case Right(JsonValue.JsonValueBoolean(b)) => Right(folding.copy(isDead = b));
+          case unknown => Left(("isDead not boolean: " + unknown, 0))
+        }
+      }
+    })
+    // raw complex key def
+    .addDef("interests", new BuildableBuilder.KeyDef[StringOrInt, JsonValue, Person]{
+      override def apply[Input](folding:Person, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Person] = {
+        parser.parse(new PrimitiveSeqBuilder, input) match {
+          case ParserRetVal.Complex(seq) => {
+            seq.foldLeft[Either[(String, Int),Vector[String]]](Right(Vector.empty)){(folding:Either[(String, Int),Vector[String]], value:JsonValue) => folding.right.flatMap(sequence => value match {
+              case JsonValue.JsonValueString(s) => Right(sequence :+ s)
+              case _ => Left("interests is seq, but contained non-strings", 0)
+            })}.right.map{x => folding.copy(interests = x)}
+          }
+          // allow a single interest to be represented as a string not in an array
+          case ParserRetVal.Primitive(JsonValue.JsonValueString(interest)) => Right(folding.copy(interests = Seq(interest)))
+          case unknown => Left(("interests not Seq: " + unknown, 0))
+        }
+    }})
 }
 
 // parse the json file
-val p:Person = new JsonParser(PersonBuilder).parse(json)
+val result:ParserRetVal[Person, JsonValue] = new JsonParser().parse(PersonBuilder, json)
 
-// at this point, do something with p
-System.out.println(p)
+// at this point, do something with `result`
+result.fold({person =>
+  System.out.println("Success")
+  System.out.println(person)
+},{x =>
+  System.out.println("Parsed primitive: " + x)
+},{(msg, idx) =>
+  System.out.println(s"Parse error at char $idx: $msg")
+})

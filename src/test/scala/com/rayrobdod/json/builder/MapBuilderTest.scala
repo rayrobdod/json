@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -29,71 +29,59 @@ package com.rayrobdod.json.builder;
 import scala.beans.BeanProperty;
 import java.text.ParseException;
 import scala.collection.immutable.Map;
+import scala.util.{Either, Right, Left}
 import org.scalatest.FunSpec;
+import com.rayrobdod.json.parser.IdentityParser
+import com.rayrobdod.json.union.StringOrInt
+import com.rayrobdod.json.union.JsonValue
 
 class MapBuilderTest extends FunSpec {
 	
 	describe("MapBuilder") {
 		it ("inits correctly") {
-			assertResult(Map.empty){new MapBuilder().init}
+			assertResult(Map.empty){MapBuilder.apply.init}
 		}
 		it ("Appends value") {
 			val myValue = new Object
 			
-			assertResult(Map("sdfa" -> myValue)){
-				new MapBuilder().apply(Map.empty, "sdfa", myValue)
+			assertResult(Right(Map("sdfa" -> Right(myValue)))){
+				MapBuilder.apply[String, Object].apply(Map.empty, "sdfa", myValue, new IdentityParser[String,Object])
 			}
 		}
 		it ("Appends value 2") {
 			val myValue1 = new Object
 			val myValue2 = new Object
 			
-			assertResult(Map("a" -> myValue1, "b" -> myValue2)){
-				new MapBuilder().apply(Map("a" -> myValue1), "b", myValue2)
-			}
-		}
-		it ("childBuilder returns value from constructor") {
-			import BeanBuilderTest.MockBuilder
-			val key = "sdafdsfa"
-			
-			assertResult(MockBuilder){
-				new MapBuilder({s => if (s == key) {MockBuilder} else {throw new IllegalArgumentException(s)}}).childBuilder(key)
-			}
-		}
-		it ("childBuilder returns default value if no constructor") {
-			assert{
-				new MapBuilder().childBuilder("sdafdsfa").isInstanceOf[MapBuilder]
-			}
-		}
-		it ("resultType returns constructor parameter `clazz`") {
-			assertResult(classOf[Map[_,_]]){
-				new MapBuilder().resultType
+			assertResult(Right(Map("a" -> Right(myValue1), "b" -> Right(myValue2)))){
+				MapBuilder.apply[String, Object].apply(Map("a" -> Right(myValue1)), "b", myValue2, new IdentityParser[String,Object])
 			}
 		}
 	}
+	
 	
 	describe("MapBuilder integration") {
 		import com.rayrobdod.json.parser.JsonParser
 		import BeanBuilderTest.Person
 		
 		it ("MapBuilder + JsonParser + primitive") {
-			assertResult(Map("a" -> 61, "b" -> 62, "c" -> 63)){
-				new JsonParser(new MapBuilder).parse(
+			assertResult(Map("a" -> 61, "b" -> 62, "c" -> 63).map{x => ((StringOrInt(x._1), Right(JsonValue(x._2))))}){
+				new JsonParser().parse(
+					MapBuilder[StringOrInt, JsonValue],
 					"""{"a":61, "b":62, "c":63}"""
-				)
+				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}
 		}
 		it ("MapBuilder + JsonParser + BeanBuilder") {
-			assertResult(Map("red" -> Person("Mario", 32),"green" -> Person("Luigi", 32),"pink" -> Person("Peach", 28))){
-				new JsonParser(new MapBuilder({s => new BeanBuilder(classOf[Person])})).parse(
+			assertResult(Map("red" -> Left(Person("Mario", 32)), "green" -> Left(Person("Luigi", 32)), "pink" -> Left(Person("Peach", 28)))){
+				new JsonParser().parse(
+					MapBuilder[String, JsonValue, Person](new BeanBuilder[JsonValue, Person](classOf[Person])).mapKey[StringOrInt]{StringOrInt.unwrapToString},
 					"""{
 						"red":{"name":"Mario", "age":32},
 						"green":{"name":"Luigi", "age":32},
 						"pink":{"name":"Peach", "age":28}
 					}"""
-				)
+				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}
 		}
 	}
 }
-

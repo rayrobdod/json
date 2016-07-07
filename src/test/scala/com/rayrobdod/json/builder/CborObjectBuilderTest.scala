@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -28,180 +28,191 @@ package com.rayrobdod.json.builder;
 
 import java.text.ParseException;
 import scala.collection.immutable.{Seq, Map};
+import scala.util.{Try, Right, Failure}
 import org.scalatest.FunSpec;
 import java.nio.charset.StandardCharsets.US_ASCII;
+import com.rayrobdod.json.union.JsonValue
+import com.rayrobdod.json.union.CborValue
+import com.rayrobdod.json.union.StringOrInt
+import com.rayrobdod.json.union.CborValue._
+import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter}
 
 class CborObjectBuilderTest extends FunSpec {
+	private case class Abc(a:Int, b:Boolean, c:String)
+	private implicit def classAbc = classOf[Abc]
+	
 	describe("CborObjectBuilder") {
 		it ("inits correctly") {
 			assertResult(Seq(0xA0.byteValue)){new CborObjectBuilder().init}
 		}
 		it ("Appends null") {
-			assertResult(hexSeq"A160f6"){
-				new CborObjectBuilder().apply(hexSeq"A0", "", null)
+			assertResult(Right(hexSeq"A160f6")){
+				new CborObjectBuilder().apply(hexSeq"A0", CborValue(""), CborValueNull, new IdentityParser[CborValue, CborValue])
 			}
 		}
 		it ("Appends true") {
-			assertResult(hexSeq"A160f5"){
-				new CborObjectBuilder().apply(hexSeq"A0", "", true)
+			assertResult(Right(hexSeq"A160f5")){
+				new CborObjectBuilder().apply(hexSeq"A0", CborValue(""), CborValue(true), new IdentityParser[CborValue, CborValue])
 			}
 		}
 		it ("Appends false") {
-			assertResult(hexSeq"A160f4"){
-				new CborObjectBuilder().apply(hexSeq"A0", "", false)
+			assertResult(Right(hexSeq"A160f4")){
+				new CborObjectBuilder().apply(hexSeq"A0", CborValue(""), CborValue(false), new IdentityParser[CborValue, CborValue])
 			}
 		}
 		it ("Appends 0 as one byte") {
-			assertResult(hexSeq"A16000"){
-				new CborObjectBuilder().apply(hexSeq"A0", "", 0)
+			assertResult(Right(hexSeq"A16000")){
+				new CborObjectBuilder().apply(hexSeq"A0", CborValue(""), CborValue(0), new IdentityParser[CborValue, CborValue])
 			}
 		}
 		it ("Appends small positive integer") {
-			assertResult(hexSeq"A16006"){
-				new CborObjectBuilder().apply(hexSeq"A0", "", 6)
+			assertResult(Right(hexSeq"A16006")){
+				new CborObjectBuilder().apply(hexSeq"A0", CborValue(""), CborValue(6), new IdentityParser[CborValue, CborValue])
 			}
 		}
 		it ("Appends 23 as one byte") {
-			assertResult(hexSeq"A16017"){
-				new CborObjectBuilder().apply(hexSeq"A0", "", 23)
+			assertResult(Right(hexSeq"A16017")){
+				new CborObjectBuilder().apply(hexSeq"A0", CborValue(""), CborValue(23), new IdentityParser[CborValue, CborValue])
 			}
 		}
 		it ("Appends 24 as two bytes") {
-			assertResult(hexSeq"A1601818"){
-				new CborObjectBuilder().apply(hexSeq"A0", "", 24)
+			assertResult(Right(hexSeq"A1601818")){
+				new CborObjectBuilder().apply(hexSeq"A0", CborValue(""), CborValue(24), new IdentityParser[CborValue, CborValue])
 			}
 		}
 		it ("Appends 255 as two bytes") {
-			assertResult(hexSeq"A16018FF"){
-				new CborObjectBuilder().apply(hexSeq"A0", "", 255)
+			assertResult(Right(hexSeq"A16018FF")){
+				new CborObjectBuilder().apply(hexSeq"A0", CborValue(""), CborValue(255), new IdentityParser[CborValue, CborValue])
 			}
 		}
 		it ("Appends 256 as three bytes") {
-			assertResult(hexSeq"A160190100"){
-				new CborObjectBuilder().apply(hexSeq"A0", "", 256)
+			assertResult(Right(hexSeq"A160190100")){
+				new CborObjectBuilder().apply(hexSeq"A0", CborValue(""), CborValue(256), new IdentityParser[CborValue, CborValue])
 			}
 		}
 		it ("Appends -1 as one byte") {
-			assertResult(hexSeq"A16020"){
-				new CborObjectBuilder().apply(hexSeq"A0", "", -1)
+			assertResult(Right(hexSeq"A16020")){
+				new CborObjectBuilder().apply(hexSeq"A0", CborValue(""), CborValue(-1), new IdentityParser[CborValue, CborValue])
 			}
 		}
 		it ("Appends -100 as two bytes") {
-			assertResult(hexSeq"A1603863"){
-				new CborObjectBuilder().apply(hexSeq"A0", "", -100)
+			assertResult(Right(hexSeq"A1603863")){
+				new CborObjectBuilder().apply(hexSeq"A0", CborValue(""), CborValue(-100), new IdentityParser[CborValue, CborValue])
 			}
 		}
 		it ("Appends Float") {
-			assertResult(hexArray"A160 FA3FC00000"){
-				new CborObjectBuilder().apply(hexSeq"A0", "", 1.5f)
+			assertResult(Right(hexSeq"A160 FA3FC00000")){
+				new CborObjectBuilder().apply(hexSeq"A0", CborValue(""), CborValue(1.5f), new IdentityParser[CborValue, CborValue])
 			}
 		}
 		it ("Appends Double") {
-			assertResult(hexArray"A160 fbc010666666666666"){
-				new CborObjectBuilder().apply(hexSeq"A0", "", -4.1D)
+			assertResult(Right(hexSeq"A160 fbc010666666666666")){
+				new CborObjectBuilder().apply(hexSeq"A0", CborValue(""), CborValue(-4.1D), new IdentityParser[CborValue, CborValue])
 			}
 		}
 		it ("Appends empty string") {
-			assertResult(hexSeq"A16060"){
-				new CborObjectBuilder().apply(hexSeq"A0", "", "")
+			assertResult(Right(hexSeq"A16060")){
+				new CborObjectBuilder().apply(hexSeq"A0", CborValue(""), CborValue(""), new IdentityParser[CborValue,CborValue])
 			}
 		}
 		it ("Appends \"abc\"") {
-			assertResult(hexSeq"A16063616263"){
-				new CborObjectBuilder().apply(hexSeq"A0", "", "abc")
+			assertResult(Right(hexSeq"A16063616263")){
+				new CborObjectBuilder().apply(hexSeq"A0", CborValue(""), CborValue("abc"), new IdentityParser[CborValue,CborValue])
 			}
 		}
 		it ("Appends string containing multibyte char") {
-			assertResult(hexSeq"A16063e6b0b4"){
-				new CborObjectBuilder().apply(hexSeq"A0", "", "\u6c34")
+			assertResult(Right(hexSeq"A16063e6b0b4")){
+				new CborObjectBuilder().apply(hexSeq"A0", CborValue(""), CborValue("\u6c34"), new IdentityParser[CborValue,CborValue])
 			}
 		}
 		it ("Appends an empty byte array") {
-			assertResult(hexSeq"A16040"){
-				new CborObjectBuilder().apply(hexSeq"A0", "", new Array[Byte](0))
+			assertResult(Right(hexSeq"A16040")){
+				new CborObjectBuilder().apply(hexSeq"A0", CborValue(""), CborValue(new Array[Byte](0)), new IdentityParser[CborValue,CborValue])
 			}
 		}
 		it ("Appends a non-empty byte array") {
-			assertResult(hexSeq"A16043010203"){
-				new CborObjectBuilder().apply(hexSeq"A0", "", hexArray"010203")
+			assertResult(Right(hexSeq"A16043010203")){
+				new CborObjectBuilder().apply(hexSeq"A0", CborValue(""), CborValue(hexArray"010203"), new IdentityParser[CborValue,CborValue])
 			}
 		}
 		it ("Appends a second value") {
-			assertResult(hexSeq"""A26161616261636164"""){
-				new CborObjectBuilder().apply(hexSeq"""A161616162""", "c", "d")
+			assertResult(Right(hexSeq"""A26161616261636164""")){
+				new CborObjectBuilder().apply(hexSeq"A161616162", CborValue("c"), CborValue("d"), new IdentityParser[CborValue,CborValue])
 			}
 		}
 		it ("Appends a 24th value") {
-			assertResult(hexSeq"""B818 B7A8B7A8B7A8 6060"""){
-				new CborObjectBuilder().apply(hexSeq"""B7 B7A8B7A8B7A8 """, "", "")
+			assertResult(Right(hexSeq"""B818 B7A8B7A8B7A8 6060""")){
+				new CborObjectBuilder().apply(hexSeq"""B7 B7A8B7A8B7A8 """, CborValue(""), CborValue(""), new IdentityParser[CborValue,CborValue])
 			}
 		}
 		it ("Appends a 101th value") {
-			assertResult(hexSeq"""B903e9 B7A8B7A8B7A8 6060"""){
-				new CborObjectBuilder().apply(hexSeq"""B903e8 B7A8B7A8B7A8 """, "", "")
+			assertResult(Right(hexSeq"""B903e9 B7A8B7A8B7A8 6060""")){
+				new CborObjectBuilder().apply(hexSeq"""B903e8 B7A8B7A8B7A8""", CborValue(""), CborValue(""), new IdentityParser[CborValue,CborValue])
 			}
 		}
 		it ("Appends a 256th value") {
-			assertResult(hexSeq"""B90100 B7A8B7A8B7A8 6060"""){
-				new CborObjectBuilder().apply(hexSeq"""B8FF B7A8B7A8B7A8 """, "", "")
+			assertResult(Right(hexSeq"""B90100 B7A8B7A8B7A8 6060""")){
+				new CborObjectBuilder().apply(hexSeq"""B8FF B7A8B7A8B7A8""", CborValue(""), CborValue(""), new IdentityParser[CborValue,CborValue])
 			}
 		}
 		it ("Appends a 65536th value") {
-			assertResult(hexSeq"""BA00010000 B7A8B7A8B7A8 6060"""){
-				new CborObjectBuilder().apply(hexSeq"""B9FFFF B7A8B7A8B7A8 """, "", "")
+			assertResult(Right(hexSeq"""BA00010000 B7A8B7A8B7A8 6060""")){
+				new CborObjectBuilder().apply(hexSeq"""B9FFFF B7A8B7A8B7A8""", CborValue(""), CborValue(""), new IdentityParser[CborValue,CborValue])
 			}
 		}
 		it ("Appends a 1000001th value") {
-			assertResult(hexSeq"""Ba000f4241 B7A8B7A8B7A8 6060"""){
-				new CborObjectBuilder().apply(hexSeq"""Ba000f4240 B7A8B7A8B7A8 """, "", "")
-			}
-		}
-		it ("childBuilder returns MapBuilder") {
-			val builder = new CborObjectBuilder()
-			
-			assert{builder.childBuilder("").isInstanceOf[MapBuilder]}
-		}
-		it ("resultType returns constructor parameter `clazz`") {
-			assertResult(classOf[Seq[Byte]]){
-				new CborObjectBuilder().resultType
+			assertResult(Right(hexSeq"""Ba000f4241 B7A8B7A8B7A8 6060""")){
+				new CborObjectBuilder().apply(hexSeq"""Ba000f4240 B7A8B7A8B7A8""", CborValue(""), CborValue(""), new IdentityParser[CborValue,CborValue])
 			}
 		}
 	}
 	
 	describe("CborObjectBuilder integration") {
-		import com.rayrobdod.json.parser.{JsonParser, CborParser}
+		import com.rayrobdod.json.parser.{JsonParser, CborParser, CaseClassParser}
 		
 		it ("CborObjectBuilder + JsonParser + primitive") {
 			assertResult(hexSeq"A3 6161 183D 6162 183E 6163 183F"){
-				new JsonParser(new CborObjectBuilder).parse(
+				new JsonParser().parse(
+					new CborObjectBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""{"a":61,"b":62,"c":63}"""
-				)
+				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}
 		}
 		it ("CborObjectBuilder + JsonParser + nested objects") {
 			assertResult(hexSeq"A1 60 A2 616100 616201"){
-				new JsonParser(new CborObjectBuilder).parse(
+				new JsonParser().parse(
+					new CborObjectBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""{"":{"a":0,"b":1}}"""
-				)
+				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}
 		}
 		it ("CborObjectBuilder + CborParser + primitive key") {
-			assertResult(hexSeq"A1613405"){
-				new CborParser(new CborObjectBuilder).parse(
+			assertResult(hexSeq"A10405"){
+				new CborParser().parse(
+					new CborObjectBuilder().mapValue[CborValue],
 					byteArray2DataInput(
 							hexArray"A10405"
 					)
-				)
+				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}
 		}
 		it ("CborObjectBuilder + CborParser + primitives") {
 			assertResult(hexSeq"A162202005"){
-				new CborParser(new CborObjectBuilder).parse(
+				new CborParser().parse(
+					new CborObjectBuilder().mapValue[CborValue],
 					byteArray2DataInput(
 							hexArray"A162202005"
 					)
-				)
+				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
+			}
+		}
+		it ("CborObjectBuilder + CaseClassParser") {
+			assertResult(hexSeq"A3 6161 05 6162 f4 6163 63737472"){
+				new CaseClassParser[Abc]().parse(
+					new CborObjectBuilder().mapKey[String].mapValue[Any]{CborValue.unsafeWrap _},
+					Abc(5,false,"str")
+				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}
 		}
 	}

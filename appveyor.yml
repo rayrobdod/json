@@ -28,12 +28,12 @@ environment:
   - SCALA_VERSION: 2.10.6
     JAVA_HOME: C:\Program Files (x86)\Java\jdk1.7.0
     SBT_CROSS_TARGET: scala-2.10
-  - SCALA_VERSION: 2.11.7
+  - SCALA_VERSION: 2.11.8
     JAVA_HOME: C:\Program Files (x86)\Java\jdk1.7.0
     SBT_CROSS_TARGET: scala-2.11
-  - SCALA_VERSION: 2.12.0-M3
+  - SCALA_VERSION: 2.12.0-M4
     JAVA_HOME: C:\Program Files (x86)\Java\jdk1.8.0
-    SBT_CROSS_TARGET: scala-2.12.0-M3
+    SBT_CROSS_TARGET: scala-2.12.0-M4
 build_script:
   - '%SBT_CMD% "set scalacOptions in doc in Compile ++= Seq(""-diagrams-dot-path"", ""C:/graphviz/release/bin/dot.exe"")" "set publishTo := Some(Resolver.file(""file"", baseDirectory.value / ""publish""))" ++%SCALA_VERSION% compile publish'
 test_script:

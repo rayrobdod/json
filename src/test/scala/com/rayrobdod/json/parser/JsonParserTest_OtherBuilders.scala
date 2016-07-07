@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -27,14 +27,18 @@
 package com.rayrobdod.json.parser;
 
 import java.text.ParseException;
+import scala.util.{Left, Right}
+import scala.util.{Try, Success, Failure}
 import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
-import com.rayrobdod.json.builder.Builder;
+import com.rayrobdod.json.builder.{Builder, ThrowBuilder}
+import com.rayrobdod.json.union.StringOrInt
+import com.rayrobdod.json.union.JsonValue
+import com.rayrobdod.json.union.ParserRetVal
 
 class JsonParserTest_OtherBuilders extends FunSpec {
 	describe("JsonParser with other builders") {
 		it ("works") {
-		
 			case class Name(given:String, middle:String, family:String)
 			case class Person(n:Name, gender:String, isDead:Boolean, interests:Set[String])
 			
@@ -49,44 +53,42 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 					"interests":["bowling", "tennis", "programming", "twitch plays pokémon"]
 			}"""
 			
-			object SetBuilder extends Builder[Set[String]] {
+			object SetBuilder extends Builder[StringOrInt, JsonValue, Set[String]] {
 				def init:Set[String] = Set.empty
-				def apply(folding:Set[String], key:String, value:Any):Set[String] = {
-					folding + value.toString
+				def apply[Input](folding:Set[String], key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Set[String]] = {
+					val inputVal = parser.parse(new ThrowBuilder, input)
+					val inputStr = inputVal match {case ParserRetVal.Primitive(JsonValue.JsonValueString(s)) => s; case _ => "????????"}
+					Right(folding + inputStr)
 				}
-				def childBuilder(key:String):Builder[Set[String]] = this
-				override val resultType:Class[Set[String]] = classOf[Set[String]]
 			}
 			
-			object NameBuilder extends Builder[Name] {
-				def init:Name = Name("", "", "")
-				def apply(folding:Name, key:String, value:Any):Name = key match {
-					case "given" => folding.copy(given = value.toString)
-					case "middle" => folding.copy(middle = value.toString)
-					case "family" => folding.copy(family = value.toString)
-					case _ => throw new ParseException("Unexpected key: " + key, -1)
+			object NameBuilder extends Builder[StringOrInt, JsonValue, Name] {
+				override def init:Name = Name("", "", "")
+				override def apply[Input](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Name] = {
+					// we only expect strings, so might as well parse the value at the beginning
+					parser.parsePrimitive(input).right.flatMap{value:JsonValue =>
+						((key, value)) match {
+							case ((StringOrInt.Left("given"), JsonValue.JsonValueString(x))) => Right(folding.copy(given = x))
+							case ((StringOrInt.Left("middle"), JsonValue.JsonValueString(x))) => Right(folding.copy(middle = x))
+							case ((StringOrInt.Left("family"), JsonValue.JsonValueString(x))) => Right(folding.copy(family = x))
+							case x => Left("NameBuilder: Unexpected key/value: " + x, 0)
+						}
+					}
 				}
-				def childBuilder(key:String):Builder[_] = SetBuilder
-				override val resultType:Class[Name] = classOf[Name]
 			}
 			
-			object PersonBuilder extends Builder[Person] {
+			object PersonBuilder extends Builder[StringOrInt, JsonValue, Person] {
 				def init:Person = Person(Name("", "", ""), "", false, Set.empty)
-				def apply(folding:Person, key:String, value:Any):Person = key match {
-					case "name" => folding.copy(n = value.asInstanceOf[Name])
-					case "gender" => folding.copy(gender = value.toString)
-					case "isDead" => folding.copy(isDead = (value == true))
-					case "interests" => folding.copy(interests = value.asInstanceOf[Set[String]])
-					case _ => throw new ParseException("Unexpected key: " + key, -1)
+				def apply[Input](folding:Person, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Person] = key match {
+					case StringOrInt.Left("name") => Right(folding.copy(n = parser.parse(NameBuilder, input) match {case ParserRetVal.Complex(x) => x; case _ => new Name("","","")}))
+					case StringOrInt.Left("gender") => Right(folding.copy(gender = parser.parse(new ThrowBuilder, input) match {case ParserRetVal.Primitive(JsonValue.JsonValueString(s)) => s; case _ => "????????"}))
+					case StringOrInt.Left("isDead") => Right(folding.copy(isDead = parser.parse(new ThrowBuilder, input) match {case ParserRetVal.Primitive(JsonValue.JsonValueBoolean(s)) => s; case _ => false}))
+					case StringOrInt.Left("interests") => Right(folding.copy(interests = parser.parse(SetBuilder, input).fold({x => x}, {x => Set.empty}, {(a,b) => Set.empty})))
+					case _ => Left("Unexpected key: " + key, 0)
 				}
-				def childBuilder(key:String):Builder[_] = key match {
-					case "name" => NameBuilder
-					case _ => SetBuilder
-				}
-				override val resultType:Class[Person] = classOf[Person]
 			}
 			
-			val result:Person = new JsonParser(PersonBuilder).parse(json)
+			val result:Person = new JsonParser().parse(PersonBuilder, json).fold({x => x}, {x => x}, {(s,i) => Person(Name("", "", ""), "", false, Set.empty)})
 			val expected = Person(
 				Name( "Raymond", "Robert", "Dodge"),
 				"male",

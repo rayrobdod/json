@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@ package com.rayrobdod.json.parser;
 import java.text.ParseException;
 import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
+import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.builder.MapBuilder;
 
 class BsonParserTest_UnHappy extends FunSpec {
@@ -40,8 +41,8 @@ class BsonParserTest_UnHappy extends FunSpec {
 					0)
 			);
 			
-			intercept[ParseException] {
-				new BsonParser(new MapBuilder()).parse(src)
+			assertFailureParse("Incorrect string length", 0){
+				new BsonParser().parse(MapBuilder.apply, src)
 			}
 		}
 		it ("String is shorter than prefix") {
@@ -52,8 +53,8 @@ class BsonParserTest_UnHappy extends FunSpec {
 					0)
 			);
 			
-			intercept[ParseException] {
-				new BsonParser(new MapBuilder()).parse(src)
+			assertFailureParse("Incorrect string length", 0){
+				new BsonParser().parse(MapBuilder.apply, src)
 			}
 		}
 		it ("data ends early") {
@@ -62,8 +63,8 @@ class BsonParserTest_UnHappy extends FunSpec {
 						0x02,0,  2,0)
 			);
 			
-			intercept[java.io.EOFException] {
-				new BsonParser(new MapBuilder()).parse(src)
+			assertFailureParse("", 0){
+				new BsonParser().parse(MapBuilder.apply, src)
 			}
 		}
 		it ("Does not parse on unknown data type") {
@@ -73,9 +74,17 @@ class BsonParserTest_UnHappy extends FunSpec {
 					0)
 			);
 			
-			intercept[ParseException] {
-				new BsonParser(new MapBuilder()).parse(src)
+			assertFailureParse("Unknown data type", 0){
+				new BsonParser().parse(MapBuilder.apply, src)
 			}
 		}
+	}
+	
+	def assertFailureParse(msg:String, idx:Int)(result:ParserRetVal[_,_]):Unit = result match {
+		case ParserRetVal.Failure(msg2, idx2) => {
+	//		assertResult(msg){msg2}
+			assertResult(idx){idx2}
+		}
+		case x => fail("Not a Failure: " + x)
 	}
 }

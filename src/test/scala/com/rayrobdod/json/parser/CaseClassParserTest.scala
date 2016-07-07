@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,8 @@ import org.scalatest.FunSpec
 import java.text.ParseException
 import scala.collection.immutable.Map
 import com.rayrobdod.json.builder.{MapBuilder, CaseClassBuilder, MinifiedJsonObjectBuilder}
+import com.rayrobdod.json.union.StringOrInt
+import com.rayrobdod.json.union.JsonValue
 
 class CaseClassParserTest extends FunSpec {
 	private implicit def fooClass = classOf[Foo]
@@ -39,16 +41,16 @@ class CaseClassParserTest extends FunSpec {
 		it ("""recreates an arbitrary case class""") {
 			val exp = Map("hello" -> 43L, "world" -> "world", "bazz" -> true)
 			val src = Foo(43L, "world", true)
-			val res = new CaseClassParser(new MapBuilder()).parse(src)
+			val res = new CaseClassParser().parse(MapBuilder.apply, src).fold({x => x}, {x => x}, {(s,i) => Foo(i, s, false)})
 			
-			assertResult(exp){res}
+			assertResult(exp.mapValues{x => Right(x)}){res}
 		}
 	}
 	describe("CaseClassParser + Json") {
-		it ("""can be used with the json stuff to serialze and deserialize a map""") {
+		it ("""can be used with the json stuff to serialze and deserialize a case class""") {
 			val src = Foo(-5, "asdf", true)
-			val json = new CaseClassParser(new MinifiedJsonObjectBuilder()).parse(src)
-			val res = new JsonParser(new CaseClassBuilder(Foo(0,"",false))).parse(json)
+			val json = new CaseClassParser().parse(new MinifiedJsonObjectBuilder().mapKey[String].mapValue[Any]{JsonValue.unsafeWrap _}, src).fold({x => x}, {x => x}, {(s,i) => "{}"})
+			val res = new JsonParser().parse(new CaseClassBuilder(Foo(0,"",false)).mapKey[StringOrInt]{StringOrInt.unwrapToString _}.mapValue[JsonValue]{JsonValue.unwrap}, json).fold({x => x}, {x => x}, {(s,i) => Foo(i, s, false)})
 			
 			assertResult(src){res}
 		}

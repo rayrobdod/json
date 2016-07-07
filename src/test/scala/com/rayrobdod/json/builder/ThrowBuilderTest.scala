@@ -27,61 +27,27 @@
 package com.rayrobdod.json.builder;
 
 import java.text.ParseException;
-import scala.beans.BeanProperty;
 import scala.collection.immutable.Map;
-import scala.util.{Either, Left, Right}
 import org.scalatest.FunSpec;
-import com.rayrobdod.json.parser.IdentityParser
-import com.rayrobdod.json.union.{StringOrInt, JsonValue}
+import com.rayrobdod.json.parser.{IdentityParser, SeqParser, MapParser}
+import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter};
 
-class BeanBuilderTest extends FunSpec {
-	import BeanBuilderTest.Person;
+class ThrowBuilderTest extends FunSpec {
 	
-	describe("BeanBuilder") {
-		it ("inits correctly") {
-			assertResult(new Person()){
-					new BeanBuilder(classOf[Person]).init
-			}
-		}
-		it ("Can handle the name bean property") {
-			val name = "Anony Mouse"
-			assertResult(Right(new Person(name, 0))){
-				new BeanBuilder(classOf[Person]).apply(new Person(), "name", name, new IdentityParser[String,Object])
-			}
-		}
-		it ("Can handle the age bean property") {
-			val age = 9001L
-			assertResult(Right(new Person("", age))){
-				new BeanBuilder(classOf[Person]).apply(new Person(), "age", age, new IdentityParser[String,Any])
-			}
-		}
-		it ("Throws excpetion on incorrect type") {
-			val age = "9001"
-			assertResult(Left(("com.rayrobdod.json.builder.BeanBuilderTest$Person::setAge with parameter java.lang.String", 0))){
-				new BeanBuilder(classOf[Person]).apply(new Person(), "age", age, new IdentityParser[String,Any])
+	describe("ThrowBuilder") {
+		ignore ("Returns a failure on apply regardless of inputs") {
+			assertFailure{
+				new ThrowBuilder().apply("a", null, null, null)
 			}
 		}
 	}
 	
-	describe("BeanBuilder + JsonParser") {
-		import com.rayrobdod.json.parser.JsonParser
-		
-		it ("works") {
-			assertResult(Person("nqpppnl",1)){
-				new JsonParser().parse(new BeanBuilder[JsonValue, Person](classOf[Person]).mapKey[StringOrInt]{StringOrInt.unwrapToString},
-					"""{"name":"nqpppnl","age":1}"""
-				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
-			}
+	
+	
+	def assertFailure[T](result:Either[_,_]):Unit = result match {
+		case Left(x) => {
+			// WOO!
 		}
-	}
-}
-
-
-object BeanBuilderTest {
-	case class Person(
-			@BeanProperty var name:String,
-			@BeanProperty var age:java.lang.Long
-	) {
-		def this() = this("", 0)
+		case x => fail("Not a Failure: " + x)
 	}
 }

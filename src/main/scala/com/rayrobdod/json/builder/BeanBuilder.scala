@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,7 @@
 package com.rayrobdod.json.builder;
 
 import java.lang.reflect.Method
+import com.rayrobdod.json.parser.Parser
 
 /** A builder that builds a JavaBean
  * 
@@ -34,13 +35,18 @@ import java.lang.reflect.Method
  * to have a zero-argument constructor and will interact with methods
  * of the form `setX`.
  * 
+ * @version next
+ * @tparam Value the parser's primitive values
  * @tparam A the type of object to build
  * @constructor
  * Creates a BeanBuilder
  * @param clazz the class of the objects to build
- * @param childBuilders a map used directly by childBuilder
+ * @param childBuilders a map of keys to builders of non-primitive bean values
  */
-final class BeanBuilder[A](clazz:Class[A], childBuilders:Function1[String, Builder[_]] = Map.empty) extends Builder[A] {
+final class BeanBuilder[Value, A](
+			clazz:Class[A],
+			childBuilders:Function1[String, Option[Builder[String, Value, _]]] = Map.empty.lift
+) extends Builder[String, Value, A] {
 	/**
 	 * Creates an instance of clazz by calling the class's No Argument constructor.
 	 */
@@ -53,18 +59,33 @@ final class BeanBuilder[A](clazz:Class[A], childBuilders:Function1[String, Build
 	 * @return the input parameter `folding`
 	 * @todo maybe check for other primitive numeric types - IE a `setVal(Short)` when handed a `Long` or visa versa
 	 */
-	def apply(folding:A, key:String, value:Any):A = {
-		val m = clazz.getMethod("set" + key.head.toUpper + key.tail, value.getClass)
-		m.invoke(folding, value.asInstanceOf[Object])
-		// the above line should have mutated `folding`.
-		folding
+	def apply[Input](folding:A, key:String, input:Input, parser:Parser[String, Value, Input]):Either[(String, Int), A] = {
+		val builder = childBuilders(key).getOrElse(new ThrowBuilder())
+		
+		// unwrap union values
+		parser.parse(builder, input).fold({x => Right(x)},{x => Right(x)},{(msg,idx) => Left((msg,idx))}).right.flatMap{a =>
+			val value = {
+				a match {
+					case com.rayrobdod.json.union.StringOrInt.Left(x) => x
+					case com.rayrobdod.json.union.StringOrInt.Right(x) => x
+					case x:com.rayrobdod.json.union.JsonValue => com.rayrobdod.json.union.JsonValue.unwrap(x)
+					case x => x
+				}
+			}
+			
+			try {
+				val m = clazz.getMethods.filter{_.getName == ("set" + key.head.toUpper + key.tail)}.head
+				val newValue = value match {
+					case y:scala.math.BigDecimal if m.getParameterTypes.apply(0) == classOf[java.lang.Long] => y.longValue
+					case y if m.getParameterTypes.apply(0) == y.getClass => y
+					case y => throw new NoSuchMethodException(clazz.getName + "::set" + key.head.toUpper + key.tail + " with parameter " + y.getClass.getName)
+				}
+				m.invoke(folding, newValue.asInstanceOf[Object])
+				// the above line should have mutated `folding`.
+				Right(folding)
+			} catch {
+				case ex:NoSuchMethodException => Left(ex.getMessage(), 0)
+			}
+		}
 	}
-	
-	/**
-	 * Applies the key to the constructor parameter `childBuilders`
-	 */
-	def childBuilder(key:String):Builder[_] = childBuilders(key)
-	
-	/** Returns the constructor parameter `clazz` */
-	val resultType:Class[A] = clazz
 }

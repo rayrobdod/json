@@ -9,7 +9,7 @@
  <check level="warning" class="org.scalastyle.file.HeaderMatchesChecker" enabled="true">
   <parameters>
    <parameter name="header"><![CDATA[/*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -87,7 +87,7 @@
  <check level="warning" class="org.scalastyle.scalariform.StructuralTypeChecker" enabled="true"></check>
  <check level="warning" class="org.scalastyle.file.RegexChecker" enabled="true">
   <parameters>
-   <parameter name="regex"><![CDATA[println]]></parameter>
+   <parameter name="regex"><![CDATA[println,throw]]></parameter>
   </parameters>
  </check>
  <check level="warning" class="org.scalastyle.scalariform.NumberOfTypesChecker" enabled="true">
@@ -132,4 +132,9 @@
  <check level="warning" class="org.scalastyle.file.NewLineAtEofChecker" enabled="true"></check>
  <check level="warning" class="org.scalastyle.file.NoNewLineAtEofChecker" enabled="false"></check>
  <check level="warning" class="org.scalastyle.scalariform.XmlLiteralChecker" enabled="true" />
+ <check level="warning" class="org.scalastyle.scalariform.TodoCommentChecker" enabled="true">
+  <parameters>
+   <parameter type="string" name="words">TODO|FIXME</parameter>
+  </parameters>
+ </check>
 </scalastyle>

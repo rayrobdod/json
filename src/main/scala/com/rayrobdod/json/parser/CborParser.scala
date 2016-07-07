@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -31,155 +31,207 @@ import java.text.ParseException
 import java.nio.charset.StandardCharsets.UTF_8;
 import scala.collection.immutable.{Seq, Map, Stack}
 import com.rayrobdod.json.builder._
+import com.rayrobdod.json.union.CborValue
+import com.rayrobdod.json.union.ParserRetVal
 
 /**
- * A parser that will decode cbor data
+ * A parser that will decode cbor data.
  * 
- * == Primitive types ==
+ * This cannot handle complex values in map keys.
  * 
- - null
- - java.lang.Long
- - Array[Byte]
- - java.lang.String
- - java.lang.Boolean
- - java.lang.Float
- - java.lang.Double
- * 
+ * @version next
  * @see [[http://tools.ietf.org/html/rfc7049]]
  * 
  * @constructor
  * Creates a CborParser instance.
- * @param topBuilder the builder that this parser will use when constructing objects
  */
-final class CborParser[A](topBuilder:Builder[A]) {
+final class CborParser extends Parser[CborValue, CborValue, DataInput] {
 	import CborParser._
+	
+	override def parse[ComplexOutput](builder:Builder[CborValue, CborValue, ComplexOutput], i:DataInput):ParserRetVal[ComplexOutput, CborValue] = {
+		import ParserRetVal.{Primitive, Complex, Failure}
+		val a = this.parseDetailed[ComplexOutput](builder, i)
+		a match {
+			case ParseReturnValueSimple(x:CborValue) => Primitive(x)
+			case ParseReturnValueComplex(x) => Complex(x)
+			case ParseReturnValueFailure(msg, idx) => Failure(msg, idx)
+			case _ => Failure("Not a public value", 0)
+		}
+	}
+	
 	
 	/**
 	 * Decodes the input values to an object.
 	 */
-	def parse(input:DataInput):Any = {
+	def parseDetailed[A](topBuilder:Builder[CborValue, CborValue, A], input:DataInput):ParseReturnValue[A] = {
 		val headerByte:Byte = input.readByte();
 		val majorType = (headerByte >> 5) & 0x07
 		val additionalInfo = headerByte & 0x1F
-		val additionalInfoData:AdditionalInfoData = additionalInfo match {
-			case x if (x <= 23) => { AdditionalInfoDeterminate(x) }
-			case 24 => { AdditionalInfoDeterminate(input.readUnsignedByte()) }
-			case 25 => { AdditionalInfoDeterminate(input.readUnsignedShort()) }
-			case 26 => { AdditionalInfoDeterminate(input.readInt()) } //todo unsigned int
-			case 27 => { AdditionalInfoDeterminate(input.readLong()) } // todo unsigned long (?)
-			case 31 => { AdditionalInfoIndeterminate() }
-			case _  => {throw new ParseException("Illegal `additionalInfo` field", -1)}
+		val additionalInfoDataTry = additionalInfo match {
+			case x if (x <= 23) => { Right(AdditionalInfoDeterminate(x)) }
+			case 24 => { Right(AdditionalInfoDeterminate(input.readUnsignedByte())) }
+			case 25 => { Right(AdditionalInfoDeterminate(input.readUnsignedShort())) }
+			case 26 => { Right(AdditionalInfoDeterminate(input.readInt())) } //todo unsigned int
+			case 27 => { Right(AdditionalInfoDeterminate(input.readLong())) } // todo unsigned long (?)
+			case 31 => { Right(AdditionalInfoIndeterminate()) }
+			case _  => { Left("Illegal `additionalInfo` field", 0) }
 		}
 		
-		majorType match {
-			// positive integer
-			case MajorTypeCodes.POSITIVE_INT => additionalInfoData.value
-			// negative integer
-			case MajorTypeCodes.NEGATIVE_INT => -1 - additionalInfoData.value
-			// byte string
-			case MajorTypeCodes.BYTE_ARRAY => parseByteString(input, additionalInfoData)
-			// text string
-			case MajorTypeCodes.STRING => new String(parseByteString(input, additionalInfoData), UTF_8)
-			// array/list
-			case MajorTypeCodes.ARRAY => parseArray(topBuilder, input, additionalInfoData)
-			// map
-			case MajorTypeCodes.OBJECT => parseObject(topBuilder, input, additionalInfoData)
-			// tags
-			case MajorTypeCodes.TAG => {
-				new TaggedValue(additionalInfoData.value, this.parse(input))
-			}
-			// floats/simple
-			case MajorTypeCodes.SPECIAL => additionalInfo match {
-				case SimpleValueCodes.FALSE => false
-				case SimpleValueCodes.TRUE  => true
-				case SimpleValueCodes.NULL => null
-				case SimpleValueCodes.HALF_FLOAT => throw new UnsupportedOperationException("Half float")
-				case SimpleValueCodes.FLOAT => java.lang.Float.intBitsToFloat(additionalInfoData.value.intValue)
-				case SimpleValueCodes.DOUBLE => java.lang.Double.longBitsToDouble(additionalInfoData.value.longValue)
-				case SimpleValueCodes.END_OF_LIST => EndOfIndeterminateObject()
-				case _  => UnknownSimpleValue(additionalInfoData.value.byteValue)
-			}
-			case _ => throw new AssertionError("majorType was greater than 7")
-		}
-	}
-	
-	private[this] def parseByteString(input:DataInput, aid:AdditionalInfoData):Array[Byte] = {
-		aid match {
-			case AdditionalInfoIndeterminate() => {
-				val stream = new java.io.ByteArrayOutputStream
-				
-				var next:Any = this.parse(input)
-				while (next != EndOfIndeterminateObject()) {
-					val nextBytes:Array[Byte] = next match {
-						case s:String => s.getBytes(UTF_8)
-						case a:Array[Byte] => a
-						case _ => throw new ClassCastException("Members of indeterminite-length string must be strings")
-					}
-					stream.write(nextBytes)
-					next = this.parse(input)
+		additionalInfoDataTry.fold({x =>
+			new ParseReturnValueFailure(x._1, x._2)
+		}, {additionalInfoData =>
+			majorType match {
+				// positive integer
+				case MajorTypeCodes.POSITIVE_INT => additionalInfoData match {
+					case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(CborValue( value ))
+					case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate integer value", 0)
 				}
-				stream.toByteArray()
+				// negative integer
+				case MajorTypeCodes.NEGATIVE_INT => additionalInfoData match {
+					case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(CborValue( -1 - value ))
+					case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate integer value", 0)
+				}
+				// byte string
+				case MajorTypeCodes.BYTE_ARRAY => parseByteString(input, additionalInfoData) match {
+					case Right(x) => ParseReturnValueSimple(CborValue(x))
+					case Left(x) => ParseReturnValueFailure(x._1, x._2)
+				}
+				// text string
+				case MajorTypeCodes.STRING => parseByteString(input, additionalInfoData) match {
+					case Right(x) => ParseReturnValueSimple(CborValue(new String(x, UTF_8)))
+					case Left(x) => ParseReturnValueFailure(x._1, x._2)
+				}
+				// array/list
+				case MajorTypeCodes.ARRAY => parseArray(topBuilder, input, additionalInfoData) match {
+					case Right(x) => ParseReturnValueComplex(x)
+					case Left(x) => ParseReturnValueFailure(x._1, x._2)
+				}
+				// map
+				case MajorTypeCodes.OBJECT => parseObject(topBuilder, input, additionalInfoData) match {
+					case Right(x) => ParseReturnValueComplex(x)
+					case Left(x) => ParseReturnValueFailure(x._1, x._2)
+				}
+				// tags
+				case MajorTypeCodes.TAG => additionalInfoData match {
+					case AdditionalInfoDeterminate(value) => new ParseReturnValueTaggedValue(value, this.parseDetailed(topBuilder, input))
+					case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate tag value", 0)
+				}
+				// floats/simple
+				case MajorTypeCodes.SPECIAL => additionalInfo match {
+					case SimpleValueCodes.FALSE => ParseReturnValueSimple(CborValue( false ))
+					case SimpleValueCodes.TRUE  => ParseReturnValueSimple(CborValue( true ))
+					case SimpleValueCodes.NULL => ParseReturnValueSimple(CborValue.CborValueNull)
+					case SimpleValueCodes.HALF_FLOAT => ParseReturnValueFailure("Half float", 0)
+					case SimpleValueCodes.FLOAT => additionalInfoData match {
+						case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(CborValue( java.lang.Float.intBitsToFloat(value.intValue)))
+						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate tag value", 0)
+					}
+					case SimpleValueCodes.DOUBLE => additionalInfoData match {
+						case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(CborValue( java.lang.Double.longBitsToDouble(value.longValue)))
+						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate tag value", 0)
+					}
+					case SimpleValueCodes.END_OF_LIST => new ParseReturnValueEndOfIndeterminateObject
+					case _  => additionalInfoData match {
+						case AdditionalInfoDeterminate(value) => ParseReturnValueUnknownSimple(value.byteValue)
+						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate tag value", 0)
+					}
+				}
+				case _ => ParseReturnValueFailure("majorType was greater than 7", 0)
 			}
-			case AdditionalInfoDeterminate(len:Long) => {
-				val bytes = new Array[Byte](len.intValue)
-				input.readFully(bytes)
-				bytes
+		})
+	}
+	
+	private[this] def parseByteString(input:DataInput, aid:AdditionalInfoData):Either[(String, Int), Array[Byte]] = {
+		class WrongStringTypeException(msg:String) extends Exception(msg)
+		
+		try {
+			aid match {
+				case AdditionalInfoIndeterminate() => {
+					val stream = new java.io.ByteArrayOutputStream
+					
+					var next:Any = this.parseDetailed(new PrimitiveSeqBuilder, input)
+					while (next != ParseReturnValueEndOfIndeterminateObject()) {
+						val nextBytes:Array[Byte] = next match {
+							case ParseReturnValueSimple(CborValue.CborValueString(s:String)) => s.getBytes(UTF_8)
+							case ParseReturnValueSimple(CborValue.CborValueByteStr(a:Array[Byte])) => a
+							case _ => throw new WrongStringTypeException("Members of indeterminite-length string must be strings")
+						}
+						stream.write(nextBytes)
+						next = this.parseDetailed(new PrimitiveSeqBuilder, input)
+					}
+					Right(stream.toByteArray())
+				}
+				case AdditionalInfoDeterminate(len:Long) => {
+					val bytes = new Array[Byte](len.intValue)
+					input.readFully(bytes)
+					Right(bytes)
+				}
 			}
+		} catch {
+			case ex:java.io.IOException => Left(ex.getMessage(), 0)
+			case ex:WrongStringTypeException => Left(ex.getMessage(), 0)
 		}
 	}
 	
-	private[this] def parseArray(topBuilder:Builder[A], input:DataInput, aid:AdditionalInfoData):A = {
-		var retVal:A = topBuilder.init
+	private[this] def parseArray[A](topBuilder:Builder[CborValue, CborValue, A], input:DataInput, aid:AdditionalInfoData):Either[(String, Int), A] = {
+		var retVal:Either[(String, Int), A] = Right(topBuilder.init)
 		
 		aid match {
 			case AdditionalInfoDeterminate(len:Long) => {
 				(0 until len.intValue).foreach{index =>
-					val childParser = new CborParser(topBuilder.childBuilder(index.toString))
-					val childObject = childParser.parse(input)
-					retVal = topBuilder.apply(retVal, index.toString, childObject)
+					retVal = retVal.right.flatMap{x => topBuilder.apply[DataInput](x, CborValue(index), input, this)}
 				}
 			}
 			case AdditionalInfoIndeterminate() => {
 				var index:Int = 0
-				var childObject:Any = ""
-				while (childObject != EndOfIndeterminateObject()) {
-					val childParser = new CborParser(topBuilder.childBuilder(index.toString))
-					childObject = childParser.parse(input)
+				var childObject:ParseReturnValue[Seq[Byte]] = ParseReturnValueUnknownSimple(0)
+				while (childObject != ParseReturnValueEndOfIndeterminateObject()) {
+					childObject = this.parseDetailed(new CborBuilder(true), input)
 					
-					if (childObject != EndOfIndeterminateObject()) {
-						retVal = topBuilder.apply(retVal, index.toString, childObject)
-						index = index + 1
+					childObject match {
+						case ParseReturnValueEndOfIndeterminateObject() => {}
+						case ParseReturnValueSimple(x) => {
+							retVal = retVal.right.flatMap{y => topBuilder.apply[CborValue](y, CborValue(index), x, new IdentityParser())}
+						}
+						case ParseReturnValueComplex(x) => {
+							retVal = retVal.right.flatMap{y => topBuilder.apply[DataInput](y, CborValue(index), byteArray2DataInput(x.toArray), this)}
+						}
+						case _ => retVal = Left("Value not public", 0)
 					}
+					index = index + 1
 				}
 			}
 		}
 		retVal
 	}
 	
-	private[this] def parseObject(topBuilder:Builder[A], input:DataInput, aid:AdditionalInfoData):A = {
-		var retVal:A = topBuilder.init
+	private[this] def parseObject[A](topBuilder:Builder[CborValue, CborValue, A], input:DataInput, aid:AdditionalInfoData):Either[(String, Int), A] = {
+		var retVal:Either[(String, Int), A] = Right(topBuilder.init)
 		
 		aid match {
 			case AdditionalInfoDeterminate(len:Long) => {
 				(0 until len.intValue).foreach{index =>
-					val keyParser = new CborParser(topBuilder) // in other words, pray that the key is not an object or array
-					val keyObject = keyParser.parse(input)
-					val childParser = new CborParser(topBuilder.childBuilder(index.toString))
-					val childObject = childParser.parse(input)
-					
-					retVal = topBuilder.apply(retVal, keyObject.toString, childObject)
+					val keyTry:Either[(String, Int), CborValue] = this.parseDetailed(new ThrowBuilder, input) match {
+						case ParseReturnValueSimple(x) => Right(x)
+						case ParseReturnValueFailure(msg,idx) => Left((msg,idx))
+						case _ => Left("Cannot handle non-simple map keys",0)
+					}
+					retVal = {for ( foldingObject <- retVal.right; keyObject <- keyTry.right ) yield {
+						topBuilder.apply[DataInput](foldingObject, keyObject, input, this)
+					}}.right.flatMap{x => x}
 				}
 			}
 			case AdditionalInfoIndeterminate() => {
-				var keyObject:Any = ""
-				while (keyObject != EndOfIndeterminateObject()) {
-					val keyParser = new CborParser(topBuilder) // in other words, pray that the key is not an object or array
-					keyObject = keyParser.parse(input)
-					if (keyObject != EndOfIndeterminateObject()) {
-						val childParser = new CborParser(topBuilder.childBuilder(keyObject.toString))
-						val childObject = childParser.parse(input)
-						
-						retVal = topBuilder.apply(retVal, keyObject.toString, childObject)
+				var keyObject:ParseReturnValue[_] = ParseReturnValueUnknownSimple(0)
+				while (keyObject != ParseReturnValueEndOfIndeterminateObject()) {
+					keyObject = this.parseDetailed(new ThrowBuilder, input)
+					keyObject match {
+						case ParseReturnValueEndOfIndeterminateObject() => {}
+						case ParseReturnValueSimple(x) => {
+							retVal = retVal.right.flatMap{y => topBuilder.apply[DataInput](y, x, input, this)}
+						}
+						case ParseReturnValueFailure(msg,idx) => retVal = Left((msg,idx))
+						case _ => retVal = Left("Cannot handle non-simple map keys",0)
 					}
 				}
 			}
@@ -190,27 +242,30 @@ final class CborParser[A](topBuilder:Builder[A]) {
 
 /**
  * Objects related to Cbor's data model
+ * @version next
  */
 object CborParser {
-	private abstract sealed class AdditionalInfoData {
-		def value:Long
-	}
-	private final case class AdditionalInfoDeterminate(override val value:Long) extends AdditionalInfoData {
-		
-	}
-	private final case class AdditionalInfoIndeterminate() extends AdditionalInfoData {
-		override def value:Nothing = throw new UnsupportedOperationException
-	}
 	
+	/** The 'length' value provided in an item's header */
+	private sealed trait AdditionalInfoData
+	private final case class AdditionalInfoDeterminate(val value:Long) extends AdditionalInfoData
+	private final case class AdditionalInfoIndeterminate() extends AdditionalInfoData
+	
+	/** Possible return values of [[CborParser#parseDetailed]] */
+	sealed trait ParseReturnValue[+A]
+	final case class ParseReturnValueSimple(x:CborValue) extends ParseReturnValue[Nothing]
+	final case class ParseReturnValueComplex[A](a:A) extends ParseReturnValue[A]
 	/**
 	 * The marker of the end of an indeterminate value. Represented as (0xFF).
 	 * Unless you're trying to see this value, you shouldn't see this value.
 	 */
-	final case class EndOfIndeterminateObject()
-	/** A simple value other than the known ones */
-	final case class UnknownSimpleValue(value:Byte)
+	final case class ParseReturnValueEndOfIndeterminateObject() extends ParseReturnValue[Nothing]
 	/** A tagged value */
-	final case class TaggedValue(tag:Long, item:Any)
+	final case class ParseReturnValueTaggedValue[A](tag:Long, x:ParseReturnValue[A]) extends ParseReturnValue[A]
+	/** A simple value other than the known ones */
+	final case class ParseReturnValueUnknownSimple(value:Byte) extends ParseReturnValue[Nothing]
+	final case class ParseReturnValueFailure(msg:String, idx:Int) extends ParseReturnValue[Nothing]
+	
 	
 	/**
 	 * The CBOR major types.
@@ -240,4 +295,5 @@ object CborParser {
 		val DOUBLE:Byte = 27
 		val END_OF_LIST:Byte = 31
 	}
+	
 }

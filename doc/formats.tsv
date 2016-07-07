@@ -1,0 +1,12 @@
+name	populatity	stable?	goal	url
+json	dominant	yes	original flavor	http://json.org/
+bson	low?	maybe?	database	http://bsonspec.org/
+cbor	low?	yes	small files; small parser	http://tools.ietf.org/html/rfc7049
+yaml	very high	sure	more readable json	http://yaml.org/
+ber-asn1	nope	it's old enough	???	https://en.wikipedia.org/wiki/X.690#BER_encoding
+toml	nope	nope	simple specification	https://github.com/toml-lang/toml
+inison	nope	nope	toml w/ tags	https://github.com/INISON/inison
+oli	nope	nope	???	https://oli-lang.github.io/#/
+ini	very high	"documented"	something-windows?	nope
+MessagePack	low?	maybe?	small files	http://msgpack.org/
+treeml	nope	maybe?	simpler yaml	http://www.java-gaming.org/topics/treeml-markup-language/37462/view.html

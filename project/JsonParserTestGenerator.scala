@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -30,71 +30,72 @@ import java.nio.charset.StandardCharsets.UTF_8
 
 object JsonParserTestGenerator {
 	
-	private val testValues:Seq[(String, String, String)] = Seq(
-		("empty array", """[]""", "Map.empty"),
-		("empty array with before whitespace", """  []""", "Map.empty"),
-		("empty array with before byteordermark", """\ufeff[]""", "Map.empty"),
-		("empty array with middle whitespace", """[  ]""", "Map.empty"),
-		("empty array with ending whitespace", """[]  """, "Map.empty"),
-		("empty object", """{}""", "Map.empty"),
-		("empty object with before byteordermark", """\ufeff{}""", "Map.empty"),
-		("empty object with before whitespace", """  {}""", "Map.empty"),
-		("empty object with middle whitespace", """{  }""", "Map.empty"),
-		("empty object with ending whitespace", """{}  """, "Map.empty"),
+	private val testValues:Seq[(String, String, String, Int)] = Seq(
+		("empty array", """[]""", "Map.empty", 0),
+		("empty array with before whitespace", """  []""", "Map.empty", 0),
+		("empty array with before byteordermark", """\ufeff[]""", "Map.empty", 0),
+		("empty array with middle whitespace", """[  ]""", "Map.empty", 0),
+		("empty array with ending whitespace", """[]  """, "Map.empty", 0),
+		("empty object", """{}""", "Map.empty", 0),
+		("empty object with before byteordermark", """\ufeff{}""", "Map.empty", 0),
+		("empty object with before whitespace", """  {}""", "Map.empty", 0),
+		("empty object with middle whitespace", """{  }""", "Map.empty", 0),
+		("empty object with ending whitespace", """{}  """, "Map.empty", 0),
 		
-		("array containing empty string", """[""]""", """Map("0" -> "")"""),
-		("array containing single char string", """["1"]""", """Map("0" -> "1")"""),
-		("array containing multi char string", """["abcde"]""", """Map("0" -> "abcde")"""),
-		("array containing multiple strings", """["a","b","c"]""", """Map("0" -> "a", "1" -> "b", "2" -> "c")"""),
+		("array containing empty string", """[""]""", """Map(SIRight(0) -> Right(JsonValue("")))""", 0),
+		("array containing single char string", """["1"]""", """Map(SIRight(0) -> Right(JsonValue("1")))""", 0),
+		("array containing multi char string", """["abcde"]""", """Map(SIRight(0) -> Right(JsonValue("abcde")))""", 0),
+		("array containing multiple strings", """["a","b","c"]""", """Map(SIRight(0) -> Right(JsonValue("a")), SIRight(1) -> Right(JsonValue("b")), SIRight(2) -> Right(JsonValue("c")))""", 0),
 		
-		("array containing positive number", """[24601]""", """Map("0" -> 24601)"""),
-		("array containing positive number (whitespace)", """[ 24601 ]""", """Map("0" -> 24601)"""),
-		("array containing zero", """[0]""", """Map("0" -> 0)"""),
-		("array containing negative number", """[-42]""", """Map("0" -> -42)"""),
-		("array containing multiple numbers", """[-1,0,1]""", """Map("0" -> -1, "1" -> 0, "2" -> 1)"""),
+		("array containing positive number", """[24601]""", """Map(SIRight(0) -> Right(JsonValue(24601)))""", 0),
+		("array containing positive number (whitespace)", """[ 24601 ]""", """Map(SIRight(0) -> Right(JsonValue(24601)))""", 0),
+		("array containing zero", """[0]""", """Map(SIRight(0) -> Right(JsonValue(0)))""", 0),
+		("array containing negative number", """[-42]""", """Map(SIRight(0) -> Right(JsonValue(-42)))""", 0),
+		("array containing multiple numbers", """[-1,0,1]""", """Map(SIRight(0) -> Right(JsonValue(-1)), SIRight(1) -> Right(JsonValue(0)), SIRight(2) -> Right(JsonValue(1)))""", 0),
 		
-		("array containing array", """[[[]]]""", """Map("0" -> Map("0" -> Map()))"""),
-		("array containing array (whitespace)", """[ [ [ ] ] ]""", """Map("0" -> Map("0" -> Map()))"""),
-		("array containing array 2", """[[0,1]]""", """Map("0" -> Map("0" -> 0, "1" -> 1))"""),
-		("array containing object", """[{}]""", """Map("0" -> Map())"""),
+		("array containing array", """[[[]]]""", """Map(SIRight(0) -> Left(Map(SIRight(0) -> Left(Map()))))""", 2),
+		("array containing array (whitespace)", """[ [ [ ] ] ]""", """Map(SIRight(0) -> Left(Map(SIRight(0) -> Left(Map()))))""", 2),
+		("array containing array 2", """[[0,1]]""", """Map(SIRight(0) -> Left(Map(SIRight(0) -> Right(JsonValue(0)), SIRight(1) -> Right(JsonValue(1)))))""", 1),
+		("array containing object", """[{}]""", """Map(SIRight(0) -> Left(Map()))""", 1),
 		
-		("object containing empty string", """{"":""}""", """Map("" -> "")"""),
-		("object containing single char string", """{"a":"b"}""", """Map("a" -> "b")"""),
-		("object containing multi char string", """{"abcde":"12345"}""", """Map("abcde" -> "12345")"""),
-		("object containing multi char string (whitespace)", """{ "abcde" : "12345" }""", """Map("abcde" -> "12345")"""),
-		("object containing multiple string", """{"a":"b","c":"d"}""", """Map("a" -> "b", "c" -> "d")"""),
+		("object containing empty string", """{"":""}""", """Map(SILeft("") -> Right(JsonValue("")))""", 0),
+		("object containing single char string", """{"a":"b"}""", """Map(SILeft("a") -> Right(JsonValue("b")))""", 0),
+		("object containing multi char string", """{"abcde":"12345"}""", """Map(SILeft("abcde") -> Right(JsonValue("12345")))""", 0),
+		("object containing multi char string (whitespace)", """{ "abcde" : "12345" }""", """Map(SILeft("abcde") -> Right(JsonValue("12345")))""", 0),
+		("object containing multiple string", """{"a":"b","c":"d"}""", """Map(SILeft("a") -> Right(JsonValue("b")), SILeft("c") -> Right(JsonValue("d")))""", 0),
 		
-		("object containing positive number", """{"":24601}""", """Map("" -> 24601)"""),
-		("object containing zero", """{"":0}""", """Map("" -> 0)"""),
-		("object containing negative number", """{"":-42}""", """Map("" -> -42)"""),
-		("object containing multiple numbers", """{"a":-1,"b":0,"c":1}""", """Map("a" -> -1, "b" -> 0, "c" -> 1)"""),
-		("object containing positive number (whitespace)", """{"": 24601 }""", """Map("" -> 24601)"""),
+		("object containing positive number", """{"":24601}""", """Map(SILeft("") -> Right(JsonValue(24601)))""", 0),
+		("object containing zero", """{"":0}""", """Map(SILeft("") -> Right(JsonValue(0)))""", 0),
+		("object containing negative number", """{"":-42}""", """Map(SILeft("") -> Right(JsonValue(-42)))""", 0),
+		("object containing multiple numbers", """{"a":-1,"b":0,"c":1}""", """Map(SILeft("a") -> Right(JsonValue(-1)), SILeft("b") -> Right(JsonValue(0)), SILeft("c") -> Right(JsonValue(1)))""", 0),
+		("object containing positive number (whitespace)", """{"": 24601 }""", """Map(SILeft("") -> Right(JsonValue(24601)))""", 0),
 		
-		("object containing float", """{"": 1.2}""", """Map("" -> 1.2)"""),
+		("object containing float", """{"": 1.2}""", """Map(SILeft("") -> Right(JsonValue(scala.math.BigDecimal("1.2"))))""", 0),
 		// leading zeros are required?
-		("object containing float (negative)", """{"": -1.2}""", """Map("" -> -1.2)"""),
-		("object containing float (exponent)", """{"": 1e5}""", """Map("" -> 1e5)"""),
-		("object containing float (decimal and exponent)", """{"": 1.2e5}""", """Map("" -> 1.2e5)"""),
-		("object containing float (decimal and neg exponent)", """{"": 1.2e-5}""", """Map("" -> 1.2e-5)"""),
+		("object containing float (negative)", """{"": -1.2}""", """Map(SILeft("") -> Right(JsonValue(scala.math.BigDecimal("-1.2"))))""", 0),
+		("object containing float (exponent)", """{"": 1e5}""", """Map(SILeft("") -> Right(JsonValue(1e5)))""", 0),
+		("object containing float (decimal and exponent)", """{"": 1.2e5}""", """Map(SILeft("") -> Right(JsonValue(1.2e5)))""", 0),
+		("object containing float (decimal and neg exponent)", """{"": 1.2e-5}""", """Map(SILeft("") -> Right(JsonValue(scala.math.BigDecimal("1.2e-5"))))""", 0),
 		
-		("object containing array", """{"":[[]]}""", """Map("" -> Map("0" -> Map()))"""),
-		("object containing array (whitespace)", """{"":[ [] ]}""", """Map("" -> Map("0" -> Map()))"""),
-		("object containing array 2", """{"":[0,1]}""", """Map("" -> Map("0" -> 0, "1" -> 1))"""),
-		("object containing object", """{"":{}}""", """Map("" -> Map())"""),
-		("object containing object (whitespace)", """{ "" : {} }""", """Map("" -> Map())"""),
+		("object containing array", """{"":[[]]}""", """Map(SILeft("") -> Left(Map(SIRight(0) -> Left(Map()))))""", 2),
+		("object containing array (whitespace)", """{"":[ [] ]}""", """Map(SILeft("") -> Left(Map(SIRight(0) -> Left(Map()))))""", 2),
+		("object containing array 2", """{"":[0,1]}""", """Map(SILeft("") -> Left(Map(SIRight(0) -> Right(JsonValue(0)), SIRight(1) -> Right(JsonValue(1)))))""", 1),
+		("object containing object", """{"":{}}""", """Map(SILeft("") -> Left(Map()))""", 1),
+		("object containing object 2", """{"":{"":{}}}""", """Map(SILeft("") -> Left(Map(SILeft("") -> Left(Map()))))""", 2),
+		("object containing object (whitespace)", """{ "" : {} }""", """Map(SILeft("") -> Left(Map()))""", 1),
 		
-		("string containing escape codes (newline)", """["\n"]""", """Map("0" -> "\n")"""),
-		("string containing escape codes (tab)", """["\t"]""", """Map("0" -> "\t")"""),
-		("string containing escape codes (backslash)", """["\\"]""", """Map("0" -> "\\")"""),
-		("string containing escape codes (other)", """["\"\/\b\f\r"]""", """Map("0" -> "\"/\b\f\r")"""),
+		("string containing escape codes (newline)", """["\n"]""", """Map(SIRight(0) -> Right(JsonValue("\n")))""", 0),
+		("string containing escape codes (tab)", """["\t"]""", """Map(SIRight(0) -> Right(JsonValue("\t")))""", 0),
+		("string containing escape codes (backslash)", """["\\"]""", """Map(SIRight(0) -> Right(JsonValue("\\")))""", 0),
+		("string containing escape codes (other)", """["\"\/\b\f\r"]""", """Map(SIRight(0) -> Right(JsonValue("\"/\b\f\r")))""", 0),
 		// that time where I have to perform a 'bobby tables' to force the thing to put unicode escapes into a JSON Parser 
-		("string containing escape codes (unicode)", "[\"\\\"\"\" + \"\"\"u0123\"]", """Map("0" -> "ģ")"""),
-		("string containing escape codes (unicode) 2", "[\"\\\"\"\" + \"\"\"u221E\"]", """Map("0" -> "\u221E")"""),
-		("string containing escape codes (unicode) 3", "[\"\\\"\"\" + \"\"\"u0041A\"]", """Map("0" -> "AA")"""),
-		("array containing keyword (true)", """[true]""", """Map("0" -> true)"""),
-		("array containing keyword (false)", """[false]""", """Map("0" -> false)"""),
-		("array containing keyword (null)", """[null]""", """Map("0" -> null)"""),
-		("array containing keyword (null) (whitespace)", """[ null ]""", """Map("0" -> null)""")
+		("string containing escape codes (unicode)", "[\"\\\"\"\" + \"\"\"u0123\"]", """Map(SIRight(0) -> Right(JsonValue("ģ")))""", 0),
+		("string containing escape codes (unicode) 2", "[\"\\\"\"\" + \"\"\"u221E\"]", """Map(SIRight(0) -> Right(JsonValue("\u221E")))""", 0),
+		("string containing escape codes (unicode) 3", "[\"\\\"\"\" + \"\"\"u0041A\"]", """Map(SIRight(0) -> Right(JsonValue("AA")))""", 0),
+		("array containing keyword (true)", """[true]""", """Map(SIRight(0) -> Right(JsonValue(true)))""", 0),
+		("array containing keyword (false)", """[false]""", """Map(SIRight(0) -> Right(JsonValue(false)))""", 0),
+		("array containing keyword (null)", """[null]""", """Map(SIRight(0) -> Right(JsonValue.JsonValueNull))""", 0),
+		("array containing keyword (null) (whitespace)", """[ null ]""", """Map(SIRight(0) -> Right(JsonValue.JsonValueNull))""", 0)
 		
 	)
 	
@@ -105,8 +106,12 @@ package com.rayrobdod.json.parser;
 
 import java.text.ParseException;
 import scala.collection.immutable.Map;
+import scala.util.{Try, Success, Failure}
 import org.scalatest.FunSpec;
+import com.rayrobdod.json.union.JsonValue
+import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.builder.MapBuilder;
+import com.rayrobdod.json.union.StringOrInt.{Left => SILeft, Right => SIRight}
 
 class JsonParserTest_Happy extends FunSpec {
 	describe("JsonParser + MapBuilder can decode") {"""
@@ -114,18 +119,23 @@ class JsonParserTest_Happy extends FunSpec {
 	private val suffix:String = "\n\t}\n}"
 	
 	private val testStrings:Seq[String] = testValues.toSeq.map{abc =>
-		val (name:String, source:String, expected:String) = abc
+		val (name:String, source:String, expected:String, nesting:Int) = abc
+		
+		val parser = (0 until nesting).foldLeft("MapBuilder[StringOrInt, JsonValue]"){(f, i) =>
+			"MapBuilder({k:StringOrInt => " + f + "})"
+		}
+		
 		
 		"\n\t\tit (\"\"\"" + name + "\"\"\"" + """) {
 			val source = """ + "\"\"\"" + source + "\"\"\"" + """
 			val expected = """ + expected + """
-			val result = new JsonParser(new MapBuilder()).parse(source)
+			val result = new JsonParser().parse(""" + parser + """, source).fold({x => x},{x => x},{(a,b) => a})
 			assertResult(expected){result}
 		}
 		it (""" + '"' + name + """ (reader)") {
 			val source = new java.io.StringReader(""" + "\"\"\"" + source + "\"\"\"" + """)
 			val expected = """ + expected + """
-			val result = new JsonParser(new MapBuilder()).parse(source)
+			val result = new JsonParser().parse(""" + parser + """, source).fold({x => x},{x => x},{(a,b) => a})
 			assertResult(expected){result}
 		}"""
 	}

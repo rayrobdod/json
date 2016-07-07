@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -28,36 +28,36 @@ package com.rayrobdod.json.parser;
 
 import scala.reflect.runtime.universe.{runtimeMirror, newTermName}
 import com.rayrobdod.json.builder.Builder
+import com.rayrobdod.json.union.ParserRetVal
 
 
 /**
- * A parser that takes each value in a CaseClass and reports
+ * A parser that reports the name and value of each member of a case class
  * 
- * @tparam A the type of object to build
+ * @version next
+ * @tparam Input the type of object to be parsed
  * @constructor
  * Creates a CaseClassParser instance.
- * @param topBuilder the builder that this parser will use when constructing objects
+ * @param clazz a java.lang.Class instance that represents the Input
  */
-final class CaseClassParser[A](topBuilder:Builder[A]) {
+final class CaseClassParser[Input <: Product](implicit clazz:Class[Input]) extends Parser[String, Any, Input] {
 	
 	/**
-	 * Decodes the input values to an object.
+	 * Reports the values inside obj to the builder
 	 * @param obj the object to extract values from
-	 * @param clazz the class of obj
-	 * @return the parsed object
 	 */
-	def parse[B <: Product](obj:B)(implicit clazz:Class[B]):A = {
+	def parse[Output](builder:Builder[String, Any, Output], obj:Input):ParserRetVal[Output,Nothing] = {
 		val mirror = runtimeMirror( this.getClass.getClassLoader )
 		val typ = mirror.classSymbol( clazz ).toType
 		val copyMethod = typ.declaration(newTermName("copy")).asMethod
 		val copyParams = copyMethod.paramss(0)
 		
-		copyParams.zipWithIndex.foldLeft(topBuilder.init){(state:A, keyValue) =>
+		copyParams.zipWithIndex.foldLeft[Either[(String,Int),Output]](Right(builder.init)){(state:Either[(String,Int),Output], keyValue) =>
 			val (name, index) = keyValue
 			val name2 = name.name.decodedName.toString
+			val value = obj.productElement(index)
 			
-			topBuilder.apply(state, name2, obj.productElement(index))
+			state.right.flatMap{x => builder.apply(x, name2, value, new IdentityParser)}
 		}
-	}
+	}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{x => ParserRetVal.Complex(x)})
 }
-

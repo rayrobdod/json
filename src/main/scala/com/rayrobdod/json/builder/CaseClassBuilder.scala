@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -26,50 +26,68 @@
 */
 package com.rayrobdod.json.builder;
 
+import com.rayrobdod.json.parser.Parser
 import scala.reflect.runtime.universe.{runtimeMirror, newTermName}
 
 /** A builder that builds a Case Class
  * 
+ * @version next
  * @tparam A the type of object to build
+ * @tparam Value the primitive values produced by the parser
  * @constructor
  * @param clazz the class of the objects to build
  * @param init the starting point of the builder
  * @param childBuilders a map used directly by childBuilder
  */
-final class CaseClassBuilder[A <: Product](
+final class CaseClassBuilder[Value, A <: Product](
 		val init:A,
-		childBuilders:Function1[String, Builder[_]] = Map.empty
+		childBuilders:Function1[String, Option[Builder[String, Value, _]]] = {s:String => None}
 )(		implicit clazz:Class[A]
-) extends Builder[A] {
+) extends Builder[String, Value, A] {
 	
 	/**
 	 * Sets the `key` bean property in the `folding` object
 	 * 
 	 * @todo maybe check for other primitive numeric types - IE a `setVal(Short)` when handed a `Long` or visa versa
 	 */
-	def apply(folding:A, key:String, value:Any):A = {
+	override def apply[Input](folding:A, key:String, input:Input, parser:Parser[String, Value, Input]):Either[(String, Int), A] = {
 		val mirror = runtimeMirror( this.getClass.getClassLoader )
 		val typ = mirror.classSymbol( clazz ).toType
 		val copyMethod = typ.declaration(newTermName("copy")).asMethod
 		val copyParams = copyMethod.paramss(0)
 		val indexOfModification = copyParams.zipWithIndex.find{_._1.name.decodedName.toString == key}.map{_._2}
 		
-		indexOfModification match {
-			case None => throw new IllegalArgumentException(key + " is not a member of case class " + folding.toString)
-			case Some(x:Int) => {
-				val newArgs = folding.productIterator.toSeq.updated(x, value)
-				
-				val copyMirror = clazz.getMethods.filter{_.getName == "copy"}.head
-				resultType.cast(copyMirror.invoke(folding, newArgs.map{_.asInstanceOf[Object]}:_*))
+		val builder = childBuilders(key).getOrElse(new ThrowBuilder())
+		
+		// unwrap union values
+		val value = {
+			parser.parse(builder, input).fold({x => Right(x)},{x => Right(x)},{(msg,idx) => Left((msg,idx))}).right.map{_ match {
+					case com.rayrobdod.json.union.StringOrInt.Left(x) => x
+					case com.rayrobdod.json.union.StringOrInt.Right(x) => x
+					case x:com.rayrobdod.json.union.JsonValue => com.rayrobdod.json.union.JsonValue.unwrap(x)
+					case x => x
+				}
 			}
 		}
+		
+		indexOfModification match {
+			case None => Left(key + " is not a member of case class " + folding.toString, 0)
+			case Some(x:Int) => value.right.flatMap{valueUnwrapped => {
+				val copyMirror = clazz.getMethods.filter{_.getName == "copy"}.head
+				
+				val newArgs = folding.productIterator.toSeq.updated(x, (valueUnwrapped match {
+					case y:scala.math.BigDecimal if copyMirror.getParameterTypes.apply(x) == classOf[Long] => y.longValue
+					case y:scala.math.BigDecimal if copyMirror.getParameterTypes.apply(x) == classOf[java.lang.Long] => y.longValue
+					case y => y
+				}))
+				
+				try {
+					Right(clazz.cast(copyMirror.invoke(folding, newArgs.map{_.asInstanceOf[Object]}:_*)))
+				} catch {
+					case ex:ClassCastException => Left(ex.getMessage(), 0)
+					case ex:IllegalArgumentException => Left(ex.getMessage(), 0)
+				}
+			}}
+		}
 	}
-	
-	/**
-	 * Applies the key to the constructor parameter `childBuilders`
-	 */
-	def childBuilder(key:String):Builder[_] = childBuilders(key)
-	
-	/** Returns the constructor parameter `clazz` */
-	val resultType:Class[A] = clazz
 }

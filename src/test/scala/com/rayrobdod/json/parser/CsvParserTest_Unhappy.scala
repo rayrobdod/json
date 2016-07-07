@@ -24,28 +24,39 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json
+package com.rayrobdod.json.parser
 
-import scala.util.{Try, Success, Failure}
-import com.rayrobdod.json.parser.Parser
+import org.scalatest.FunSpec
+import java.text.ParseException
+import scala.collection.immutable.{Seq, Map}
+import com.rayrobdod.json.union.{JsonValue, ParserRetVal}
+import com.rayrobdod.json.builder._
 
-/**
- * Contains the various built-in builders.
- *
- * Pretty much every parser will require a Builder when parsing data.
- * The builder will basically determine how the parser will treat complex
- * data types.
- */
-package object builder {
-}
-
-package builder {
-	/**
-	 * A Builder that will always return a failure on call to apply
-	 * @since next
-	 */
-	final class ThrowBuilder[K,V] extends Builder[K,V,Any] {
-		override def init:Any = "using ThrowBuilder::init"
-		override def apply[I](a:Any,k:K,i:I,p:Parser[K,V,I]):Left[(String, Int), Any] = Left("using ThrowBuilder::apply", 0)
+class CsvParserTest_Unhappy extends FunSpec {
+	describe("CsvParser") {
+		it ("""Throw builder immediate""") {
+			val source = "a,b,c\nd,e,f\n"
+			assertFailureParse("",5){
+				new CsvParser().parse(new ThrowBuilder[Int, String], source)
+			}
+		}
+		it ("""Throw builder indirect""") {
+			val source = "a,b,c\nd,e,f\n"
+			assertFailureParse("",12){
+				new CsvParser().parse(MapBuilder.apply2[Int, String, Any]({x:Int => x match {
+					case 1 => new MapBuilder.MapChildBuilder[Int, String, Any, Any](new ThrowBuilder[Int, String].mapValue[String], {x:Any => x})
+					case _ => new MapBuilder.MapChildBuilder[Int, String, Map[Int, Either[_, String]], Any](MapBuilder[Int, String], {x:Any => x})
+				}}), source)
+			}
+		}
+	}
+	
+	
+	def assertFailureParse(msg:String, idx:Int)(result:ParserRetVal[_,_]):Unit = result match {
+		case ParserRetVal.Failure(msg2, idx2) => {
+	//		assertResult(msg){msg2}
+			assertResult(idx){idx2}
+		}
+		case x => fail("Not a Failure: " + x)
 	}
 }

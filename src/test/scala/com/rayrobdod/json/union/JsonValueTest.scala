@@ -24,28 +24,21 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json
+package com.rayrobdod.json.union
 
-import scala.util.{Try, Success, Failure}
-import com.rayrobdod.json.parser.Parser
+import org.scalatest.FunSpec
+import java.text.ParseException
+import com.rayrobdod.json.union.JsonValue._
 
-/**
- * Contains the various built-in builders.
- *
- * Pretty much every parser will require a Builder when parsing data.
- * The builder will basically determine how the parser will treat complex
- * data types.
- */
-package object builder {
-}
-
-package builder {
-	/**
-	 * A Builder that will always return a failure on call to apply
-	 * @since next
-	 */
-	final class ThrowBuilder[K,V] extends Builder[K,V,Any] {
-		override def init:Any = "using ThrowBuilder::init"
-		override def apply[I](a:Any,k:K,i:I,p:Parser[K,V,I]):Left[(String, Int), Any] = Left("using ThrowBuilder::apply", 0)
+class JsonValueTest extends FunSpec {
+	
+	describe("JsonValue$") {
+		it ("""implicit StringOrInt to JsonValue""") {
+			val res:JsonValue = StringOrInt(234)
+			assertResult(JsonValue(234)){res}
+		}
+		it ("""unwrap null""") {
+			assertResult(null){JsonValue.unwrap(JsonValueNull)}
+		}
 	}
 }
