@@ -12,8 +12,8 @@ version := "2.1-SNAPSHOT"
 
 scalaVersion := "2.10.6"
 
-crossScalaVersions := Seq("2.10.6", "2.11.7") ++
-    (if (System.getProperty("scoverage.disable", "") != "true") {Nil} else {Seq("2.12.0-M3")})
+crossScalaVersions := Seq("2.10.6", "2.11.8") ++
+    (if (System.getProperty("scoverage.disable", "") != "true") {Nil} else {Seq("2.12.0-M4")})
 
 compileOrder := CompileOrder.JavaThenScala
 
@@ -62,7 +62,7 @@ scalastyleConfig := baseDirectory.value / "project" / "scalastyle-config.xml"
 
 // scalaTest
 libraryDependencies += "org.scalatest" %% "scalatest" % (
-      "2.2.5" + (if ((scalaVersion.value take 7) == "2.12.0-") { "-" + (scalaVersion.value drop 7) } else {""}) 
+      "2.2.6" 
     ) % "test"
 
 testOptions in Test += Tests.Argument("-oS", "-u", s"${crossTarget.value}/test-results-junit" /*, "-h", s"${crossTarget.value}/test-results-html" */)
