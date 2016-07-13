@@ -34,7 +34,7 @@ import org.scalatest.FunSpec;
 import java.nio.charset.StandardCharsets.US_ASCII;
 import com.rayrobdod.json.union.{StringOrInt, JsonValue, CborValue}
 import com.rayrobdod.json.union.JsonValue._
-import com.rayrobdod.json.parser.IdentityParser
+import com.rayrobdod.json.parser.{IdentityParser, FailureParser}
 import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter};
 
 class MinifiedJsonArrayBuilderTest extends FunSpec {
@@ -96,6 +96,12 @@ class MinifiedJsonArrayBuilderTest extends FunSpec {
 		it ("Appends a second value") {
 			assertResult(Right("""["a","b","c","d"]""")){
 				new MinifiedJsonArrayBuilder(US_ASCII).apply("""["a","b","c"]""", 3, JsonValue("d"), new IdentityParser[Any,JsonValue])
+			}
+		}
+		
+		it ("When parser reports a failure, the failure is forwarded") {
+			assertResult( Left("FailureParser", 0) ){
+				new MinifiedJsonArrayBuilder().apply("[rest]", "", "", new FailureParser)
 			}
 		}
 	}

@@ -37,6 +37,7 @@ import com.rayrobdod.json.union.CborValue._
 import com.rayrobdod.json.union.CborValue
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.parser.IdentityParser
+import com.rayrobdod.json.parser.FailureParser
 import com.rayrobdod.json.parser.HexArrayStringConverter;
 
 class CborArrayBuilderTest extends FunSpec {
@@ -166,6 +167,12 @@ class CborArrayBuilderTest extends FunSpec {
 		it ("Appends a 1000001th value") {
 			assertResult(Right(hexSeq"""9a000f4241 B7A8B7A8B7A8 60""")){
 				new CborArrayBuilder().apply(hexSeq"""9a000f4240 B7A8B7A8B7A8 """, "", CborValue(""), new IdentityParser[Any, CborValue])
+			}
+		}
+		
+		it ("When parser reports a failure, the failure is forwarded") {
+			assertResult( Left("FailureParser", 0) ){
+				new CborArrayBuilder().apply(hexSeq"80", "", "", new FailureParser)
 			}
 		}
 	}

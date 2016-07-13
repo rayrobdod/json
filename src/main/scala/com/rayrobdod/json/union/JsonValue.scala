@@ -65,7 +65,7 @@ object JsonValue {
 		case CborValue.CborValueBoolean(b) => JsonValueBoolean(b)
 		case CborValue.CborValueNumber(b) => JsonValueNumber(b)
 		case CborValue.CborValueByteStr(s) => JsonValueString(new String(
-			s.flatMap{byte => (0xFF & byte.intValue).toHexString}
+			s.flatMap{byte => ("00" + (0xFF & byte.intValue).toHexString).takeRight(2)}
 		))
 		case CborValue.CborValueNull => JsonValueNull
 	}

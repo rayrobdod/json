@@ -29,7 +29,7 @@ package com.rayrobdod.json.parser
 import org.scalatest.FunSpec
 import java.text.ParseException
 import scala.collection.immutable.Map
-import com.rayrobdod.json.builder.{MapBuilder, MinifiedJsonObjectBuilder}
+import com.rayrobdod.json.builder.{MapBuilder, MinifiedJsonObjectBuilder, ThrowBuilder}
 import com.rayrobdod.json.union.{StringOrInt, JsonValue}
 
 class MapParserTest extends FunSpec {
@@ -44,6 +44,13 @@ class MapParserTest extends FunSpec {
 			val exp = Map("a" -> Right(Map.empty), "b" -> Right(Map("x" -> true, "y" -> false)))
 			val src = Map("a" -> Map.empty, "b" -> Map("x" -> true, "y" -> false))
 			val res = new MapParser().parse(MapBuilder[String,Any], src).fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
+			
+			assertResult(exp){res}
+		}
+		it ("""builder failure""") {
+			val exp = ("using ThrowBuilder::apply", 0)
+			val src = Map("a" -> Map.empty, "b" -> Map("x" -> true, "y" -> false))
+			val res = new MapParser().parse(new ThrowBuilder[String, Map[_ <: String, Boolean]], src).fold({x => throw new IllegalArgumentException()}, {x => throw new IllegalArgumentException()}, {(a,b) => (a,b)})
 			
 			assertResult(exp){res}
 		}

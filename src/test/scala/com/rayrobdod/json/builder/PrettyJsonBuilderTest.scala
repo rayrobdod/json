@@ -34,7 +34,7 @@ import java.nio.charset.StandardCharsets.UTF_8
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.JsonValue._
 import com.rayrobdod.json.union.StringOrInt
-import com.rayrobdod.json.parser.{IdentityParser, SeqParser, MapParser}
+import com.rayrobdod.json.parser.{IdentityParser, SeqParser, MapParser, FailureParser}
 import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter};
 
 class PrettyJsonBuilderTest extends FunSpec {
@@ -127,6 +127,12 @@ class PrettyJsonBuilderTest extends FunSpec {
 			assertResult("""{rest,"":"Pok\""" + """u00e9mon"}"""){
 				new PrettyJsonBuilder(MinifiedPrettyParams, US_ASCII)
 						.apply("{rest}", "",JsonValue("Pokémon"), new IdentityParser[StringOrInt,JsonValue]).right.get
+			}
+		}
+		it ("When parser reports a failure, the failure is forwarded") {
+			assertResult( ("FailureParser", 0) ){
+				new PrettyJsonBuilder(MinifiedPrettyParams, UTF_8)
+						.apply("{rest}", "", "", new FailureParser).left.get
 			}
 		}
 	}

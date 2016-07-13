@@ -36,6 +36,7 @@ import com.rayrobdod.json.union.CborValue
 import com.rayrobdod.json.union.CborValue._
 import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.parser.HexArrayStringConverter;
+import com.rayrobdod.json.parser.FailureParser
 import scala.language.implicitConversions
 
 class CborBuilderTest extends FunSpec {
@@ -198,11 +199,21 @@ class CborBuilderTest extends FunSpec {
 				new CborBuilder().apply(hexSeq"""B903e8 B7A8B7A8B7A8 """, "", CborValue(""), new IdentityParser[CborValue, CborValue])
 			}
 		}
+		it ("Fails to convert an array to an object when unexpected key and illegal folding object") {
+			assertResult(Left("Not a public value", 0)){
+				new CborBuilder().apply(hexSeq"81FF", 6, CborValueNull, new IdentityParser[CborValue, CborValue])
+			}
+		}
 		
 		
 		it ("Refuses to fold a non-array or non-object") {
 			assertResult(Left("Invalid folding parameter", 0)){
 				new CborBuilder().apply(hexSeq"""00""", "", CborValue(""), new IdentityParser[CborValue, CborValue])
+			}
+		}
+		it ("When parser reports a failure, the failure is forwarded") {
+			assertResult( ("FailureParser", 0) ){
+				new CborBuilder().apply(hexSeq"80 THEREST", "", "", new FailureParser).left.get
 			}
 		}
 	}

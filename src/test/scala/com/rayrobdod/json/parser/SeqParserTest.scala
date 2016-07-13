@@ -24,35 +24,36 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json.union
+package com.rayrobdod.json.parser
 
 import org.scalatest.FunSpec
 import java.text.ParseException
-import com.rayrobdod.json.union.JsonValue._
+import scala.collection.immutable.Seq
+import com.rayrobdod.json.builder.{SeqBuilder, PrettyJsonBuilder, ThrowBuilder, PrimitiveSeqBuilder}
+import com.rayrobdod.json.union.{StringOrInt, JsonValue}
 
-class JsonValueTest extends FunSpec {
+class SeqParserTest extends FunSpec {
+	describe("SeqParser") {
+		it ("""builder failure""") {
+			val exp = ("using ThrowBuilder::apply", 0)
+			val src = Seq(Seq.empty, Seq(true, false))
+			val res = new SeqParser(new PrimitiveSeqParser[Boolean]).parse(new ThrowBuilder[Int, Boolean], src).fold({x => throw new IllegalArgumentException()}, {x => throw new IllegalArgumentException()}, {(a,b) => (a,b)})
+			
+			assertResult(exp){res}
+		}
+	}
 	
-	describe("JsonValue$") {
-		describe("Implicits") {
-			it ("""StringOrInt.Left to JsonValue""") {
-				val res:JsonValue = StringOrInt("abx")
-				assertResult(JsonValue("abx")){res}
-			}
-			it ("""StringOrInt.Right to JsonValue""") {
-				val res:JsonValue = StringOrInt(234)
-				assertResult(JsonValue(234)){res}
-			}
-		}
-		describe("cborValueHexencodeByteStr") {
-			it ("String") {assertResult(JsonValue("abc")){cborValueHexencodeByteStr(CborValue("abc"))}}
-			it ("Number") {assertResult(JsonValue(123)){cborValueHexencodeByteStr(CborValue(123))}}
-			it ("Boolean") {assertResult(JsonValue(true)){cborValueHexencodeByteStr(CborValue(true))}}
-			it ("null") {assertResult(JsonValueNull){cborValueHexencodeByteStr(CborValue.CborValueNull)}}
-			it ("bytestr") {assertResult(JsonValue("112345")){cborValueHexencodeByteStr(Array[Byte](17, 35, 69))}}
-			it ("bytestr (with zeros)") {assertResult(JsonValue("01000010")){cborValueHexencodeByteStr(Array[Byte](1, 0, 0, 16))}}
-		}
-		it ("""unwrap null""") {
-			assertResult(null){JsonValue.unwrap(JsonValueNull)}
+	describe("SeqParser + Json") {
+		it ("""can be used with the json stuff to serialze and deserialize a Seq""") {
+			val src = Seq(Seq.empty, Seq(JsonValue(true), JsonValue(12.5)))
+			val json = new SeqParser(new PrimitiveSeqParser[JsonValue])
+					.parse(new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams).mapKey[Int], src)
+					.fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
+			val res = new JsonParser()
+					.parse(new SeqBuilder(new PrimitiveSeqBuilder[StringOrInt,JsonValue]), json)
+					.fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
+			
+			assertResult(src){res}
 		}
 	}
 }

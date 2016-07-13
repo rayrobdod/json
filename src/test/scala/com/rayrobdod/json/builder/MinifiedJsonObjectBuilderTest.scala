@@ -35,7 +35,7 @@ import java.nio.charset.StandardCharsets.US_ASCII;
 import com.rayrobdod.json.union.CborValue
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.JsonValue._
-import com.rayrobdod.json.parser.IdentityParser
+import com.rayrobdod.json.parser.{IdentityParser, FailureParser}
 import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter}
 import com.rayrobdod.json.union.StringOrInt
 
@@ -100,6 +100,12 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 		it ("Appends a second value") {
 			assertResult(Right("""{"a":"b","c":"d"}""")){
 				new MinifiedJsonObjectBuilder().apply("""{"a":"b"}""", "c", JsonValue("d"), new IdentityParser[String,JsonValue])
+			}
+		}
+		
+		it ("When parser reports a failure, the failure is forwarded") {
+			assertResult( Left("FailureParser", 0) ){
+				new MinifiedJsonObjectBuilder().apply("{rest}", "", "", new FailureParser)
 			}
 		}
 	}

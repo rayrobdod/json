@@ -55,12 +55,40 @@ class CborValueTest extends FunSpec {
 	}
 	
 	describe("CborValue$") {
-		it ("""implicit StringOrInt to CborValue""") {
-			val res:CborValue = StringOrInt(234)
-			assertResult(CborValue(234)){res}
+		describe("Implicits") {
+			it ("""StringOrInt.Left to CborValue""") {
+				val res:CborValue = StringOrInt("abx")
+				assertResult(CborValue("abx")){res}
+			}
+			it ("""StringOrInt.Right to CborValue""") {
+				val res:CborValue = StringOrInt(234)
+				assertResult(CborValue(234)){res}
+			}
+			it ("""JsonValue.String to CborValue""") {
+				val res:CborValue = JsonValue("abx")
+				assertResult(CborValue("abx")){res}
+			}
+			it ("""JsonValue.Number to CborValue""") {
+				val res:CborValue = JsonValue(234)
+				assertResult(CborValue(234)){res}
+			}
+			it ("""JsonValue.Boolean to CborValue""") {
+				val res:CborValue = JsonValue(true)
+				assertResult(CborValue(true)){res}
+			}
+			it ("""JsonValue.Null to CborValue""") {
+				val res:CborValue = JsonValue.JsonValueNull
+				assertResult(CborValueNull){res}
+			}
 		}
 		it ("""unwrap null""") {
 			assertResult(null){CborValue.unwrap(CborValueNull)}
+		}
+		it ("""unsafeWrap bytestr succeeds""") {
+			assertResult(CborValue(Array[Byte](1,2,3,4))){CborValue.unsafeWrap(Array[Byte](1,2,3,4))}
+		}
+		it ("""unsafeWrap intstr fails""") {
+			intercept[MatchError]{ CborValue.unsafeWrap(Array[Int](1,2,3,4)) }
 		}
 	}
 }
