@@ -8,7 +8,7 @@ homepage := Some(new URL("http://rayrobdod.name/programming/libraries/java/json/
 
 apiURL := Some(url(s"http://doc.rayrobdod.name/json/${version.value}/"))
 
-version := "2.1-SNAPSHOT"
+version := "3.0-SNAPSHOT"
 
 scalaVersion := "2.10.6"
 
