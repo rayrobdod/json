@@ -35,7 +35,7 @@ import com.rayrobdod.json.parser.Parser
  * 
  * 
  * 
- * @version next
+ * @version 3.0
  * @see [[com.rayrobdod.json.parser.Parser]]
  * @tparam Key the type of keys used by the Parser that this Builder will be used by
  * @tparam Value the type of primitive value types used by the Parser that this Builder will be used by
@@ -65,7 +65,7 @@ trait Builder[Key, Value, Subject] {
 	
 	
 	/** Change the type of key that this builder requires
-	 * @version next
+	 * @version 3.0
 	 */
 	final def mapKey[K2](implicit fun:Function1[K2,Key]):Builder[K2,Value,Subject] = new Builder[K2,Value,Subject] {
 		override def init:Subject = Builder.this.init
@@ -75,7 +75,7 @@ trait Builder[Key, Value, Subject] {
 	}
 	
 	/** Change the type of value that this builder requires
-	 * @version next
+	 * @version 3.0
 	 */
 	final def mapValue[V2](implicit fun:Function1[V2,Value]):Builder[Key,V2,Subject] = new Builder[Key,V2,Subject] {
 		override def init:Subject = Builder.this.init

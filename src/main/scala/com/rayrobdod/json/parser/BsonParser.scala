@@ -37,7 +37,7 @@ import com.rayrobdod.json.union._
  * A streaming parser for Bson values
  * 
  * 
- * @version next
+ * @version 3.0
  * @see [[http://bsonspec.org/]]
  *
  * @constructor

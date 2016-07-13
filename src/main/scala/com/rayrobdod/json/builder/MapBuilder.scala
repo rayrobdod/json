@@ -32,7 +32,7 @@ import scala.util.{Try, Success, Failure}
 
 /** A builder that creates maps
  * 
- * @version next
+ * @version 3.0
  * @constructor
  * Create a MapBuilder instance
  * @param childBuilderMap a function pretty directly called by `childBuilder()`.
@@ -48,7 +48,7 @@ final class MapBuilder[K, V, Inner](childBuilders:Function1[K, MapBuilder.MapChi
 	}
 }
 
-/** @since next */
+/** @since 3.0 */
 object MapBuilder {
 	class MapChildBuilder[K, V, A, Inner](builder:Builder[K, V, A], result:Function1[A, Inner]) {
 		def apply[Input](innerInput:Input, parser:Parser[K, V, Input]):Either[(String, Int), Either[Inner, V]] = {

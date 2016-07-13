@@ -36,7 +36,7 @@ import com.rayrobdod.json.parser.{MapParser, SeqParser}
 
 /**
  * A builder that will create a series of bytes in Cbor Object format
- * @version next
+ * @version 3.0
  * @constructor
  * A builder that will create cbor object format byte strings
  * @param transformer a function to convert non-cbor-primitive objects to cbor-primitive objects
@@ -71,7 +71,7 @@ final class CborObjectBuilder extends Builder[CborValue, CborValue, Seq[Byte]] {
 
 /**
  * A builder that will create a series of bytes in Cbor Array format
- * @version next
+ * @version 3.0
  * @constructor
  * A builder that will create cbor array format byte strings
  * @param transformer a function to convert non-cbor-primitive objects to cbor-primitive objects

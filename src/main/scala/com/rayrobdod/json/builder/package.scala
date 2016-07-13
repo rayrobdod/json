@@ -42,7 +42,7 @@ package object builder {
 package builder {
 	/**
 	 * A Builder that will always return a failure on call to apply
-	 * @since next
+	 * @since 3.0
 	 */
 	final class ThrowBuilder[K,V] extends Builder[K,V,Any] {
 		override def init:Any = "using ThrowBuilder::init"

@@ -35,7 +35,7 @@ import com.rayrobdod.json.parser.Parser
  * to have a zero-argument constructor and will interact with methods
  * of the form `setX`.
  * 
- * @version next
+ * @version 3.0
  * @tparam Value the parser's primitive values
  * @tparam A the type of object to build
  * @constructor

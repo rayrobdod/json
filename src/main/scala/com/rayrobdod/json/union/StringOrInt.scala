@@ -32,7 +32,7 @@ import scala.language.implicitConversions
 
 /**
  * A union type where the possible values are a String or Int
- * @since next
+ * @since 3.0
  */
 sealed trait StringOrInt{
 	/** Applies `fs` if this is a String or `fi` if this is an Int */
@@ -41,7 +41,7 @@ sealed trait StringOrInt{
 
 /**
  * Methods used to create StringOrInts
- * @since next
+ * @since 3.0
  */
 object StringOrInt {
 	/** A string value represented as a StringOrInt union */

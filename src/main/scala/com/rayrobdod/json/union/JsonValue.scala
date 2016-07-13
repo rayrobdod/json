@@ -32,13 +32,13 @@ import scala.language.implicitConversions
 
 /**
  * A union type represting primitive types in Json objects
- * @since next
+ * @since 3.0
  */
 sealed trait JsonValue
 
 /**
  * Methods used to create JsonValues
- * @since next
+ * @since 3.0
  */
 object JsonValue {
 	final case class JsonValueString(s:String) extends JsonValue

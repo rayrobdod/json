@@ -39,7 +39,7 @@ import com.rayrobdod.json.union.ParserRetVal
  * 
  * This cannot handle complex values in map keys.
  * 
- * @version next
+ * @version 3.0
  * @see [[http://tools.ietf.org/html/rfc7049]]
  * 
  * @constructor
@@ -242,7 +242,7 @@ final class CborParser extends Parser[CborValue, CborValue, DataInput] {
 
 /**
  * Objects related to Cbor's data model
- * @version next
+ * @version 3.0
  */
 object CborParser {
 	

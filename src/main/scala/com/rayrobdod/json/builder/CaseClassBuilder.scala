@@ -31,7 +31,7 @@ import scala.reflect.runtime.universe.{runtimeMirror, newTermName}
 
 /** A builder that builds a Case Class
  * 
- * @version next
+ * @version 3.0
  * @tparam A the type of object to build
  * @tparam Value the primitive values produced by the parser
  * @constructor

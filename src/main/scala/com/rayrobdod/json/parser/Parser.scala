@@ -33,7 +33,7 @@ import com.rayrobdod.json.union.ParserRetVal
 /**
  * A parser
  * @see [[com.rayrobdod.json.builder.Builder]]
- * @since next
+ * @since 3.0
  * @tparam Key the key types
  * @tparam Value the primitive value types
  * @tparam Input the input to the parser

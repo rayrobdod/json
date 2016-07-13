@@ -40,7 +40,7 @@ import com.rayrobdod.json.union.ParserRetVal
  * This parser is intended to be relatively strict.
  * 
  * @see [[http://json.org/]]
- * @version next
+ * @version 3.0
  *
  * @constructor
  * Creates a JsonParser instance.

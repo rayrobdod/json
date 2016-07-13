@@ -32,7 +32,7 @@ import scala.language.implicitConversions
 
 /**
  * A union type representing possible return values of Parser.parse
- * @since next
+ * @since 3.0
  * @see [[com.rayrobdod.json.parser.Parser.parse]]
  */
 sealed trait ParserRetVal[+Complex, +Primitive]{
@@ -41,7 +41,7 @@ sealed trait ParserRetVal[+Complex, +Primitive]{
 
 /**
  * Methods used to create ParserRetVals
- * @since next
+ * @since 3.0
  */
 object ParserRetVal {
 	final case class Primitive[Primitive](x:Primitive) extends ParserRetVal[Nothing, Primitive]{

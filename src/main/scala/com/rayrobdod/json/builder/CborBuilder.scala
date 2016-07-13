@@ -36,7 +36,7 @@ import com.rayrobdod.json.parser.{Parser, CborParser, byteArray2DataInput}
 /**
  * A builder that will create a series of bytes in Cbor Object format
  * 
- * @since next
+ * @since 3.0
  * @constructor
  * A builder that will create cbor object format byte strings
  * @param forceObject true if the builder should create an object even if it is possible to create an array from the inputs

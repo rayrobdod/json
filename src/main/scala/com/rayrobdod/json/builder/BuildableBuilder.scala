@@ -36,7 +36,7 @@ import com.rayrobdod.json.union.ParserRetVal
  * 
  * TODO: mention how
  * 
- * @since next
+ * @since 3.0
  * @see Inspired by [[https://github.com/scopt/scopt/]]
  * 
  * @tparam Key the key types
@@ -70,14 +70,14 @@ final case class BuildableBuilder[Key, Value, Subject](
 }
 
 /**
- * @since next
+ * @since 3.0
  */
 object BuildableBuilder{
 	private[this] val unexpectedValueErrorMessage:Function1[Any, Left[(String, Int), Nothing]] = {x => Left("Unexpected value: " + x, 0)}
 	
 	/**
 	 * A holder for a Function3 that is allowed to have a variable type parameter
-	 * @since next
+	 * @since 3.0
 	 */
 	abstract class KeyDef[Key, Value, Subject] {
 		/** add a key-value pair to `s`; where `p.parse(someBuilder, i)` is the value, and the key is hard-coded. */
@@ -87,7 +87,7 @@ object BuildableBuilder{
 	/**
 	 * A KeyDef that is partitioned into a set of component functions
 	 * 
-	 * @since next
+	 * @since 3.0
 	 * @param builder the builder that handles input.
 	 * @param convert convert a builder result into a value usable by fold. This is a partial function;
 	 *       anything not defined by this function is turned into an error value.
@@ -111,7 +111,7 @@ object BuildableBuilder{
 	/**
 	 * A KeyDef that is partitioned into a set of component functions
 	 * 
-	 * @since next
+	 * @since 3.0
 	 * @param builder the builder that handles input.
 	 * @param fold combine the previous subject and a successful convert into a new subject.
 	 */
@@ -133,7 +133,7 @@ object BuildableBuilder{
 	/**
 	 * A KeyDef that is partitioned into a set of component functions
 	 * 
-	 * @since next
+	 * @since 3.0
 	 * @param convert convert a builder result into a value usable by fold. This is a partial function;
 	 *       anything not defined by this function is turned into an error value.
 	 * @param fold combine the previous subject and a successful convert into a new subject.
@@ -151,7 +151,7 @@ object BuildableBuilder{
 	
 	/** 
 	 * A KeyDef that simply passes through the subject
-	 * @since next
+	 * @since 3.0
 	 */
 	def ignoreKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
 		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):Either[(String, Int), A] = Right(s)
@@ -159,7 +159,7 @@ object BuildableBuilder{
 	
 	/**
 	 * A KeyDef that throws an exception
-	 * @since next
+	 * @since 3.0
 	 */
 	def throwKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
 		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):Either[(String, Int), A] = Left("BuildableBuilder has no KeyDef for given key", 0)

@@ -34,7 +34,7 @@ import com.rayrobdod.json.union.ParserRetVal
 /**
  * A parser that reports the name and value of each member of a case class
  * 
- * @version next
+ * @version 3.0
  * @tparam Input the type of object to be parsed
  * @constructor
  * Creates a CaseClassParser instance.

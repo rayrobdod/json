@@ -32,13 +32,13 @@ import scala.language.implicitConversions
 
 /**
  * A union type represting primitive types in Cbor objects
- * @since next
+ * @since 3.0
  */
 sealed trait CborValue
 
 /**
  * Methods used to create CborValues
- * @since next
+ * @since 3.0
  */
 object CborValue {
 	final case class CborValueString(s:String) extends CborValue

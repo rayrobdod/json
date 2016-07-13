@@ -36,7 +36,7 @@ import com.rayrobdod.json.parser.{MapParser, SeqParser}
 
 /** A builder that will output an object as an json format string
  * 
- * @version next
+ * @version 3.0
  * @constructor
  * Creates a JsonObjectBuilder
  * 
@@ -66,7 +66,7 @@ final class MinifiedJsonObjectBuilder(charset:Charset = UTF_8) extends Builder[S
 
 /** A builder that will output an array as a json format string
  * 
- * @version next
+ * @version 3.0
  * @constructor
  * A builder that will create json format strings
  * 

@@ -37,7 +37,7 @@ import com.rayrobdod.json.parser.{Parser, MapParser, SeqParser}
 /**
  * A builder that serializes its input into json format
  * 
- * @since next
+ * @since 3.0
  * @see [http://argonaut.io/scaladocs/#argonaut.PrettyParams] the only decent idea in argonaut
  * @constructor
  * @param params the pretty-printing parameters.
@@ -88,12 +88,12 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 }
 
 /**
- * @since next
+ * @since 3.0
  */
 object PrettyJsonBuilder {
 	/**
 	 * The whitespace strings that will appear between significant portions of a serialized json file
-	 * @since next
+	 * @since 3.0
 	 */
 	trait PrettyParams {
 		/** The string that will appear on the left of a ':' mapping separator */
@@ -124,7 +124,7 @@ object PrettyJsonBuilder {
 	
 	/**
 	 * A PrettyParams that will result in a minified json string
-	 * @since next
+	 * @since 3.0
 	 */
 	object MinifiedPrettyParams extends PrettyParams {
 		def colonLeft(level:Int):String = ""
@@ -143,7 +143,7 @@ object PrettyJsonBuilder {
 	
 	/**
 	 * A PrettyParams for indentation
-	 * @since next
+	 * @since 3.0
 	 */
 	class IndentPrettyParams(tab:String = "\t", newline:String = System.lineSeparator) extends PrettyParams {
 		private def indent(level:Int) = Seq.fill(level)(tab).mkString

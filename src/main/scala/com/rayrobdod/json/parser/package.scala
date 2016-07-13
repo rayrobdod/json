@@ -87,7 +87,7 @@ package parser {
 	
 	/**
 	 * A trivial "parser" that goes through the motions using each element of a map
-	 * @version next
+	 * @version 3.0
 	 * 
 	 * @constructor
 	 * Create a MapParser
@@ -108,7 +108,7 @@ package parser {
 	
 	/**
 	 * A trivial "parser" that goes through the motions with each element of a seq
-	 * @version next
+	 * @version 3.0
 	 * 
 	 * @constructor
 	 * Create a SeqParser
@@ -129,7 +129,7 @@ package parser {
 	
 	/**
 	 * A trivial "parser" that goes through the motions with each element of a seq
-	 * @version next
+	 * @version 3.0
 	 * 
 	 * @constructor
 	 * Create a SeqParser
@@ -146,7 +146,7 @@ package parser {
 	
 	/**
 	 * A 'parser' that echos the value provided in its parse method
-	 * @version next
+	 * @version 3.0
 	 */
 	final class IdentityParser[K,V] extends Parser[K,V,V] {
 		/** Returns `scala.util.Right(v)` */
@@ -155,7 +155,7 @@ package parser {
 	
 	/**
 	 * A 'parser' that always returns a Failure
-	 * @version next
+	 * @version 3.0
 	 */
 	private[json] final class FailureParser[K,V,I] extends Parser[K,V,I] {
 		def parse[A](b:Builder[K,V,A], v:I):ParserRetVal.Failure = ParserRetVal.Failure("FailureParser", 0)

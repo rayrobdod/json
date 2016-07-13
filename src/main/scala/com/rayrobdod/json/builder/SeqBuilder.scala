@@ -34,7 +34,7 @@ import scala.util.{Try, Success, Failure}
 /** 
  * A Builder that will build a Vector of values, where each inner value was c
  * 
- * @version next
+ * @version 3.0
  * @tparam Key the type of keys used by the Parser that this Builder will be used by
  * @tparam Value the type of primitive value types used by the Parser that this Builder will be used by
  * @constructor
@@ -50,7 +50,7 @@ final class SeqBuilder[Key, Value, Inner](childBuilder:Builder[Key, Value, Inner
 
 /**
  * 
- * @since next
+ * @since 3.0
  */
 final class PrimitiveSeqBuilder[Key, Value] extends Builder[Key, Value, Seq[Value]] {
 	override def init:Seq[Value] = Vector.empty[Value]
