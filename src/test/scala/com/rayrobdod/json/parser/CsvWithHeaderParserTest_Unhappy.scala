@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2015, Raymond Dodge
+	Copyright (c) 2015-2016, Raymond Dodge
 	All rights reserved.
 	
 	Redistribution and use in source and binary forms, with or without
@@ -24,36 +24,39 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-import sbt._
-import Keys._
+package com.rayrobdod.json.parser
 
-object MyBuild extends Build {
-	
-	private val mySettings = Seq(
-	)
-	
-	private val coverageDisabledSettings = {
-		if (System.getProperty("scoverage.disable", "") != "true") {
-			Nil
-		} else {
-			Seq(
-				TaskKey[Unit]("coverage") := {},
-				TaskKey[Unit]("coveralls") := {}
-			)
+import org.scalatest.FunSpec
+import java.text.ParseException
+import scala.collection.immutable.{Seq, Map}
+import com.rayrobdod.json.union.{StringOrInt, JsonValue, ParserRetVal}
+import com.rayrobdod.json.builder._
+
+class CsvWithHeaderParserTest_Unhappy extends FunSpec {
+	describe("CsvWithHeaderParser") {
+		it ("""Throw builder immediate""") {
+			val source = "g,h,i\na,b,c\nd,e,f\n"
+			assertFailureParse("",11){
+				new CsvWithHeaderParser().parse(new ThrowBuilder[StringOrInt, String], source)
+			}
+		}
+		it ("""Throw builder indirect""") {
+			val source = "a,b,c\nd,e,f\n"
+			assertFailureParse("",12){
+				new CsvWithHeaderParser().parse(MapBuilder.apply2[StringOrInt, String, Any]({x:StringOrInt => x match {
+					case StringOrInt.Right(1) => new MapBuilder.MapChildBuilder[StringOrInt, String, Any, Any](new ThrowBuilder[StringOrInt, String].mapValue[String], {x:Any => x})
+					case _ => new MapBuilder.MapChildBuilder[StringOrInt, String, Map[StringOrInt, Either[_, String]], Any](MapBuilder[StringOrInt, String], {x:Any => x})
+				}}), source)
+			}
 		}
 	}
 	
 	
-	lazy val root = Project(
-			id = "json",
-			base = file("."),
-			settings = Defaults.coreDefaultSettings ++
-					CsvParserTestGenerator.settings ++
-					CsvWithHeaderParserTestGenerator.settings ++
-					CborParserTestGenerator.settings ++
-					BsonParserTestGenerator.settings ++
-					JsonParserTestGenerator.settings ++
-					coverageDisabledSettings ++
-					mySettings
-	)
+	def assertFailureParse(msg:String, idx:Int)(result:ParserRetVal[_,_]):Unit = result match {
+		case ParserRetVal.Failure(msg2, idx2) => {
+	//		assertResult(msg){msg2}
+			assertResult(idx){idx2}
+		}
+		case x => fail("Not a Failure: " + x)
+	}
 }
