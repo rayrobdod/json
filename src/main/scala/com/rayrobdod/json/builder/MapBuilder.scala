@@ -50,7 +50,7 @@ final class MapBuilder[K, V, Inner](childBuilders:Function1[K, MapBuilder.MapChi
 
 /** @since 3.0 */
 object MapBuilder {
-	class MapChildBuilder[K, V, A, Inner](builder:Builder[K, V, A], result:Function1[A, Inner]) {
+	final class MapChildBuilder[K, V, A, Inner](builder:Builder[K, V, A], result:Function1[A, Inner]) {
 		def apply[Input](innerInput:Input, parser:Parser[K, V, Input]):Either[(String, Int), Either[Inner, V]] = {
 			parser.parse(builder, innerInput).fold({s => Right(Left(result(s)))}, {p => Right(Right(p))}, {(s,i) => Left((s,i))})
 		}
