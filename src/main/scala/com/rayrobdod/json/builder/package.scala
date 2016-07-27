@@ -26,7 +26,7 @@
 */
 package com.rayrobdod.json
 
-import scala.util.{Try, Success, Failure}
+import scala.util.{Either, Left, Right}
 import com.rayrobdod.json.parser.Parser
 
 /**
@@ -44,7 +44,7 @@ package builder {
 	 * A Builder that will always return a failure on call to apply
 	 * @since 3.0
 	 */
-	final class ThrowBuilder[K,V] extends Builder[K,V,Any] {
+	private[json] final class ThrowBuilder[K,V] extends Builder[K,V,Any] {
 		override def init:Any = "using ThrowBuilder::init"
 		override def apply[I](a:Any,k:K,i:I,p:Parser[K,V,I]):Left[(String, Int), Any] = Left("using ThrowBuilder::apply", 0)
 	}

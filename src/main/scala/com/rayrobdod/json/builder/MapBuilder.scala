@@ -35,8 +35,7 @@ import scala.util.{Try, Success, Failure}
  * @version 3.0
  * @constructor
  * Create a MapBuilder instance
- * @param childBuilderMap a function pretty directly called by `childBuilder()`.
- *          By default, it is a function that creates more MapBuilders
+ * @param childBuilders A function that maps a key to a MapChildBuilder for building values from parsers and input.
  */
 final class MapBuilder[K, V, Inner](childBuilders:Function1[K, MapBuilder.MapChildBuilder[K, V, _, Inner]]) extends Builder[K, V, Map[K, Either[Inner, V]]] {
 	override val init:Map[K, Either[Inner, V]] = Map.empty
@@ -50,6 +49,9 @@ final class MapBuilder[K, V, Inner](childBuilders:Function1[K, MapBuilder.MapChi
 
 /** @since 3.0 */
 object MapBuilder {
+	/**
+	 * Pairs a builder and a function into a function to create a value from a parser and input.
+	 */
 	final class MapChildBuilder[K, V, A, Inner](builder:Builder[K, V, A], result:Function1[A, Inner]) {
 		def apply[Input](innerInput:Input, parser:Parser[K, V, Input]):Either[(String, Int), Either[Inner, V]] = {
 			parser.parse(builder, innerInput).fold({s => Right(Left(result(s)))}, {p => Right(Right(p))}, {(s,i) => Left((s,i))})

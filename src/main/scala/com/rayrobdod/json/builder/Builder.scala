@@ -58,8 +58,8 @@ trait Builder[Key, Value, Subject] {
 	 * @param parser a parser for turning input into a value
 	 * @param input the input to a parser
 	 * @return 
-	 * 	# A [[scala.util.Right]] containing the built value, or
-	 *  	# A [[scala.util.Left]] indicating an error message and error index
+	 *   - A [[scala.util.Right]] containing the built value, or
+	 *   - A [[scala.util.Left]] indicating an error message and error index
 	 */
 	def apply[Input](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject]
 	

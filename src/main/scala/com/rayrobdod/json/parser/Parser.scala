@@ -48,7 +48,10 @@ trait Parser[Key, Value, Input] {
 	 */
 	def parse[ComplexOutput](builder:Builder[Key, Value, ComplexOutput], i:Input):ParserRetVal[ComplexOutput, Value]
 	
-	
+	/**
+	 * Parse the input into a Value. Return a Right if [[Parser.parse]] would have
+	 * returned a [[com.rayrobdod.json.union.ParserRetVal.Primitive Primitive]], else return a Left.
+	 */
 	final def parsePrimitive(i:Input):Either[(String, Int), Value] = {
 		val ignoreAllBuilder = new Builder[Key, Value, Any] {
 			def init:Any = this

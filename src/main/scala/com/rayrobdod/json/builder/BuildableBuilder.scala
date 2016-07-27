@@ -150,7 +150,7 @@ object BuildableBuilder{
 	}
 	
 	/** 
-	 * A KeyDef that simply passes through the subject
+	 * A KeyDef that returns the folding value unchanged
 	 * @since 3.0
 	 */
 	def ignoreKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
@@ -158,7 +158,7 @@ object BuildableBuilder{
 	}
 	
 	/**
-	 * A KeyDef that throws an exception
+	 * A KeyDef that returns an error message
 	 * @since 3.0
 	 */
 	def throwKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{

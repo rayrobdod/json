@@ -38,7 +38,7 @@ import com.rayrobdod.json.parser.{Parser, MapParser, SeqParser}
  * A builder that serializes its input into json format
  * 
  * @since 3.0
- * @see [http://argonaut.io/scaladocs/#argonaut.PrettyParams] the only decent idea in argonaut
+ * @see [[http://argonaut.io/scaladocs/#argonaut.PrettyParams]] the only decent idea in argonaut
  * @constructor
  * @param params the pretty-printing parameters.
  * @param level the indentation level of this builder instance
@@ -93,37 +93,108 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 object PrettyJsonBuilder {
 	/**
 	 * The whitespace strings that will appear between significant portions of a serialized json file
+	 * @see [[com.rayrobdod.json.builder.PrettyJsonBuilder]]
 	 * @since 3.0
+	 * @define whitespace This value must contain only whitespace characters.
+	 * @define levelParam @param level the indentation depth to create a string for.
 	 */
 	trait PrettyParams {
-		/** The string that will appear on the left of a ':' mapping separator */
+		/**
+		 * The string that will appear on the left of a ':' mapping separator. $whitespace
+		 * $levelParam
+		 */
 		def colonLeft(level:Int):String
-		/** The string that will appear on the right of a ':' mapping separator */
+		/**
+		 * The string that will appear on the right of a ':' mapping separator. $whitespace
+		 * $levelParam
+		 */
 		def colonRight(level:Int):String
-		/** The string that will appear on the left of a ',' item separator */
+		/**
+		 * The string that will appear on the left of a ',' item separator. $whitespace
+		 * $levelParam
+		 */
 		def commaLeft(level:Int):String
-		/** The string that will appear on the right of a ',' item separator */
+		/**
+		 * The string that will appear on the right of a ',' item separator. $whitespace
+		 * $levelParam
+		 */
 		def commaRight(level:Int):String
+		/**
+		 * The string that will appear on the left of a '{' object start. $whitespace
+		 * $levelParam
+		 */
 		def lbraceLeft(level:Int):String
+		/**
+		 * The string that will appear on the right of a '{' object start. $whitespace
+		 * $levelParam
+		 */
 		def lbraceRight(level:Int):String
+		/**
+		 * The string that will appear on the left of a '[' array start. $whitespace
+		 * $levelParam
+		 */
 		def lbracketLeft(level:Int):String
+		/**
+		 * The string that will appear on the right of a '[' array start. $whitespace
+		 * $levelParam
+		 */
 		def lbracketRight(level:Int):String
+		/**
+		 * The string that will appear on the left of a '}' object end. $whitespace
+		 * $levelParam
+		 */
 		def rbraceLeft(level:Int):String
+		/**
+		 * The string that will appear on the right of a '}' object end. $whitespace
+		 * $levelParam
+		 */
 		def rbraceRight(level:Int):String
+		/**
+		 * The string that will appear on the left of a ']' array end. $whitespace
+		 * $levelParam
+		 */
 		def rbracketLeft(level:Int):String
+		/**
+		 * The string that will appear on the right of a ']' array end. $whitespace
+		 * $levelParam
+		 */
 		def rbracketRight(level:Int):String
 		
 		
+		/**
+		 * The string that includes a ':' and the surrounding whitespace.
+		 * $levelParam
+		 */
 		final def colon(level:Int):String = colonLeft(level) + ":" + colonRight(level)
+		/**
+		 * The string that includes a ',' and the surrounding whitespace.
+		 * $levelParam
+		 */
 		final def comma(level:Int):String = commaLeft(level) + "," + commaRight(level)
+		/**
+		 * The string that includes a '[' and the surrounding whitespace.
+		 * $levelParam
+		 */
 		final def lbrace(level:Int):String = lbraceLeft(level) + "[" + lbraceRight(level)
+		/**
+		 * The string that includes a '{' and the surrounding whitespace.
+		 * $levelParam
+		 */
 		final def lbracket(level:Int):String = lbracketLeft(level) + "{" + lbracketRight(level)
+		/**
+		 * The string that includes a ']' and the surrounding whitespace.
+		 * $levelParam
+		 */
 		final def rbrace(level:Int):String = rbraceLeft(level) + "]" + rbraceRight(level)
+		/**
+		 * The string that includes a '}' and the surrounding whitespace.
+		 * $levelParam
+		 */
 		final def rbracket(level:Int):String = rbracketLeft(level) + "}" + rbracketRight(level)
 	}
 	
 	/**
-	 * A PrettyParams that will result in a minified json string
+	 * A PrettyParams that will result in a minified json string. Every function returns the empty string.
 	 * @since 3.0
 	 */
 	object MinifiedPrettyParams extends PrettyParams {
@@ -142,11 +213,16 @@ object PrettyJsonBuilder {
 	}
 	
 	/**
-	 * A PrettyParams for indentation
+	 * A PrettyParams for an indenting pattern with one space around each colon, commas at the end of the a line and brackets on their own line. 
 	 * @since 3.0
+	 * @define whitespace This value must contain only whitespace characters
+	 * 
+	 * @constructor
+	 * @param tab the string to use as the indention. $whitespace
+	 * @param newline the string to use as the newline character. $whitespace
 	 */
-	class IndentPrettyParams(tab:String = "\t", newline:String = System.lineSeparator) extends PrettyParams {
-		private def indent(level:Int) = Seq.fill(level)(tab).mkString
+	final class IndentPrettyParams(tab:String = "\t", newline:String = System.lineSeparator) extends PrettyParams {
+		private[this] def indent(level:Int) = Seq.fill(level)(tab).mkString
 		
 		def colonLeft(level:Int):String = " "
 		def colonRight(level:Int):String = " "
