@@ -35,7 +35,7 @@ import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter};
 class ThrowBuilderTest extends FunSpec {
 	
 	describe("ThrowBuilder") {
-		ignore ("Returns a failure on apply regardless of inputs") {
+		it ("Returns a failure on apply regardless of inputs") {
 			assertFailure{
 				new ThrowBuilder().apply("a", null, null, null)
 			}

@@ -27,12 +27,10 @@
 package com.rayrobdod.json.builder;
 
 import scala.collection.immutable.Seq
-import scala.util.{Try, Success, Failure}
 import java.nio.charset.StandardCharsets.UTF_8
 import com.rayrobdod.json.parser.CborParser.{MajorTypeCodes, SimpleValueCodes}
-import com.rayrobdod.json.union.{CborValue}
-import com.rayrobdod.json.parser.Parser
-import com.rayrobdod.json.parser.{MapParser, SeqParser}
+import com.rayrobdod.json.union.CborValue
+import com.rayrobdod.json.parser.{Parser, MapParser, SeqParser}
 
 /**
  * A builder that will create a series of bytes in Cbor Object format

@@ -28,7 +28,6 @@ package com.rayrobdod.json.builder;
 
 import java.text.ParseException;
 import scala.collection.immutable.{Seq, Map};
-import scala.util.{Try, Right, Failure}
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue

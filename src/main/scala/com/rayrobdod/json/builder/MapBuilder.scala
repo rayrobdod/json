@@ -27,8 +27,7 @@
 package com.rayrobdod.json.builder;
 
 import com.rayrobdod.json.parser.Parser
-import scala.collection.immutable.Map;
-import scala.util.{Try, Success, Failure}
+import scala.collection.immutable.Map
 
 /** A builder that creates maps
  * 

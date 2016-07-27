@@ -27,7 +27,6 @@
 package com.rayrobdod.json.builder;
 
 import scala.beans.BeanProperty;
-import scala.util.{Try, Right, Failure}
 import java.text.ParseException;
 import scala.collection.immutable.Seq;
 import org.scalatest.FunSpec;

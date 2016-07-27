@@ -28,7 +28,6 @@ package com.rayrobdod.json.builder;
 
 import scala.beans.BeanProperty;
 import java.text.ParseException;
-import scala.util.{Try, Right, Failure}
 import scala.collection.immutable.{Seq, Map};
 import org.scalatest.FunSpec;
 import java.nio.charset.StandardCharsets.US_ASCII;
