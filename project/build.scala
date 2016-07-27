@@ -49,7 +49,6 @@ object MyBuild extends Build {
 			base = file("."),
 			settings = Defaults.coreDefaultSettings ++
 					CsvParserTestGenerator.settings ++
-					CsvWithHeaderParserTestGenerator.settings ++
 					CborParserTestGenerator.settings ++
 					BsonParserTestGenerator.settings ++
 					JsonParserTestGenerator.settings ++
