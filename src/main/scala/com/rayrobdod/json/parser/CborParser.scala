@@ -266,6 +266,101 @@ object CborParser {
 	final case class ParseReturnValueUnknownSimple(value:Byte) extends ParseReturnValue[Nothing]
 	final case class ParseReturnValueFailure(msg:String, idx:Int) extends ParseReturnValue[Nothing]
 	
+	//val selfdescribeTag:PartialFunction[Int, Function1[DataInput, ???]] = {
+	//	case 55799 => {i:DataInput => new CborParser().parse[A](i)}
+	//}
+	
+	
+	import CborValue._
+	import scala.math.{BigDecimal, BigInt}
+	import spire.math.Rational
+	val numberTags:PartialFunction[Int,Function1[DataInput, Either[(String,Int),CborValue]]] = {
+		case 2 /* Positive bignum */ => {i:DataInput =>
+			val bsOpt = new CborParser().parsePrimitive(i)
+			bsOpt.right.flatMap{_ match {
+				case CborValueByteStr(bs)=> Right(CborValueNumber(bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))}))
+				case _ => Left("Tag 2 contained non-byte-string value", 0)
+			}}
+		}
+		case 3 /* Negative bignum */ => {i:DataInput =>
+			val bsOpt = new CborParser().parsePrimitive(i)
+			bsOpt.right.flatMap{_ match {
+				case CborValueByteStr(bs)=> Right(CborValueNumber((-1:BigInt) - bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))}))
+				case _ => Left("Tag 3 contained non-byte-string value", 0)
+			}}
+		}
+		case 4 /* Decimal Bigfloat */ => {i:DataInput =>
+			new CborParser().parse(new TwoNumberBuilder[BigDecimal]()(implicitly[Int => BigDecimal], implicitly[Long => BigDecimal], BigDecimal.apply) {
+				def init = CborValueNumber(BigDecimal(0))
+				def combine(a:BigDecimal, b:BigDecimal):BigDecimal = a * BigDecimal(10).pow(b.intValue)
+				def isAnA(n:Number):Option[BigDecimal] = n match {
+					case a:BigDecimal => Some(a)
+					case _ => None
+				}
+			}, i).fold({x => Right(x)}, {x => Left("Tag 4 contained primitive", 0)}, {(s,i) => Left(s,i)})
+		}
+		case 5 /* Binary Bigfloat */ => {i:DataInput =>
+			new CborParser().parse(new TwoNumberBuilder[BigDecimal]()(implicitly[Int => BigDecimal], implicitly[Long => BigDecimal], BigDecimal.apply) {
+				def init = CborValueNumber(BigDecimal(0))
+				def combine(a:BigDecimal, b:BigDecimal):BigDecimal = a * BigDecimal(2).pow(b.intValue)
+				def isAnA(n:Number):Option[BigDecimal] = n match {
+					case a:BigDecimal => Some(a)
+					case _ => None
+				}
+			}, i).fold({x => Right(x)}, {x => Left("Tag 5 contained primitive", 0)}, {(s,i) => Left(s,i)})
+		}
+		case 30 /* rational */ => {i:DataInput =>
+			new CborParser().parse(new TwoNumberBuilder[Rational]() {
+				def init = CborValueNumber(Rational(0))
+				def combine(a:Rational, b:Rational):Rational = a / b
+				def isAnA(n:Number):Option[Rational] = n match {
+					case a:Rational => Some(a)
+					case _ => None
+				}
+			}, i).fold({x => Right(x)}, {x => Left("Tag 30 contained primitive", 0)}, {(s,i) => Left(s,i)}) 
+		}
+	}
+	
+	private[this] abstract class TwoNumberBuilder[A <: Number](implicit fromInt:Int => A, fromLong:Long => A, fromBig:BigInt => A) extends Builder[CborValue, CborValue, CborValue] {
+		final def apply[Input](folding:CborValue, key:CborValue, input:Input, parser:Parser[CborValue, CborValue, Input]):Either[(String, Int), CborValueNumber] = {
+			val value = parser.parsePrimitive(input).right.flatMap{_ match {
+				case CborValueNumber(x:BigInt) => Right(fromBig(x))
+				case CborValueNumber(x:Integer) => Right(fromInt(x:Int))
+				case CborValueNumber(x:java.lang.Long) => Right(fromLong(x:Long))
+				case _ => Left("contained a non-integer value", 0)
+			}}
+			
+			val folding2 = folding match {
+				case CborValueNumber(x) => isAnA(x).fold[Either[(String,Int),A]]{Left("Invalid folding parameter", 0)}{x => Right(x)}
+				case _ => Left("Invalid folding parameter", 0)
+			}
+			val key2 = key match {
+				case CborValueNumber(x) => x.intValue match {
+					case 0 => Right(true)
+					case 1 => Right(false)
+					case _ => Left("Key not 0 or 1", 0)
+				}
+				case _ => Left("Key not 0 or 1", 0)
+			}
+			
+			for (
+				folding3 <- folding2.right;
+				key3 <- key2.right;
+				value3 <- value.right
+			) yield {
+				if (key3) {
+					CborValueNumber(value3)
+				} else {
+					CborValueNumber(this.combine(folding3, value3))
+				}
+			}
+		}
+		
+		def combine(a:A, b:A):A
+		def isAnA(n:Number):Option[A]
+	}
+	
+	
 	
 	/**
 	 * The CBOR major types.

@@ -23,6 +23,8 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-target:jvm-1.7
 
 libraryDependencies <+= scalaVersion.apply{("org.scala-lang" % "scala-reflect" % _)}
 
+libraryDependencies += "org.spire-math" %% "spire" % "0.11.0"
+
 scalacOptions in doc in Compile ++= Seq(
 		"-doc-title", name.value,
 		"-doc-version", version.value,
