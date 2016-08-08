@@ -30,29 +30,51 @@ import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.parser.Parser
 import scala.language.implicitConversions
 
+/*
+ * The other classes in this package could easily be unions if the language supported anonymous unions.
+ * ParserRetVal, on the other hand, probably needs to be a tagged union.
+ * The Complex output implies a level of processing which the Primitive almost certainly doesn't have,
+ * and it is conceivable that the complex output is a (String, Int) tuple, which would overlap with the Failure type.
+ */
+
 /**
- * A union type representing possible return values of Parser.parse
+ * A union type representing possible return values of [[com.rayrobdod.json.parser.Parser.parse `Parser.parse`]].
+ * 
  * @since 3.0
- * @see [[com.rayrobdod.json.parser.Parser.parse]]
  */
 sealed trait ParserRetVal[+Complex, +Primitive]{
+	/**
+	 * Applies a function corresponding to `this`'s type
+	 * @param c the function to apply if `this` is a [[ParserRetVal$.Complex Complex]]
+	 * @param p the function to apply if `this` is a [[ParserRetVal$.Primitive Primitive]]
+	 * @param f the function to apply if `this` is a [[ParserRetVal$.Failure Failure]]
+	 * @return the results of applying the function
+	 */
 	def fold[Out](c:Function1[Complex,Out], p:Function1[Primitive,Out], f:Function2[String,Int,Out]):Out
 }
 
 /**
- * Methods used to create ParserRetVals
+ * A container for the types of [ParserRetVal]s
  * @since 3.0
  */
 object ParserRetVal {
+	
 	final case class Primitive[Primitive](x:Primitive) extends ParserRetVal[Nothing, Primitive]{
 		def fold[Out](c:Function1[Nothing,Out], p:Function1[Primitive,Out], f:Function2[String,Int,Out]):Out = p(x)
 	}
+	
 	final case class Complex[Complex](x:Complex) extends ParserRetVal[Complex, Nothing]{
 		def fold[Out](c:Function1[Complex,Out], p:Function1[Nothing,Out], f:Function2[String,Int,Out]):Out = c(x)
 	}
+	
+	/**
+	 * @constructor
+	 * @param msg a string describing the failure
+	 * @param idx the location in the input of the error. The meaning of idx depends on the Parser's Input;
+	 * 	if the Input is a character sequence, then idx might be the index of the character that caused a problem.
+	 */
 	final case class Failure(msg:String, idx:Int) extends ParserRetVal[Nothing, Nothing]{
 		def fold[Out](c:Function1[Nothing,Out], p:Function1[Nothing,Out], f:Function2[String,Int,Out]):Out = f(msg,idx)
 	}
-	
 	
 }

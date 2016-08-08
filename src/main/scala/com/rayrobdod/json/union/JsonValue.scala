@@ -37,7 +37,7 @@ import scala.language.implicitConversions
 sealed trait JsonValue
 
 /**
- * Methods used to create JsonValues
+ * The cases of JsonValue and methods to convert other things into JsonValues.
  * @since 3.0
  */
 object JsonValue {
@@ -59,7 +59,10 @@ object JsonValue {
 		case StringOrInt.Right(i) => JsonValueNumber(i)
 	}
 	
-	/** Unwraps a CborValue and returns whatever was inside */
+	/** 
+	 * Convert a CborValue into a JsonValue, where ByteStrs are instead converted into
+	 * hexencoded strings.
+	 */
 	def cborValueHexencodeByteStr(x:CborValue):JsonValue = x match {
 		case CborValue.CborValueString(s) => JsonValueString(s)
 		case CborValue.CborValueBoolean(b) => JsonValueBoolean(b)

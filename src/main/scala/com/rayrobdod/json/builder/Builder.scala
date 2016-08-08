@@ -50,7 +50,7 @@ trait Builder[Key, Value, Subject] {
 	/**
 	 * Add a key-value pair to `folding`
 	 * 
-	 * The key is key, and the value is the result of [[com.rayrobdod.json.parser.Parser.parse]] on the provided `input`.
+	 * The key is `key`, and the value is the result of [[com.rayrobdod.json.parser.Parser.parse]] on the provided `input`.
 	 * 
 	 * 
 	 * @param folding the object to be added to. Must be either the return value of [[init]] or the return value of [[apply]]
@@ -64,8 +64,10 @@ trait Builder[Key, Value, Subject] {
 	def apply[Input](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject]
 	
 	
-	/** Change the type of key that this builder requires
-	 * @version 3.0
+	/**
+	 * Change the type of key that this builder requires
+	 * @param fun a conversion function from the new key to this's key
+	 * @since 3.0
 	 */
 	final def mapKey[K2](implicit fun:Function1[K2,Key]):Builder[K2,Value,Subject] = new Builder[K2,Value,Subject] {
 		override def init:Subject = Builder.this.init
@@ -74,8 +76,10 @@ trait Builder[Key, Value, Subject] {
 		}
 	}
 	
-	/** Change the type of value that this builder requires
-	 * @version 3.0
+	/**
+	 * Change the type of value that this builder requires
+	 * @param fun a conversion function from the new value to this's value
+	 * @since 3.0
 	 */
 	final def mapValue[V2](implicit fun:Function1[V2,Value]):Builder[Key,V2,Subject] = new Builder[Key,V2,Subject] {
 		override def init:Subject = Builder.this.init

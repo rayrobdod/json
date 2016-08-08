@@ -31,13 +31,13 @@ import com.rayrobdod.json.builder.Builder
 import scala.language.implicitConversions
 
 /**
- * A union type represting primitive types in Cbor objects
+ * A union type representing primitive types in Cbor objects
  * @since 3.0
  */
 sealed trait CborValue
 
 /**
- * Methods used to create CborValues
+ * The cases of CborValue and methods to convert other things into CborValues.
  * @since 3.0
  */
 object CborValue {

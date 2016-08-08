@@ -40,7 +40,7 @@ import com.rayrobdod.json.parser.{Parser, MapParser, SeqParser}
  * @since 3.0
  * @see [[http://argonaut.io/scaladocs/#argonaut.PrettyParams]] the only decent idea in argonaut
  * @constructor
- * @param params the pretty-printing parameters.
+ * @param params The whitespace to insert between tokens
  * @param level the indentation level of this builder instance
  * @param charset The output will only contain characters that can be encoded using the specified charset.
  *           Any characters outside the charset will be u-escaped. Default is to keep all characters that are allowed by Json.
@@ -49,6 +49,7 @@ import com.rayrobdod.json.parser.{Parser, MapParser, SeqParser}
 final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Charset = UTF_8, level:Int = 0) extends Builder[StringOrInt, JsonValue, String] {
 	import MinifiedJsonObjectBuilder.serialize
 
+	/** A builder to be used when serializing any 'complex' children of the values this builder is dealing with */
 	private[this] lazy val nextLevel = new PrettyJsonBuilder(params, charset, level + 1)
 	
 	val init:String = params.lbrace(level) + params.rbrace(level)
@@ -88,6 +89,7 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 }
 
 /**
+ * PrettyParams and two implementations of it.
  * @since 3.0
  */
 object PrettyJsonBuilder {
