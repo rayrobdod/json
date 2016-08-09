@@ -38,6 +38,7 @@ import com.rayrobdod.json.parser.{IdentityParser, FailureParser}
 import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter}
 import com.rayrobdod.json.union.StringOrInt
 
+@deprecated("MinifiedJsonObjectBuilder is deprecated; using to suppress warnings tests related to that class", "3.0")
 class MinifiedJsonObjectBuilderTest extends FunSpec {
 	private case class Abc(a:Int, b:Boolean, c:String)
 	private implicit def classAbc = classOf[Abc]
@@ -145,8 +146,8 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 			assertResult("""{"4":5}"""){
 				new CborParser().parse(
 					new MinifiedJsonObjectBuilder()
-							.mapKey[CborValue]{_ match {case CborValue.CborValueString(x) => x; case CborValue.CborValueNumber(x) => x.toString}}
-							.mapValue[CborValue]{_ match {case CborValue.CborValueString(x) => x; case CborValue.CborValueNumber(x) => x}},
+							.mapKey[CborValue]{_ match {case CborValue.CborValueNumber(x) => x.toString; case _ => ""}}
+							.mapValue[CborValue]{_ match {case CborValue.CborValueNumber(x) => x; case _ => JsonValueNull}},
 					byteArray2DataInput(hexArray"A10405")
 				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}

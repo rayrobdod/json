@@ -29,7 +29,7 @@ package com.rayrobdod.json.parser
 import org.scalatest.FunSpec
 import java.text.ParseException
 import scala.collection.immutable.Map
-import com.rayrobdod.json.builder.{MapBuilder, MinifiedJsonObjectBuilder, ThrowBuilder}
+import com.rayrobdod.json.builder.{MapBuilder, PrettyJsonBuilder, ThrowBuilder}
 import com.rayrobdod.json.union.{StringOrInt, JsonValue}
 
 class MapParserTest extends FunSpec {
@@ -58,9 +58,9 @@ class MapParserTest extends FunSpec {
 	
 	describe("MapParser + Json") {
 		it ("""can be used with the json stuff to serialze and deserialize a map""") {
-			val src = Map("a" -> JsonValue(32L), "b" -> JsonValue(false), "c" -> JsonValue("1.5"))
-			val json = new MapParser().parse(new MinifiedJsonObjectBuilder(), src).fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
-			val res = new JsonParser().parse(MapBuilder[String, JsonValue].mapKey[StringOrInt]{StringOrInt.unwrapToString}, json).fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
+			val src = Map(StringOrInt("a") -> JsonValue(32L), StringOrInt("b") -> JsonValue(false), StringOrInt("c") -> JsonValue("1.5"))
+			val json = new MapParser().parse(new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams), src).fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
+			val res = new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], json).fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
 			
 			assertResult(src.mapValues{Right.apply}){res}
 		}

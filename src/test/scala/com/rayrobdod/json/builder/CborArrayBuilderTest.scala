@@ -39,6 +39,7 @@ import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.parser.FailureParser
 import com.rayrobdod.json.parser.HexArrayStringConverter;
 
+@deprecated("CborArrayBuilder is deprecated; using to suppress warnings tests related to that class", "3.0")
 class CborArrayBuilderTest extends FunSpec {
 	private case class Abc(a:Int, b:Boolean, c:String)
 	private implicit def classAbc = classOf[Abc]
