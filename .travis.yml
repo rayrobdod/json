@@ -19,7 +19,7 @@ matrix:
         env: SCOVERAGE_DISABLE=true
 
 script:
-  - sbt -Dscoverage.disable=$SCOVERAGE_DISABLE ++$TRAVIS_SCALA_VERSION coverage test
+  - sbt -Dscoverage.disable=$SCOVERAGE_DISABLE coverage ++$TRAVIS_SCALA_VERSION test
 
 after_success:
   - sbt -Dscoverage.disable=$SCOVERAGE_DISABLE ++$TRAVIS_SCALA_VERSION coverageReport coveralls
