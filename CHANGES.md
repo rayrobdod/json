@@ -1,3 +1,17 @@
+## 3.0-RC2
+* Documentation, mostly
+
+## 3.0-RC1
+Typesafety
+* Give Builders and Parsers type parameters related to types of Keys and Values
+* Add Union types
+* Add PrettyJsonBuilder; deprecate MinifiedJsonObjectBuilder and MinifiedJsonArrayBuilder
+* Add CborBuilder; deprecate CborObjectBuilder and CborArrayBuilder
+* Add BuildableBuilder
+
+## 2.0
+* None
+
 ## 2.0-RC6
 * Build scala2.10 and scala2.11 versions using java7
 
