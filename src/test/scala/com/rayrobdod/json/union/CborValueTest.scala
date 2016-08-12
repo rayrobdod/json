@@ -52,6 +52,23 @@ class CborValueTest extends FunSpec {
 			
 			assert(a != b)
 		}
+		it ("""is not linked to the source array (input)""") {
+			val exp = Array[Byte](1,2,3,4,5)
+			val arr = java.util.Arrays.copyOf(exp, 5)
+			val cbor = CborValueByteStr(arr)
+			assert(java.util.Arrays.equals(arr, cbor.s))
+			
+			arr(2) = 42
+			assert(! java.util.Arrays.equals(arr, cbor.s))
+		}
+		it ("""is not linked to the source array (output)""") {
+			val cbor = CborValueByteStr(Array[Byte](1,2,3,4,5))
+			val arr = cbor.s
+			assert(java.util.Arrays.equals(arr, cbor.s))
+			
+			arr(2) = 42
+			assert(! java.util.Arrays.equals(arr, cbor.s))
+		}
 	}
 	
 	describe("CborValue$") {

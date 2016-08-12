@@ -1,5 +1,6 @@
 ## 3.0-RC2
 * Documentation, mostly
+* Isolate CborValueByteStr backing value from inputs or outputs
 
 ## 3.0-RC1
 Typesafety

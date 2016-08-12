@@ -45,19 +45,26 @@ object CborValue {
 	final case class CborValueNumber(i:Number) extends CborValue
 	final case class CborValueBoolean(b:Boolean) extends CborValue
 	object CborValueNull extends CborValue
-	final case class CborValueByteStr(s:Array[Byte]) extends CborValue {
-		override def hashCode:Int = java.util.Arrays.hashCode(s)
+	final class CborValueByteStr(s3:Array[Byte]) extends CborValue {
+		private[this] val s2:Array[Byte] = java.util.Arrays.copyOf(s3, s3.length)
+		
+		def s:Array[Byte] = java.util.Arrays.copyOf(s2, s2.length)
+		override def hashCode:Int = java.util.Arrays.hashCode(s2)
 		override def equals(other:Any):Boolean = other match {
-			case CborValueByteStr(other2) => java.util.Arrays.equals(s, other2)
+			case CborValueByteStr(other2) => java.util.Arrays.equals(s2, other2)
 			case _ => false
 		}
+		override def toString:String = "CborValueByteStr(" + java.util.Arrays.toString(s2) + ")"
+	}
+	object CborValueByteStr {
+		def unapply(x:CborValueByteStr):Option[Array[Byte]] = Option(x.s)
+		def apply(x:Array[Byte]):CborValueByteStr = new CborValueByteStr(x)
 	}
 	
 	implicit def apply(s:String):CborValue = CborValueString(s)
 	implicit def apply(b:Boolean):CborValue = CborValueBoolean(b)
 	implicit def apply(s:Array[Byte]):CborValue = CborValueByteStr(s)
 	implicit def apply(i:Number):CborValue = CborValueNumber(i)
-	
 	
 	
 	/** Convert a StringOrInt value intoa CborValue */
