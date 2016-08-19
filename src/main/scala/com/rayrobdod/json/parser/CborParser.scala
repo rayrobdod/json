@@ -37,7 +37,10 @@ import com.rayrobdod.json.union.ParserRetVal
 /**
  * A parser that will decode cbor data.
  * 
- * This cannot handle complex values in map keys.
+ * This does not support
+   - complex values in map keys
+   - halffloats
+   - any tags
  * 
  * @version 3.0
  * @see [[http://tools.ietf.org/html/rfc7049]]
@@ -136,6 +139,8 @@ final class CborParser extends Parser[CborValue, CborValue, DataInput] {
 						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate tag value", 0)
 					}
 				}
+				// `whatver & 7` can only be a value between 0 through 7 inclusive, but
+				// scala's type system does not know that, hence this unreachable statement.
 				case _ => ParseReturnValueFailure("majorType was greater than 7", 0)
 			}
 		})

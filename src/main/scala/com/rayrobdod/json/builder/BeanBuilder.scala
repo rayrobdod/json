@@ -31,7 +31,7 @@ import com.rayrobdod.json.parser.Parser
 
 /** A builder that builds a JavaBean
  * 
- * As with anything that works with javabeans, this requires the class
+ * As with anything that works with java beans, this requires the class
  * to have a zero-argument constructor and will interact with methods
  * of the form `setX`.
  * 

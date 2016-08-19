@@ -36,6 +36,9 @@ import com.rayrobdod.json.union._
 /**
  * A streaming parser for Bson values
  * 
+ * This supports types 1 (Float), 2 (String), 3 (Document),
+ * 4 (Array), 8 (Boolean), 10 (Null), 16 (Int32) and 18 (Int64).
+ * Other types are unsupported.
  * 
  * @version 3.0
  * @see [[http://bsonspec.org/]]

@@ -52,7 +52,7 @@ final case class BuildableBuilder[Key, Value, Subject](
 		keyDefs:Map[Key, BuildableBuilder.KeyDef[Key, Value, Subject]] = Map.empty[Key, BuildableBuilder.KeyDef[Key, Value, Subject]]
 ) extends Builder[Key, Value, Subject] {
 	
-	/** add a buildableBuilder that will be used upon recieving the given key */
+	/** add a KeyDef that will be used upon receiving the given key */
 	def addDef(key:Key, fun:BuildableBuilder.KeyDef[Key, Value, Subject]):BuildableBuilder[Key, Value, Subject] = {
 		this.copy(keyDefs = this.keyDefs + ((key, fun)))
 	}

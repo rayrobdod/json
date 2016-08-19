@@ -31,7 +31,9 @@ import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.union.ParserRetVal
 
 /**
- * A parser
+ * An object that parses an input into a sequence of key-value pairs for the
+ * purpose of inserting those key-value pairs into a Builder
+ * 
  * @see [[com.rayrobdod.json.builder.Builder]]
  * @since 3.0
  * @tparam Key the key types
@@ -41,9 +43,14 @@ import com.rayrobdod.json.union.ParserRetVal
 trait Parser[Key, Value, Input] {
 	
 	/**
-	 * Parse the input into either a Value or an Output
-	 * @param builder a builder in the case the the parser finds a complex value
-	 * @param i the input to the parser
+	 * Convert the input into a series of key-value pairs, insert those key-value pairs into `builder`, return the value output by `builder`
+	 * 
+	 * @param builder a builder that consumes key-value pairs and produced a complex value. 
+	 * @param i the input to the parser - the implementation of parser determines what it uses as input
+	 * @return
+		- An error containing a message and index into i
+		- A primitive value
+		- A complex value produced by feeding key-value pairs to the builder
 	 * @tparam ComplexOutput the type of object the Builder produces
 	 */
 	def parse[ComplexOutput](builder:Builder[Key, Value, ComplexOutput], i:Input):ParserRetVal[ComplexOutput, Value]

@@ -31,13 +31,18 @@ import com.rayrobdod.json.parser.Parser
 import scala.collection.immutable.Seq;
 
 /** 
- * A Builder that will build a Vector of values, where each inner value was c
+ * A Builder that will build a Vector of values, where each inner value is produced by the parameter builder.
+ * 
+ * This builder ignores keys completely, and adds elements to the sequence in encounter order.
+ * 
+ * [[#apply]] will return a left if the value is a primitive value.
  * 
  * @version 3.0
- * @tparam Key the type of keys used by the Parser that this Builder will be used by
- * @tparam Value the type of primitive value types used by the Parser that this Builder will be used by
+ * @tparam Key the type of keys encountered. Key is ignored
+ * @tparam Value the type of primitive values encountered
+ * @tparam Inner the type of complex values produced by the childBuilder
  * @constructor
- * A builder that will create seqs of values built with the specified childbuilder
+ * A builder that will create seqs of values built with the specified child builder
  * @param childBuilder the type of this seq's complex child elements. If it is Nothing, it will default to making more SeqBuilders
  */
 final class SeqBuilder[Key, Value, Inner](childBuilder:Builder[Key, Value, Inner]) extends Builder[Key, Value, Seq[Inner]] {
@@ -48,8 +53,15 @@ final class SeqBuilder[Key, Value, Inner](childBuilder:Builder[Key, Value, Inner
 }
 
 /**
+ * A Builder that will build a Vector of values, where each inner value is a primitive value.
+ * 
+ * This builder ignores keys completely, and adds elements to the sequence in encounter order.
+ * 
+ * [[#apply]] will return a left if the value is a complex value. 
  * 
  * @since 3.0
+ * @tparam Key the type of keys encountered
+ * @tparam Value the type of primitive values encountered
  */
 final class PrimitiveSeqBuilder[Key, Value] extends Builder[Key, Value, Seq[Value]] {
 	override def init:Seq[Value] = Vector.empty[Value]

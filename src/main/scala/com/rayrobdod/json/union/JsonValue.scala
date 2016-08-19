@@ -31,7 +31,7 @@ import com.rayrobdod.json.builder.Builder
 import scala.language.implicitConversions
 
 /**
- * A union type represting primitive types in Json objects
+ * A union type representing primitive types in Json objects
  * @since 3.0
  */
 sealed trait JsonValue
@@ -52,7 +52,7 @@ object JsonValue {
 	
 	
 	
-	/** Convert a StringOrInt value intoa JsonValue */
+	/** Convert a StringOrInt value into a JsonValue */
 	// Can't be called 'apply' as otherwise `JsonValue(x:Int)` confuses the compiler
 	implicit def stringOrInt2JsonValue(s:StringOrInt):JsonValue = s match {
 		case StringOrInt.Left(s) => JsonValueString(s)

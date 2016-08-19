@@ -98,6 +98,19 @@ final class CsvParser(
 	def parse[A](builder:Builder[Int, String, A], chars:java.io.Reader):ParserRetVal[A,String] = this.parse(builder, new Reader2Iterable(chars))
 	
 	
+	/**
+	 * @param value the current value. Either a left describing an error, or a right with a complex value
+	 * @param innerIndex the current character index of the parse
+	 * @param innerInput the 
+	 * @param endingWhitespace Whitespace that should be ignored if a delimiter is encountered
+	 * 		before another non-whitespace character, but that should not be ignored otherwise.
+	 * @param quoted true if the parser is currently in a quoted state. characters between quote characters
+	 * 		are treated literally, so if this is true then characters should be treated literally,
+	 * 		and this should be toggled upon encountering a quote character.
+	 * @param escaped true if the parser is currently in an escape state. Characters after an escape character
+	 * 		is treated literally, so if this is true then characters should be treated literally,
+	 *		become true when an escape character is encountered and become false after encountering that literal character
+	 */
 	private[this] case class State[A] (
 		value:Either[(String,Int),A],
 		innerIndex:Int,

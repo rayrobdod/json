@@ -32,9 +32,9 @@ import com.rayrobdod.json.parser.Parser
 /**
  * Contains the various built-in builders.
  *
- * Pretty much every parser will require a Builder when parsing data.
- * The builder will basically determine how the parser will treat complex
- * data types.
+ * Most built-in builders either build a serialized form (json, cbor),
+ * build a generic collection class (seq, map) or build a class that
+ * conforms to a stereotype (java bean, case class)
  */
 package object builder {
 }

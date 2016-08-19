@@ -34,6 +34,10 @@ import com.rayrobdod.json.union.ParserRetVal
 
 /**
  * Contains the various built-in parsers
+ *
+ * Most built-in parsers either parse a serialized form (json, cbor, csv),
+ * parse from a generic collection class (seq, map) or parse a class that
+ * conforms to a stereotype (case class)
  */
 package object parser {
 	/** @version 2.0 */
@@ -86,9 +90,11 @@ package parser {
 	}
 	
 	/**
-	 * A trivial "parser" that goes through the motions using each element of a map
+	 * A parser that reads each key-value pair from a Map
 	 * @version 3.0
 	 * 
+	 * @tparam K the type of keys contained in the Map
+	 * @tparam V the type of values contained in the Map
 	 * @constructor
 	 * Create a MapParser
 	 */
@@ -107,9 +113,10 @@ package parser {
 	}
 	
 	/**
-	 * A trivial "parser" that goes through the motions with each element of a seq
+	 * A parser that reads each Value and its index from a Seq
 	 * @version 3.0
 	 * 
+	 * @tparam V the type of values contained in the Seq
 	 * @constructor
 	 * Create a SeqParser
 	 */
@@ -128,11 +135,16 @@ package parser {
 	}
 	
 	/**
-	 * A trivial "parser" that goes through the motions with each element of a seq
+	 * A parser that reads and parses each Value and its index from a Seq
 	 * @version 3.0
 	 * 
+	 * @tparam K the type of key used by recurse
+	 * @tparam V the type of primitiveValue used by recurse
+	 * @tparam Inner the type of values contained in the Seq
 	 * @constructor
 	 * Create a SeqParser
+	 * @param recurse a parser for values contained in the sequence
+	 * @param keyMapping a mapping from integer indexies to type K.
 	 */
 	final class SeqParser[K,V,Inner](recurse:Parser[K,V,Inner])(implicit keyMapping:Function1[Int, K]) extends Parser[K,V,Seq[Inner]] {
 		def parse[A](topBuilder:Builder[K,V,A], vals:Seq[Inner]):ParserRetVal[A,V] = {
@@ -148,7 +160,7 @@ package parser {
 	 * A 'parser' that echos the value provided in its parse method
 	 * @version 3.0
 	 */
-	final class IdentityParser[K,V] extends Parser[K,V,V] {
+	private[json] final class IdentityParser[K,V] extends Parser[K,V,V] {
 		/** Returns `scala.util.Right(v)` */
 		def parse[A](b:Builder[K,V,A], v:V):ParserRetVal.Primitive[V] = ParserRetVal.Primitive(v)
 	}

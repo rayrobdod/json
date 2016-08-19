@@ -74,7 +74,7 @@ object CborValue {
 		case StringOrInt.Right(i) => CborValueNumber(i)
 	}
 	
-	/** Convert a StringOrInt value intoa CborValue */
+	/** Convert a JsonValue value into a CborValue */
 	// Can't be called 'apply' as otherwise `CborValue(x:Int)` confuses the compiler
 	implicit def jsonValue2CborValue(s:JsonValue):CborValue = s match {
 		case JsonValue.JsonValueString(s) => CborValue.CborValueString(s)

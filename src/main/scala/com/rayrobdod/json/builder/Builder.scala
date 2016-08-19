@@ -31,9 +31,8 @@ import scala.util.{Either, Left, Right}
 import com.rayrobdod.json.parser.Parser
 
 /**
- * An object used by a [[Builder]] to generate an object using a sequence of 'fold'-style method calls
- * 
- * 
+ * An object which takes a series of key-value pairs and combines them into an object using
+ * a series of fold-left style method calls.
  * 
  * @version 3.0
  * @see [[com.rayrobdod.json.parser.Parser]]

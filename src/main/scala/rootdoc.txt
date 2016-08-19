@@ -1,9 +1,25 @@
-There are two types of classes in this library. The first is
-[[com.rayrobdod.json.builder.Builder]],
-which has to be implemented by a user of the library. The purpose is to receive
-values from the parser and add it to data objects. 
+The two important base traits in this library are
+[[com.rayrobdod.json.builder.Builder]] and [[com.rayrobdod.json.parser.Parser]].
+To convert a thing into another thing - for example to deserialize a json format
+string into a model object - one implementation of each trait is obtained (which
+implementation depends on the input and output), the input and builder implementation
+are fed into the [[com.rayrobdod.json.parser.Parser#parse Parser's parse method]] and
+that method returns the resulting object (or an error).
 
-The other type of class is the [[com.rayrobdod.json.parser]].
-Each parser accepts one file format. They universally take a Builder as a constructor
-parameter and contain a single method: 'parse' which takes either a DataInput or
-a Iterable[Char] and returning an object.
+[[com.rayrobdod.json.parser]] contains the Parser top-level trait and several implementations of Parser.
+
+[[com.rayrobdod.json.builder]] contains the Builder top-level trait and several implementations of Builder
+
+[[com.rayrobdod.json.union]] contains 'glue' classes - mostly unions required to typecheck parsers and builder's primitive values.
+
+------
+
+For deserialization, one would pick a parser from this library
+([[com.rayrobdod.json.parser.JsonParser]] for json,
+[[com.rayrobdod.json.parser.CborParser]] for cbor, etc) and either a custom
+Builder implementation or an instance of
+[[com.rayrobdod.json.builder.BuildableBuilder]]
+
+For serialization, one would use a custom Parser and a builder from this library
+([[com.rayrobdod.json.builder.PrettyJsonBuilder]] for json,
+[[com.rayrobdod.json.builder.CborBuilder]] for cbor, etc.)
