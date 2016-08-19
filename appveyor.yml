@@ -21,7 +21,7 @@ install:
       }
       
   - cmd: SET SBT_HOME=C:\sbt\sbt\bin
-  - cmd: SET SBT_OPTS=-Dscoverage.disable=true
+  - cmd: SET SBT_OPTS=-Dscoverage.disable=true -Xmx512M -XX:MaxPermSize=256m
   - cmd: SET SBT_CMD="%JAVA_HOME%\bin\java.exe" %SBT_OPTS% -cp "%SBT_HOME%\sbt-launch.jar" xsbt.boot.Boot
 environment:
   matrix:
