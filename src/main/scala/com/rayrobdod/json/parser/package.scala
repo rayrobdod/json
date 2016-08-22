@@ -49,11 +49,17 @@ package object parser {
 		)
 	}
 	
-	// String Interpolation
-	/** @version 2.0 */
+	/**
+	 * A string interpolater that hex-decodes strings into a sequence of bytes.
+	 * Any characters outside the hex character range are filtered out and ignored.
+	 * @example {{{
+	 * 	hexSeq"0001 11FF" == immutable.Seq[Byte](0,1,17,-1)
+	 * }}}
+	 * @version 2.0
+	 */
 	private[json] implicit class HexArrayStringConverter(val sc: StringContext) extends AnyVal {
-		def hexSeq(args: Any*):ISeq[Byte] = {
-			((sc.parts.head):String)
+		def hexSeq(args: Nothing*):ISeq[Byte] = {
+			sc.parts.mkString("","","")
 				.filter{x =>
 					('A' <= x && x <= 'F') || ('a' <= x && x <= 'f') || ('0' <= x && x <= '9')
 				}
@@ -62,8 +68,8 @@ package object parser {
 				.map{_.byteValue}
 				.to[ISeq]
 		}
-		def hexArray(args: Any*):Array[Byte] = {
-			hexSeq(args).toArray
+		def hexArray(args: Nothing*):Array[Byte] = {
+			hexSeq(args:_*).toArray
 		}
 	}
 }
