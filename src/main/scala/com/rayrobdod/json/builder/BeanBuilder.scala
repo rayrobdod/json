@@ -63,7 +63,7 @@ final class BeanBuilder[Value, A](
 		val builder = childBuilders(key).getOrElse(new ThrowBuilder())
 		
 		// unwrap union values
-		parser.parse(builder, input).fold({x => Right(x)},{x => Right(x)},{(msg,idx) => Left((msg,idx))}).right.flatMap{a =>
+		parser.parse(builder, input).mergeToEither[Any].right.flatMap{a =>
 			val value = {
 				a match {
 					case com.rayrobdod.json.union.StringOrInt.Left(x) => x

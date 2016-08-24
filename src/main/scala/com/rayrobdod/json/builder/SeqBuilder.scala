@@ -48,7 +48,7 @@ import scala.collection.immutable.Seq;
 final class SeqBuilder[Key, Value, Inner](childBuilder:Builder[Key, Value, Inner]) extends Builder[Key, Value, Seq[Inner]] {
 	override def init:Seq[Inner] = Vector.empty[Inner]
 	override def apply[Input](folding:Seq[Inner], key:Key, innerInput:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Seq[Inner]] = {
-		parser.parse(childBuilder, innerInput).fold({x => Right(folding :+ x)}, {x => Left("Found primitive in SeqBuilder", 0)}, {(m,i) => Left(m,i)})
+		parser.parse(childBuilder, innerInput).complex.map{x => folding :+ x}.complex.toEither
 	}
 }
 

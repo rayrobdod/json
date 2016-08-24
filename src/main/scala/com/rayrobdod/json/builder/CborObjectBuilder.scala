@@ -59,7 +59,7 @@ final class CborObjectBuilder extends Builder[CborValue, CborValue, Seq[Byte]] {
 			case _  => {throw new IllegalArgumentException("input `folding` had illegal length value")}
 		}
 		
-		val encodedValueOpt = value.fold({Right(_)}, {x => Right(encodeValue(x))}, {(a,b) => Left(a,b)})
+		val encodedValueOpt = value.primitive.map{encodeValue}.mergeToEither
 		encodedValueOpt.right.map{encodedValue =>
 			encodeLength(MajorTypeCodes.OBJECT, objectLength + 1) ++ passData ++ encodeValue(key) ++ encodedValue
 		}
@@ -93,7 +93,7 @@ final class CborArrayBuilder() extends Builder[Any, CborValue, Seq[Byte]] {
 			case _  => {throw new IllegalArgumentException("input `folding` had illegal length value")}
 		}
 		
-		val encodedValueOpt = value.fold({Right(_)}, {x => Right(encodeValue(x))}, {(a,b) => Left(a,b)})
+		val encodedValueOpt = value.primitive.map{encodeValue}.mergeToEither
 		encodedValueOpt.right.map{encodedValue =>
 			encodeLength(MajorTypeCodes.ARRAY, objectLength + 1) ++ passData ++ encodedValue
 		}

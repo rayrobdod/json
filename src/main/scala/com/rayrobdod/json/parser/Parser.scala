@@ -65,7 +65,7 @@ trait Parser[Key, Value, Input] {
 			def apply[I](a:Any,k:Key,i:I,p:Parser[Key,Value,I]):Either[(String, Int), Any] = Right(a)
 		}
 		
-		this.parse(ignoreAllBuilder, i).fold({c => Left(("Expected primitive value", 0))}, {p => Right(p)}, {(m,i) => Left((m,i))})
+		this.parse(ignoreAllBuilder, i).primitive.toEither
 	}
 	
 	
@@ -80,7 +80,7 @@ trait Parser[Key, Value, Input] {
 	final def mapValue[V2](implicit fun:Function1[Value,V2]):Parser[Key,V2,Input] = new Parser[Key,V2,Input] {
 		override def parse[Output](builder:Builder[Key,V2,Output], i:Input):ParserRetVal[Output, V2] = {
 			import ParserRetVal._
-			Parser.this.parse[Output](builder.mapValue[Value](fun), i).fold({x => Complex(x)}, {x => Primitive(fun(x))}, {(m,i) => Failure(m,i)})
+			Parser.this.parse[Output](builder.mapValue[Value](fun), i).primitive.map(fun)
 		}
 	}
 	

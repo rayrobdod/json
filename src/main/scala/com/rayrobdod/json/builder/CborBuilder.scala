@@ -50,11 +50,7 @@ final class CborBuilder(forceObject:Boolean = false) extends Builder[CborValue, 
 	
 	override def apply[Input](folding:Seq[Byte], key:CborValue, input:Input, parser:Parser[CborValue, CborValue, Input]):Either[(String, Int), Seq[Byte]] = {
 		val value = parser.parse[Seq[Byte]](this, input)
-		val encodedValueOpt = value match {
-			case Failure(a,b) => Left((a,b))
-			case Complex(x) => Right(x)
-			case Primitive(x) => Right(encodeValue(x))
-		}
+		val encodedValueOpt = value.primitive.map{encodeValue}.mergeToEither
 		encodedValueOpt.right.flatMap{encodedValue =>
 		
 			val headerByte:Byte = folding.head

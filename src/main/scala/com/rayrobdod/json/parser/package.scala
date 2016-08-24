@@ -111,11 +111,12 @@ package parser {
 		 * @return the parsed object
 		 */
 		def parse[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):ParserRetVal[A,V] = {
-			vals.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], keyValue:(K, V)) => 
+			val a = vals.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], keyValue:(K, V)) => 
 				val (key, value) = keyValue;
 				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser)}
 			}
-		}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{a => ParserRetVal.Complex(a)})
+			ParserRetVal.eitherToComplex(a)
+		}
 	}
 	
 	/**
@@ -133,11 +134,12 @@ package parser {
 		 * @return the parsed object
 		 */
 		def parse[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):ParserRetVal[A,V] = {
-			vals.zipWithIndex.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], valueKey:(V, Int)) => 
+			val a = vals.zipWithIndex.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], valueKey:(V, Int)) => 
 				val (value, key) = valueKey;
 				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser)}
 			}
-		}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{a => ParserRetVal.Complex(a)})
+			ParserRetVal.eitherToComplex(a)
+		}
 	}
 	
 	/**
@@ -154,12 +156,13 @@ package parser {
 	 */
 	final class SeqParser[K,V,Inner](recurse:Parser[K,V,Inner])(implicit keyMapping:Function1[Int, K]) extends Parser[K,V,Seq[Inner]] {
 		def parse[A](topBuilder:Builder[K,V,A], vals:Seq[Inner]):ParserRetVal[A,V] = {
-			vals.zipWithIndex.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], valueKey:(Inner, Int)) => 
+			val a = vals.zipWithIndex.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], valueKey:(Inner, Int)) => 
 				val (value, key2) = valueKey
 				val key = keyMapping(key2)
 				state.right.flatMap{x => topBuilder.apply(x, key, value, recurse)}
 			}
-		}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{a => ParserRetVal.Complex(a)})
+			ParserRetVal.eitherToComplex(a)
+		}
 	}
 	
 	/**

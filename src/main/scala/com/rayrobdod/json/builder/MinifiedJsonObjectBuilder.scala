@@ -52,7 +52,7 @@ final class MinifiedJsonObjectBuilder(charset:Charset = UTF_8) extends Builder[S
 	/** @param folding a valid json object, with no characters trailing the final '}' */
 	def apply[Input](folding:String, key:String, innerInput:Input, parser:Parser[String, JsonValue, Input]):Either[(String, Int), String] = {
 		val jsonKey:String = strToJsonStr(key, charset)
-		parser.parse(this, innerInput).fold({s => Right(s)}, {p => Right(serialize(p, charset))}, {(s,i) => Left((s,i))}).right.map{jsonObject =>
+		parser.parse(this, innerInput).primitive.map{p => serialize(p, charset)}.mergeToEither.right.map{jsonObject =>
 			val jsonKeyValuePair = jsonKey + ":" + jsonObject;
 			
 			if (folding == "{}") {
@@ -81,7 +81,7 @@ final class MinifiedJsonArrayBuilder(charset:Charset = UTF_8) extends Builder[An
 	
 	/** @param folding a valid json object, with no characters trailing the final '}' */
 	def apply[Input](folding:String, key:Any, innerInput:Input, parser:Parser[Any, JsonValue, Input]):Either[(String, Int), String] = {
-		parser.parse(this, innerInput).fold({s => Right(s)}, {p => Right(serialize(p, charset))}, {(s,i) => Left((s,i))}).right.map{jsonObject =>
+		parser.parse(this, innerInput).primitive.map{p => serialize(p, charset)}.mergeToEither.right.map{jsonObject =>
 			if (folding == "[]") {
 				"[" + jsonObject + "]"
 			} else {

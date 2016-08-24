@@ -81,11 +81,11 @@ final class CsvParser(
 			}
 		}
 		
-		(if (endState.innerInput.isEmpty) {
+		ParserRetVal.eitherToComplex(if (endState.innerInput.isEmpty) {
 			endState.value
 		} else {
 			endState.value.right.flatMap{x => builder.apply(x, endState.innerIndex, endState.innerInput, new LineParser)}
-		}).fold({case (msg,idx) => ParserRetVal.Failure(msg,idx)}, {x => ParserRetVal.Complex(x)})
+		})
 	}
 	
 	/**
@@ -159,11 +159,11 @@ final class CsvParser(
 				}
 			}
 			
-			(if (endState.innerInput.isEmpty) {
+			ParserRetVal.eitherToComplex(if (endState.innerInput.isEmpty) {
 				endState.value
 			} else {
 				endState.value.right.flatMap{x => builder.apply(x, endState.innerIndex, endState.innerInput, new IdentityParser)}
-			}).fold({case (msg,idx) => ParserRetVal.Failure(msg,idx)}, {x => ParserRetVal.Complex(x)})
+			})
 		}
 	}
 }
