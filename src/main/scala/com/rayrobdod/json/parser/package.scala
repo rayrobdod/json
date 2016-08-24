@@ -113,7 +113,7 @@ package parser {
 		def parse[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):ParserRetVal[A,V] = {
 			vals.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], keyValue:(K, V)) => 
 				val (key, value) = keyValue;
-				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[K, V])}
+				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[V])}
 			}
 		}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{a => ParserRetVal.Complex(a)})
 	}
@@ -132,10 +132,10 @@ package parser {
 		 * @param vals the sequence containing values
 		 * @return the parsed object
 		 */
-		def parse[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):ParserRetVal[A,V] = {
+		def parse[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):ParserRetVal[A,Nothing] = {
 			vals.zipWithIndex.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], valueKey:(V, Int)) => 
 				val (value, key) = valueKey;
-				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[Int, V])}
+				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[V])}
 			}
 		}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{a => ParserRetVal.Complex(a)})
 	}
@@ -166,16 +166,16 @@ package parser {
 	 * A 'parser' that echos the value provided in its parse method
 	 * @version 3.0
 	 */
-	private[json] final class IdentityParser[+K,V] extends Parser[K,V,V] {
+	private[json] final class IdentityParser[V] extends Parser[Nothing,V,V] {
 		/** Returns `scala.util.Right(v)` */
-		def parse[A](b:Builder[K,V,A], v:V):ParserRetVal.Primitive[V] = ParserRetVal.Primitive(v)
+		def parse[A](b:Builder[Nothing,V,A], v:V):ParserRetVal.Primitive[V] = ParserRetVal.Primitive(v)
 	}
 	
 	/**
 	 * A 'parser' that always returns a Failure
 	 * @version 3.0
 	 */
-	private[json] final class FailureParser[+K,+V,-I] extends Parser[K,V,I] {
-		def parse[A](b:Builder[K,V,A], v:I):ParserRetVal.Failure = ParserRetVal.Failure("FailureParser", 0)
+	private[json] final class FailureParser extends Parser[Nothing,Nothing,Any] {
+		def parse[A](b:Builder[Nothing,Nothing,A], v:Any):ParserRetVal.Failure = ParserRetVal.Failure("FailureParser", 0)
 	}
 }

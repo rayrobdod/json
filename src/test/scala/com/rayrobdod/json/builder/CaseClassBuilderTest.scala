@@ -47,28 +47,28 @@ class CaseClassBuilderTest extends FunSpec {
 			val name = "Anony Mouse"
 			assertResult(Right(new Person(name, 0))){
 				new CaseClassBuilder(new Person("", 0)).apply(
-						new Person("", 0), "name", name, new IdentityParser[String,Object])
+						new Person("", 0), "name", name, new IdentityParser[Object])
 			}
 		}
 		it ("Can handle the age bean property") {
 			val age = 9001L
 			assertResult(Right(new Person("", age))){
 				new CaseClassBuilder(new Person("", 0)).apply(
-						new Person("", 0), "age", age, new IdentityParser[String,Any])
+						new Person("", 0), "age", age, new IdentityParser[Any])
 			}
 		}
 		it ("Throws excpetion on incorrect type") {
 			val age = "9001"
 			assertResult(Left("argument type mismatch", 0)){
 				new CaseClassBuilder(new Person("", 0)).apply(
-						new Person("", 0), "age", age, new IdentityParser[String,Object])
+						new Person("", 0), "age", age, new IdentityParser[Object])
 			}
 		}
 		it ("Throws excpetion on unknown key") {
 			val age = "9001"
 			assertResult(Left("asdfjkl; is not a member of case class Person(,0)", 0)){
 				new CaseClassBuilder(new Person("", 0)).apply(
-						new Person("", 0), "asdfjkl;", age, new IdentityParser[String,Object])
+						new Person("", 0), "asdfjkl;", age, new IdentityParser[Object])
 			}
 		}
 	}
