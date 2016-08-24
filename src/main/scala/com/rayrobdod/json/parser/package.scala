@@ -113,7 +113,7 @@ package parser {
 		def parse[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):ParserRetVal[A,V] = {
 			vals.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], keyValue:(K, V)) => 
 				val (key, value) = keyValue;
-				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser)}
+				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[K, V])}
 			}
 		}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{a => ParserRetVal.Complex(a)})
 	}
@@ -135,7 +135,7 @@ package parser {
 		def parse[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):ParserRetVal[A,V] = {
 			vals.zipWithIndex.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], valueKey:(V, Int)) => 
 				val (value, key) = valueKey;
-				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser)}
+				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[Int, V])}
 			}
 		}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{a => ParserRetVal.Complex(a)})
 	}
@@ -152,7 +152,7 @@ package parser {
 	 * @param recurse a parser for values contained in the sequence
 	 * @param keyMapping a mapping from integer indexies to type K.
 	 */
-	final class SeqParser[K,V,Inner](recurse:Parser[K,V,Inner])(implicit keyMapping:Function1[Int, K]) extends Parser[K,V,Seq[Inner]] {
+	final class SeqParser[+K,+V,-Inner](recurse:Parser[K,V,Inner])(implicit keyMapping:Function1[Int, K]) extends Parser[K,V,Seq[Inner]] {
 		def parse[A](topBuilder:Builder[K,V,A], vals:Seq[Inner]):ParserRetVal[A,V] = {
 			vals.zipWithIndex.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], valueKey:(Inner, Int)) => 
 				val (value, key2) = valueKey
@@ -166,7 +166,7 @@ package parser {
 	 * A 'parser' that echos the value provided in its parse method
 	 * @version 3.0
 	 */
-	private[json] final class IdentityParser[K,V] extends Parser[K,V,V] {
+	private[json] final class IdentityParser[+K,V] extends Parser[K,V,V] {
 		/** Returns `scala.util.Right(v)` */
 		def parse[A](b:Builder[K,V,A], v:V):ParserRetVal.Primitive[V] = ParserRetVal.Primitive(v)
 	}
@@ -175,7 +175,7 @@ package parser {
 	 * A 'parser' that always returns a Failure
 	 * @version 3.0
 	 */
-	private[json] final class FailureParser[K,V,I] extends Parser[K,V,I] {
+	private[json] final class FailureParser[+K,+V,-I] extends Parser[K,V,I] {
 		def parse[A](b:Builder[K,V,A], v:I):ParserRetVal.Failure = ParserRetVal.Failure("FailureParser", 0)
 	}
 }

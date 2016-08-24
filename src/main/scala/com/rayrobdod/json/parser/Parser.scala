@@ -40,7 +40,7 @@ import com.rayrobdod.json.union.ParserRetVal
  * @tparam Value the primitive value types
  * @tparam Input the input to the parser
  */
-trait Parser[Key, Value, Input] {
+trait Parser[+Key, +Value, -Input] {
 	
 	/**
 	 * Convert the input into a series of key-value pairs, insert those key-value pairs into `builder`, return the value output by `builder`

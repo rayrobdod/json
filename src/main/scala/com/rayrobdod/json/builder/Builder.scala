@@ -40,7 +40,7 @@ import com.rayrobdod.json.parser.Parser
  * @tparam Value the type of primitive value types used by the Parser that this Builder will be used by
  * @tparam Subject the type of object built by this Builder
  */
-trait Builder[Key, Value, Subject] {
+trait Builder[-Key, -Value, Subject] {
 	/**
 	 * An 'empty' object to be used to start the folding process
 	 */

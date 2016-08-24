@@ -50,7 +50,7 @@ class BuildableBuilderTest extends FunSpec {
 			assertResult(Right(new Person(name, 0))){
 				new BuildableBuilder(new Person("", 0))
 						.addDef("name", new KeyDef[String, String, Person]{def apply[I](s:Person, i:I, p:Parser[String, String, I]) = {Right(s.copy(name = p.parsePrimitive(i).fold({x => ""}, {x => x})))}})
-						.apply(new Person("", 0), "name", name, new IdentityParser)
+						.apply(new Person("", 0), "name", name, new IdentityParser[String, String])
 			}
 		}
 		it ("Acts upon provided keydef (2)") {
@@ -58,7 +58,7 @@ class BuildableBuilderTest extends FunSpec {
 			assertResult(Right(new Person("", age))){
 				new BuildableBuilder(new Person("", 0))
 						.addDef("age", new KeyDef[String, Int, Person]{def apply[I](s:Person, i:I, p:Parser[String, Int, I]) = {Right(s.copy(age = p.parsePrimitive(i).fold({x => 0}, {x => x})))}})
-						.apply(new Person("", 0), "age", age, new IdentityParser)
+						.apply(new Person("", 0), "age", age, new IdentityParser[String, Int])
 			}
 		}
 		it ("Acts upon provided keydef (partitionedPrimitive)") {
@@ -66,21 +66,21 @@ class BuildableBuilderTest extends FunSpec {
 			assertResult(Right(new Person("", age))){
 				new BuildableBuilder(new Person("", 0))
 						.addDef("age", BuildableBuilder.partitionedPrimitiveKeyDef[String, Int, Person, Int]({case x:Int => Right(x)}, {(f,i) => f.copy(age = i)}))
-						.apply(new Person("", 0), "age", age, new IdentityParser)
+						.apply(new Person("", 0), "age", age, new IdentityParser[String, Int])
 			}
 		}
 		it ("Throws excpetion on unknown key") {
 			val age = "9001"
 			assertResult(Left("BuildableBuilder has no KeyDef for given key", 0)){
 				new BuildableBuilder[String, String, Person](new Person("", 0))
-						.apply(new Person("", 0), "asdfjkl;", "hello", new IdentityParser)
+						.apply(new Person("", 0), "asdfjkl;", "hello", new IdentityParser[String, String])
 			}
 		}
 		it ("ignores unknown key after call to ignoreUnknownKeys") {
 			val age = "9001"
 			assertResult(Right(new Person("", 0))){
 				new BuildableBuilder[String, String, Person](new Person("", 0)).ignoreUnknownKeys
-						.apply(new Person("", 0), "asdfjkl;", "hello", new IdentityParser)
+						.apply(new Person("", 0), "asdfjkl;", "hello", new IdentityParser[String, String])
 			}
 		}
 	}
@@ -136,13 +136,13 @@ class BuildableBuilderTest extends FunSpec {
 		it ("partitionedPrimitiveKeyDef (isDefinedAt)") {
 			val builder = partitionedPrimitiveKeyDef[Any, String, Option[Int], Int]({case "abc" => Right(3)}, {(a,b) => Some(b)})
 			assertResult(Right(Some(3))){
-				builder.apply(None, "abc", new IdentityParser)
+				builder.apply(None, "abc", new IdentityParser[String, String])
 			}
 		}
 		it ("partitionedPrimitiveKeyDef (not isDefinedAt)") {
 			val builder = partitionedPrimitiveKeyDef[Any, String, Option[Int], Int]({case "abc" => Right(3)}, {(a,b) => Some(b)})
 			assertResult(Left("Unexpected value: asdf", 0)){
-				builder.apply(None, "asdf", new IdentityParser)
+				builder.apply(None, "asdf", new IdentityParser[String, String])
 			}
 		}
 		it ("partitionedKeyDef (isDefinedAt)") {
