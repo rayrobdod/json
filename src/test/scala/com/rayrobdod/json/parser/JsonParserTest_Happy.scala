@@ -26,14 +26,12 @@
 */
 package com.rayrobdod.json.parser;
 
-import java.text.ParseException;
 import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.builder.MapBuilder;
 import com.rayrobdod.json.union.StringOrInt.{Left => SILeft, Right => SIRight}
-import java.nio.charset.StandardCharsets.UTF_8
 
 
 class JsonParserTest_Happy extends FunSpec {

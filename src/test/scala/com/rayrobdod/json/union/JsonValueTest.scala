@@ -27,7 +27,6 @@
 package com.rayrobdod.json.union
 
 import org.scalatest.FunSpec
-import java.text.ParseException
 import com.rayrobdod.json.union.JsonValue._
 
 class JsonValueTest extends FunSpec {

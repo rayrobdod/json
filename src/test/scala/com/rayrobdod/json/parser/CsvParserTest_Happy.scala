@@ -26,13 +26,9 @@
 */
 package com.rayrobdod.json.parser;
 
-import java.text.ParseException;
-import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.PrimitiveSeqBuilder;
 import com.rayrobdod.json.builder.SeqBuilder;
-import com.rayrobdod.json.builder.MapBuilder;
-import java.nio.charset.StandardCharsets.UTF_8
 
 final class CsvParserTest_Happy extends FunSpec {
 	

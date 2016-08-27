@@ -26,10 +26,8 @@
 */
 package com.rayrobdod.json.builder;
 
-import java.text.ParseException;
-import scala.collection.immutable.{Seq, Map};
+import scala.collection.immutable.Seq
 import org.scalatest.FunSpec;
-import java.nio.charset.StandardCharsets.US_ASCII;
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.CborValue
 import com.rayrobdod.json.union.StringOrInt

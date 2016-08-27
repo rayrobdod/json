@@ -27,7 +27,6 @@
 package com.rayrobdod.json.parser;
 
 import org.scalatest.FunSpec;
-import java.text.ParseException;
 import scala.collection.immutable.{Seq, Map};
 import com.rayrobdod.json.union.{CborValue, ParserRetVal}
 import com.rayrobdod.json.builder._
@@ -60,7 +59,6 @@ class CborParserTest_Unhappy extends FunSpec {
 		}
 		it ("errors when INDET utf-8 string contains non-string values") {
 			val source = hexArray"7F00FF"
-			val builder = new ThrowBuilder[CborValue, CborValue]
 			assertFailure("", 0){
 				new CborParser().parse(new PrimitiveSeqBuilder, byteArray2DataInput(source))
 			}

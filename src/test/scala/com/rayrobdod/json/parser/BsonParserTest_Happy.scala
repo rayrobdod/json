@@ -26,12 +26,10 @@
 */
 package com.rayrobdod.json.parser;
 
-import java.text.ParseException;
 import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.MapBuilder;
 import com.rayrobdod.json.union.CborValue;
-import java.nio.charset.StandardCharsets.UTF_8
 
 class BsonParserTest_Happy extends FunSpec {
 

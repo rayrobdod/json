@@ -26,8 +26,6 @@
 */
 package com.rayrobdod.json.builder;
 
-import scala.beans.BeanProperty;
-import java.text.ParseException;
 import scala.collection.immutable.Map;
 import scala.util.{Either, Right, Left}
 import org.scalatest.FunSpec;

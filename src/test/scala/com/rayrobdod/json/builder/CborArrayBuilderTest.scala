@@ -26,11 +26,8 @@
 */
 package com.rayrobdod.json.builder;
 
-import scala.beans.BeanProperty;
-import java.text.ParseException;
-import scala.collection.immutable.{Seq, Map};
+import scala.collection.immutable.Seq
 import org.scalatest.FunSpec;
-import java.nio.charset.StandardCharsets.US_ASCII;
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.CborValue._
 import com.rayrobdod.json.union.CborValue
@@ -41,9 +38,6 @@ import com.rayrobdod.json.parser.HexArrayStringConverter;
 
 @deprecated("CborArrayBuilder is deprecated; using to suppress warnings tests related to that class", "3.0")
 class CborArrayBuilderTest extends FunSpec {
-	private case class Abc(a:Int, b:Boolean, c:String)
-	private implicit def classAbc = classOf[Abc]
-	
 	
 	describe("CborArrayBuilder") {
 		it ("inits correctly") {
@@ -178,7 +172,7 @@ class CborArrayBuilderTest extends FunSpec {
 	}
 	
 	describe("CborArrayBuilder integration") {
-		import com.rayrobdod.json.parser.{JsonParser, SeqParser, CborParser, CaseClassParser, byteArray2DataInput}
+		import com.rayrobdod.json.parser.{JsonParser, CborParser, byteArray2DataInput}
 		
 		it ("CborArrayBuilder + JsonParser + primitive") {
 			assertResult(hexSeq"83 183D 183E 183F"){

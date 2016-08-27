@@ -26,8 +26,6 @@
 */
 package com.rayrobdod.json.parser;
 
-import java.text.ParseException;
-import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.union.{JsonValue, StringOrInt, ParserRetVal}
 import com.rayrobdod.json.builder._

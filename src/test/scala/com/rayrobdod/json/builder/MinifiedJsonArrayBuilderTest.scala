@@ -26,9 +26,6 @@
 */
 package com.rayrobdod.json.builder;
 
-import scala.beans.BeanProperty;
-import java.text.ParseException;
-import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
 import java.nio.charset.StandardCharsets.US_ASCII;
 import com.rayrobdod.json.union.{StringOrInt, JsonValue, CborValue}

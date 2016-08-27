@@ -26,8 +26,7 @@
 */
 package com.rayrobdod.json.builder;
 
-import java.text.ParseException;
-import scala.collection.immutable.{Seq, Map}
+import scala.collection.immutable.Seq
 import scala.util.{Either, Left, Right}
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.union.JsonValue
@@ -70,14 +69,12 @@ class BuildableBuilderTest extends FunSpec {
 			}
 		}
 		it ("Throws excpetion on unknown key") {
-			val age = "9001"
 			assertResult(Left("BuildableBuilder has no KeyDef for given key", 0)){
 				new BuildableBuilder[String, String, Person](new Person("", 0))
 						.apply(new Person("", 0), "asdfjkl;", "hello", new IdentityParser[String])
 			}
 		}
 		it ("ignores unknown key after call to ignoreUnknownKeys") {
-			val age = "9001"
 			assertResult(Right(new Person("", 0))){
 				new BuildableBuilder[String, String, Person](new Person("", 0)).ignoreUnknownKeys
 						.apply(new Person("", 0), "asdfjkl;", "hello", new IdentityParser[String])

@@ -27,10 +27,9 @@
 package com.rayrobdod.json.parser
 
 import org.scalatest.FunSpec
-import java.text.ParseException
 import scala.collection.immutable.Seq
 import com.rayrobdod.json.builder.{SeqBuilder, PrettyJsonBuilder, ThrowBuilder, PrimitiveSeqBuilder}
-import com.rayrobdod.json.union.{StringOrInt, JsonValue}
+import com.rayrobdod.json.union.JsonValue
 
 class SeqParserTest extends FunSpec {
 	describe("SeqParser") {

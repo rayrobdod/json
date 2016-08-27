@@ -26,15 +26,8 @@
 */
 package com.rayrobdod.json.builder;
 
-import scala.beans.BeanProperty;
-import java.text.ParseException;
-import scala.collection.immutable.Seq;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.parser.FailureParser
-import com.rayrobdod.json.parser.IdentityParser
-import com.rayrobdod.json.parser.SeqParser
-import com.rayrobdod.json.parser.PrimitiveSeqParser
-import com.rayrobdod.json.parser.CaseClassParser
 
 class BuilderTest extends FunSpec {
 	

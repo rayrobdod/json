@@ -26,8 +26,7 @@
 */
 package com.rayrobdod.json.builder;
 
-import java.text.ParseException;
-import scala.collection.immutable.{Seq, Map};
+import scala.collection.immutable.Seq
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue
@@ -218,7 +217,7 @@ class CborBuilderTest extends FunSpec {
 	}
 	
 	describe("CborBuilder integration") {
-		import com.rayrobdod.json.parser.{JsonParser, SeqParser, CborParser, CaseClassParser, byteArray2DataInput}
+		import com.rayrobdod.json.parser.{JsonParser, CborParser, CaseClassParser, byteArray2DataInput}
 		
 		it ("CborBuilder + JsonParser + primitive (array)") {
 			assertResult(hexSeq"83 183D 183E 183F"){
