@@ -26,13 +26,11 @@
 */
 package com.rayrobdod.json.builder;
 
-import scala.collection.immutable.Seq;
-import scala.util.{Either, Left, Right}
+import scala.util.Either
 import java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.charset.Charset;
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.parser.Parser
-import com.rayrobdod.json.parser.{MapParser, SeqParser}
 
 /** A builder that will output an object as an json format string
  * 
@@ -45,7 +43,7 @@ import com.rayrobdod.json.parser.{MapParser, SeqParser}
  */
 @deprecated("use `PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams)` instead", "3.0")
 final class MinifiedJsonObjectBuilder(charset:Charset = UTF_8) extends Builder[String, JsonValue, String] {
-	import MinifiedJsonObjectBuilder._
+	import PrettyJsonBuilder.{serialize, strToJsonStr}
 	
 	val init:String = "{}"
 	
@@ -75,7 +73,7 @@ final class MinifiedJsonObjectBuilder(charset:Charset = UTF_8) extends Builder[S
  */
 @deprecated("use `PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams)` instead", "3.0")
 final class MinifiedJsonArrayBuilder(charset:Charset = UTF_8) extends Builder[Any, JsonValue, String] {
-	import MinifiedJsonObjectBuilder._
+	import PrettyJsonBuilder.serialize
 	
 	val init:String = "[]"
 	
@@ -88,37 +86,5 @@ final class MinifiedJsonArrayBuilder(charset:Charset = UTF_8) extends Builder[An
 				folding.init + "," + jsonObject + "]"
 			}
 		}
-	}
-}
-
-/** methods for [[MinifiedJsonObjectBuilder]] and [[MinifiedJsonArrayBuilder]] */
-private[builder] object MinifiedJsonObjectBuilder {
-	import JsonValue._
-	
-	/** Encode a JsonValue as a serialized json value */
-	private[builder] def serialize(value:JsonValue, charset:Charset):String = value match {
-		case JsonValueNumber(x) => x.toString
-		case JsonValueBoolean(x) => x.toString
-		case JsonValueNull => "null"
-		case JsonValueString(x) => strToJsonStr(x, charset)
-	}
-	
-	/** Encode a string as a serialized json value */
-	private[builder] def strToJsonStr(s:String, charset:Charset):String = "\"" + s.flatMap{_ match {
-		case '"'  => "\\\""
-		case '\\' => """\\"""
-		case '\b' => "\\b"
-		case '\f' => "\\f"
-		case '\n' => "\\n"
-		case '\r' => "\\r"
-		case '\t' => "\\t"
-		case x if (x < ' ') => toUnicodeEscape(x)
-		case x if (! charset.newEncoder.canEncode(x)) => toUnicodeEscape(x)
-		case x => Seq(x)
-	}} + "\""
-	
-	@inline
-	private def toUnicodeEscape(c:Char) = {
-		"\\u" + ("0000" + c.intValue.toHexString).takeRight(4)
 	}
 }

@@ -30,7 +30,6 @@ import scala.collection.immutable.Seq
 import java.nio.charset.StandardCharsets.UTF_8
 import com.rayrobdod.json.parser.CborParser.{MajorTypeCodes, SimpleValueCodes}
 import com.rayrobdod.json.union.CborValue
-import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.parser.{Parser, CborParser, byteArray2DataInput}
 
 /**
@@ -42,8 +41,7 @@ import com.rayrobdod.json.parser.{Parser, CborParser, byteArray2DataInput}
  * @param forceObject true if the builder should create an object even if it is possible to create an array from the inputs
  */
 final class CborBuilder(forceObject:Boolean = false) extends Builder[CborValue, CborValue, Seq[Byte]] {
-	import CborObjectBuilder._
-	import ParserRetVal._
+	import CborBuilder._
 	
 	/** The bytes to encode a zero-length array or object  */
 	override val init:Seq[Byte] = encodeLength((if (forceObject) {MajorTypeCodes.OBJECT} else {MajorTypeCodes.ARRAY}), 0)
@@ -88,5 +86,51 @@ final class CborBuilder(forceObject:Boolean = false) extends Builder[CborValue, 
 				Left("Invalid folding parameter", 0)
 			}
 		}
+	}
+}
+
+private[builder] object CborBuilder {
+	import com.rayrobdod.json.union.CborValue._
+	
+	/**
+	 * Encode a number into CBOR form.
+	 * @param majorType the major type to prepend to the number. 0 ≥ x ≥ 7
+	 * @param value the value to encode
+	 */
+	private[builder] def encodeLength(majorType:Byte, value:Long):Seq[Byte] = {
+		val majorTypeShifted:Byte = (majorType << 5).byteValue
+		
+		val (headerByte:Int, rest:Seq[Byte]) = value match {
+			case x:Long if (x < 0)           => throw new IllegalArgumentException("Value may not be negative")
+			case x:Long if (x <= 23)         => ((majorTypeShifted + x.intValue,  Seq.empty[Byte]))
+			case x:Long if (x <= 0xFF)       => ((majorTypeShifted + 24, long2ByteArray(x, 1)))
+			case x:Long if (x <= 0xFFFF)     => ((majorTypeShifted + 25, long2ByteArray(x, 2)))
+			case x:Long if (x <= 0xFFFFFFFFL) => ((majorTypeShifted + 26, long2ByteArray(x, 4)))
+			case x:Long                      => ((majorTypeShifted + 27, long2ByteArray(x, 8)))
+		}
+		
+		headerByte.byteValue +: rest
+	}
+	
+	private[builder] def encodeValue(v:CborValue):Seq[Byte] = v match {
+		case CborValueBoolean(false) => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.FALSE)
+		case CborValueBoolean(true)  => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.TRUE)
+		case CborValueNull  => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.NULL)
+		case CborValueNumber(x:java.lang.Float) => Seq((0xE0 + SimpleValueCodes.FLOAT).byteValue) ++ long2ByteArray(java.lang.Float.floatToIntBits(x), 4)
+		case CborValueNumber(x:java.lang.Double) => Seq((0xE0 + SimpleValueCodes.DOUBLE).byteValue) ++ long2ByteArray(java.lang.Double.doubleToLongBits(x))
+		case CborValueString(x:String) => {
+			val bytes = x.getBytes(UTF_8)
+			encodeLength(MajorTypeCodes.STRING, bytes.length) ++ bytes
+		}
+		case CborValueNumber(x:Number) if (x.longValue >= 0) => encodeLength(MajorTypeCodes.POSITIVE_INT, x.longValue)
+		case CborValueNumber(x:Number) if (x.longValue < 0) => encodeLength(MajorTypeCodes.NEGATIVE_INT, -1 - x.longValue)
+		case CborValueByteStr(bytes:Array[Byte]) => encodeLength(MajorTypeCodes.BYTE_ARRAY, bytes.length) ++ bytes
+	}
+	
+	private[builder] def byteArray2Long(b:Seq[Byte]):Long = {
+		b.foldLeft(0L){(x,y) => (x << 8) | (y.intValue & 0xFF)}
+	}
+	private[builder] def long2ByteArray(l:Long, count:Int = 8):Seq[Byte] = {
+		(56 to 0 by -8).map{x => ((l >> x) & 0xFF).byteValue}.takeRight(count)
 	}
 }

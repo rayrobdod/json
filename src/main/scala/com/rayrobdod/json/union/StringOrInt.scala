@@ -26,8 +26,6 @@
 */
 package com.rayrobdod.json.union
 
-import com.rayrobdod.json.builder.Builder
-import com.rayrobdod.json.parser.Parser
 import scala.language.implicitConversions
 
 /**

@@ -27,11 +27,9 @@
 package com.rayrobdod.json.parser;
 
 import java.io.DataInput
-import java.text.ParseException
 import java.nio.charset.StandardCharsets.UTF_8;
-import scala.collection.immutable.{Seq, Map, Stack}
-import com.rayrobdod.json.builder._
-import com.rayrobdod.json.union._
+import com.rayrobdod.json.builder.Builder
+import com.rayrobdod.json.union.{CborValue, ParserRetVal}
 
 /**
  * A streaming parser for Bson values

@@ -26,8 +26,7 @@
 */
 package com.rayrobdod.json.builder;
 
-import scala.language.higherKinds
-import scala.util.{Either, Left, Right}
+import scala.util.Either
 import com.rayrobdod.json.parser.Parser
 
 /**

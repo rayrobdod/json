@@ -26,10 +26,8 @@
 */
 package com.rayrobdod.json.parser;
 
-import java.text.ParseException
-import scala.collection.immutable.{Seq, Map, Stack}
 import scala.util.{Either, Left, Right}
-import com.rayrobdod.json.builder._
+import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.ParserRetVal

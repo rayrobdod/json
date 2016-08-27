@@ -26,7 +26,7 @@
 */
 package com.rayrobdod.json
 
-import scala.util.{Either, Left, Right}
+import scala.util.Left
 import com.rayrobdod.json.parser.Parser
 
 /**

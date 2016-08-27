@@ -31,7 +31,7 @@ import scala.util.{Either, Left, Right}
 import java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.charset.Charset;
 import com.rayrobdod.json.union.{StringOrInt, JsonValue}
-import com.rayrobdod.json.parser.{Parser, MapParser, SeqParser}
+import com.rayrobdod.json.parser.Parser
 
 
 /**
@@ -47,7 +47,7 @@ import com.rayrobdod.json.parser.{Parser, MapParser, SeqParser}
  *           There may be problems if the charset does not include at least ASCII characters.
  */
 final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Charset = UTF_8, level:Int = 0) extends Builder[StringOrInt, JsonValue, String] {
-	import MinifiedJsonObjectBuilder.serialize
+	import PrettyJsonBuilder.serialize
 
 	/** A builder to be used when serializing any 'complex' children of the values this builder is dealing with */
 	private[this] lazy val nextLevel = new PrettyJsonBuilder(params, charset, level + 1)
@@ -93,6 +93,37 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
  * @since 3.0
  */
 object PrettyJsonBuilder {
+	
+	/** Encode a JsonValue as a serialized json value */
+	private[builder] def serialize(value:JsonValue, charset:Charset):String = value match {
+		case JsonValue.JsonValueNumber(x) => x.toString
+		case JsonValue.JsonValueBoolean(x) => x.toString
+		case JsonValue.JsonValueNull => "null"
+		case JsonValue.JsonValueString(x) => strToJsonStr(x, charset)
+	}
+	
+	/** Encode a string as a serialized json value */
+	private[builder] def strToJsonStr(s:String, charset:Charset):String = "\"" + s.flatMap{_ match {
+		case '"'  => "\\\""
+		case '\\' => """\\"""
+		case '\b' => "\\b"
+		case '\f' => "\\f"
+		case '\n' => "\\n"
+		case '\r' => "\\r"
+		case '\t' => "\\t"
+		case x if (x < ' ') => toUnicodeEscape(x)
+		case x if (! charset.newEncoder.canEncode(x)) => toUnicodeEscape(x)
+		case x => Seq(x)
+	}} + "\""
+	
+	/** Convert a character into a string representing a unicode escape */
+	@inline
+	private[this] def toUnicodeEscape(c:Char) = {
+		"\\u" + ("0000" + c.intValue.toHexString).takeRight(4)
+	}
+	
+	
+	
 	/**
 	 * The whitespace strings that will appear between significant portions of a serialized json file
 	 * @see [[com.rayrobdod.json.builder.PrettyJsonBuilder]]

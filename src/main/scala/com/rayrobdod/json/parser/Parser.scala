@@ -26,7 +26,7 @@
 */
 package com.rayrobdod.json.parser
 
-import scala.util.{Either, Left, Right}
+import scala.util.Either
 import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.union.ParserRetVal
 
@@ -79,7 +79,6 @@ trait Parser[+Key, +Value, -Input] {
 	/** Change the type of value that this builder requires */
 	final def mapValue[V2](implicit fun:Function1[Value,V2]):Parser[Key,V2,Input] = new Parser[Key,V2,Input] {
 		override def parse[Output](builder:Builder[Key,V2,Output], i:Input):ParserRetVal[Output, V2] = {
-			import ParserRetVal._
 			Parser.this.parse[Output](builder.mapValue[Value](fun), i).primitive.map(fun)
 		}
 	}

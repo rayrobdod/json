@@ -26,7 +26,6 @@
 */
 package com.rayrobdod.json.builder;
 
-import java.text.ParseException
 import com.rayrobdod.json.parser.Parser
 import scala.collection.immutable.Seq;
 

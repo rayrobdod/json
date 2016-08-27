@@ -26,7 +26,6 @@
 */
 package com.rayrobdod.json.builder;
 
-import java.lang.reflect.Method
 import com.rayrobdod.json.parser.Parser
 
 /** A builder that builds a JavaBean
