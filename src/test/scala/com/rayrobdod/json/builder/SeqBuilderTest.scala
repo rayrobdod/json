@@ -46,7 +46,7 @@ class SeqBuilderTest extends FunSpec {
 			val myValue = new Object
 			
 			assertResult(Right(Seq(myValue))){
-				new PrimitiveSeqBuilder().apply(Nil, "sdfa", myValue, new IdentityParser[String, Object])
+				new PrimitiveSeqBuilder().apply(Nil, "sdfa", myValue, new IdentityParser[Object])
 			}
 		}
 		it ("Appends value 2") {
@@ -54,12 +54,12 @@ class SeqBuilderTest extends FunSpec {
 			val myValue2 = new Object
 			
 			assertResult(Right(Seq(myValue1, myValue2))){
-				new PrimitiveSeqBuilder().apply(Seq(myValue1), "sdfa", myValue2, new IdentityParser[String, Object])
+				new PrimitiveSeqBuilder().apply(Seq(myValue1), "sdfa", myValue2, new IdentityParser[Object])
 			}
 		}
 		it ("throws when builder gives it a complex value") {
 			assertFailure("", 0){
-				new PrimitiveSeqBuilder[Int,String].apply(Nil, 5, Seq("a","b","c"), new PrimitiveSeqParser[String])
+				new PrimitiveSeqBuilder[String].apply(Nil, 5, Seq("a","b","c"), new PrimitiveSeqParser[String])
 			}
 		}
 	}
@@ -68,14 +68,14 @@ class SeqBuilderTest extends FunSpec {
 			val myValue2 = new Object
 			
 			assertFailure("",0){
-				new SeqBuilder(new PrimitiveSeqBuilder[String, Object]).apply(Nil, "sdfa", myValue2, new IdentityParser[String, Object])
+				new SeqBuilder(new PrimitiveSeqBuilder[Object]).apply(Nil, "sdfa", myValue2, new IdentityParser[Object])
 			}
 		}
 		it ("fails when builder gives it a failure") {
 			val myValue2 = new Object
 			
 			assertFailure("",0){
-				new SeqBuilder(new PrimitiveSeqBuilder[String, Object]).apply(Nil, "sdfa", myValue2, new FailureParser)
+				new SeqBuilder(new PrimitiveSeqBuilder[Object]).apply(Nil, "sdfa", myValue2, new FailureParser)
 			}
 		}
 	}
@@ -88,14 +88,14 @@ class SeqBuilderTest extends FunSpec {
 		it ("PrimitiveSeqBuilder + JsonParser + primitive") {
 			assertResult(Seq("a", "b", "c").map{JsonValue(_)}){
 				new JsonParser().parse(
-					new PrimitiveSeqBuilder[String, JsonValue].mapKey[StringOrInt]{StringOrInt.unwrapToString},
+					new PrimitiveSeqBuilder[JsonValue].mapKey[StringOrInt]{StringOrInt.unwrapToString},
 					"""["a", "b", "c"]"""
 				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}
 		}
 		it ("PrimitiveSeqBuilder + PrimitiveSeqParser") {
 			val exp = Seq(15, -4, 2)
-			val res = new PrimitiveSeqParser[Int]().parse(new PrimitiveSeqBuilder[Int, Int], exp).fold({x => x}, {x => throw new IllegalArgumentException()}, {(m,i) => throw new IllegalArgumentException()}) 
+			val res = new PrimitiveSeqParser[Int]().parse(new PrimitiveSeqBuilder[Int], exp).fold({x => x}, {x => throw new IllegalArgumentException()}, {(m,i) => throw new IllegalArgumentException()}) 
 			assertResult(exp){res}
 		}
 		it ("SeqBuilder + SeqParser") {

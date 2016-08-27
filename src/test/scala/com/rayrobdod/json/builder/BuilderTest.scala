@@ -45,7 +45,7 @@ class BuilderTest extends FunSpec {
 			val myValue2 = new Object
 			
 			assertResult(Left("FailureParser", 0)){
-				new SeqBuilder(new PrimitiveSeqBuilder[String, Object]).mapValue[Object].apply(Nil, "sdfa", myValue2, new FailureParser())
+				new SeqBuilder(new PrimitiveSeqBuilder[Object]).mapValue[Object].apply(Nil, "sdfa", myValue2, new FailureParser())
 			}
 		}
 	}

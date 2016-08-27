@@ -64,7 +64,7 @@ final class BsonParser extends Parser[String, CborValue, DataInput] {
 							java.lang.Long.reverseBytes( input.readLong() )
 						)
 						// CHEATING
-						builder.apply(result2, key, CborValue(value), new IdentityParser[String, CborValue])
+						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
 					}
 					case TypeCodes.STRING => {
 						val len = Integer.reverseBytes( input.readInt() );
@@ -74,7 +74,7 @@ final class BsonParser extends Parser[String, CborValue, DataInput] {
 							Left("Incorrect string length", 0)
 						} else {
 							val value = new String(bytes, 0, len - 1, UTF_8)
-							builder.apply(result2, key, CborValue(value), new IdentityParser[String, CborValue])
+							builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
 						}
 					}
 					case TypeCodes.DOCUMENT => {
@@ -86,18 +86,18 @@ final class BsonParser extends Parser[String, CborValue, DataInput] {
 					case TypeCodes.BOOLEAN => {
 						val readValue = input.readByte()
 						val value = (readValue != 0)
-						builder.apply(result2, key, CborValue(value), new IdentityParser[String, CborValue])
+						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
 					}
 					case TypeCodes.NULL => {
-						builder.apply(result2, key, CborValue.CborValueNull, new IdentityParser[String, CborValue])
+						builder.apply(result2, key, CborValue.CborValueNull, new IdentityParser[CborValue])
 					}
 					case TypeCodes.INTEGER => {
 						val value = Integer.reverseBytes( input.readInt() );
-						builder.apply(result2, key, CborValue(value), new IdentityParser[String, CborValue])
+						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
 					}
 					case TypeCodes.LONG => {
 						val value = java.lang.Long.reverseBytes( input.readLong() );
-						builder.apply(result2, key, CborValue(value), new IdentityParser[String, CborValue])
+						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
 					}
 					case _ => Left("Unknown data type: " + valueType,0)
 				}}

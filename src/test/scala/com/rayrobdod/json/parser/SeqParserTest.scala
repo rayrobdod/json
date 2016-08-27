@@ -50,7 +50,7 @@ class SeqParserTest extends FunSpec {
 					.parse(new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams).mapKey[Int], src)
 					.fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
 			val res = new JsonParser()
-					.parse(new SeqBuilder(new PrimitiveSeqBuilder[StringOrInt,JsonValue]), json)
+					.parse(new SeqBuilder(new PrimitiveSeqBuilder[JsonValue]), json)
 					.fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
 			
 			assertResult(src){res}

@@ -61,72 +61,72 @@ class PrettyJsonBuilderTest extends FunSpec {
 		it ("Appends null to an array") {
 			val exp = "[\n\tnull\n]"
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-			assertResultStr(exp){dut.apply(dut.init, 0,JsonValueNull, new IdentityParser[StringOrInt,JsonValue]).right.get}
+			assertResultStr(exp){dut.apply(dut.init, 0,JsonValueNull, new IdentityParser[JsonValue]).right.get}
 		}
 		it ("Appends true to an array") {
 			val exp = "[\n\ttrue\n]"
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-			assertResultStr(exp){dut.apply(dut.init, 0,JsonValue(true), new IdentityParser[StringOrInt,JsonValue]).right.get}
+			assertResultStr(exp){dut.apply(dut.init, 0,JsonValue(true), new IdentityParser[JsonValue]).right.get}
 		}
 		it ("Appends a third value to an array") {
 			val exp = "[\n\t1,\n\t2,\n\t3\n]"
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-			assertResultStr(exp){dut.apply("[\n\t1,\n\t2\n]", 2,JsonValue(3), new IdentityParser[StringOrInt,JsonValue]).right.get}
+			assertResultStr(exp){dut.apply("[\n\t1,\n\t2\n]", 2,JsonValue(3), new IdentityParser[JsonValue]).right.get}
 		}
 		it ("Appends a third value to an object") {
 			val exp = "{\n\t1,\n\t2,\n\t\"a\" : 3\n}"
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-			assertResultStr(exp){dut.apply("{\n\t1,\n\t2\n]", "a",JsonValue(3), new IdentityParser[StringOrInt,JsonValue]).right.get}
+			assertResultStr(exp){dut.apply("{\n\t1,\n\t2\n]", "a",JsonValue(3), new IdentityParser[JsonValue]).right.get}
 		}
 		it ("Appends a third value, level 2") {
 			val exp = "[\n\t\t1,\n\t\t2,\n\t\t3\n\t]"
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"), level = 1)
-			assertResultStr(exp){dut.apply("[\n\t\t1,\n\t\t2\n\t]", 2,JsonValue(3), new IdentityParser[StringOrInt,JsonValue]).right.get}
+			assertResultStr(exp){dut.apply("[\n\t\t1,\n\t\t2\n\t]", 2,JsonValue(3), new IdentityParser[JsonValue]).right.get}
 		}
 		it ("Appends an integer to an object") {
 			val exp = """{\n\t"a" : 42\n}"""
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-			assertResultStr(exp){dut.apply(dut.init, "a",JsonValue(42), new IdentityParser[StringOrInt,JsonValue]).right.get}
+			assertResultStr(exp){dut.apply(dut.init, "a",JsonValue(42), new IdentityParser[JsonValue]).right.get}
 		}
 		it ("can handle alternate tab strings") {
 			val exp = """{\n    "a" : 42\n}"""
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("    ", "\n"))
-			assertResultStr(exp){dut.apply(dut.init, "a",JsonValue(42), new IdentityParser[StringOrInt,JsonValue]).right.get}
+			assertResultStr(exp){dut.apply(dut.init, "a",JsonValue(42), new IdentityParser[JsonValue]).right.get}
 		}
 		it ("will throw if the folding string is not a valid json object or array (for certain easily detectable invalid values)") {
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
 			assertResult(Left(("folding is wrong", 0))){
-				dut.apply("a", "", JsonValue(42), new IdentityParser[StringOrInt,JsonValue])
+				dut.apply("a", "", JsonValue(42), new IdentityParser[JsonValue])
 			}
 		}
 		it ("will throw if the folding is an object and the key is a number") {
 			val dut = new PrettyJsonBuilder(MinifiedPrettyParams)
 			assertResult(Left(("Key type changed mid-object", 0))){
-				dut.apply("{\"a\":\"b\"}", 1,JsonValue(42), new IdentityParser[StringOrInt,JsonValue])
+				dut.apply("{\"a\":\"b\"}", 1,JsonValue(42), new IdentityParser[JsonValue])
 			}
 		}
 		it ("will throw if the folding is an array and the key is a string") {
 			val dut = new PrettyJsonBuilder(MinifiedPrettyParams)
 			assertResult(Left(("Key type changed mid-object", 0))){
-				dut.apply("[413]", "b",JsonValue(42), new IdentityParser[StringOrInt,JsonValue])
+				dut.apply("[413]", "b",JsonValue(42), new IdentityParser[JsonValue])
 			}
 		}
 		it ("will throw the first items key is a non-zero integer") {
 			val dut = new PrettyJsonBuilder(MinifiedPrettyParams)
 			assertResult(Left(("Key: 42", 0))){
-				dut.apply("[]", 42,JsonValue(42), new IdentityParser[StringOrInt,JsonValue])
+				dut.apply("[]", 42,JsonValue(42), new IdentityParser[JsonValue])
 			}
 		}
 		it ("When the encoding parameter includes all characters of a string, it is included verbaitim") {
 			assertResult("""{rest,"":"Pokémon"}"""){
 				new PrettyJsonBuilder(MinifiedPrettyParams, UTF_8)
-						.apply("{rest}", "",JsonValue("Pokémon"), new IdentityParser[StringOrInt,JsonValue]).right.get
+						.apply("{rest}", "",JsonValue("Pokémon"), new IdentityParser[JsonValue]).right.get
 			}
 		}
 		it ("When the encoding parameter does not include all characters of a string, the unknown characters are u-encoded") {
 			assertResult("""{rest,"":"Pok\""" + """u00e9mon"}"""){
 				new PrettyJsonBuilder(MinifiedPrettyParams, US_ASCII)
-						.apply("{rest}", "",JsonValue("Pokémon"), new IdentityParser[StringOrInt,JsonValue]).right.get
+						.apply("{rest}", "",JsonValue("Pokémon"), new IdentityParser[JsonValue]).right.get
 			}
 		}
 		it ("When parser reports a failure, the failure is forwarded") {

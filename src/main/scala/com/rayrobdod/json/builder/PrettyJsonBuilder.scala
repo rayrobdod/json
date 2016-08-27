@@ -55,7 +55,7 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 	val init:String = params.lbrace(level) + params.rbrace(level)
 	
 	def apply[Input](folding:String, key:StringOrInt, innerInput:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), String] = {
-		parser.parse(nextLevel, innerInput).fold({s => Right(s)}, {p => Right(serialize(p, charset))}, {(s,i) => Left((s,i))}).right.flatMap{encodedValue =>
+		parser.parse(nextLevel, innerInput).primitive.map{p => serialize(p, charset)}.mergeToEither.right.flatMap{encodedValue =>
 			if (init == folding) {
 				key match {
 					case StringOrInt.Right(0) => Right(params.lbrace(level) + encodedValue + params.rbrace(level))

@@ -111,11 +111,12 @@ package parser {
 		 * @return the parsed object
 		 */
 		def parse[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):ParserRetVal[A,V] = {
-			vals.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], keyValue:(K, V)) => 
+			val a = vals.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], keyValue:(K, V)) => 
 				val (key, value) = keyValue;
-				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser)}
+				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[V])}
 			}
-		}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{a => ParserRetVal.Complex(a)})
+			ParserRetVal.eitherToComplex(a)
+		}
 	}
 	
 	/**
@@ -132,12 +133,13 @@ package parser {
 		 * @param vals the sequence containing values
 		 * @return the parsed object
 		 */
-		def parse[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):ParserRetVal[A,V] = {
-			vals.zipWithIndex.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], valueKey:(V, Int)) => 
+		def parse[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):ParserRetVal[A,Nothing] = {
+			val a = vals.zipWithIndex.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], valueKey:(V, Int)) => 
 				val (value, key) = valueKey;
-				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser)}
+				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[V])}
 			}
-		}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{a => ParserRetVal.Complex(a)})
+			ParserRetVal.eitherToComplex(a)
+		}
 	}
 	
 	/**
@@ -152,30 +154,31 @@ package parser {
 	 * @param recurse a parser for values contained in the sequence
 	 * @param keyMapping a mapping from integer indexies to type K.
 	 */
-	final class SeqParser[K,V,Inner](recurse:Parser[K,V,Inner])(implicit keyMapping:Function1[Int, K]) extends Parser[K,V,Seq[Inner]] {
+	final class SeqParser[+K,+V,-Inner](recurse:Parser[K,V,Inner])(implicit keyMapping:Function1[Int, K]) extends Parser[K,V,Seq[Inner]] {
 		def parse[A](topBuilder:Builder[K,V,A], vals:Seq[Inner]):ParserRetVal[A,V] = {
-			vals.zipWithIndex.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], valueKey:(Inner, Int)) => 
+			val a = vals.zipWithIndex.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], valueKey:(Inner, Int)) => 
 				val (value, key2) = valueKey
 				val key = keyMapping(key2)
 				state.right.flatMap{x => topBuilder.apply(x, key, value, recurse)}
 			}
-		}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{a => ParserRetVal.Complex(a)})
+			ParserRetVal.eitherToComplex(a)
+		}
 	}
 	
 	/**
 	 * A 'parser' that echos the value provided in its parse method
 	 * @version 3.0
 	 */
-	private[json] final class IdentityParser[K,V] extends Parser[K,V,V] {
+	private[json] final class IdentityParser[V] extends Parser[Nothing,V,V] {
 		/** Returns `scala.util.Right(v)` */
-		def parse[A](b:Builder[K,V,A], v:V):ParserRetVal.Primitive[V] = ParserRetVal.Primitive(v)
+		def parse[A](b:Builder[Nothing,V,A], v:V):ParserRetVal.Primitive[V] = ParserRetVal.Primitive(v)
 	}
 	
 	/**
 	 * A 'parser' that always returns a Failure
 	 * @version 3.0
 	 */
-	private[json] final class FailureParser[K,V,I] extends Parser[K,V,I] {
-		def parse[A](b:Builder[K,V,A], v:I):ParserRetVal.Failure = ParserRetVal.Failure("FailureParser", 0)
+	private[json] final class FailureParser extends Parser[Nothing,Nothing,Any] {
+		def parse[A](b:Builder[Nothing,Nothing,A], v:Any):ParserRetVal.Failure = ParserRetVal.Failure("FailureParser", 0)
 	}
 }

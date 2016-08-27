@@ -26,8 +26,8 @@
 */
 package com.rayrobdod.json.union
 
-import com.rayrobdod.json.builder.Builder
-import com.rayrobdod.json.parser.Parser
+import scala.util.{Either, Left, Right}
+import com.rayrobdod.json.union.ParserRetVal.{ComplexProjection, PrimitiveProjection}
 import scala.language.implicitConversions
 
 /*
@@ -51,6 +51,14 @@ sealed trait ParserRetVal[+Complex, +Primitive]{
 	 * @return the results of applying the function
 	 */
 	def fold[Out](c:Function1[Complex,Out], p:Function1[Primitive,Out], f:Function2[String,Int,Out]):Out
+	
+	/** projects this ParserRetVal as a primitive */
+	def primitive:PrimitiveProjection[Complex,Primitive]
+	/** projects this ParserRetVal as a complex */
+	def complex:ComplexProjection[Complex,Primitive]
+	
+	/** Convert a Failure into a Left and the other two options into a Right  */
+	def mergeToEither[A](implicit ev1:Primitive <:< A, ev2:Complex <:< A):Either[(String,Int),A] = this.fold({c => Right(ev2(c))}, {p => Right(ev1(p))}, {(s,i) => Left(s,i)})
 }
 
 /**
@@ -59,12 +67,32 @@ sealed trait ParserRetVal[+Complex, +Primitive]{
  */
 object ParserRetVal {
 	
+	def eitherToComplex[A](a:Either[(String,Int),A]):ParserRetVal[A,Nothing] = {
+		a.fold({case (msg,idx) => ParserRetVal.Failure(msg,idx)}, {x => ParserRetVal.Complex(x)})
+	}
+	
 	final case class Primitive[Primitive](x:Primitive) extends ParserRetVal[Nothing, Primitive]{
 		def fold[Out](c:Function1[Nothing,Out], p:Function1[Primitive,Out], f:Function2[String,Int,Out]):Out = p(x)
+		def primitive:PrimitiveProjection[Nothing,Primitive] = new PrimitiveProjection[Nothing,Primitive]{
+			def map[C](fun:Primitive => C):ParserRetVal.Primitive[C] = Primitive(fun(x))
+			def toEither:Either[(String,Int),Primitive] = Right(x)
+		}
+		def complex:ComplexProjection[Nothing,Primitive] = new ComplexProjection[Nothing,Primitive]{
+			def map[C](fun:Nothing => C):ParserRetVal.Primitive[Primitive] = Primitive.this
+			def toEither:Either[(String,Int),Nothing] = Left("Expected complex value", 0)
+		}
 	}
 	
 	final case class Complex[Complex](x:Complex) extends ParserRetVal[Complex, Nothing]{
 		def fold[Out](c:Function1[Complex,Out], p:Function1[Nothing,Out], f:Function2[String,Int,Out]):Out = c(x)
+		def primitive:PrimitiveProjection[Complex,Nothing] = new PrimitiveProjection[Complex,Nothing]{
+			def map[C](fun:Nothing => C):ParserRetVal.Complex[Complex] = Complex.this
+			def toEither:Either[(String,Int),Nothing] = Left("Expected primitive value", 0)
+		}
+		def complex:ComplexProjection[Complex,Nothing] = new ComplexProjection[Complex,Nothing]{
+			def map[C](fun:Complex => C):ParserRetVal.Complex[C] = Complex(fun(x))
+			def toEither:Either[(String,Int),Complex] = Right(x)
+		}
 	}
 	
 	/**
@@ -75,6 +103,27 @@ object ParserRetVal {
 	 */
 	final case class Failure(msg:String, idx:Int) extends ParserRetVal[Nothing, Nothing]{
 		def fold[Out](c:Function1[Nothing,Out], p:Function1[Nothing,Out], f:Function2[String,Int,Out]):Out = f(msg,idx)
+		
+		private[this] object biased extends PrimitiveProjection[Nothing, Nothing] with ComplexProjection[Nothing, Nothing] {
+			def map[C](fun:Nothing => C):ParserRetVal.Failure = Failure.this
+			def toEither:Either[(String,Int),Nothing] = Left((msg, idx))
+		}
+		def primitive:PrimitiveProjection[Nothing,Nothing] = biased
+		def complex:ComplexProjection[Nothing,Nothing] = biased
+	}
+	
+	
+	sealed trait PrimitiveProjection[+A,+B] {
+		/** Map the backing value if the backing value is a Primitive, else return the backing value */
+		def map[C](fun:B => C):ParserRetVal[A,C]
+		/** Return a Right if the backing value is a Primitive, else return a left */
+		def toEither:Either[(String,Int),B]
+	}
+	sealed trait ComplexProjection[+A,+B] {
+		/** Map the backing value if the backing value is a Complex, else return the backing value */
+		def map[C](fun:A => C):ParserRetVal[C,B]
+		/** Return a Right if the backing value is a Complex, else return a left */
+		def toEither:Either[(String,Int),A]
 	}
 	
 }

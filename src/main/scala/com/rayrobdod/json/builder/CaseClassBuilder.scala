@@ -61,7 +61,7 @@ final class CaseClassBuilder[Value, A <: Product](
 		
 		// unwrap union values
 		val value = {
-			parser.parse(builder, input).fold({x => Right(x)},{x => Right(x)},{(msg,idx) => Left((msg,idx))}).right.map{_ match {
+			parser.parse(builder, input).mergeToEither[Any].right.map{_ match {
 					case com.rayrobdod.json.union.StringOrInt.Left(x) => x
 					case com.rayrobdod.json.union.StringOrInt.Right(x) => x
 					case x:com.rayrobdod.json.union.JsonValue => com.rayrobdod.json.union.JsonValue.unwrap(x)

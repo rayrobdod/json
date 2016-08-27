@@ -81,11 +81,11 @@ final class CsvParser(
 			}
 		}
 		
-		(if (endState.innerInput.isEmpty) {
+		ParserRetVal.eitherToComplex(if (endState.innerInput.isEmpty) {
 			endState.value
 		} else {
 			endState.value.right.flatMap{x => builder.apply(x, endState.innerIndex, endState.innerInput, new LineParser)}
-		}).fold({case (msg,idx) => ParserRetVal.Failure(msg,idx)}, {x => ParserRetVal.Complex(x)})
+		})
 	}
 	
 	/**
@@ -147,7 +147,7 @@ final class CsvParser(
 					state.copy(quoted = true)
 				} else if (meaningfulCharacters.fieldDelimeter contains char) {
 					new State(
-						value = state.value.right.flatMap{x => builder.apply(x, state.innerIndex, state.innerInput, new IdentityParser).left.map{x => ((x._1, x._2 + index))}},
+						value = state.value.right.flatMap{x => builder.apply(x, state.innerIndex, state.innerInput, new IdentityParser[String]).left.map{x => ((x._1, x._2 + index))}},
 						innerIndex = state.innerIndex + 1,
 						innerInput = "",
 						endingWhitespace = "",
@@ -159,11 +159,11 @@ final class CsvParser(
 				}
 			}
 			
-			(if (endState.innerInput.isEmpty) {
+			ParserRetVal.eitherToComplex(if (endState.innerInput.isEmpty) {
 				endState.value
 			} else {
-				endState.value.right.flatMap{x => builder.apply(x, endState.innerIndex, endState.innerInput, new IdentityParser)}
-			}).fold({case (msg,idx) => ParserRetVal.Failure(msg,idx)}, {x => ParserRetVal.Complex(x)})
+				endState.value.right.flatMap{x => builder.apply(x, endState.innerIndex, endState.innerInput, new IdentityParser[String])}
+			})
 		}
 	}
 }
