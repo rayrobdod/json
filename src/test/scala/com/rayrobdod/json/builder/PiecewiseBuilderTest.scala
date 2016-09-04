@@ -32,22 +32,22 @@ import org.scalatest.FunSpec;
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.{StringOrInt, ParserRetVal}
 import com.rayrobdod.json.parser.{Parser, IdentityParser, PrimitiveSeqParser}
-import com.rayrobdod.json.builder.BuildableBuilder.KeyDef
+import com.rayrobdod.json.builder.PiecewiseBuilder.KeyDef
 
-class BuildableBuilderTest extends FunSpec {
-	import BuildableBuilderTest.Person;
+class PiecewiseBuilderTest extends FunSpec {
+	import PiecewiseBuilderTest.Person;
 	private implicit def personClass = classOf[Person]
 	
-	describe("BuildableBuilder") {
+	describe("PiecewiseBuilder") {
 		it ("inits correctly") {
 			assertResult(new Person("me", 4)){
-					new BuildableBuilder(new Person("me", 4)).init
+					new PiecewiseBuilder(new Person("me", 4)).init
 			}
 		}
 		it ("Acts upon provided keydef") {
 			val name = "Anony Mouse"
 			assertResult(Right(new Person(name, 0))){
-				new BuildableBuilder(new Person("", 0))
+				new PiecewiseBuilder(new Person("", 0))
 						.addDef("name", new KeyDef[String, String, Person]{def apply[I](s:Person, i:I, p:Parser[String, String, I]) = {Right(s.copy(name = p.parsePrimitive(i).fold({x => ""}, {x => x})))}})
 						.apply(new Person("", 0), "name", name, new IdentityParser[String])
 			}
@@ -55,7 +55,7 @@ class BuildableBuilderTest extends FunSpec {
 		it ("Acts upon provided keydef (2)") {
 			val age = 9001
 			assertResult(Right(new Person("", age))){
-				new BuildableBuilder(new Person("", 0))
+				new PiecewiseBuilder(new Person("", 0))
 						.addDef("age", new KeyDef[String, Int, Person]{def apply[I](s:Person, i:I, p:Parser[String, Int, I]) = {Right(s.copy(age = p.parsePrimitive(i).fold({x => 0}, {x => x})))}})
 						.apply(new Person("", 0), "age", age, new IdentityParser[Int])
 			}
@@ -63,31 +63,31 @@ class BuildableBuilderTest extends FunSpec {
 		it ("Acts upon provided keydef (partitionedPrimitive)") {
 			val age = 9001
 			assertResult(Right(new Person("", age))){
-				new BuildableBuilder(new Person("", 0))
-						.addDef("age", BuildableBuilder.partitionedPrimitiveKeyDef[String, Int, Person, Int]({case x:Int => Right(x)}, {(f,i) => f.copy(age = i)}))
+				new PiecewiseBuilder(new Person("", 0))
+						.addDef("age", PiecewiseBuilder.partitionedPrimitiveKeyDef[String, Int, Person, Int]({case x:Int => Right(x)}, {(f,i) => f.copy(age = i)}))
 						.apply(new Person("", 0), "age", age, new IdentityParser[Int])
 			}
 		}
 		it ("Throws excpetion on unknown key") {
-			assertResult(Left("BuildableBuilder has no KeyDef for given key", 0)){
-				new BuildableBuilder[String, String, Person](new Person("", 0))
+			assertResult(Left("PiecewiseBuilder has no KeyDef for given key", 0)){
+				new PiecewiseBuilder[String, String, Person](new Person("", 0))
 						.apply(new Person("", 0), "asdfjkl;", "hello", new IdentityParser[String])
 			}
 		}
 		it ("ignores unknown key after call to ignoreUnknownKeys") {
 			assertResult(Right(new Person("", 0))){
-				new BuildableBuilder[String, String, Person](new Person("", 0)).ignoreUnknownKeys
+				new PiecewiseBuilder[String, String, Person](new Person("", 0)).ignoreUnknownKeys
 						.apply(new Person("", 0), "asdfjkl;", "hello", new IdentityParser[String])
 			}
 		}
 	}
 	
-	describe("BuildableBuilder + JsonParser") {
+	describe("PiecewiseBuilder + JsonParser") {
 		import com.rayrobdod.json.parser.JsonParser
 		import com.rayrobdod.json.union.JsonValue._
 		
 		it ("works") {
-			val builder = new BuildableBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
+			val builder = new PiecewiseBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
 				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parsePrimitive(i).right.flatMap{_ match {case JsonValueString(i) => Right(s.copy(name = i)); case ex => Left("name not string: " + ex, 0)}}}})
 				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parsePrimitive(i).right.flatMap{_ match {case JsonValueNumber(i) => Right(s.copy(age = i.intValue)); case ex => Left("age not number: " + ex, 0)}}}})
 			
@@ -100,11 +100,11 @@ class BuildableBuilderTest extends FunSpec {
 		it ("nested") {
 			val exp = Seq(Person("a", 5), Person("b", 6))
 			
-			val personBuilder = new BuildableBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
+			val personBuilder = new PiecewiseBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
 				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parsePrimitive(i).right.flatMap{_ match {case JsonValueString(i) => Right(s.copy(name = i)); case ex => Left("name not string: " + ex, 0)}}}})
 				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parsePrimitive(i).right.flatMap{_ match {case JsonValueNumber(i) => Right(s.copy(age = i.intValue)); case ex => Left("age not number: " + ex, 0)}}}})
 			
-			val seqBuilder = new BuildableBuilder[StringOrInt, JsonValue, Seq[Person]](
+			val seqBuilder = new PiecewiseBuilder[StringOrInt, JsonValue, Seq[Person]](
 				Nil,
 				new KeyDef[StringOrInt, JsonValue, Seq[Person]]{ def apply[I](s:Seq[Person], i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parse(personBuilder, i).fold({x => Right(x)},{x => Left("ASFD",0)},{(a,b) => Left(a,b)}).right.map{y => s :+ y}}}
 			)
@@ -118,7 +118,7 @@ class BuildableBuilderTest extends FunSpec {
 	}
 	
 	describe("KeyDef") {
-		import BuildableBuilder._
+		import PiecewiseBuilder._
 		
 		it ("ignoreKeyDef") {
 			assertResult(Right("abc")){
@@ -126,7 +126,7 @@ class BuildableBuilderTest extends FunSpec {
 			}
 		}
 		it ("throwKeyDef") {
-			assertResult(Left("BuildableBuilder has no KeyDef for given key", 0)){
+			assertResult(Left("PiecewiseBuilder has no KeyDef for given key", 0)){
 				throwKeyDef.apply("abc", null, null)
 			}
 		}
@@ -213,6 +213,6 @@ class BuildableBuilderTest extends FunSpec {
 }
 
 
-object BuildableBuilderTest {
+object PiecewiseBuilderTest {
 	case class Person(val name:String, val age:Int)
 }

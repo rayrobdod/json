@@ -32,6 +32,7 @@ import com.rayrobdod.json.builder.{MapBuilder, CaseClassBuilder, PrettyJsonBuild
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue
 
+@deprecated("CaseClassParser is deprecated; using to suppress warnings tests related to that class", "3.0")
 class CaseClassParserTest extends FunSpec {
 	private implicit def fooClass = classOf[Foo]
 	private case class Foo(hello:Long, world:String, bazz:Boolean)
