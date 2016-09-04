@@ -25,6 +25,9 @@ matrix:
         jdk: oraclejdk8
         env: SCOVERAGE_DISABLE=true
 
+install:
+   - sbt update
+
 script:
   - sbt -Dscoverage.disable=$SCOVERAGE_DISABLE ++$TRAVIS_SCALA_VERSION coverage test
 

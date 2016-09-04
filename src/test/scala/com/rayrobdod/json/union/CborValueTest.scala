@@ -68,6 +68,10 @@ class CborValueTest extends FunSpec {
 			arr(2) = 42
 			assert(! java.util.Arrays.equals(arr, cbor.s))
 		}
+		it ("""tostring""") {
+			val cbor = CborValueByteStr(Array[Byte](1,2,3,4,5))
+			assertResult("CborValueByteStr([1, 2, 3, 4, 5])"){cbor.toString}
+		}
 	}
 	
 	describe("CborValue$") {
