@@ -31,6 +31,7 @@ import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.StringOrInt
 
+@deprecated("CaseClassBuilder is deprecated; using to suppress warnings tests related to that class", "3.0")
 class CaseClassBuilderTest extends FunSpec {
 	import CaseClassBuilderTest.Person;
 	private implicit def personClass = classOf[Person]

@@ -40,6 +40,7 @@ import com.rayrobdod.json.union.ParserRetVal
  * Creates a CaseClassParser instance.
  * @param clazz a java.lang.Class instance that represents the Input
  */
+@deprecated("Terribly un type-safe. Either use a new Parser subclass or an instance of BuildableParser instead", "3.0")
 final class CaseClassParser[Input <: Product](implicit clazz:Class[Input]) extends Parser[String, Any, Input] {
 	
 	/**
