@@ -33,22 +33,22 @@ import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.union.ParserRetVal.Complex
 
-class BuildableParserTest extends FunSpec {
+class PiecewiseParserTest extends FunSpec {
 	private class Foo(val hello:Long, val world:String, val bazz:Boolean)
 	private class Bar(val a:Foo, val b:Foo)
-	import BuildableParser._
+	import PiecewiseParser._
 	
-	describe("BuildableParser") {
+	describe("PiecewiseParser") {
 		it ("when empty, does nothing") {
 			val exp = Map()
 			val src = new Foo(42, "addf", false)
-			val res = new BuildableParser[String, JsonValue, Foo].parse(MapBuilder.apply, src)
+			val res = new PiecewiseParser[String, JsonValue, Foo].parse(MapBuilder.apply, src)
 			assertResult(Complex(exp)){res}
 		}
 		it ("""single keydef acts only on that keydef""") {
 			val exp = Map("hello" -> Right(JsonValue(42)))
 			val src = new Foo(hello = 42, world = "fsdf", bazz = false)
-			val res = new BuildableParser[String, JsonValue, Foo](
+			val res = new PiecewiseParser[String, JsonValue, Foo](
 					primitiveKeyDef("hello", (foo:Foo) => (JsonValue(foo.hello)))
 				).parse(MapBuilder.apply, src)
 			assertResult(Complex(exp)){res}
@@ -56,7 +56,7 @@ class BuildableParserTest extends FunSpec {
 		it ("""multiple keydefs act on each keydef""") {
 			val exp = Map("hello" -> Right(JsonValue(12)), "world" -> Right(JsonValue("fasd")), "bazz" -> Right(JsonValue(true)))
 			val src = new Foo(hello = 12, world = "fasd", bazz = true)
-			val res = new BuildableParser[String, JsonValue, Foo](
+			val res = new PiecewiseParser[String, JsonValue, Foo](
 					primitiveKeyDef("hello", {(foo:Foo) => (JsonValue(foo.hello))}),
 					primitiveKeyDef("world", {(foo:Foo) => (JsonValue(foo.world))}),
 					primitiveKeyDef("bazz", {(foo:Foo) => (JsonValue(foo.bazz))})
@@ -64,11 +64,11 @@ class BuildableParserTest extends FunSpec {
 			assertResult(Complex(exp)){res}
 		}
 		it ("""nesting""") {
-			val fooParser = new BuildableParser[String, JsonValue, Foo](
+			val fooParser = new PiecewiseParser[String, JsonValue, Foo](
 					primitiveKeyDef("h", {(foo:Foo) => (JsonValue(foo.hello))}),
 					primitiveKeyDef("w", {(foo:Foo) => (JsonValue(foo.world))})
 				)
-			val barParser = new BuildableParser[String, JsonValue, Bar](
+			val barParser = new PiecewiseParser[String, JsonValue, Bar](
 					complexKeyDef("a", {(bar:Bar) => bar.a}, fooParser),
 					complexKeyDef("b", {(bar:Bar) => bar.b}, fooParser)
 				)
@@ -132,13 +132,13 @@ class BuildableParserTest extends FunSpec {
 		}
 		
 	}
-	describe ("BuildableParser + JsonParser") {
+	describe ("PiecewiseParser + JsonParser") {
 		it ("documented example") {
 			case class Foo(a:String, b:Seq[String], c:String)
-			val nameParser = new BuildableParser[com.rayrobdod.json.union.StringOrInt, String, Foo](
-				BuildableParser.primitiveKeyDef("a", {x => x.a}),
-				BuildableParser.complexKeyDef("b", {x => x.b}, new PrimitiveSeqParser[String].mapKey[com.rayrobdod.json.union.StringOrInt]),
-				BuildableParser.optionalKeyDef(BuildableParser.primitiveKeyDef("c", {x => x.c}), {x => x.c != ""}) 
+			val nameParser = new PiecewiseParser[com.rayrobdod.json.union.StringOrInt, String, Foo](
+				PiecewiseParser.primitiveKeyDef("a", {x => x.a}),
+				PiecewiseParser.complexKeyDef("b", {x => x.b}, new PrimitiveSeqParser[String].mapKey[com.rayrobdod.json.union.StringOrInt]),
+				PiecewiseParser.optionalKeyDef(PiecewiseParser.primitiveKeyDef("c", {x => x.c}), {x => x.c != ""}) 
 			)
 			val jsonBuilder = new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams).mapValue[String]
 			assertResult(Complex("""{"a":"","b":[]}""")){

@@ -46,19 +46,19 @@ import com.rayrobdod.json.union.ParserRetVal
  * @param defaultKeyDef the KeyDef executed when no other keys exist
  * @param keyDefs the mapping of known keys to actual applies
  */
-final case class BuildableBuilder[Key, Value, Subject](
+final case class PiecewiseBuilder[Key, Value, Subject](
 		val init:Subject,
-		defaultKeyDef:BuildableBuilder.KeyDef[Key, Value, Subject] = BuildableBuilder.throwKeyDef[Key, Value, Subject],
-		keyDefs:Map[Key, BuildableBuilder.KeyDef[Key, Value, Subject]] = Map.empty[Key, BuildableBuilder.KeyDef[Key, Value, Subject]]
+		defaultKeyDef:PiecewiseBuilder.KeyDef[Key, Value, Subject] = PiecewiseBuilder.throwKeyDef[Key, Value, Subject],
+		keyDefs:Map[Key, PiecewiseBuilder.KeyDef[Key, Value, Subject]] = Map.empty[Key, PiecewiseBuilder.KeyDef[Key, Value, Subject]]
 ) extends Builder[Key, Value, Subject] {
 	
 	/** add a KeyDef that will be used upon receiving the given key */
-	def addDef(key:Key, fun:BuildableBuilder.KeyDef[Key, Value, Subject]):BuildableBuilder[Key, Value, Subject] = {
+	def addDef(key:Key, fun:PiecewiseBuilder.KeyDef[Key, Value, Subject]):PiecewiseBuilder[Key, Value, Subject] = {
 		this.copy(keyDefs = this.keyDefs + ((key, fun)))
 	}
 	/** Change the defaultKeyDef to one that will pass subject through */
-	def ignoreUnknownKeys:BuildableBuilder[Key, Value, Subject] = {
-		this.copy(defaultKeyDef = BuildableBuilder.ignoreKeyDef[Key, Value, Subject])
+	def ignoreUnknownKeys:PiecewiseBuilder[Key, Value, Subject] = {
+		this.copy(defaultKeyDef = PiecewiseBuilder.ignoreKeyDef[Key, Value, Subject])
 	}
 	
 	
@@ -71,7 +71,7 @@ final case class BuildableBuilder[Key, Value, Subject](
 /**
  * @since 3.0
  */
-object BuildableBuilder{
+object PiecewiseBuilder{
 	private[this] val unexpectedValueErrorMessage:Function1[Any, Left[(String, Int), Nothing]] = {x => Left("Unexpected value: " + x, 0)}
 	
 	/**
@@ -161,6 +161,6 @@ object BuildableBuilder{
 	 * @since 3.0
 	 */
 	def throwKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
-		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):Either[(String, Int), A] = Left("BuildableBuilder has no KeyDef for given key", 0)
+		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):Either[(String, Int), A] = Left("PiecewiseBuilder has no KeyDef for given key", 0)
 	}
 }

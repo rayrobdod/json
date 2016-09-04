@@ -18,7 +18,7 @@ For deserialization, one would pick a parser from this library
 ([[com.rayrobdod.json.parser.JsonParser]] for json,
 [[com.rayrobdod.json.parser.CborParser]] for cbor, etc) and either a custom
 Builder implementation or an instance of
-[[com.rayrobdod.json.builder.BuildableBuilder]]
+[[com.rayrobdod.json.builder.PiecewiseBuilder]]
 
 For serialization, one would use a custom Parser and a builder from this library
 ([[com.rayrobdod.json.builder.PrettyJsonBuilder]] for json,

@@ -42,7 +42,7 @@ import com.rayrobdod.json.parser.Parser
  * @param clazz the class of the objects to build
  * @param childBuilders a map of keys to builders of non-primitive bean values
  */
-@deprecated("Terribly un type-safe. Either create a new Builder subclass or an instance of BuildableBuilder", "3.0")
+@deprecated("Terribly un type-safe. Either create a new Builder subclass or an instance of PiecewiseBuilder", "3.0")
 final class BeanBuilder[Value, A](
 			clazz:Class[A],
 			childBuilders:Function1[String, Option[Builder[String, Value, _]]] = Map.empty.lift

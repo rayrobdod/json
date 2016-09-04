@@ -39,7 +39,7 @@ import scala.reflect.runtime.universe.{runtimeMirror, newTermName}
  * @param init the starting point of the builder
  * @param childBuilders a map used directly by childBuilder
  */
-@deprecated("Terribly un type-safe. Either create a new Builder subclass or an instance of BuildableBuilder", "3.0")
+@deprecated("Terribly un type-safe. Either create a new Builder subclass or an instance of PiecewiseBuilder", "3.0")
 final class CaseClassBuilder[Value, A <: Product](
 		val init:A,
 		childBuilders:Function1[String, Option[Builder[String, Value, _]]] = {s:String => None}

@@ -29,7 +29,7 @@ package com.rayrobdod.json.parser
 import scala.util.Either
 import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.union.ParserRetVal
-import BuildableParser.KeyDef
+import PiecewiseParser.KeyDef
 
 
 /**
@@ -38,10 +38,10 @@ import BuildableParser.KeyDef
  * @example
  * {{{
  * case class Foo(a:String, b:Seq[String], c:String)
- * val nameParser = new BuildableParser[StringOrInt, String, Foo](
- * 	BuildableParser.primitiveKeyDef("a", {x => x.a}),
- * 	BuildableParser.complexKeyDef("b", {x => x.b}, new PrimitiveSeqParser[String].mapKey[StringOrInt]),
- * 	BuildableParser.optionalKeyDef(BuildableParser.primitiveKeyDef("c", {x => x.c}), {x => x.c != ""}) 
+ * val nameParser = new PiecewiseParser[StringOrInt, String, Foo](
+ * 	PiecewiseParser.primitiveKeyDef("a", {x => x.a}),
+ * 	PiecewiseParser.complexKeyDef("b", {x => x.b}, new PrimitiveSeqParser[String].mapKey[StringOrInt]),
+ * 	PiecewiseParser.optionalKeyDef(PiecewiseParser.primitiveKeyDef("c", {x => x.c}), {x => x.c != ""}) 
  * )
  * val jsonBuilder = new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams).mapValue[String]
  * nameParser.parse(jsonbuilder, Foo("", Seq.empty, ""))
@@ -55,11 +55,11 @@ import BuildableParser.KeyDef
  * @tparam Value the primitive value types
  * @tparam Input the input to the parser
  * @constructor
- * Create a BuildableParser from a set of commands
+ * Create a PiecewiseParser from a set of commands
  * @param parts a sequence of key-value pairs extracted from the input
  */
 // PiecewiseParser?
-final class BuildableParser[+Key, +Value, -Input] (
+final class PiecewiseParser[+Key, +Value, -Input] (
 		parts:KeyDef[Key,Value,Input]*
 ) extends Parser[Key,Value,Input] {
 	
@@ -74,13 +74,13 @@ final class BuildableParser[+Key, +Value, -Input] (
 /**
  * @since 3.0
  */
-object BuildableParser {
+object PiecewiseParser {
 	
 	/**
 	 * A function which extracts a key-value pair form the input then, using
 	 * [[com.rayrobdod.json.builder.Builder#apply]] inserts that key-value pair into the output.
 	 * 
-	 * This has to be extracted from BuildableParser to maintain type safety
+	 * This has to be extracted from PiecewiseParser to maintain type safety
 	 * while maintaining the possibility of extracting a complex value.
 	 */
 	abstract class KeyDef[+Key, +Value, -Input] {
