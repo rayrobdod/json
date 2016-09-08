@@ -1,5 +1,5 @@
 // No support for 2.12
-if (System.getProperty("scoverage.disable") != "true") {
+if (System.getProperty("scoverage.disable", "") != "true") {
   addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.3.5")
 } else {
   TaskKey[Unit]("asfdsdfasdf") := {}

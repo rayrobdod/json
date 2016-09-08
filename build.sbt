@@ -13,7 +13,7 @@ version := "3.0-SNAPSHOT"
 scalaVersion := "2.10.6"
 
 crossScalaVersions := Seq("2.10.6", "2.11.8") ++
-    (if (System.getProperty("scoverage.disable", "") != "true") {Nil} else {Seq("2.12.0-M4")})
+    (if (System.getProperty("scoverage.disable", "") != "true") {Nil} else {Seq("2.12.0-RC1")})
 
 compileOrder := CompileOrder.JavaThenScala
 
@@ -61,10 +61,29 @@ mappings in (Compile, packageBin) <+= baseDirectory.map{(b) => (new File(b, "CHA
 scalastyleConfig := baseDirectory.value / "project" / "scalastyle-config.xml"
 
 
+if (System.getProperty("scoverage.disable", "") == "true") {
+	// provide no-op replacements for disabled tasks
+	TaskKey[Unit]("coverage") := {}
+} else {
+	TaskKey[Unit]("asfdsdfasdf") := {}
+}
+
+if (System.getProperty("scoverage.disable", "") == "true") {
+	// provide no-op replacements for disabled tasks
+	TaskKey[Unit]("coveralls") := {}
+} else {
+	TaskKey[Unit]("asfdsdfasdf") := {}
+}
+
+if (System.getProperty("scoverage.disable", "") == "true") {
+	// provide no-op replacements for disabled tasks
+	TaskKey[Unit]("coverageReport") := {}
+} else {
+	TaskKey[Unit]("asfdsdfasdf") := {}
+}
+
 
 // scalaTest
-libraryDependencies += "org.scalatest" %% "scalatest" % (
-      "2.2.6" 
-    ) % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.0" % "test"
 
 testOptions in Test += Tests.Argument("-oS", "-u", s"${crossTarget.value}/test-results-junit" /*, "-h", s"${crossTarget.value}/test-results-html" */)

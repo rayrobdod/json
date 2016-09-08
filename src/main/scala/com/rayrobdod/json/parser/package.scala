@@ -80,7 +80,7 @@ package parser {
 	 * @version 2.0
 	 */
 	private[parser] final class Reader2Iterable(r:java.io.Reader) extends Iterable[Char] {
-		def iterator():Iterator[Char] = {
+		def iterator:Iterator[Char] = {
 			new Iterator[Char]() {
 				private[this] var nextChar:Int = r.read()
 				override def next:Char = {
