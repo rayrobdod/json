@@ -38,15 +38,15 @@ import PiecewiseParser.KeyDef
  * @example
  * {{{
  * case class Foo(a:String, b:Seq[String], c:String)
- * val nameParser = new PiecewiseParser[StringOrInt, String, Foo](
+ * val fooParser = new PiecewiseParser[StringOrInt, String, Foo](
  * 	PiecewiseParser.primitiveKeyDef("a", {x => x.a}),
  * 	PiecewiseParser.complexKeyDef("b", {x => x.b}, new PrimitiveSeqParser[String].mapKey[StringOrInt]),
  * 	PiecewiseParser.optionalKeyDef(PiecewiseParser.primitiveKeyDef("c", {x => x.c}), {x => x.c != ""}) 
  * )
  * val jsonBuilder = new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams).mapValue[String]
- * nameParser.parse(jsonbuilder, Foo("", Seq.empty, ""))
+ * fooParser.parse(jsonbuilder, Foo("", Seq.empty, ""))
  * // results in `{"a":"","b":[]}`
- * nameParser.parse(jsonbuilder, Foo("qwer", Seq("z","x","c"), "asdf"))
+ * fooParser.parse(jsonbuilder, Foo("qwer", Seq("z","x","c"), "asdf"))
  * // results in `{"a":"qwer","b":["z","x","c"],"c":"asdf"}`
  * }}}
  * 

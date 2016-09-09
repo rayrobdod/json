@@ -33,7 +33,21 @@ import com.rayrobdod.json.union.ParserRetVal
 /**
  * A Builder which can be built piecewise.
  * 
- * TODO: mention how
+ * @example
+ * {{{
+ * case class Foo(a:String, b:Seq[JsonValue], c:String)
+ * val fooBuilder = (new PiecewiseBuilder[StringOrInt, JsonValue, Foo](new Foo("", Seq.empty, ""))
+ * 	.addDef(StringOrInt("a"), partitionedPrimitiveKeyDef({case JsonValueString(x) => Right(x)}, {(f:Foo, x:String) => f.copy(a = x)}))
+ * 	.addDef(StringOrInt("c"), partitionedPrimitiveKeyDef({case JsonValueString(x) => Right(x)}, {(f:Foo, x:String) => f.copy(c = x)}))
+ * 	.addDef(StringOrInt("b"), partitionedComplexKeyDef(new PrimitiveSeqBuilder[JsonValue], {(f:Foo, x:Seq[JsonValue]) => Right(f.copy(b = x))}))
+ * )
+ * 
+ * val jsonParser = new JsonParser
+ * jsonParser.parse(fooBuilder, """{"a":"","b":[]}""")
+ * // results in `Foo("", Seq.empty, "")`
+ * jsonParser.parse(fooBuilder, """{"a":"qwer","b":["z","x","c"],"c":"asdf"}""")
+ * // results in `Foo("qwer", Seq(JsonValueString("z"), JsonValueString("x"),JsonValueString("c")), "asdf")`
+ * }}}
  * 
  * @since 3.0
  * @see Inspired by [[https://github.com/scopt/scopt/]]
@@ -62,7 +76,6 @@ final case class PiecewiseBuilder[Key, Value, Subject](
 	}
 	
 	
-	/** @see Builder#apply */
 	override def apply[Input](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject] = {
 		keyDefs.getOrElse(key, defaultKeyDef).apply(folding, input, parser)
 	}

@@ -31,6 +31,7 @@ import scala.util.{Either, Left, Right}
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.{StringOrInt, ParserRetVal}
+import com.rayrobdod.json.union.ParserRetVal.Complex
 import com.rayrobdod.json.parser.{Parser, IdentityParser, PrimitiveSeqParser}
 import com.rayrobdod.json.builder.PiecewiseBuilder.KeyDef
 
@@ -113,6 +114,25 @@ class PiecewiseBuilderTest extends FunSpec {
 				new JsonParser().parse(seqBuilder, 
 					"""[{"name":"a","age":5},{"name":"b","age":6}]"""
 				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
+			}
+		}
+		it ("does the example provided in the scaladocs") {
+			import JsonValue.JsonValueString
+			import PiecewiseBuilder._
+			
+			case class Foo(a:String, b:Seq[JsonValue], c:String)
+			val fooBuilder = (new PiecewiseBuilder[StringOrInt, JsonValue, Foo](new Foo("", Seq.empty, ""))
+				.addDef(StringOrInt("a"), partitionedPrimitiveKeyDef({case JsonValueString(x) => Right(x)}, {(f:Foo, x:String) => f.copy(a = x)}))
+				.addDef(StringOrInt("c"), partitionedPrimitiveKeyDef({case JsonValueString(x) => Right(x)}, {(f:Foo, x:String) => f.copy(c = x)}))
+				.addDef(StringOrInt("b"), partitionedComplexKeyDef(new PrimitiveSeqBuilder[JsonValue], {(f:Foo, x:Seq[JsonValue]) => Right(f.copy(b = x))}))
+			)
+			val jsonParser = new JsonParser
+			
+			assertResult(Complex(Foo("", Seq.empty, ""))){
+				jsonParser.parse(fooBuilder, """{"a":"","b":[]}""")
+			}
+			assertResult(Complex(Foo("qwer", Seq(JsonValueString("z"), JsonValueString("x"), JsonValueString("c")), "asdf"))){
+				jsonParser.parse(fooBuilder, """{"a":"qwer","b":["z","x","c"],"c":"asdf"}""")
 			}
 		}
 	}
