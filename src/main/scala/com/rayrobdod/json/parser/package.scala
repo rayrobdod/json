@@ -169,7 +169,7 @@ package parser {
 	 * A 'parser' that echos the value provided in its parse method
 	 * @version 3.0
 	 */
-	private[json] final class IdentityParser[V] extends Parser[Nothing,V,V] {
+	final class IdentityParser[V] extends Parser[Nothing,V,V] {
 		/** Returns `scala.util.Right(v)` */
 		def parse[A](b:Builder[Nothing,V,A], v:V):ParserRetVal.Primitive[V] = ParserRetVal.Primitive(v)
 	}
