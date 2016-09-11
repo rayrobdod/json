@@ -2,6 +2,9 @@
 * Isolate CborValueByteStr backing value from inputs or outputs
 * Figure out how to make Builder and Parser co- and contravariant
 * Add projections to ParserRetVal cases
+* Deprecate BeanBuilder, CaseClassBuilder and CaseClassParser
+* Rename BuildableBuilder to PiecewiseBuilder
+* Add PiecewiseParser and CsvWithHeaderParser
 
 ## 3.0-RC1
 Typesafety
