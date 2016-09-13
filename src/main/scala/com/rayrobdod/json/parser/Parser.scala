@@ -83,4 +83,13 @@ trait Parser[+Key, +Value, -Input] {
 		}
 	}
 	
+	/** Change the type of value that this builder requires, with the option of indicating an error condition */
+	final def flatMapValue[V2](fun:Function1[Value,Either[(String,Int),V2]]):Parser[Key,V2,Input] = new Parser[Key,V2,Input] {
+		override def parse[Output](builder:Builder[Key,V2,Output], i:Input):ParserRetVal[Output, V2] = {
+			Parser.this.parse[Output](builder.flatMapValue[Value](fun), i).primitive.flatMap{pe => 
+				ParserRetVal.eitherToPrimitive(fun(pe))
+			}
+		}
+	}
+	
 }

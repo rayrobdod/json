@@ -86,4 +86,15 @@ trait Builder[-Key, -Value, Subject] {
 		}
 	}
 	
+	/**
+	 * Change the type of value that this builder requires, with the option of indicating an error condition
+	 * @since 3.0
+	 */
+	final def flatMapValue[V2](fun:Function1[V2,Either[(String,Int),Value]]):Builder[Key,V2,Subject] = new Builder[Key,V2,Subject] {
+		override def init:Subject = Builder.this.init
+		override def apply[Input](a:Subject, key:Key, b:Input, c:Parser[Key, V2, Input]):Either[(String, Int), Subject] = {
+			Builder.this.apply(a, key, b, c.flatMapValue(fun))
+		}
+	}
+	
 }
