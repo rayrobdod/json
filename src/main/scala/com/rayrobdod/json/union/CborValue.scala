@@ -32,7 +32,70 @@ import scala.language.implicitConversions
  * A union type representing primitive types in Cbor objects
  * @since 3.0
  */
-sealed trait CborValue
+sealed trait CborValue {
+	import CborValue._
+	
+	/**
+	 * Applies a function corresponding to `this`'s type
+	 * @param fs the function to apply if `this` is a CborValueString
+	 * @param fbs the function to apply if `this` is a CborValueByteStr
+	 * @param fn the function to apply if `this` is a CborValueNumber
+	 * @param fb the function to apply if `this` is a CborValueBoolean
+	 * @param fz the function to apply if `this` is a CborValueNull
+	 * @return the results of applying the corresponding function
+	 */
+	final def fold[A](fs:String => A, fbs:Array[Byte] => A, fn:Number => A, fb:Boolean => A, fz:Function0[A]):A = this match {
+		case CborValueString(s) => fs(s)
+		case CborValueByteStr(bs) => fbs(bs)
+		case CborValueNumber(n) => fn(n)
+		case CborValueBoolean(b) => fb(b)
+		case CborValueNull => fz.apply
+	}
+	
+	/**
+	 * Executes and returns `fs(this.s)` if this is a CborValueString, else return a Left with an error message
+	 */
+	final def stringToEither[A](fs:String => Either[(String, Int),A]):Either[(String, Int),A] = {
+		val unexpected = new ReturnLeft("Expected string")
+		this.fold(fs, unexpected, unexpected, unexpected, unexpected)
+	}
+	
+	/**
+	 * Executes and returns `fs(this.s)` if this is a CborValueByteStr, else return a Left with an error message
+	 */
+	final def byteArrayToEither[A](fs:Array[Byte] => Either[(String, Int),A]):Either[(String, Int),A] = {
+		val unexpected = new ReturnLeft("Expected string")
+		this.fold(unexpected, fs, unexpected, unexpected, unexpected)
+	}
+	
+	/**
+	 * Executes and returns `fi(this.i)` if this is a CborValueNumber which holds an number convertible to integer, else return a Left with an error message.
+	 * 
+	 * I somewhat doubt this method's ability to deal with numbers more precise than doubles can handle, but there is no Number -> BigFloat function. 
+	 */
+	final def integerToEither[A](fi:Int => Either[(String, Int),A]):Either[(String, Int),A] = {
+		val number = {n:Number => if (n.intValue.doubleValue == n.doubleValue) {fi(n.intValue)} else {Left("Expected integral number", 0)}} 
+		val unexpected = new ReturnLeft("Expected integral number")
+		this.fold(unexpected, unexpected, number, unexpected, unexpected)
+	}
+	
+	/**
+	 * Executes and returns `fn(this.i)` if this is a CborValueNumber, else return a Left with an error message.
+	 */
+	final def numberToEither[A](fn:Number => Either[(String, Int),A]):Either[(String, Int),A] = {
+		val unexpected = new ReturnLeft("Expected number")
+		this.fold(unexpected, unexpected, fn, unexpected, unexpected)
+	}
+	
+	/**
+	 * Executes and returns `fb(this.b)` if this is a CborValueBoolean, else return a Left with an error message
+	 */
+	final def booleanToEither[A](fb:Boolean => Either[(String, Int),A]):Either[(String, Int),A] = {
+		val unexpected = new ReturnLeft("Expected boolean")
+		this.fold(unexpected, unexpected, unexpected, fb, unexpected)
+	}
+}
+
 
 /**
  * The cases of CborValue and methods to convert other things into CborValues.
@@ -99,5 +162,10 @@ object CborValue {
 		case b:Number => CborValueNumber(b)
 		case b:Boolean => CborValueBoolean(b)
 		case ab:Array[Byte] => CborValueByteStr(ab)
+	}
+	
+	private class ReturnLeft(msg:String) extends Function1[Any, Either[(String, Int), Nothing]] with Function0[Either[(String, Int), Nothing]] {
+		def apply():Either[(String, Int), Nothing] = Left(msg, 0)
+		def apply(x:Any):Either[(String, Int), Nothing] = Left(msg, 0)
 	}
 }

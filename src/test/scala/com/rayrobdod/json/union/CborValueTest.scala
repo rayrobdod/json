@@ -30,6 +30,42 @@ import org.scalatest.FunSpec
 import com.rayrobdod.json.union.CborValue._
 
 class CborValueTest extends FunSpec {
+	
+	describe("CborValue") {
+		// string, double, integer, boolean, null
+		val values = Seq(
+			CborValueString(""), CborValueByteStr(new Array[Byte](2)), 
+			CborValueNumber(1.5), CborValueNumber(42),
+			CborValueBoolean(true), CborValueNull
+		)
+		val ToEitherFuns = Seq[CborValue => Either[(String, Int),Any]](
+			{x => x.stringToEither{s => Right(s)}},
+			{x => x.byteArrayToEither{s => Right(s)}},
+			{x => x.numberToEither{s => Right(s)}},
+			{x => x.integerToEither{s => Right(s)}},
+			{x => x.booleanToEither{s => Right(s)}}
+		)
+		val names = Seq("stringToEither", "byteArrayToEither", "numberToEither", "integerToEither", "booleanToEither", "nullToEither")
+		val foldResults = Seq(0, 1, 2, 2, 3, 4)
+		
+		for (
+			(v, vi) <- values.zipWithIndex;
+			(f, fi) <- ToEitherFuns.zipWithIndex
+		) {
+			val rightExpected = (vi == fi) || (vi == 3 && fi == 2)
+			
+			it (s"""${v}.${names(fi)}(Right.apply) is ${if (rightExpected) {"right"} else {"left"}}""") {
+				assertResult(rightExpected){f(v).isRight}
+			}
+		}
+		
+		for ((v, vi) <- values.zipWithIndex) {
+			it (s"""${v}.fold invokes the ${foldResults(vi)}th  function""") {
+				assertResult(foldResults(vi)){v.fold({x => 0}, {x => 1}, {x => 2}, {x => 3}, {() => 4})}
+			}
+		}
+	}
+	
 	describe("CborValueByteStr") {
 		it ("""is equal to a similar CborValueByteStr""") {
 			val a = CborValueByteStr(Array(1,2,3,4,5))

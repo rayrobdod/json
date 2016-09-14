@@ -31,6 +31,39 @@ import com.rayrobdod.json.union.JsonValue._
 
 class JsonValueTest extends FunSpec {
 	
+	describe("JsonValue") {
+		// string, double, integer, boolean, null
+		val values = Seq(
+			JsonValueString(""), JsonValueNumber(1.5), JsonValueNumber(42),
+			JsonValueBoolean(true), JsonValueNull
+		)
+		val ToEitherFuns = Seq[JsonValue => Either[(String, Int),Any]](
+			{x => x.stringToEither{s => Right(s)}},
+			{x => x.numberToEither{s => Right(s)}},
+			{x => x.integerToEither{s => Right(s)}},
+			{x => x.booleanToEither{s => Right(s)}}
+		)
+		val names = Seq("stringToEither", "numberToEither", "integerToEither", "booleanToEither", "nullToEither")
+		val foldResults = Seq(0, 1, 1, 2, 3)
+		
+		for (
+			(v, vi) <- values.zipWithIndex;
+			(f, fi) <- ToEitherFuns.zipWithIndex
+		) {
+			val rightExpected = (vi == fi) || (vi == 2 && fi == 1)
+			
+			it (s"""${v}.${names(fi)}(Right.apply) is ${if (rightExpected) {"right"} else {"left"}}""") {
+				assertResult(rightExpected){f(v).isRight}
+			}
+		}
+		
+		for ((v, vi) <- values.zipWithIndex) {
+			it (s"""${v}.fold invokes the ${foldResults(vi)}th  function""") {
+				assertResult(foldResults(vi)){v.fold({x => 0}, {x => 1}, {x => 2}, {() => 3})}
+			}
+		}
+	}
+	
 	describe("JsonValue$") {
 		describe("Implicits") {
 			it ("""StringOrInt.Left to JsonValue""") {
