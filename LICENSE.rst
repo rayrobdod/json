@@ -1,7 +1,7 @@
 `BSD License`_
 ==============
 
-Copyright (c) 2015 Raymond Dodge
+Copyright (c) 2015-2016 Raymond Dodge
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -28,4 +28,4 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-.. _BSD License: http://www.opensource.org/licenses/bsd-license.php
+.. _BSD License: https://opensource.org/licenses/BSD-3-Clause
