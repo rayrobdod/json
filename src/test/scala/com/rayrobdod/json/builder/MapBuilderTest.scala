@@ -69,17 +69,5 @@ class MapBuilderTest extends FunSpec {
 				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}
 		}
-		it ("MapBuilder + JsonParser + BeanBuilder") {
-			assertResult(Map("red" -> Left(Person("Mario", 32)), "green" -> Left(Person("Luigi", 32)), "pink" -> Left(Person("Peach", 28)))){
-				new JsonParser().parse(
-					MapBuilder[String, JsonValue, Person](new BeanBuilder[JsonValue, Person](classOf[Person])).mapKey[StringOrInt]{StringOrInt.unwrapToString},
-					"""{
-						"red":{"name":"Mario", "age":32},
-						"green":{"name":"Luigi", "age":32},
-						"pink":{"name":"Peach", "age":28}
-					}"""
-				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
-			}
-		}
 	}
 }

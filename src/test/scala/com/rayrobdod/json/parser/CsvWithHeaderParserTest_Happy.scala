@@ -26,14 +26,11 @@
 */
 package com.rayrobdod.json.parser;
 
-import java.text.ParseException
 import scala.collection.immutable.{Seq, Map => IMap}
 import org.scalatest.FunSpec
-import com.rayrobdod.json.builder.PrimitiveSeqBuilder
 import com.rayrobdod.json.builder.SeqBuilder
 import com.rayrobdod.json.builder.MapBuilder
 import com.rayrobdod.json.union.StringOrInt
-import java.nio.charset.StandardCharsets.UTF_8
 
 final class CsvWithHeaderParserTest_Happy extends FunSpec {
 	private[this] def Map(es:(String, String)*):IMap[StringOrInt, Either[Nothing, String]] = {

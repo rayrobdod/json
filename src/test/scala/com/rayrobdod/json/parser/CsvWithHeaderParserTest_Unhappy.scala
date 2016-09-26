@@ -27,9 +27,8 @@
 package com.rayrobdod.json.parser
 
 import org.scalatest.FunSpec
-import java.text.ParseException
 import scala.collection.immutable.{Seq, Map}
-import com.rayrobdod.json.union.{StringOrInt, JsonValue, ParserRetVal}
+import com.rayrobdod.json.union.{StringOrInt, ParserRetVal}
 import com.rayrobdod.json.builder._
 
 class CsvWithHeaderParserTest_Unhappy extends FunSpec {

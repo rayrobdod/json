@@ -38,8 +38,6 @@ import com.rayrobdod.json.parser.FailureParser
 import scala.language.implicitConversions
 
 class CborBuilderTest extends FunSpec {
-	private case class Abc(a:Int, b:Boolean, c:String)
-	private implicit def classAbc = classOf[Abc]
 	private implicit def integer2CborValue(x:Int):CborValue = CborValue(x)
 	
 	
@@ -217,7 +215,7 @@ class CborBuilderTest extends FunSpec {
 	}
 	
 	describe("CborBuilder integration") {
-		import com.rayrobdod.json.parser.{JsonParser, CborParser, CaseClassParser, byteArray2DataInput}
+		import com.rayrobdod.json.parser.{JsonParser, CborParser, byteArray2DataInput}
 		
 		it ("CborBuilder + JsonParser + primitive (array)") {
 			assertResult(hexSeq"83 183D 183E 183F"){
@@ -293,10 +291,12 @@ class CborBuilderTest extends FunSpec {
 		}
 		it ("CborBuilder + CaseClassParser (object)") {
 			assertResult(hexSeq"A3 6161 05 6162 f4 6163 63737472"){
-				new CaseClassParser[Abc]().parse(
-					new CborBuilder().mapKey[String].mapValue[Any]{CborValue.unsafeWrap _},
-					Abc(5,false,"str")
-				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
+				val builder = new CborBuilder().mapKey[String]
+				builder.apply(builder.init, "a", CborValue(5), new IdentityParser[CborValue]).right.flatMap{a =>
+					builder.apply(a, "b", CborValue(false), new IdentityParser[CborValue]).right.flatMap{b =>
+						builder.apply(b, "c", CborValue("str"), new IdentityParser[CborValue])
+					}
+				}.fold({si => si}, {x => x})
 			}
 		}
 	}

@@ -32,7 +32,6 @@ import com.rayrobdod.json.parser.FailureParser
 import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.parser.SeqParser
 import com.rayrobdod.json.parser.PrimitiveSeqParser
-import com.rayrobdod.json.parser.CaseClassParser
 
 class SeqBuilderTest extends FunSpec {
 	
@@ -81,7 +80,6 @@ class SeqBuilderTest extends FunSpec {
 	describe("SeqBuilder integration") {
 		import com.rayrobdod.json.union.{JsonValue, StringOrInt}
 		import com.rayrobdod.json.parser.JsonParser
-		import BeanBuilderTest.Person
 		
 		it ("PrimitiveSeqBuilder + JsonParser + primitive") {
 			assertResult(Seq("a", "b", "c").map{JsonValue(_)}){
@@ -97,23 +95,11 @@ class SeqBuilderTest extends FunSpec {
 			assertResult(exp){res}
 		}
 		it ("SeqBuilder + SeqParser") {
-			val exp = Seq(Person("Mario", 32),Person("Luigi", 32),Person("Peach", 28))
-			val builder = new SeqBuilder(new CaseClassBuilder[JsonValue, Person](Person("", -1))(classOf[Person])).mapValue[Any]{_ match {case x:Long => JsonValue(x); case x:String => JsonValue(x)}}
-			val parser = new SeqParser[String, Any, Person](new CaseClassParser[Person]()(classOf[Person]))(x => x.toString)
+			val exp = Seq(Seq("a", "b", "c"), Seq("d", "e", "f"), Seq("g", "h", "i"))
+			val builder = new SeqBuilder[Int, String, Seq[String]](new PrimitiveSeqBuilder[String])
+			val parser = new SeqParser[Int, String, Seq[String]](new PrimitiveSeqParser[String])
 			
 			assertResult(exp){parser.parse(builder, exp).fold({x => x}, {x => x}, {(s,i) => ((s,i))})}
-		}
-		it ("SeqBuilder + JsonParser + BeanBuilder") {
-			assertResult(Seq(Person("Mario", 32),Person("Luigi", 32),Person("Peach", 28))){
-				new JsonParser().parse(
-					new SeqBuilder(new BeanBuilder[JsonValue, Person](classOf[Person])).mapKey[StringOrInt]{StringOrInt.unwrapToString},
-					"""[
-						{"name":"Mario", "age":32},
-						{"name":"Luigi", "age":32},
-						{"name":"Peach", "age":28}
-					]"""
-				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
-			}
 		}
 	}
 	

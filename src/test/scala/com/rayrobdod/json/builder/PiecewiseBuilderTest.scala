@@ -37,7 +37,6 @@ import com.rayrobdod.json.builder.PiecewiseBuilder.KeyDef
 
 class PiecewiseBuilderTest extends FunSpec {
 	import PiecewiseBuilderTest.Person;
-	private implicit def personClass = classOf[Person]
 	
 	describe("PiecewiseBuilder") {
 		it ("inits correctly") {
