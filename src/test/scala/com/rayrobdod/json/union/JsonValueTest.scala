@@ -83,8 +83,5 @@ class JsonValueTest extends FunSpec {
 			it ("bytestr") {assertResult(JsonValue("112345")){cborValueHexencodeByteStr(Array[Byte](17, 35, 69))}}
 			it ("bytestr (with zeros)") {assertResult(JsonValue("01000010")){cborValueHexencodeByteStr(Array[Byte](1, 0, 0, 16))}}
 		}
-		it ("""unwrap null""") {
-			assertResult(null){JsonValue.unwrap(JsonValueNull)}
-		}
 	}
 }

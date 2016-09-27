@@ -137,14 +137,5 @@ class CborValueTest extends FunSpec {
 				assertResult(CborValueNull){res}
 			}
 		}
-		it ("""unwrap null""") {
-			assertResult(null){CborValue.unwrap(CborValueNull)}
-		}
-		it ("""unsafeWrap bytestr succeeds""") {
-			assertResult(CborValue(Array[Byte](1,2,3,4))){CborValue.unsafeWrap(Array[Byte](1,2,3,4))}
-		}
-		it ("""unsafeWrap intstr fails""") {
-			intercept[MatchError]{ CborValue.unsafeWrap(Array[Int](1,2,3,4)) }
-		}
 	}
 }

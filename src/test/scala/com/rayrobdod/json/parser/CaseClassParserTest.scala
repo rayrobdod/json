@@ -49,8 +49,12 @@ class CaseClassParserTest extends FunSpec {
 	describe("CaseClassParser + Json") {
 		it ("""can be used with the json stuff to serialize and deserialize a case class""") {
 			val src = Foo(-5, "asdf", true)
-			val json = new CaseClassParser().parse(new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams).mapKey[String].mapValue[Any]{JsonValue.unsafeWrap _}, src).fold({x => x}, {x => x}, {(s,i) => "{}"})
-			val res = new JsonParser().parse(new CaseClassBuilder(Foo(0,"",false)).mapKey[StringOrInt]{StringOrInt.unwrapToString _}.mapValue[JsonValue]{JsonValue.unwrap}, json).fold({x => x}, {x => x}, {(s,i) => Foo(i, s, false)})
+			val json = new CaseClassParser().parse(new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams).mapKey[String].mapValue[Any]{_ match {
+						case x:Long => JsonValue(x)
+						case x:Boolean => JsonValue(x)
+						case x:String => JsonValue(x)
+					}}, src).fold({x => x}, {x => x}, {(s,i) => "{}"})
+			val res = new JsonParser().parse(new CaseClassBuilder(Foo(0,"",false)).mapKey[StringOrInt]{StringOrInt.unwrapToString _}.mapValue[JsonValue]{_.fold[Any]({x => x}, {x => x},{x => x},null)}, json).fold({x => x}, {x => x}, {(s,i) => Foo(i, s, false)})
 			
 			assertResult(src){res}
 		}

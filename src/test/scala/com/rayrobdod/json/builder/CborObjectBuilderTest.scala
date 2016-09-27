@@ -215,7 +215,11 @@ class CborObjectBuilderTest extends FunSpec {
 		it ("CborObjectBuilder + CaseClassParser") {
 			assertResult(hexSeq"A3 6161 05 6162 f4 6163 63737472"){
 				new CaseClassParser[Abc]().parse(
-					new CborObjectBuilder().mapKey[String].mapValue[Any]{CborValue.unsafeWrap _},
+					new CborObjectBuilder().mapKey[String].mapValue[Any]{_ match {
+						case x:Int => CborValue(x)
+						case x:Boolean => CborValue(x)
+						case x:String => CborValue(x)
+					}},
 					Abc(5,false,"str")
 				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}

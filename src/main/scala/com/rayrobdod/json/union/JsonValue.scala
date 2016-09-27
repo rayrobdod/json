@@ -125,24 +125,6 @@ object JsonValue {
 		case CborValue.CborValueNull => JsonValueNull
 	}
 	
-	/** Unwraps a JsonValue and returns whatever was inside */
-	def unwrap(x:JsonValue):Any = x match {
-		case JsonValueString(s) => s
-		case JsonValueBoolean(b) => b
-		case JsonValueNumber(b) => b
-		case JsonValueNull => null
-	}
-	
-	/**
-	 * Attempts to wrap a value inside a JsonValue.
-	 * @throws MatchError if 
-	 */
-	def unsafeWrap(x:Any):JsonValue = x match {
-		case s:String => JsonValueString(s)
-		case b:Number => JsonValueNumber(b)
-		case b:Boolean => JsonValueBoolean(b)
-	}
-	
 	private class ReturnLeft(msg:String) extends Function1[Any, Either[(String, Int), Nothing]] with Function0[Either[(String, Int), Nothing]] {
 		def apply():Either[(String, Int), Nothing] = Left(msg, 0)
 		def apply(x:Any):Either[(String, Int), Nothing] = Left(msg, 0)
