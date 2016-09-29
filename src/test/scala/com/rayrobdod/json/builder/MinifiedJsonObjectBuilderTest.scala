@@ -161,17 +161,5 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}
 		}
-		ignore ("MinifiedJsonObjectBuilder + nested case class") {
-			assertResult("""{"5":{"a":5,"b":false,"c":"str"}}"""){
-				new MapParser().parse(
-					new MinifiedJsonObjectBuilder().mapValue[Any]{_ match {
-						case x:Int => JsonValue(x)
-						case x:Boolean => JsonValue(x)
-						case x:String => JsonValue(x)
-					}},
-					Map("5" -> Abc(5,false,"str"))
-				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
-			}
-		}
 	}
 }
