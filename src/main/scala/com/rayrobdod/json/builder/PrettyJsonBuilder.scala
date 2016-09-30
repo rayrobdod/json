@@ -35,12 +35,13 @@ import com.rayrobdod.json.parser.Parser
 
 
 /**
- * A builder that serializes its input into json format
+ * A builder whose output is a json-formatted string.
  * 
  * @since 3.0
- * @see [[http://argonaut.io/scaladocs/#argonaut.PrettyParams]] the only decent idea in argonaut
+ * @see [[http://json.org/]]
  * @constructor
- * @param params The whitespace to insert between tokens
+ * Construct a PrettyJsonBuilder
+ * @param params the amount whitespace to insert between tokens
  * @param level the indentation level of this builder instance
  * @param charset The output will only contain characters that can be encoded using the specified charset.
  *           Any characters outside the charset will be u-escaped. Default is to keep all characters that are allowed by Json.
@@ -126,7 +127,8 @@ object PrettyJsonBuilder {
 	
 	/**
 	 * The whitespace strings that will appear between significant portions of a serialized json file
-	 * @see [[com.rayrobdod.json.builder.PrettyJsonBuilder]]
+	 * 
+	 * @see [[http://argonaut.io/scaladocs/#argonaut.PrettyParams]]
 	 * @since 3.0
 	 * @define whitespace This value must contain only whitespace characters.
 	 * @define levelParam @param level the indentation depth to create a string for.
@@ -229,6 +231,10 @@ object PrettyJsonBuilder {
 	/**
 	 * A PrettyParams that will result in a minified json string. Every function returns the empty string.
 	 * @since 3.0
+	 * @example 
+	 * {{{
+	 * {"a":true,"b":[1,2,3]}
+	 * }}}
 	 */
 	object MinifiedPrettyParams extends PrettyParams {
 		def colonLeft(level:Int):String = ""
@@ -246,7 +252,18 @@ object PrettyJsonBuilder {
 	}
 	
 	/**
-	 * A PrettyParams for an indenting pattern with one space around each colon, commas at the end of the a line and brackets on their own line. 
+	 * A PrettyParams for an indenting pattern with one space around each colon, commas at the end of the a line and brackets on their own line.
+	 * @example
+	 * {{{
+	 * {
+	 * 	"a" : true,
+	 * 	"b" : [
+	 * 		1,
+	 * 		2,
+	 * 		3
+	 * 	]
+	 * }
+	 * }}}
 	 * @since 3.0
 	 * @define whitespace This value must contain only whitespace characters
 	 * 

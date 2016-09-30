@@ -35,8 +35,8 @@ import com.rayrobdod.json.union.{StringOrInt, ParserRetVal}
  * 
  * This parser is lenient, in that it ignores trailing delimiters
  * 
- * A CSV file is always two levels deep - a two dimensional array.
- * @version next
+ * A CSV file is always two levels deep, an array of key-value mappings.
+ * @version 3.0
  * 
  * @constructor
  * Creates a CsvParser instance.

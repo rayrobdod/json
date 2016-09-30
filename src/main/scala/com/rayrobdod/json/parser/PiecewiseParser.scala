@@ -56,7 +56,7 @@ import PiecewiseParser.KeyDef
  * @tparam Input the input to the parser
  * @constructor
  * Create a PiecewiseParser from a set of commands
- * @param parts a sequence of key-value pairs extracted from the input
+ * @param parts a sequence of key-value pairs to extract from the input
  */
 // PiecewiseParser?
 final class PiecewiseParser[+Key, +Value, -Input] (
@@ -72,6 +72,7 @@ final class PiecewiseParser[+Key, +Value, -Input] (
 }
 
 /**
+ * KeyDef and implementations
  * @since 3.0
  */
 object PiecewiseParser {

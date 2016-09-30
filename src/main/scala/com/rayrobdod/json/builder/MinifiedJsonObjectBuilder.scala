@@ -32,14 +32,15 @@ import java.nio.charset.Charset;
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.parser.Parser
 
-/** A builder that will output an object as an json format string
+/**
+ * A builder whose output is an minified json object string.
  * 
  * @version 3.0
  * @constructor
- * Creates a JsonObjectBuilder
+ * Construct a MinifiedJsonObjectBuilder
  * 
  * @param charset The output will only contain characters that can be encoded using the specified charset.
- *           Any characters outside the charset will be u-escaped. Default is to keep all characters verbaitim
+ *           Any characters outside the charset will be u-escaped. Default is to keep all characters verbatim
  */
 @deprecated("use `PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams)` instead", "3.0")
 final class MinifiedJsonObjectBuilder(charset:Charset = UTF_8) extends Builder[String, JsonValue, String] {
@@ -62,14 +63,15 @@ final class MinifiedJsonObjectBuilder(charset:Charset = UTF_8) extends Builder[S
 	}
 }
 
-/** A builder that will output an array as a json format string
+/**
+ * A builder whose output is an minified json array string.
  * 
  * @version 3.0
  * @constructor
- * A builder that will create json format strings
+ * Construct a MinifiedJsonArrayBuilder
  * 
  * @param charset The output will only contain characters that can be encoded using the specified charset.
- *           Any characters outside the charset will be u-escaped. Default is to keep all characters verbaitim
+ *           Any characters outside the charset will be u-escaped. Default is to keep all characters verbatim
  */
 @deprecated("use `PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams)` instead", "3.0")
 final class MinifiedJsonArrayBuilder(charset:Charset = UTF_8) extends Builder[Any, JsonValue, String] {

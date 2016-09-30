@@ -32,7 +32,7 @@ import com.rayrobdod.json.union.CborValue
 import com.rayrobdod.json.parser.Parser
 
 /**
- * A builder that will create a series of bytes in Cbor Object format
+ * A builder whose output is an object as a cbor-formatted byte string.
  * @version 3.0
  * @constructor
  * A builder that will create cbor object format byte strings
@@ -66,7 +66,7 @@ final class CborObjectBuilder extends Builder[CborValue, CborValue, Seq[Byte]] {
 }
 
 /**
- * A builder that will create a series of bytes in Cbor Array format
+ * A builder whose output is an array as a cbor-formatted byte string.
  * @version 3.0
  * @constructor
  * A builder that will create cbor array format byte strings

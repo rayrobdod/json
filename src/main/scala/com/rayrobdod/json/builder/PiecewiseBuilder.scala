@@ -60,7 +60,7 @@ import com.rayrobdod.json.union.ParserRetVal
  * @param defaultKeyDef the KeyDef executed when no other keys exist
  * @param keyDefs the mapping of known keys to actual applies
  */
-final case class PiecewiseBuilder[Key, Value, Subject](
+final class PiecewiseBuilder[Key, Value, Subject](
 		val init:Subject,
 		defaultKeyDef:PiecewiseBuilder.KeyDef[Key, Value, Subject] = PiecewiseBuilder.throwKeyDef[Key, Value, Subject],
 		keyDefs:Map[Key, PiecewiseBuilder.KeyDef[Key, Value, Subject]] = Map.empty[Key, PiecewiseBuilder.KeyDef[Key, Value, Subject]]
@@ -68,11 +68,11 @@ final case class PiecewiseBuilder[Key, Value, Subject](
 	
 	/** add a KeyDef that will be used upon receiving the given key */
 	def addDef(key:Key, fun:PiecewiseBuilder.KeyDef[Key, Value, Subject]):PiecewiseBuilder[Key, Value, Subject] = {
-		this.copy(keyDefs = this.keyDefs + ((key, fun)))
+		new PiecewiseBuilder(init, defaultKeyDef, this.keyDefs + ((key, fun)))
 	}
 	/** Change the defaultKeyDef to one that will pass subject through */
 	def ignoreUnknownKeys:PiecewiseBuilder[Key, Value, Subject] = {
-		this.copy(defaultKeyDef = PiecewiseBuilder.ignoreKeyDef[Key, Value, Subject])
+		new PiecewiseBuilder(init, PiecewiseBuilder.ignoreKeyDef[Key, Value, Subject], keyDefs)
 	}
 	
 	

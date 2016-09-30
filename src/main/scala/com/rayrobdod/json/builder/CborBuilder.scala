@@ -33,9 +33,10 @@ import com.rayrobdod.json.union.CborValue
 import com.rayrobdod.json.parser.{Parser, CborParser, byteArray2DataInput}
 
 /**
- * A builder that will create a series of bytes in Cbor Object format
+ * A builder whose output is a cbor-formatted byte string.
  * 
  * @since 3.0
+ * @see [[http://tools.ietf.org/html/rfc7049]]
  * @constructor
  * A builder that will create cbor object format byte strings
  * @param forceObject true if the builder should create an object even if it is possible to create an array from the inputs
