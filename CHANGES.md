@@ -1,7 +1,10 @@
 ## 3.0-RC2
 * Isolate CborValueByteStr backing value from inputs or outputs
-* Figure out how to make Builder and Parser co- and contravariant
+* Made Builder and Parser co- and contravariant
 * Add projections to ParserRetVal cases
+* Add xxxToEither methods to CborValue and JsonValue
+* Add flatMapValue method to Builder and Parser
+* Remove unwrap/anyWrap methods from JsonValue and CborValue
 * Deprecate BeanBuilder, CaseClassBuilder and CaseClassParser
 * Rename BuildableBuilder to PiecewiseBuilder
 * Add PiecewiseParser and CsvWithHeaderParser
