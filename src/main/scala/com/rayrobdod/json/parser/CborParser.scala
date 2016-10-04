@@ -273,29 +273,29 @@ object CborParser {
 	 * The CBOR major types.
 	 * Because magic numbers are bad.
 	 */
-	object MajorTypeCodes {
-		val POSITIVE_INT:Byte = 0
-		val NEGATIVE_INT:Byte = 1
-		val BYTE_ARRAY:Byte = 2
-		val STRING:Byte = 3
-		val ARRAY:Byte = 4
-		val OBJECT:Byte = 5
-		val TAG:Byte = 6
-		val SPECIAL:Byte = 7
+	private[json] object MajorTypeCodes {
+		final val POSITIVE_INT:Byte = 0
+		final val NEGATIVE_INT:Byte = 1
+		final val BYTE_ARRAY:Byte = 2
+		final val STRING:Byte = 3
+		final val ARRAY:Byte = 4
+		final val OBJECT:Byte = 5
+		final val TAG:Byte = 6
+		final val SPECIAL:Byte = 7
 	}
 	
 	/**
 	 * Known simple values.
 	 * Because magic numbers are bad.
 	 */
-	object SimpleValueCodes {
-		val FALSE:Byte  = 20
-		val TRUE:Byte   = 21
-		val NULL:Byte   = 22
-		val HALF_FLOAT:Byte = 25
-		val FLOAT:Byte  = 26
-		val DOUBLE:Byte = 27
-		val END_OF_LIST:Byte = 31
+	private[json] object SimpleValueCodes {
+		final val FALSE:Byte  = 20
+		final val TRUE:Byte   = 21
+		final val NULL:Byte   = 22
+		final val HALF_FLOAT:Byte = 25
+		final val FLOAT:Byte  = 26
+		final val DOUBLE:Byte = 27
+		final val END_OF_LIST:Byte = 31
 	}
 	
 }

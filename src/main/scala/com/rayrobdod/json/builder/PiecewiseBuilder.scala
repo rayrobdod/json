@@ -57,7 +57,7 @@ import com.rayrobdod.json.union.ParserRetVal
  * @tparam Subject the type of object to build
  * @constructor
  * @param init The starting point of the folding process
- * @param defaultKeyDef the KeyDef executed when no other keys exist
+ * @param defaultKeyDef the KeyDef executed when keyDefs does not contain a KeyDef for a specified key
  * @param keyDefs the mapping of known keys to actual applies
  */
 final class PiecewiseBuilder[Key, Value, Subject](
@@ -82,13 +82,14 @@ final class PiecewiseBuilder[Key, Value, Subject](
 }
 
 /**
+ * KeyDef and several implementations
  * @since 3.0
  */
 object PiecewiseBuilder{
 	private[this] val unexpectedValueErrorMessage:Function1[Any, Left[(String, Int), Nothing]] = {x => Left("Unexpected value: " + x, 0)}
 	
 	/**
-	 * A holder for a Function3 that is allowed to have a variable type parameter
+	 * A three-input function that accepts an object to build upon, and a input-parser pair that indicates a new value
 	 * @since 3.0
 	 */
 	abstract class KeyDef[Key, Value, Subject] {
@@ -121,7 +122,7 @@ object PiecewiseBuilder{
 	}
 	
 	/**
-	 * A KeyDef that is partitioned into a set of component functions
+	 * A KeyDef that is partitioned into a set of component functions with the expectation of complex values
 	 * 
 	 * @since 3.0
 	 * @param builder the builder that handles input.
@@ -143,7 +144,7 @@ object PiecewiseBuilder{
 	}
 	
 	/**
-	 * A KeyDef that is partitioned into a set of component functions
+	 * A KeyDef that is partitioned into a set of component functions with the expectation of primitive values
 	 * 
 	 * @since 3.0
 	 * @param convert convert a builder result into a value usable by fold. This is a partial function;

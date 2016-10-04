@@ -37,12 +37,12 @@ import scala.collection.immutable.Seq;
  * [[#apply]] will return a left if the value is a primitive value.
  * 
  * @version 3.0
- * @tparam Key the type of keys encountered. Key is ignored
+ * @tparam Key the type of keys encountered
  * @tparam Value the type of primitive values encountered
  * @tparam Inner the type of complex values produced by the childBuilder
  * @constructor
  * A builder that will create seqs of values built with the specified child builder
- * @param childBuilder the type of this seq's complex child elements. If it is Nothing, it will default to making more SeqBuilders
+ * @param childBuilder a builder that this will use to produce child elements
  */
 final class SeqBuilder[-Key, -Value, Inner](childBuilder:Builder[Key, Value, Inner]) extends Builder[Key, Value, Seq[Inner]] {
 	override def init:Seq[Inner] = Vector.empty[Inner]

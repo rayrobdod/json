@@ -40,7 +40,7 @@ import com.rayrobdod.json.union.{StringOrInt, ParserRetVal}
  * 
  * @constructor
  * Creates a CsvParser instance.
- * @param meaningfulCharacters determines which characters have special meanings
+ * @param meaningfulCharacters indicates which characters have special meanings
  */
 final class CsvWithHeaderParser(
 		meaningfulCharacters:CsvParser.CharacterMeanings = CsvParser.csvCharacterMeanings

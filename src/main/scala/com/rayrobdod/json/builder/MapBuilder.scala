@@ -29,12 +29,13 @@ package com.rayrobdod.json.builder;
 import com.rayrobdod.json.parser.Parser
 import scala.collection.immutable.Map
 
-/** A builder that creates maps
+/**
+ * A builder that creates maps.
  * 
  * @version 3.0
  * @constructor
- * Create a MapBuilder instance
- * @param childBuilders A function that maps a key to a MapChildBuilder for building values from parsers and input.
+ * Creates a MapBuilder which uses the specified key-to-MapChildBuilder function to create children
+ * @param childBuilders A function that indicates which MapChildBuilder to use for a given key
  */
 final class MapBuilder[K, V, Inner](childBuilders:Function1[K, MapBuilder.MapChildBuilder[K, V, _, Inner]]) extends Builder[K, V, Map[K, Either[Inner, V]]] {
 	override val init:Map[K, Either[Inner, V]] = Map.empty
@@ -46,7 +47,10 @@ final class MapBuilder[K, V, Inner](childBuilders:Function1[K, MapBuilder.MapChi
 	}
 }
 
-/** @since 3.0 */
+/**
+ * Holds MapChildBuilder and several MapBuilder factory methods
+ * @since 3.0
+ */
 object MapBuilder {
 	/**
 	 * Pairs a builder and a function into a function to create a value from a parser and input.
@@ -57,10 +61,19 @@ object MapBuilder {
 		}
 	}
 	
+	/** Creates a MapBuilder whose child builders are recursively map builders. */
 	def apply[K,V]:MapBuilder[K,V,Any] = new MapBuilder({x => new MapChildBuilder(MapBuilder.apply[K,V], {x:Any => x})})
+	
+	/** Creates a MapBuilder which uses the specified Builder and an identity function to create children for all keys */
 	def apply[K,V,Inner](cb:Builder[K,V,Inner]):MapBuilder[K,V,Inner] = MapBuilder(new MapChildBuilder(cb, {x:Inner => x}))
+	
+	/** Creates a MapBuilder which uses the specified MapChildBuilder to create children for all keys */
 	def apply[K,V,Inner](cb:MapChildBuilder[K,V,_,Inner]):MapBuilder[K,V,Inner] = new MapBuilder({x => cb})
+	
+	/** Creates a MapBuilder which uses the key-to-builder function and an identity function to create children */
 	def apply[K,V,Inner](cbs:Function1[K, Builder[K,V,Inner]]):MapBuilder[K,V,Inner] = new MapBuilder({x => new MapChildBuilder(cbs(x), {x:Inner => x})}) 
-	/* Type erasure */
+	
+	/** Creates a MapBuilder which uses the specified key-to-MapChildBuilder function to create children */
+	/* different name because type erasure */
 	def apply2[K,V,Inner](cbs:Function1[K, MapChildBuilder[K,V,_,Inner]]):MapBuilder[K,V,Inner] = new MapBuilder(cbs) 
 }
