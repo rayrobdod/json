@@ -26,10 +26,7 @@
 */
 package com.rayrobdod.json.parser;
 
-import java.text.ParseException
-import scala.collection.immutable.{Seq, Map, Stack}
-import scala.util.{Try, Success, Failure}
-import com.rayrobdod.json.builder._
+import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.union.ParserRetVal
 
 /**
@@ -38,11 +35,11 @@ import com.rayrobdod.json.union.ParserRetVal
  * This parser is lenient, in that it ignores trailing delimiters
  * 
  * A CSV file is always two levels deep - a two dimensional array.
- * @version next
+ * @version 3.0
  * 
  * @constructor
  * Creates a CsvParser instance.
- * @param meaningfulCharacters determines which characters have special meanings
+ * @param meaningfulCharacters indicates which characters have special meanings
  */
 final class CsvParser(
 		meaningfulCharacters:CsvParser.CharacterMeanings = CsvParser.csvCharacterMeanings
@@ -82,11 +79,11 @@ final class CsvParser(
 			}
 		}
 		
-		(if (endState.innerInput.isEmpty) {
+		ParserRetVal.eitherToComplex(if (endState.innerInput.isEmpty) {
 			endState.value
 		} else {
 			endState.value.right.flatMap{x => builder.apply(x, endState.innerIndex, endState.innerInput, new LineParser)}
-		}).fold({case (msg,idx) => ParserRetVal.Failure(msg,idx)}, {x => ParserRetVal.Complex(x)})
+		})
 	}
 	
 	/**
@@ -99,6 +96,19 @@ final class CsvParser(
 	def parse[A](builder:Builder[Int, String, A], chars:java.io.Reader):ParserRetVal[A,String] = this.parse(builder, new Reader2Iterable(chars))
 	
 	
+	/**
+	 * @param value the current value. Either a left describing an error, or a right with a complex value
+	 * @param innerIndex the current character index of the parse
+	 * @param innerInput the 
+	 * @param endingWhitespace Whitespace that should be ignored if a delimiter is encountered
+	 * 		before another non-whitespace character, but that should not be ignored otherwise.
+	 * @param quoted true if the parser is currently in a quoted state. characters between quote characters
+	 * 		are treated literally, so if this is true then characters should be treated literally,
+	 * 		and this should be toggled upon encountering a quote character.
+	 * @param escaped true if the parser is currently in an escape state. Characters after an escape character
+	 * 		is treated literally, so if this is true then characters should be treated literally,
+	 *		become true when an escape character is encountered and become false after encountering that literal character
+	 */
 	private[this] case class State[A] (
 		value:Either[(String,Int),A],
 		innerIndex:Int,
@@ -135,7 +145,7 @@ final class CsvParser(
 					state.copy(quoted = true)
 				} else if (meaningfulCharacters.fieldDelimeter contains char) {
 					new State(
-						value = state.value.right.flatMap{x => builder.apply(x, state.innerIndex, state.innerInput, new IdentityParser).left.map{x => ((x._1, x._2 + index))}},
+						value = state.value.right.flatMap{x => builder.apply(x, state.innerIndex, state.innerInput, new IdentityParser[String]).left.map{x => ((x._1, x._2 + index))}},
 						innerIndex = state.innerIndex + 1,
 						innerInput = "",
 						endingWhitespace = "",
@@ -147,11 +157,11 @@ final class CsvParser(
 				}
 			}
 			
-			(if (endState.innerInput.isEmpty) {
+			ParserRetVal.eitherToComplex(if (endState.innerInput.isEmpty) {
 				endState.value
 			} else {
-				endState.value.right.flatMap{x => builder.apply(x, endState.innerIndex, endState.innerInput, new IdentityParser)}
-			}).fold({case (msg,idx) => ParserRetVal.Failure(msg,idx)}, {x => ParserRetVal.Complex(x)})
+				endState.value.right.flatMap{x => builder.apply(x, endState.innerIndex, endState.innerInput, new IdentityParser[String])}
+			})
 		}
 	}
 }

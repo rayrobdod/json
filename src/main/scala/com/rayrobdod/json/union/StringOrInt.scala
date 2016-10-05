@@ -26,13 +26,11 @@
 */
 package com.rayrobdod.json.union
 
-import com.rayrobdod.json.builder.Builder
-import com.rayrobdod.json.parser.Parser
 import scala.language.implicitConversions
 
 /**
  * A union type where the possible values are a String or Int
- * @since next
+ * @since 3.0
  */
 sealed trait StringOrInt{
 	/** Applies `fs` if this is a String or `fi` if this is an Int */
@@ -40,8 +38,8 @@ sealed trait StringOrInt{
 }
 
 /**
- * Methods used to create StringOrInts
- * @since next
+ * The cases of StringOrInt and implicits to convert other things into StringOrInts.
+ * @since 3.0
  */
 object StringOrInt {
 	/** A string value represented as a StringOrInt union */

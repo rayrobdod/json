@@ -34,12 +34,13 @@ import com.rayrobdod.json.union.ParserRetVal
 /**
  * A parser that reports the name and value of each member of a case class
  * 
- * @version next
+ * @version 3.0
  * @tparam Input the type of object to be parsed
  * @constructor
  * Creates a CaseClassParser instance.
  * @param clazz a java.lang.Class instance that represents the Input
  */
+@deprecated("Terribly un type-safe. Either use a new Parser subclass or an instance of PiecewiseParser instead", "3.0")
 final class CaseClassParser[Input <: Product](implicit clazz:Class[Input]) extends Parser[String, Any, Input] {
 	
 	/**
@@ -52,12 +53,13 @@ final class CaseClassParser[Input <: Product](implicit clazz:Class[Input]) exten
 		val copyMethod = typ.declaration(newTermName("copy")).asMethod
 		val copyParams = copyMethod.paramss(0)
 		
-		copyParams.zipWithIndex.foldLeft[Either[(String,Int),Output]](Right(builder.init)){(state:Either[(String,Int),Output], keyValue) =>
+		val resultEither = copyParams.zipWithIndex.foldLeft[Either[(String,Int),Output]](Right(builder.init)){(state:Either[(String,Int),Output], keyValue) =>
 			val (name, index) = keyValue
 			val name2 = name.name.decodedName.toString
 			val value = obj.productElement(index)
 			
-			state.right.flatMap{x => builder.apply(x, name2, value, new IdentityParser)}
+			state.right.flatMap{x => builder.apply(x, name2, value, new IdentityParser[Any])}
 		}
-	}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{x => ParserRetVal.Complex(x)})
+		ParserRetVal.eitherToComplex(resultEither)
+	}
 }

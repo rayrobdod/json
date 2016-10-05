@@ -59,10 +59,7 @@ val PersonBuilder = {
     // raw private key def
     .addDef("isDead", new BuildableBuilder.KeyDef[StringOrInt, JsonValue, Person]{
       override def apply[Input](folding:Person, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Person] = {
-        parser.parsePrimitive(input) match {
-          case Right(JsonValue.JsonValueBoolean(b)) => Right(folding.copy(isDead = b));
-          case unknown => Left(("isDead not boolean: " + unknown, 0))
-        }
+        parser.parsePrimitive(input).right.flatMap{_.booleanToEither{b => Right(folding.copy(isDead = b))}}
       }
     })
     // raw complex key def

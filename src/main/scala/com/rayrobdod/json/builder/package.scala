@@ -26,15 +26,15 @@
 */
 package com.rayrobdod.json
 
-import scala.util.{Try, Success, Failure}
+import scala.util.Left
 import com.rayrobdod.json.parser.Parser
 
 /**
  * Contains the various built-in builders.
  *
- * Pretty much every parser will require a Builder when parsing data.
- * The builder will basically determine how the parser will treat complex
- * data types.
+ * Most built-in builders either build a serialized form (json, cbor),
+ * build a generic collection class (seq, map) or build a class that
+ * conforms to a stereotype (java bean, case class)
  */
 package object builder {
 }
@@ -42,9 +42,9 @@ package object builder {
 package builder {
 	/**
 	 * A Builder that will always return a failure on call to apply
-	 * @since next
+	 * @since 3.0
 	 */
-	final class ThrowBuilder[K,V] extends Builder[K,V,Any] {
+	private[json] final class ThrowBuilder[K,V] extends Builder[K,V,Any] {
 		override def init:Any = "using ThrowBuilder::init"
 		override def apply[I](a:Any,k:K,i:I,p:Parser[K,V,I]):Left[(String, Int), Any] = Left("using ThrowBuilder::apply", 0)
 	}

@@ -26,14 +26,13 @@
 */
 package com.rayrobdod.json.builder;
 
-import java.text.ParseException;
 import scala.beans.BeanProperty;
-import scala.collection.immutable.Map;
 import scala.util.{Either, Left, Right}
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.union.{StringOrInt, JsonValue}
 
+@deprecated("BeanBuilder is deprecated; using to suppress warnings tests related to that class", "3.0")
 class BeanBuilderTest extends FunSpec {
 	import BeanBuilderTest.Person;
 	
@@ -46,19 +45,19 @@ class BeanBuilderTest extends FunSpec {
 		it ("Can handle the name bean property") {
 			val name = "Anony Mouse"
 			assertResult(Right(new Person(name, 0))){
-				new BeanBuilder(classOf[Person]).apply(new Person(), "name", name, new IdentityParser[String,Object])
+				new BeanBuilder(classOf[Person]).apply(new Person(), "name", name, new IdentityParser[Object])
 			}
 		}
 		it ("Can handle the age bean property") {
 			val age = 9001L
 			assertResult(Right(new Person("", age))){
-				new BeanBuilder(classOf[Person]).apply(new Person(), "age", age, new IdentityParser[String,Any])
+				new BeanBuilder(classOf[Person]).apply(new Person(), "age", age, new IdentityParser[Any])
 			}
 		}
 		it ("Throws excpetion on incorrect type") {
 			val age = "9001"
 			assertResult(Left(("com.rayrobdod.json.builder.BeanBuilderTest$Person::setAge with parameter java.lang.String", 0))){
-				new BeanBuilder(classOf[Person]).apply(new Person(), "age", age, new IdentityParser[String,Any])
+				new BeanBuilder(classOf[Person]).apply(new Person(), "age", age, new IdentityParser[Any])
 			}
 		}
 	}

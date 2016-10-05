@@ -26,19 +26,16 @@
 */
 package com.rayrobdod.json.builder;
 
-import scala.beans.BeanProperty;
-import java.text.ParseException;
-import scala.collection.immutable.Map;
-import scala.util.{Try, Right, Failure}
 import org.scalatest.FunSpec;
 import java.nio.charset.StandardCharsets.US_ASCII;
 import com.rayrobdod.json.union.CborValue
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.JsonValue._
-import com.rayrobdod.json.parser.IdentityParser
+import com.rayrobdod.json.parser.{IdentityParser, FailureParser}
 import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter}
 import com.rayrobdod.json.union.StringOrInt
 
+@deprecated("MinifiedJsonObjectBuilder is deprecated; using to suppress warnings tests related to that class", "3.0")
 class MinifiedJsonObjectBuilderTest extends FunSpec {
 	private case class Abc(a:Int, b:Boolean, c:String)
 	private implicit def classAbc = classOf[Abc]
@@ -49,57 +46,63 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 		}
 		it ("Appends null") {
 			assertResult(Right("""{"":null}""")){
-				new MinifiedJsonObjectBuilder().apply("{}", "",JsonValueNull, new IdentityParser[String,JsonValue])
+				new MinifiedJsonObjectBuilder().apply("{}", "",JsonValueNull, new IdentityParser[JsonValue])
 			}
 		}
 		it ("Appends true") {
 			assertResult(Right("""{"":true}""")){
-				new MinifiedJsonObjectBuilder().apply("{}", "",JsonValue(true), new IdentityParser[String,JsonValue])
+				new MinifiedJsonObjectBuilder().apply("{}", "",JsonValue(true), new IdentityParser[JsonValue])
 			}
 		}
 		it ("Appends false") {
 			assertResult(Right("""{"":false}""")){
-				new MinifiedJsonObjectBuilder().apply("{}", "",JsonValue(false), new IdentityParser[String,JsonValue])
+				new MinifiedJsonObjectBuilder().apply("{}", "",JsonValue(false), new IdentityParser[JsonValue])
 			}
 		}
 		it ("Appends integer") {
 			assertResult(Right("""{"":68}""")){
-				new MinifiedJsonObjectBuilder().apply("{}", "",JsonValue(68), new IdentityParser[String,JsonValue])
+				new MinifiedJsonObjectBuilder().apply("{}", "",JsonValue(68), new IdentityParser[JsonValue])
 			}
 		}
 		it ("Appends string") {
 			assertResult(Right("""{"":"abc"}""")){
-				new MinifiedJsonObjectBuilder().apply("{}", "",JsonValue("abc"), new IdentityParser[String,JsonValue])
+				new MinifiedJsonObjectBuilder().apply("{}", "",JsonValue("abc"), new IdentityParser[JsonValue])
 			}
 		}
 		it ("Appends string with escapes") {
 			assertResult(Right("""{"":"a\tc"}""")){
-				new MinifiedJsonObjectBuilder().apply("{}", "",JsonValue("a\tc"), new IdentityParser[String,JsonValue])
+				new MinifiedJsonObjectBuilder().apply("{}", "",JsonValue("a\tc"), new IdentityParser[JsonValue])
 			}
 		}
 		it ("Appends string with escapes 2") {
 			assertResult(Right("""{"":"a\""" + """u0000c"}""")){
-				new MinifiedJsonObjectBuilder().apply("{}", "",JsonValue("a\u0000c"), new IdentityParser[String,JsonValue])
+				new MinifiedJsonObjectBuilder().apply("{}", "",JsonValue("a\u0000c"), new IdentityParser[JsonValue])
 			}
 		}
 		it ("Appends string with space") {
 			assertResult(Right("""{"":" a c "}""")){
-				new MinifiedJsonObjectBuilder().apply("{}", "",JsonValue(" a c "), new IdentityParser[String,JsonValue])
+				new MinifiedJsonObjectBuilder().apply("{}", "",JsonValue(" a c "), new IdentityParser[JsonValue])
 			}
 		}
 		it ("Appends string with non-ascii char (utf-8)") {
 			assertResult(Right("""{"":"Pokémon"}""")){
-				new MinifiedJsonObjectBuilder().apply("{}", "",JsonValue("Pokémon"), new IdentityParser[String,JsonValue])
+				new MinifiedJsonObjectBuilder().apply("{}", "",JsonValue("Pokémon"), new IdentityParser[JsonValue])
 			}
 		}
 		it ("Appends string with non-ascii char (ascii)") {
 			assertResult(Right("""{"":"Pok\""" + """u00e9mon"}""")){
-				new MinifiedJsonObjectBuilder(US_ASCII).apply("{}", "",JsonValue("Pokémon"), new IdentityParser[String,JsonValue])
+				new MinifiedJsonObjectBuilder(US_ASCII).apply("{}", "",JsonValue("Pokémon"), new IdentityParser[JsonValue])
 			}
 		}
 		it ("Appends a second value") {
 			assertResult(Right("""{"a":"b","c":"d"}""")){
-				new MinifiedJsonObjectBuilder().apply("""{"a":"b"}""", "c", JsonValue("d"), new IdentityParser[String,JsonValue])
+				new MinifiedJsonObjectBuilder().apply("""{"a":"b"}""", "c", JsonValue("d"), new IdentityParser[JsonValue])
+			}
+		}
+		
+		it ("When parser reports a failure, the failure is forwarded") {
+			assertResult( Left("FailureParser", 0) ){
+				new MinifiedJsonObjectBuilder().apply("{rest}", "", "", new FailureParser)
 			}
 		}
 	}
@@ -140,8 +143,8 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 			assertResult("""{"4":5}"""){
 				new CborParser().parse(
 					new MinifiedJsonObjectBuilder()
-							.mapKey[CborValue]{_ match {case CborValue.CborValueString(x) => x; case CborValue.CborValueNumber(x) => x.toString}}
-							.mapValue[CborValue]{_ match {case CborValue.CborValueString(x) => x; case CborValue.CborValueNumber(x) => x}},
+							.mapKey[CborValue]{_ match {case CborValue.CborValueNumber(x) => x.toString; case _ => ""}}
+							.mapValue[CborValue]{_ match {case CborValue.CborValueNumber(x) => x; case _ => JsonValueNull}},
 					byteArray2DataInput(hexArray"A10405")
 				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}
@@ -149,16 +152,12 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 		it ("MinifiedJsonObjectBuilder + case class") {
 			assertResult("""{"a":5,"b":false,"c":"str"}"""){
 				new CaseClassParser().parse(
-					new MinifiedJsonObjectBuilder().mapValue[Any]{JsonValue.unsafeWrap},
+					new MinifiedJsonObjectBuilder().mapValue[Any]{_ match {
+						case x:Int => JsonValue(x)
+						case x:Boolean => JsonValue(x)
+						case x:String => JsonValue(x)
+					}},
 					Abc(5,false,"str")
-				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
-			}
-		}
-		ignore ("MinifiedJsonObjectBuilder + nested case class") {
-			assertResult("""{"5":{"a":5,"b":false,"c":"str"}}"""){
-				new MapParser().parse(
-					new MinifiedJsonObjectBuilder().mapValue[Any]{JsonValue.unsafeWrap},
-					Map("5" -> Abc(5,false,"str"))
 				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}
 		}

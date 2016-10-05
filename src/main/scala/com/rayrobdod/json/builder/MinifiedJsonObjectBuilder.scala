@@ -26,33 +26,32 @@
 */
 package com.rayrobdod.json.builder;
 
-import scala.collection.immutable.Seq;
-import scala.util.{Either, Left, Right}
+import scala.util.Either
 import java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.charset.Charset;
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.parser.Parser
-import com.rayrobdod.json.parser.{MapParser, SeqParser}
 
-/** A builder that will output an object as an json format string
+/**
+ * A builder whose output is an minified json object string.
  * 
- * @version next
+ * @version 3.0
  * @constructor
- * Creates a JsonObjectBuilder
+ * Construct a MinifiedJsonObjectBuilder
  * 
  * @param charset The output will only contain characters that can be encoded using the specified charset.
- *           Any characters outside the charset will be u-escaped. Default is to keep all characters verbaitim
+ *           Any characters outside the charset will be u-escaped. Default is to keep all characters verbatim
  */
-@deprecated("use PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams) instead", "next")
+@deprecated("use `PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams)` instead", "3.0")
 final class MinifiedJsonObjectBuilder(charset:Charset = UTF_8) extends Builder[String, JsonValue, String] {
-	import MinifiedJsonObjectBuilder._
+	import PrettyJsonBuilder.{serialize, strToJsonStr}
 	
 	val init:String = "{}"
 	
 	/** @param folding a valid json object, with no characters trailing the final '}' */
 	def apply[Input](folding:String, key:String, innerInput:Input, parser:Parser[String, JsonValue, Input]):Either[(String, Int), String] = {
 		val jsonKey:String = strToJsonStr(key, charset)
-		parser.parse(this, innerInput).fold({s => Right(s)}, {p => Right(serialize(p, charset))}, {(s,i) => Left((s,i))}).right.map{jsonObject =>
+		parser.parse(this, innerInput).primitive.map{p => serialize(p, charset)}.mergeToEither.right.map{jsonObject =>
 			val jsonKeyValuePair = jsonKey + ":" + jsonObject;
 			
 			if (folding == "{}") {
@@ -64,61 +63,30 @@ final class MinifiedJsonObjectBuilder(charset:Charset = UTF_8) extends Builder[S
 	}
 }
 
-/** A builder that will output an array as a json format string
+/**
+ * A builder whose output is an minified json array string.
  * 
- * @version next
+ * @version 3.0
  * @constructor
- * A builder that will create json format strings
+ * Construct a MinifiedJsonArrayBuilder
  * 
  * @param charset The output will only contain characters that can be encoded using the specified charset.
- *           Any characters outside the charset will be u-escaped. Default is to keep all characters verbaitim
+ *           Any characters outside the charset will be u-escaped. Default is to keep all characters verbatim
  */
-@deprecated("use PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams) instead", "next")
+@deprecated("use `PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams)` instead", "3.0")
 final class MinifiedJsonArrayBuilder(charset:Charset = UTF_8) extends Builder[Any, JsonValue, String] {
-	import MinifiedJsonObjectBuilder._
+	import PrettyJsonBuilder.serialize
 	
 	val init:String = "[]"
 	
 	/** @param folding a valid json object, with no characters trailing the final '}' */
 	def apply[Input](folding:String, key:Any, innerInput:Input, parser:Parser[Any, JsonValue, Input]):Either[(String, Int), String] = {
-		parser.parse(this, innerInput).fold({s => Right(s)}, {p => Right(serialize(p, charset))}, {(s,i) => Left((s,i))}).right.map{jsonObject =>
+		parser.parse(this, innerInput).primitive.map{p => serialize(p, charset)}.mergeToEither.right.map{jsonObject =>
 			if (folding == "[]") {
 				"[" + jsonObject + "]"
 			} else {
 				folding.init + "," + jsonObject + "]"
 			}
 		}
-	}
-}
-
-/** methods for [[MinifiedJsonObjectBuilder]] and [[MinifiedJsonArrayBuilder]] */
-private[builder] object MinifiedJsonObjectBuilder {
-	import JsonValue._
-	
-	/** Encode a JsonValue as a serialized json value */
-	private[builder] def serialize(value:JsonValue, charset:Charset):String = value match {
-		case JsonValueNumber(x) => x.toString
-		case JsonValueBoolean(x) => x.toString
-		case JsonValueNull => "null"
-		case JsonValueString(x) => strToJsonStr(x, charset)
-	}
-	
-	/** Encode a string as a serialized json value */
-	private[builder] def strToJsonStr(s:String, charset:Charset):String = "\"" + s.flatMap{_ match {
-		case '"'  => "\\\""
-		case '\\' => """\\"""
-		case '\b' => "\\b"
-		case '\f' => "\\f"
-		case '\n' => "\\n"
-		case '\r' => "\\r"
-		case '\t' => "\\t"
-		case x if (x < ' ') => toUnicodeEscape(x)
-		case x if (! charset.newEncoder.canEncode(x)) => toUnicodeEscape(x)
-		case x => Seq(x)
-	}} + "\""
-	
-	@inline
-	private def toUnicodeEscape(c:Char) = {
-		"\\u" + ("0000" + c.intValue.toHexString).takeRight(4)
 	}
 }

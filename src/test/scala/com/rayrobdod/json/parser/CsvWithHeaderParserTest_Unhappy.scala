@@ -24,59 +24,32 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json.parser;
+package com.rayrobdod.json.parser
 
-import org.scalatest.FunSpec;
-import com.rayrobdod.json.union.ParserRetVal
-import com.rayrobdod.json.builder.MapBuilder;
+import org.scalatest.FunSpec
+import scala.collection.immutable.{Seq, Map}
+import com.rayrobdod.json.union.{StringOrInt, ParserRetVal}
+import com.rayrobdod.json.builder._
 
-class BsonParserTest_UnHappy extends FunSpec {
-	describe("BsonParser (Unhappy)") {
-		it ("String is longer than prefix") {
-			val src = byteArray2DataInput(
-					Array[Byte](0,0,0,0,
-						0x02,0,  2,0,0,0,  'a','b','c',
-					0)
-			);
-			
-			assertFailureParse("Incorrect string length", 0){
-				new BsonParser().parse(MapBuilder.apply, src)
+class CsvWithHeaderParserTest_Unhappy extends FunSpec {
+	describe("CsvWithHeaderParser") {
+		it ("""Throw builder immediate""") {
+			val source = "g,h,i\na,b,c\nd,e,f\n"
+			assertFailureParse("",11){
+				new CsvWithHeaderParser().parse(new ThrowBuilder[StringOrInt, String], source)
 			}
 		}
-		it ("String is shorter than prefix") {
-			val src = byteArray2DataInput(
-					Array[Byte](0,0,0,0,
-						0x02,0,  2,0,0,0,  'a',
-						0x02,0,  2,0,0,0,  'a','b',
-					0)
-			);
-			
-			assertFailureParse("Incorrect string length", 0){
-				new BsonParser().parse(MapBuilder.apply, src)
-			}
-		}
-		it ("data ends early") {
-			val src = byteArray2DataInput(
-					Array[Byte](0,0,0,0,
-						0x02,0,  2,0)
-			);
-			
-			assertFailureParse("", 0){
-				new BsonParser().parse(MapBuilder.apply, src)
-			}
-		}
-		it ("Does not parse on unknown data type") {
-			val src = byteArray2DataInput(
-					Array[Byte](0,0,0,0,
-						0x50,0,  3,0,0,0,  'a','b','c',
-					0)
-			);
-			
-			assertFailureParse("Unknown data type", 0){
-				new BsonParser().parse(MapBuilder.apply, src)
+		it ("""Throw builder indirect""") {
+			val source = "a,b,c\nd,e,f\n"
+			assertFailureParse("",12){
+				new CsvWithHeaderParser().parse(MapBuilder.apply2[StringOrInt, String, Any]({x:StringOrInt => x match {
+					case StringOrInt.Right(1) => new MapBuilder.MapChildBuilder[StringOrInt, String, Any, Any](new ThrowBuilder[StringOrInt, String].mapValue[String], {x:Any => x})
+					case _ => new MapBuilder.MapChildBuilder[StringOrInt, String, Map[StringOrInt, Either[_, String]], Any](MapBuilder[StringOrInt, String], {x:Any => x})
+				}}), source)
 			}
 		}
 	}
+	
 	
 	def assertFailureParse(msg:String, idx:Int)(result:ParserRetVal[_,_]):Unit = result match {
 		case ParserRetVal.Failure(msg2, idx2) => {

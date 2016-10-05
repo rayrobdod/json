@@ -24,31 +24,13 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json.parser;
+package com.rayrobdod.json
 
-import org.scalatest.FunSpec;
-import com.rayrobdod.json.builder.MapBuilder;
-import com.rayrobdod.json.union.CborValue;
+/**
+ * Contains various tagged unions that are used in preference to Any-promotion.
+ */
+package object union {
+}
 
-class BsonParserTest_Happy2 extends FunSpec {
-	describe("BsonParser + MapBuilder can decode") {
-		it ("20-element list") {
-			val elements:Seq[Seq[Byte]] = (0 until 10).map{(i:Int) =>
-					Seq[Byte](0x10, (0x30 + i).byteValue, 0x00, i.byteValue, 0x00, 0x00, 0x00) 
-				} ++: (10 until 20).map{(i:Int) =>
-					Seq[Byte](0x10, 0x31, (0x30 + i - 10).byteValue, 0x00, i.byteValue, 0x00, 0x00, 0x00) 
-				}
-			val elementsArray:Array[Byte] = elements.flatten.toArray
-			
-			val len = elementsArray.length + 1;
-			
-			val source = byteArray2DataInput(
-					Array[Byte](len.byteValue, 0x00, 0x00, 0x00) ++: elementsArray :+ 0x00.byteValue
-			)
-			val expected = (0 until 20).map{i => i.toString -> Right(CborValue(i))}.toMap
-			val result = new BsonParser().parse(MapBuilder.apply, source).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
-			
-			assertResult(expected){result}
-		}
-	}
+package union {
 }

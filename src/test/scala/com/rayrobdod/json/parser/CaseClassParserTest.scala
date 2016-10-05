@@ -27,12 +27,12 @@
 package com.rayrobdod.json.parser
 
 import org.scalatest.FunSpec
-import java.text.ParseException
 import scala.collection.immutable.Map
-import com.rayrobdod.json.builder.{MapBuilder, CaseClassBuilder, MinifiedJsonObjectBuilder}
+import com.rayrobdod.json.builder.{MapBuilder, CaseClassBuilder, PrettyJsonBuilder}
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue
 
+@deprecated("CaseClassParser is deprecated; using to suppress warnings tests related to that class", "3.0")
 class CaseClassParserTest extends FunSpec {
 	private implicit def fooClass = classOf[Foo]
 	private case class Foo(hello:Long, world:String, bazz:Boolean)
@@ -47,10 +47,14 @@ class CaseClassParserTest extends FunSpec {
 		}
 	}
 	describe("CaseClassParser + Json") {
-		it ("""can be used with the json stuff to serialze and deserialize a case class""") {
+		it ("""can be used with the json stuff to serialize and deserialize a case class""") {
 			val src = Foo(-5, "asdf", true)
-			val json = new CaseClassParser().parse(new MinifiedJsonObjectBuilder().mapKey[String].mapValue[Any]{JsonValue.unsafeWrap _}, src).fold({x => x}, {x => x}, {(s,i) => "{}"})
-			val res = new JsonParser().parse(new CaseClassBuilder(Foo(0,"",false)).mapKey[StringOrInt]{StringOrInt.unwrapToString _}.mapValue[JsonValue]{JsonValue.unwrap}, json).fold({x => x}, {x => x}, {(s,i) => Foo(i, s, false)})
+			val json = new CaseClassParser().parse(new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams).mapKey[String].mapValue[Any]{_ match {
+						case x:Long => JsonValue(x)
+						case x:Boolean => JsonValue(x)
+						case x:String => JsonValue(x)
+					}}, src).fold({x => x}, {x => x}, {(s,i) => "{}"})
+			val res = new JsonParser().parse(new CaseClassBuilder(Foo(0,"",false)).mapKey[StringOrInt]{StringOrInt.unwrapToString _}.mapValue[JsonValue]{_.fold[Any]({x => x}, {x => x},{x => x},null)}, json).fold({x => x}, {x => x}, {(s,i) => Foo(i, s, false)})
 			
 			assertResult(src){res}
 		}
