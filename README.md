@@ -32,7 +32,7 @@ of the program logic. A bit of an enforced discipline thing.
 ## Usage
 
 The two important base traits in this library are
-[Builder](src/main/scala/com/rayrobdod/json/builder/Builder) and [Parser](src/main/scala/com/rayrobdod/json/parser/Parser).
+[Builder](src/main/scala/com/rayrobdod/json/builder/Builder.scala) and [Parser](src/main/scala/com/rayrobdod/json/parser/Parser.scala).
 To convert a thing into another thing - for example to deserialize a json format
 string into a model object - one implementation of each trait is obtained (which
 implementation depends on the input and output), the input and builder implementation
