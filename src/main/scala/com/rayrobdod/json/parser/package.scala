@@ -28,7 +28,6 @@ package com.rayrobdod.json;
 
 import com.rayrobdod.json.builder.Builder
 import scala.collection.{Iterable, Iterator}
-import scala.collection.immutable.{Seq => ISeq}
 // import scala.collection.{AbstractIterable, AbstractIterator}
 import com.rayrobdod.json.union.ParserRetVal
 
@@ -47,30 +46,6 @@ package object parser {
 				ba
 			)
 		)
-	}
-	
-	/**
-	 * A string interpolater that hex-decodes strings into a sequence of bytes.
-	 * Any characters outside the hex character range are filtered out and ignored.
-	 * @example {{{
-	 * 	hexSeq"0001 11FF" == immutable.Seq[Byte](0,1,17,-1)
-	 * }}}
-	 * @version 2.0
-	 */
-	private[json] implicit class HexArrayStringConverter(val sc: StringContext) extends AnyVal {
-		def hexSeq(args: Nothing*):ISeq[Byte] = {
-			sc.parts.mkString("","","")
-				.filter{x =>
-					('A' <= x && x <= 'F') || ('a' <= x && x <= 'f') || ('0' <= x && x <= '9')
-				}
-				.grouped(2)
-				.map{x => Integer.parseInt(x, 16)}
-				.map{_.byteValue}
-				.to[ISeq]
-		}
-		def hexArray(args: Nothing*):Array[Byte] = {
-			hexSeq(args:_*).toArray
-		}
 	}
 }
 

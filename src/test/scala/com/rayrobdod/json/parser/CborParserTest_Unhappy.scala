@@ -30,6 +30,7 @@ import org.scalatest.FunSpec;
 import scala.collection.immutable.{Seq, Map};
 import com.rayrobdod.json.union.{CborValue, ParserRetVal}
 import com.rayrobdod.json.builder._
+import com.rayrobdod.json.testing.HexArrayStringConverter
 
 class CborParserTest_Unhappy extends FunSpec {
 	describe("CborParser") {

@@ -34,7 +34,7 @@ import com.rayrobdod.json.union.CborValue
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.parser.FailureParser
-import com.rayrobdod.json.parser.HexArrayStringConverter;
+import com.rayrobdod.json.testing.HexArrayStringConverter
 
 @deprecated("CborArrayBuilder is deprecated; using to suppress warnings tests related to that class", "3.0")
 class CborArrayBuilderTest extends FunSpec {

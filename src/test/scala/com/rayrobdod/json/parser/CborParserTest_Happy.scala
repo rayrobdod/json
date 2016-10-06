@@ -31,6 +31,7 @@ import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.MapBuilder;
 import com.rayrobdod.json.union.CborValue
 import com.rayrobdod.json.union.CborValue._
+import com.rayrobdod.json.testing.HexArrayStringConverter
 
 final class CborParserTest_Happy extends FunSpec {
 	
