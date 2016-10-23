@@ -1,3 +1,6 @@
+## Next
+* Give the recursive map parser (the zero param apply method) a not-Any type parameter
+
 ## 3.0-RC2
 * Isolate CborValueByteStr backing value from inputs or outputs
 * Made Builder and Parser co- and contravariant

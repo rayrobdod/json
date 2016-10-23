@@ -44,7 +44,7 @@ class CsvWithHeaderParserTest_Unhappy extends FunSpec {
 			assertFailureParse("",12){
 				new CsvWithHeaderParser().parse(MapBuilder.apply2[StringOrInt, String, Any]({x:StringOrInt => x match {
 					case StringOrInt.Right(1) => new MapBuilder.MapChildBuilder[StringOrInt, String, Any, Any](new ThrowBuilder[StringOrInt, String].mapValue[String], {x:Any => x})
-					case _ => new MapBuilder.MapChildBuilder[StringOrInt, String, Map[StringOrInt, Either[_, String]], Any](MapBuilder[StringOrInt, String], {x:Any => x})
+					case _ => new MapBuilder.MapChildBuilder[StringOrInt, String, MapBuilder.RecursiveSubjectType[StringOrInt, String], Any](MapBuilder[StringOrInt, String], {x:Any => x})
 				}}), source)
 			}
 		}
