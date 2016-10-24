@@ -8,7 +8,7 @@ import java.text.ParseException
 
 // imports from this library;
 import com.rayrobdod.json.parser.{Parser, JsonParser}
-import com.rayrobdod.json.builder.{Builder, BuildableBuilder, PrimitiveSeqBuilder, ThrowBuilder}
+import com.rayrobdod.json.builder.{Builder, PiecewiseBuilder, PrimitiveSeqBuilder, ThrowBuilder}
 import com.rayrobdod.json.union.{StringOrInt, JsonValue, ParserRetVal}
 
 // the data classes
@@ -43,27 +43,27 @@ object NameBuilder extends Builder[StringOrInt, JsonValue, Name] {
   }
 }
 
-// example using BuildableBuilder
+// example using PiecewiseBuilder
 val PersonBuilder = {
-  new BuildableBuilder[StringOrInt, JsonValue, Person](Person(Name("", "", ""), "", false, Seq.empty))
+  new PiecewiseBuilder[StringOrInt, JsonValue, Person](Person(Name("", "", ""), "", false, Seq.empty))
     // paritioned complex key def
-    .addDef("name", BuildableBuilder.partitionedComplexKeyDef[StringOrInt, JsonValue, Person, Name](
+    .addDef("name", PiecewiseBuilder.partitionedComplexKeyDef[StringOrInt, JsonValue, Person, Name](
       NameBuilder,
       {(folding, name) => Right(folding.copy(n = name))}
     ))
     // paritioned private key def
-    .addDef("gender", BuildableBuilder.partitionedPrimitiveKeyDef[StringOrInt, JsonValue, Person, String](
+    .addDef("gender", PiecewiseBuilder.partitionedPrimitiveKeyDef[StringOrInt, JsonValue, Person, String](
       {case JsonValue.JsonValueString(g) => Right(g)},
       {(folding,x) => folding.copy(gender = x)}
     ))
     // raw private key def
-    .addDef("isDead", new BuildableBuilder.KeyDef[StringOrInt, JsonValue, Person]{
+    .addDef("isDead", new PiecewiseBuilder.KeyDef[StringOrInt, JsonValue, Person]{
       override def apply[Input](folding:Person, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Person] = {
         parser.parsePrimitive(input).right.flatMap{_.booleanToEither{b => Right(folding.copy(isDead = b))}}
       }
     })
     // raw complex key def
-    .addDef("interests", new BuildableBuilder.KeyDef[StringOrInt, JsonValue, Person]{
+    .addDef("interests", new PiecewiseBuilder.KeyDef[StringOrInt, JsonValue, Person]{
       override def apply[Input](folding:Person, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Person] = {
         parser.parse(new PrimitiveSeqBuilder, input) match {
           case ParserRetVal.Complex(seq) => {

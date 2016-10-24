@@ -87,3 +87,16 @@ if (System.getProperty("scoverage.disable", "") == "true") {
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.0" % "test"
 
 testOptions in Test += Tests.Argument("-oS", "-u", s"${crossTarget.value}/test-results-junit" /*, "-h", s"${crossTarget.value}/test-results-html" */)
+
+// compile sample as part of test
+val makeDocCompilable = taskKey[Seq[File]]("")
+makeDocCompilable in Test := {
+	val outFile = (sourceManaged in Test).value / "exampleUsage.scala"
+	val inFile = (baseDirectory).value / "doc" / "exampleUsage.scala"
+	val inContents = IO.readLines(inFile)
+	val outContents = Seq("package com.rayrobdod.json.doc", "object exampleUsage {") ++ inContents ++ Seq("}")
+	IO.writeLines(outFile, outContents)
+	Seq(outFile)
+}
+
+sourceGenerators in Test <+= makeDocCompilable in Test
