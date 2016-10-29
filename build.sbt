@@ -23,7 +23,7 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-target:jvm-1.7
 
 scalacOptions ++= (if (scalaVersion.value != "2.11.8") {Nil} else {Seq("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint:_", "-Xlint:-adapted-args")})
 
-libraryDependencies <+= scalaVersion.apply{("org.scala-lang" % "scala-reflect" % _)}
+libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
 
 scalacOptions in doc in Compile ++= Seq(
 		"-doc-title", name.value,
@@ -50,13 +50,12 @@ packageOptions in (Compile, packageBin) += {
 
 licenses += (("3-point BSD", new URL("http://opensource.org/licenses/BSD-3-Clause") ))
 
-mappings in (Compile, packageSrc) <+= baseDirectory.map{(b) => (new File(b, "LICENSE.rst"), "LICENSE.rst" )}
-
-mappings in (Compile, packageBin) <+= baseDirectory.map{(b) => (new File(b, "LICENSE.rst"), "LICENSE.rst" )}
-
-mappings in (Compile, packageSrc) <+= baseDirectory.map{(b) => (new File(b, "CHANGES.md"), "CHANGES.md" )}
-
-mappings in (Compile, packageBin) <+= baseDirectory.map{(b) => (new File(b, "CHANGES.md"), "CHANGES.md" )}
+val readableNoteMappings = Def.task{ Seq(
+	baseDirectory.value / "LICENSE.rst" -> "LICENSE.rst",
+	baseDirectory.value / "CHANGES.md" -> "CHANGES.md"
+)}
+mappings in (Compile, packageSrc) ++= readableNoteMappings.value
+mappings in (Compile, packageBin) ++= readableNoteMappings.value
 
 scalastyleConfig := baseDirectory.value / "project" / "scalastyle-config.xml"
 
@@ -89,7 +88,7 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.0" % "test"
 testOptions in Test += Tests.Argument("-oS", "-u", s"${crossTarget.value}/test-results-junit" /*, "-h", s"${crossTarget.value}/test-results-html" */)
 
 // compile sample as part of test
-val makeDocCompilable = taskKey[Seq[File]]("")
+val makeDocCompilable = taskKey[Seq[File]]("Create a scalac-compilable version of the example usage file")
 makeDocCompilable in Test := {
 	val outFile = (sourceManaged in Test).value / "exampleUsage.scala"
 	val inFile = (baseDirectory).value / "doc" / "exampleUsage.scala"
@@ -99,4 +98,4 @@ makeDocCompilable in Test := {
 	Seq(outFile)
 }
 
-sourceGenerators in Test <+= makeDocCompilable in Test
+sourceGenerators in Test += (makeDocCompilable in Test).taskValue
