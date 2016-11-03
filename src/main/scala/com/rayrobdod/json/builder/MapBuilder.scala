@@ -52,6 +52,10 @@ final class MapBuilder[K, V, Inner](childBuilders:Function1[K, MapBuilder.MapChi
  * @since 3.0
  */
 object MapBuilder {
+	type RecursiveSubjectType[K,V] = Map[K, Either[RecursiveSubject[K, V], V]]
+	/** Types cannot be recursive without some kind of 'real' type in there somewhere */
+	final case class RecursiveSubject[K,V](val value:Map[K, Either[RecursiveSubject[K, V], V]])
+	
 	/**
 	 * Pairs a builder and a function into a function to create a value from a parser and input.
 	 */
@@ -62,7 +66,7 @@ object MapBuilder {
 	}
 	
 	/** Creates a MapBuilder whose child builders are recursively map builders. */
-	def apply[K,V]:MapBuilder[K,V,Any] = new MapBuilder({x => new MapChildBuilder(MapBuilder.apply[K,V], {x:Any => x})})
+	def apply[K,V]:MapBuilder[K,V,RecursiveSubject[K,V]] = new MapBuilder({x => new MapChildBuilder(MapBuilder.apply[K,V], {x:Map[K,Either[RecursiveSubject[K,V],V]] => new RecursiveSubject(x)})})
 	
 	/** Creates a MapBuilder which uses the specified Builder and an identity function to create children for all keys */
 	def apply[K,V,Inner](cb:Builder[K,V,Inner]):MapBuilder[K,V,Inner] = MapBuilder(new MapChildBuilder(cb, {x:Inner => x}))

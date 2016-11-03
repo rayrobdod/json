@@ -29,6 +29,7 @@ package com.rayrobdod.json.parser
 import org.scalatest.FunSpec
 import scala.collection.immutable.Map
 import com.rayrobdod.json.builder.{Builder, MapBuilder, PrettyJsonBuilder}
+import com.rayrobdod.json.builder.MapBuilder.{RecursiveSubject => MBRS}
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.union.ParserRetVal.Complex
@@ -73,8 +74,8 @@ class PiecewiseParserTest extends FunSpec {
 					complexKeyDef("b", {(bar:Bar) => bar.b}, fooParser)
 				)
 			
-			val exp = Map("a" -> Left(Map("h" -> Right(JsonValue(1)), "w" -> Right(JsonValue("2")))),
-					"b" -> Left(Map("h" -> Right(JsonValue(3)), "w" -> Right(JsonValue("4"))))
+			val exp = Map("a" -> Left(MBRS(Map("h" -> Right(JsonValue(1)), "w" -> Right(JsonValue("2"))))),
+					"b" -> Left(MBRS(Map("h" -> Right(JsonValue(3)), "w" -> Right(JsonValue("4")))))
 			)
 			val src = new Bar(new Foo(1, "2", false), new Foo(3, "4", true))
 			val res = barParser.parse(MapBuilder.apply, src)
@@ -91,7 +92,7 @@ class PiecewiseParserTest extends FunSpec {
 				
 				val exp = Map(key -> Right(value))
 				val dut = primitiveKeyDef(key = key, inputToValue = {x:String => value})
-				val res = dut.apply[Map[String, Either[Any, String]]](MapBuilder.apply, "input", Map.empty)
+				val res = dut.apply[MapBuilder.RecursiveSubjectType[String, String]](MapBuilder.apply, "input", Map.empty)
 				assertResult(Right(exp)){res}
 			}
 		}
@@ -121,12 +122,12 @@ class PiecewiseParserTest extends FunSpec {
 		describe("optionalKeyDef") {
 			it ("forwards to inner when filter is true") {
 				val dut = optionalKeyDef(primitiveKeyDef(1, {x:Any => 1}), {x:Any => true})
-				val res = dut.apply[Map[Int, Either[Any, Int]]](MapBuilder.apply, "input", Map.empty)
+				val res = dut.apply[Map[Int, Either[MapBuilder.RecursiveSubject[Int, Int], Int]]](MapBuilder.apply, "input", Map.empty)
 				assertResult(Right(Map(1 -> Right(1)))){res}
 			}
 			it ("returns folding when filter is false") {
 				val dut = optionalKeyDef(primitiveKeyDef(1, {x:Any => (1)}), {x:Any => false})
-				val res = dut.apply[Map[Int, Either[Any, Int]]](MapBuilder.apply, "input", Map.empty)
+				val res = dut.apply[Map[Int, Either[MapBuilder.RecursiveSubject[Int, Int], Int]]](MapBuilder.apply, "input", Map.empty)
 				assertResult(Right(Map())){res}
 			}
 		}
