@@ -13,7 +13,7 @@ version := "3.0-SNAPSHOT"
 scalaVersion := "2.10.6"
 
 crossScalaVersions := Seq("2.10.6", "2.11.8") ++
-    (if (System.getProperty("scoverage.disable", "") != "true") {Nil} else {Seq("2.12.0-RC1")})
+    (if (System.getProperty("scoverage.disable", "") != "true") {Nil} else {Seq("2.12.0")})
 
 compileOrder := CompileOrder.JavaThenScala
 
