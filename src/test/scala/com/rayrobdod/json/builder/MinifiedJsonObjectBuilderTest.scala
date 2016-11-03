@@ -32,7 +32,8 @@ import com.rayrobdod.json.union.CborValue
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.JsonValue._
 import com.rayrobdod.json.parser.{IdentityParser, FailureParser}
-import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter}
+import com.rayrobdod.json.parser.byteArray2DataInput
+import com.rayrobdod.json.testing.HexArrayStringConverter
 import com.rayrobdod.json.union.StringOrInt
 
 @deprecated("MinifiedJsonObjectBuilder is deprecated; using to suppress warnings tests related to that class", "3.0")
