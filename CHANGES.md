@@ -1,4 +1,7 @@
-## Next
+## 3.0.1
+Various optimizations
+
+## 3.0
 * Give the recursive map parser (the zero param apply method) a not-Any type parameter
 
 ## 3.0-RC2
