@@ -90,12 +90,18 @@ testOptions in Test += Tests.Argument("-oS", "-u", s"${crossTarget.value}/test-r
 // compile sample as part of test
 val makeDocCompilable = taskKey[Seq[File]]("Create a scalac-compilable version of the example usage file")
 makeDocCompilable in Test := {
-	val outFile = (sourceManaged in Test).value / "exampleUsage.scala"
-	val inFile = (baseDirectory).value / "doc" / "exampleUsage.scala"
+	val outFile = (sourceManaged in Test).value / "parsingExample.scala"
+	val inFile = (baseDirectory).value / "doc" / "parsingExample.scala"
 	val inContents = IO.readLines(inFile)
-	val outContents = Seq("package com.rayrobdod.json.doc", "object exampleUsage {") ++ inContents ++ Seq("}")
+	val outContents = Seq("package com.rayrobdod.json.doc", "object parsingExample {") ++ inContents ++ Seq("}")
 	IO.writeLines(outFile, outContents)
-	Seq(outFile)
+	
+	val outFile2 = (sourceManaged in Test).value / "serializeExample.scala"
+	val inFile2 = (baseDirectory).value / "doc" / "serializeExample.scala"
+	val inContents2 = IO.readLines(inFile2)
+	val outContents2 = Seq("package com.rayrobdod.json.doc", "object serializeExample {") ++ inContents2 ++ Seq("}")
+	IO.writeLines(outFile2, outContents2)
+	Seq(outFile, outFile2)
 }
 
 sourceGenerators in Test += (makeDocCompilable in Test).taskValue
