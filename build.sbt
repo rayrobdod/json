@@ -8,7 +8,7 @@ homepage := Some(new URL("http://rayrobdod.name/programming/libraries/java/json/
 
 apiURL := Some(url(s"http://doc.rayrobdod.name/json/${version.value}/"))
 
-version := "3.0.1-SNAPSHOT"
+version := "3.1-SNAPSHOT"
 
 scalaVersion := "2.10.6"
 
@@ -24,6 +24,11 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-target:jvm-1.7
 scalacOptions ++= (if (scalaVersion.value != "2.11.8") {Nil} else {Seq("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint:_", "-Xlint:-adapted-args")})
 
 libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
+
+libraryDependencies ++= Seq(
+  "com.chuusai" %% "shapeless" % "2.3.2",
+  compilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
+)
 
 scalacOptions in doc in Compile ++= Seq(
 		"-doc-title", name.value,
