@@ -29,10 +29,14 @@ package com.rayrobdod.json.builder
 import shapeless.{HList, ::, HNil, Witness, LabelledGeneric}
 import shapeless.labelled.FieldType
 import com.rayrobdod.json.parser.Parser
-import com.rayrobdod.json.union.JsonValue
+import com.rayrobdod.json.union.{JsonValue, CborValue}
 
 
 /**
+ * A builder which can build case classes.
+ * 
+ * Implemented using Shapeless, as opposed to the other one which used reflection.
+ * 
  * @since next
  * @tparam Value the type of primitive value types used by the Parser that this Builder will be used by
  * @tparam Subject the type of object built by this Builder
@@ -55,20 +59,29 @@ final class ShapelessBuilder[Value, Subject](val init:Subject)(
  */
 object ShapelessBuilder {
 	
+	/**
+	 * Converts a value (obtained by parsing the input using the parser) into a value of type `Result`
+	 */
 	trait Converter[-Primitive, +Result] {
 		def apply[Input](input:Input, parser:Parser[String, Primitive, Input]):Either[(String, Int), Result]
 	}
 	
+	/**
+	 * An implementation of [[Builder#apply]] without an implementation of [[Builder#init]]
+	 * @see [[Builder#apply]]
+	 */
 	trait Folder[-Value, Subject] {
 		def apply[Input](folding:Subject, key:String, input:Input, parser:Parser[String, Value, Input]):Either[(String, Int), Subject]
 	}
 	
 	
-	implicit def hnilFolder[Value]:Folder[Value, HNil] = new Folder[Value, HNil]{
-		override def apply[Input](folding:HNil, key:String, input:Input, parser:Parser[String, Value, Input]):Either[(String, Int), HNil] = {
+	private[this] object HnilFolder extends Folder[Any, HNil]{
+		override def apply[Input](folding:HNil, key:String, input:Input, parser:Parser[String, Any, Input]):Either[(String, Int), HNil] = {
 			Left((s"Unexpected key: $key", 0))
 		}
 	}
+	/** A fallback Folder which reports that the key is unexpected */
+	implicit def hnilFolder[Value]:Folder[Value, HNil] = HnilFolder
 	
 	implicit def hlistFolder[Value, K <: Symbol, H, T <: HList](
 		implicit
@@ -96,11 +109,13 @@ object ShapelessBuilder {
 	}
 	
 	
+	/** A converter which does not alter a value */
 	implicit def identityConverter[A]:Converter[A, A] = new Converter[A, A]{
 		override def apply[Input](input:Input, parser:Parser[String, A, Input]):Either[(String, Int), A] = {
 			parser.parsePrimitive(input)
 		}
 	}
+	/** A converter which uses an in-implicit-scope builder when parsing a value */
 	implicit def complexConverter[Value, Subject](implicit back:Builder[String, Value, Subject]):Converter[Value, Subject] = new Converter[Value, Subject]{
 		override def apply[Input](input:Input, parser:Parser[String, Value, Input]):Either[(String, Int), Subject] = {
 			parser.parse(back, input).complex.toEither
@@ -126,6 +141,28 @@ object ShapelessBuilder {
 	}
 	implicit def jsonValueAsIfInteger:Converter[JsonValue, Int] = new Converter[JsonValue, Int]{
 		override def apply[Input](input:Input, parser:Parser[String, JsonValue, Input]):Either[(String, Int), Int] = {
+			parser.parsePrimitive(input).right.flatMap{x => x.integerToEither{x => Right(x)}}
+		}
+	}
+	
+	
+	implicit def cborValueAsIfString:Converter[CborValue, String] = new Converter[CborValue, String]{
+		override def apply[Input](input:Input, parser:Parser[String, CborValue, Input]):Either[(String, Int), String] = {
+			parser.parsePrimitive(input).right.flatMap{x => x.stringToEither{x => Right(x)}}
+		}
+	}
+	implicit def cborValueAsIfDouble:Converter[CborValue, Double] = new Converter[CborValue, Double]{
+		override def apply[Input](input:Input, parser:Parser[String, CborValue, Input]):Either[(String, Int), Double] = {
+			parser.parsePrimitive(input).right.flatMap{x => x.numberToEither{x => Right(x.doubleValue)}}
+		}
+	}
+	implicit def cborValueAsIfBoolean:Converter[CborValue, Boolean] = new Converter[CborValue, Boolean]{
+		override def apply[Input](input:Input, parser:Parser[String, CborValue, Input]):Either[(String, Int), Boolean] = {
+			parser.parsePrimitive(input).right.flatMap{x => x.booleanToEither{x => Right(x)}}
+		}
+	}
+	implicit def cborValueAsIfInteger:Converter[CborValue, Int] = new Converter[CborValue, Int]{
+		override def apply[Input](input:Input, parser:Parser[String, CborValue, Input]):Either[(String, Int), Int] = {
 			parser.parsePrimitive(input).right.flatMap{x => x.integerToEither{x => Right(x)}}
 		}
 	}

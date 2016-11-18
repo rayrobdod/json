@@ -114,6 +114,37 @@ class ShapelessBuilderTest extends FunSpec {
 					{builder.apply(emptyIceCream, "asfdadf", JsonValue(31), new IdentityParser[JsonValue])}
 			}
 		}
+		describe("of IceCream from CborValue") {
+			val builder = new ShapelessBuilder[CborValue, IceCream](emptyIceCream)
+			
+			it ("finds implicit empty name for init") {
+				assertResult(emptyIceCream){builder.init}
+			}
+			it ("accepts a string Key with \"flavor\"") {
+				assertResult(Right(emptyIceCream.copy(flavor = "Chocolate")))
+					{builder.apply(emptyIceCream, "flavor", CborValue("Chocolate"), new IdentityParser[CborValue])}
+			}
+			it ("accepts a int Key with \"scoops\"") {
+				assertResult(Right(emptyIceCream.copy(scoops = 2)))
+					{builder.apply(emptyIceCream, "scoops", CborValue(2), new IdentityParser[CborValue])}
+			}
+			it ("accepts a boolean Key with \"waffleCone\"") {
+				assertResult(Right(emptyIceCream.copy(waffleCone = true)))
+					{builder.apply(emptyIceCream, "waffleCone", CborValue(true), new IdentityParser[CborValue])}
+			}
+			it ("rejects an int value forthe 'flavor' key") {
+				assertResult(Left("Expected string", 0))
+					{builder.apply(emptyIceCream, "flavor", CborValue(31), new IdentityParser[CborValue])}
+			}
+			it ("rejects an double value for the 'scoops' key") {
+				assertResult(Left("Expected integral number", 0))
+					{builder.apply(emptyIceCream, "scoops", CborValue(3.1415), new IdentityParser[CborValue])}
+			}
+			it ("rejects key 'asfdadf'") {
+				assertResult(Left("Unexpected key: asfdadf", 0))
+					{builder.apply(emptyIceCream, "asfdadf", CborValue(31), new IdentityParser[CborValue])}
+			}
+		}
 		describe("of Record from String") {
 			val builder = {
 				implicit val nameBuilder = new ShapelessBuilder[String, Name](emptyName)
