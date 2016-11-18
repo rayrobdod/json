@@ -39,6 +39,7 @@ import scala.reflect.runtime.universe.{runtimeMirror, newTermName}
  * @param init the starting point of the builder
  * @param childBuilders a map used directly by childBuilder
  */
+@deprecated("Terribly un type-safe. Either create a new Builder subclass or an instance of PiecewiseBuilder", "3.0")
 final class CaseClassBuilder[Value, A <: Product](
 		val init:A,
 		childBuilders:Function1[String, Option[Builder[String, Value, _]]] = {s:String => None}
@@ -61,10 +62,15 @@ final class CaseClassBuilder[Value, A <: Product](
 		
 		// unwrap union values
 		val value = {
-			parser.parse(builder, input).fold({x => Right(x)},{x => Right(x)},{(msg,idx) => Left((msg,idx))}).right.map{_ match {
+			parser.parse(builder, input).mergeToEither[Any].right.map{_ match {
 					case com.rayrobdod.json.union.StringOrInt.Left(x) => x
 					case com.rayrobdod.json.union.StringOrInt.Right(x) => x
-					case x:com.rayrobdod.json.union.JsonValue => com.rayrobdod.json.union.JsonValue.unwrap(x)
+					case x:com.rayrobdod.json.union.JsonValue => x match {
+						case com.rayrobdod.json.union.JsonValue.JsonValueNull => null
+						case com.rayrobdod.json.union.JsonValue.JsonValueString(x) => x
+						case com.rayrobdod.json.union.JsonValue.JsonValueNumber(x) => x
+						case com.rayrobdod.json.union.JsonValue.JsonValueBoolean(x) => x
+					}
 					case x => x
 				}
 			}

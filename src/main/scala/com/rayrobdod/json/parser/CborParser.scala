@@ -27,17 +27,17 @@
 package com.rayrobdod.json.parser;
 
 import java.io.DataInput
-import java.text.ParseException
 import java.nio.charset.StandardCharsets.UTF_8;
-import scala.collection.immutable.{Seq, Map, Stack}
-import com.rayrobdod.json.builder._
-import com.rayrobdod.json.union.CborValue
-import com.rayrobdod.json.union.ParserRetVal
+import com.rayrobdod.json.builder.{Builder, PrimitiveSeqBuilder, CborBuilder, ThrowBuilder}
+import com.rayrobdod.json.union.{CborValue, ParserRetVal}
 
 /**
  * A parser that will decode cbor data.
  * 
- * This cannot handle complex values in map keys.
+ * This does not support
+   - complex values in map keys
+   - halffloats
+   - any tags
  * 
  * @version 3.0
  * @see [[http://tools.ietf.org/html/rfc7049]]
@@ -136,6 +136,8 @@ final class CborParser extends Parser[CborValue, CborValue, DataInput] {
 						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate tag value", 0)
 					}
 				}
+				// `whatver & 7` can only be a value between 0 through 7 inclusive, but
+				// scala's type system does not know that, hence this unreachable statement.
 				case _ => ParseReturnValueFailure("majorType was greater than 7", 0)
 			}
 		})
@@ -366,29 +368,29 @@ object CborParser {
 	 * The CBOR major types.
 	 * Because magic numbers are bad.
 	 */
-	object MajorTypeCodes {
-		val POSITIVE_INT:Byte = 0
-		val NEGATIVE_INT:Byte = 1
-		val BYTE_ARRAY:Byte = 2
-		val STRING:Byte = 3
-		val ARRAY:Byte = 4
-		val OBJECT:Byte = 5
-		val TAG:Byte = 6
-		val SPECIAL:Byte = 7
+	private[json] object MajorTypeCodes {
+		final val POSITIVE_INT:Byte = 0
+		final val NEGATIVE_INT:Byte = 1
+		final val BYTE_ARRAY:Byte = 2
+		final val STRING:Byte = 3
+		final val ARRAY:Byte = 4
+		final val OBJECT:Byte = 5
+		final val TAG:Byte = 6
+		final val SPECIAL:Byte = 7
 	}
 	
 	/**
 	 * Known simple values.
 	 * Because magic numbers are bad.
 	 */
-	object SimpleValueCodes {
-		val FALSE:Byte  = 20
-		val TRUE:Byte   = 21
-		val NULL:Byte   = 22
-		val HALF_FLOAT:Byte = 25
-		val FLOAT:Byte  = 26
-		val DOUBLE:Byte = 27
-		val END_OF_LIST:Byte = 31
+	private[json] object SimpleValueCodes {
+		final val FALSE:Byte  = 20
+		final val TRUE:Byte   = 21
+		final val NULL:Byte   = 22
+		final val HALF_FLOAT:Byte = 25
+		final val FLOAT:Byte  = 26
+		final val DOUBLE:Byte = 27
+		final val END_OF_LIST:Byte = 31
 	}
 	
 }

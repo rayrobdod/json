@@ -26,14 +26,12 @@
 */
 package com.rayrobdod.json.builder;
 
-import scala.language.higherKinds
-import scala.util.{Either, Left, Right}
+import scala.util.Either
 import com.rayrobdod.json.parser.Parser
 
 /**
- * An object used by a [[Builder]] to generate an object using a sequence of 'fold'-style method calls
- * 
- * 
+ * An object which takes a series of key-value pairs and combines them into an object using
+ * a series of fold-left style method calls.
  * 
  * @version 3.0
  * @see [[com.rayrobdod.json.parser.Parser]]
@@ -41,7 +39,7 @@ import com.rayrobdod.json.parser.Parser
  * @tparam Value the type of primitive value types used by the Parser that this Builder will be used by
  * @tparam Subject the type of object built by this Builder
  */
-trait Builder[Key, Value, Subject] {
+trait Builder[-Key, -Value, Subject] {
 	/**
 	 * An 'empty' object to be used to start the folding process
 	 */
@@ -50,7 +48,7 @@ trait Builder[Key, Value, Subject] {
 	/**
 	 * Add a key-value pair to `folding`
 	 * 
-	 * The key is key, and the value is the result of [[com.rayrobdod.json.parser.Parser.parse]] on the provided `input`.
+	 * The key is `key`, and the value is the result of [[com.rayrobdod.json.parser.Parser.parse]] on the provided `input`.
 	 * 
 	 * 
 	 * @param folding the object to be added to. Must be either the return value of [[init]] or the return value of [[apply]]
@@ -64,8 +62,10 @@ trait Builder[Key, Value, Subject] {
 	def apply[Input](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject]
 	
 	
-	/** Change the type of key that this builder requires
-	 * @version 3.0
+	/**
+	 * Change the type of key that this builder requires
+	 * @param fun a conversion function from the new key to this's key
+	 * @since 3.0
 	 */
 	final def mapKey[K2](implicit fun:Function1[K2,Key]):Builder[K2,Value,Subject] = new Builder[K2,Value,Subject] {
 		override def init:Subject = Builder.this.init
@@ -74,13 +74,26 @@ trait Builder[Key, Value, Subject] {
 		}
 	}
 	
-	/** Change the type of value that this builder requires
-	 * @version 3.0
+	/**
+	 * Change the type of value that this builder requires
+	 * @param fun a conversion function from the new value to this's value
+	 * @since 3.0
 	 */
 	final def mapValue[V2](implicit fun:Function1[V2,Value]):Builder[Key,V2,Subject] = new Builder[Key,V2,Subject] {
 		override def init:Subject = Builder.this.init
 		override def apply[Input](a:Subject, key:Key, b:Input, c:Parser[Key, V2, Input]):Either[(String, Int), Subject] = {
 			Builder.this.apply(a, key, b, c.mapValue(fun))
+		}
+	}
+	
+	/**
+	 * Change the type of value that this builder requires, with the option of indicating an error condition
+	 * @since 3.0
+	 */
+	final def flatMapValue[V2](fun:Function1[V2,Either[(String,Int),Value]]):Builder[Key,V2,Subject] = new Builder[Key,V2,Subject] {
+		override def init:Subject = Builder.this.init
+		override def apply[Input](a:Subject, key:Key, b:Input, c:Parser[Key, V2, Input]):Either[(String, Int), Subject] = {
+			Builder.this.apply(a, key, b, c.flatMapValue(fun))
 		}
 	}
 	

@@ -27,15 +27,16 @@
 package com.rayrobdod.json.parser;
 
 import java.io.DataInput
-import java.text.ParseException
 import java.nio.charset.StandardCharsets.UTF_8;
-import scala.collection.immutable.{Seq, Map, Stack}
-import com.rayrobdod.json.builder._
-import com.rayrobdod.json.union._
+import com.rayrobdod.json.builder.Builder
+import com.rayrobdod.json.union.{CborValue, ParserRetVal}
 
 /**
  * A streaming parser for Bson values
  * 
+ * This supports types 1 (Float), 2 (String), 3 (Document),
+ * 4 (Array), 8 (Boolean), 10 (Null), 16 (Int32) and 18 (Int64).
+ * Other types are unsupported.
  * 
  * @version 3.0
  * @see [[http://bsonspec.org/]]
@@ -61,7 +62,7 @@ final class BsonParser extends Parser[String, CborValue, DataInput] {
 							java.lang.Long.reverseBytes( input.readLong() )
 						)
 						// CHEATING
-						builder.apply(result2, key, CborValue(value), new IdentityParser[String, CborValue])
+						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
 					}
 					case TypeCodes.STRING => {
 						val len = Integer.reverseBytes( input.readInt() );
@@ -71,7 +72,7 @@ final class BsonParser extends Parser[String, CborValue, DataInput] {
 							Left("Incorrect string length", 0)
 						} else {
 							val value = new String(bytes, 0, len - 1, UTF_8)
-							builder.apply(result2, key, CborValue(value), new IdentityParser[String, CborValue])
+							builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
 						}
 					}
 					case TypeCodes.DOCUMENT => {
@@ -83,18 +84,18 @@ final class BsonParser extends Parser[String, CborValue, DataInput] {
 					case TypeCodes.BOOLEAN => {
 						val readValue = input.readByte()
 						val value = (readValue != 0)
-						builder.apply(result2, key, CborValue(value), new IdentityParser[String, CborValue])
+						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
 					}
 					case TypeCodes.NULL => {
-						builder.apply(result2, key, CborValue.CborValueNull, new IdentityParser[String, CborValue])
+						builder.apply(result2, key, CborValue.CborValueNull, new IdentityParser[CborValue])
 					}
 					case TypeCodes.INTEGER => {
 						val value = Integer.reverseBytes( input.readInt() );
-						builder.apply(result2, key, CborValue(value), new IdentityParser[String, CborValue])
+						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
 					}
 					case TypeCodes.LONG => {
 						val value = java.lang.Long.reverseBytes( input.readLong() );
-						builder.apply(result2, key, CborValue(value), new IdentityParser[String, CborValue])
+						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
 					}
 					case _ => Left("Unknown data type: " + valueType,0)
 				}}

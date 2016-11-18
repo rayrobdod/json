@@ -28,12 +28,15 @@ package com.rayrobdod.json;
 
 import com.rayrobdod.json.builder.Builder
 import scala.collection.{Iterable, Iterator}
-import scala.collection.immutable.{Seq => ISeq}
 // import scala.collection.{AbstractIterable, AbstractIterator}
 import com.rayrobdod.json.union.ParserRetVal
 
 /**
  * Contains the various built-in parsers
+ *
+ * Most built-in parsers either parse a serialized form (json, cbor, csv),
+ * parse from a generic collection class (seq, map) or parse a class that
+ * conforms to a stereotype (case class)
  */
 package object parser {
 	/** @version 2.0 */
@@ -44,24 +47,6 @@ package object parser {
 			)
 		)
 	}
-	
-	// String Interpolation
-	/** @version 2.0 */
-	private[json] implicit class HexArrayStringConverter(val sc: StringContext) extends AnyVal {
-		def hexSeq(args: Any*):ISeq[Byte] = {
-			((sc.parts.head):String)
-				.filter{x =>
-					('A' <= x && x <= 'F') || ('a' <= x && x <= 'f') || ('0' <= x && x <= '9')
-				}
-				.grouped(2)
-				.map{x => Integer.parseInt(x, 16)}
-				.map{_.byteValue}
-				.to[ISeq]
-		}
-		def hexArray(args: Any*):Array[Byte] = {
-			hexSeq(args).toArray
-		}
-	}
 }
 
 package parser {
@@ -70,7 +55,7 @@ package parser {
 	 * @version 2.0
 	 */
 	private[parser] final class Reader2Iterable(r:java.io.Reader) extends Iterable[Char] {
-		def iterator():Iterator[Char] = {
+		def iterator:Iterator[Char] = {
 			new Iterator[Char]() {
 				private[this] var nextChar:Int = r.read()
 				override def next:Char = {
@@ -86,9 +71,11 @@ package parser {
 	}
 	
 	/**
-	 * A trivial "parser" that goes through the motions using each element of a map
+	 * A parser that reads each key-value pair from a Map
 	 * @version 3.0
 	 * 
+	 * @tparam K the type of keys contained in the Map
+	 * @tparam V the type of values contained in the Map
 	 * @constructor
 	 * Create a MapParser
 	 */
@@ -99,17 +86,19 @@ package parser {
 		 * @return the parsed object
 		 */
 		def parse[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):ParserRetVal[A,V] = {
-			vals.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], keyValue:(K, V)) => 
+			val a = vals.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], keyValue:(K, V)) => 
 				val (key, value) = keyValue;
-				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser)}
+				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[V])}
 			}
-		}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{a => ParserRetVal.Complex(a)})
+			ParserRetVal.eitherToComplex(a)
+		}
 	}
 	
 	/**
-	 * A trivial "parser" that goes through the motions with each element of a seq
+	 * A parser that reads each Value and its index from a Seq
 	 * @version 3.0
 	 * 
+	 * @tparam V the type of values contained in the Seq
 	 * @constructor
 	 * Create a SeqParser
 	 */
@@ -119,45 +108,52 @@ package parser {
 		 * @param vals the sequence containing values
 		 * @return the parsed object
 		 */
-		def parse[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):ParserRetVal[A,V] = {
-			vals.zipWithIndex.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], valueKey:(V, Int)) => 
+		def parse[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):ParserRetVal[A,Nothing] = {
+			val a = vals.zipWithIndex.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], valueKey:(V, Int)) => 
 				val (value, key) = valueKey;
-				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser)}
+				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[V])}
 			}
-		}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{a => ParserRetVal.Complex(a)})
+			ParserRetVal.eitherToComplex(a)
+		}
 	}
 	
 	/**
-	 * A trivial "parser" that goes through the motions with each element of a seq
+	 * A parser that reads and parses each Value and its index from a Seq
 	 * @version 3.0
 	 * 
+	 * @tparam K the type of key used by recurse
+	 * @tparam V the type of primitiveValue used by recurse
+	 * @tparam Inner the type of values contained in the Seq
 	 * @constructor
 	 * Create a SeqParser
+	 * @param recurse a parser for values contained in the sequence
+	 * @param keyMapping a mapping from integer indexies to type K.
 	 */
-	final class SeqParser[K,V,Inner](recurse:Parser[K,V,Inner])(implicit keyMapping:Function1[Int, K]) extends Parser[K,V,Seq[Inner]] {
+	final class SeqParser[+K,+V,-Inner](recurse:Parser[K,V,Inner])(implicit keyMapping:Function1[Int, K]) extends Parser[K,V,Seq[Inner]] {
 		def parse[A](topBuilder:Builder[K,V,A], vals:Seq[Inner]):ParserRetVal[A,V] = {
-			vals.zipWithIndex.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], valueKey:(Inner, Int)) => 
+			val a = vals.zipWithIndex.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], valueKey:(Inner, Int)) => 
 				val (value, key2) = valueKey
 				val key = keyMapping(key2)
 				state.right.flatMap{x => topBuilder.apply(x, key, value, recurse)}
 			}
-		}.fold({case (s,i) => ParserRetVal.Failure(s,i)},{a => ParserRetVal.Complex(a)})
+			ParserRetVal.eitherToComplex(a)
+		}
 	}
 	
 	/**
 	 * A 'parser' that echos the value provided in its parse method
 	 * @version 3.0
 	 */
-	final class IdentityParser[K,V] extends Parser[K,V,V] {
+	final class IdentityParser[V] extends Parser[Nothing,V,V] {
 		/** Returns `scala.util.Right(v)` */
-		def parse[A](b:Builder[K,V,A], v:V):ParserRetVal.Primitive[V] = ParserRetVal.Primitive(v)
+		def parse[A](b:Builder[Nothing,V,A], v:V):ParserRetVal.Primitive[V] = ParserRetVal.Primitive(v)
 	}
 	
 	/**
 	 * A 'parser' that always returns a Failure
 	 * @version 3.0
 	 */
-	private[json] final class FailureParser[K,V,I] extends Parser[K,V,I] {
-		def parse[A](b:Builder[K,V,A], v:I):ParserRetVal.Failure = ParserRetVal.Failure("FailureParser", 0)
+	private[json] final class FailureParser extends Parser[Nothing,Nothing,Any] {
+		def parse[A](b:Builder[Nothing,Nothing,A], v:Any):ParserRetVal.Failure = ParserRetVal.Failure("FailureParser", 0)
 	}
 }

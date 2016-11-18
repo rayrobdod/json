@@ -27,10 +27,10 @@
 package com.rayrobdod.json.parser;
 
 import org.scalatest.FunSpec;
-import java.text.ParseException;
 import scala.collection.immutable.{Seq, Map};
 import com.rayrobdod.json.union.{CborValue, ParserRetVal}
 import com.rayrobdod.json.builder._
+import com.rayrobdod.json.testing.HexArrayStringConverter
 
 class CborParserTest_Unhappy extends FunSpec {
 	describe("CborParser") {
@@ -60,7 +60,6 @@ class CborParserTest_Unhappy extends FunSpec {
 		}
 		it ("errors when INDET utf-8 string contains non-string values") {
 			val source = hexArray"7F00FF"
-			val builder = new ThrowBuilder[CborValue, CborValue]
 			assertFailure("", 0){
 				new CborParser().parse(new PrimitiveSeqBuilder, byteArray2DataInput(source))
 			}
@@ -129,7 +128,7 @@ class CborParserTest_Unhappy extends FunSpec {
 		it ("can handle an indeterminate array with complex values") {
 			val expected = ParserRetVal.Complex(Seq(Seq(CborValue(0))))
 			val source = hexArray"9F8100FF"
-			val builder = new SeqBuilder[CborValue, CborValue, Seq[CborValue]](new PrimitiveSeqBuilder[CborValue, CborValue])
+			val builder = new SeqBuilder[CborValue, CborValue, Seq[CborValue]](new PrimitiveSeqBuilder[CborValue])
 			assertResult(expected){
 				new CborParser().parse(builder, byteArray2DataInput(source))
 			}
@@ -137,7 +136,7 @@ class CborParserTest_Unhappy extends FunSpec {
 		it ("can handle an indeterminate object with complex values") {
 			val expected = ParserRetVal.Complex(Map(CborValue(10) -> Left(Seq(CborValue(0)))))
 			val source = hexArray"BF 0A 8100 FF"
-			val builder = MapBuilder(new PrimitiveSeqBuilder[CborValue, CborValue])
+			val builder = MapBuilder(new PrimitiveSeqBuilder[CborValue])
 			assertResult(expected){
 				new CborParser().parse(builder, byteArray2DataInput(source))
 			}
@@ -145,7 +144,7 @@ class CborParserTest_Unhappy extends FunSpec {
 		it ("cannot handle an indeterminate object with complex keys") {
 			val expected = Map(Seq(CborValue(0)) -> CborValue(10))
 			val source = hexArray"BF 8100 0A FF"
-			val builder = MapBuilder(new PrimitiveSeqBuilder[CborValue, CborValue])
+			val builder = MapBuilder(new PrimitiveSeqBuilder[CborValue])
 			assertFailure("", 0){
 				new CborParser().parse(builder, byteArray2DataInput(source))
 			}

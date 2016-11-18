@@ -1,3 +1,31 @@
+## 3.0.1
+Various optimizations
+
+## 3.0
+* Give the recursive map parser (the zero param apply method) a not-Any type parameter
+
+## 3.0-RC2
+* Isolate CborValueByteStr backing value from inputs or outputs
+* Made Builder and Parser co- and contravariant
+* Add projections to ParserRetVal cases
+* Add xxxToEither methods to CborValue and JsonValue
+* Add flatMapValue method to Builder and Parser
+* Remove unwrap/anyWrap methods from JsonValue and CborValue
+* Deprecate BeanBuilder, CaseClassBuilder and CaseClassParser
+* Rename BuildableBuilder to PiecewiseBuilder
+* Add PiecewiseParser and CsvWithHeaderParser
+
+## 3.0-RC1
+Typesafety
+* Give Builders and Parsers type parameters related to types of Keys and Values
+* Add Union types
+* Add PrettyJsonBuilder; deprecate MinifiedJsonObjectBuilder and MinifiedJsonArrayBuilder
+* Add CborBuilder; deprecate CborObjectBuilder and CborArrayBuilder
+* Add BuildableBuilder
+
+## 2.0
+* None
+
 ## 2.0-RC6
 * Build scala2.10 and scala2.11 versions using java7
 

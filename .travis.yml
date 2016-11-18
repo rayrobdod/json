@@ -10,13 +10,23 @@ jdk:
    - openjdk7
 
 env:
-   - SCOVERAGE_DISABLE=false
+   - SCOVERAGE_DISABLE=true
 
 matrix:
    include:
-      - scala: 2.12.0-M4
+      - scala: 2.10.6
+        jdk: oraclejdk8
+        env: SCOVERAGE_DISABLE=false
+      - scala: 2.12.0
         jdk: oraclejdk8
         env: SCOVERAGE_DISABLE=true
+   exclude:
+      - scala: 2.10.6
+        jdk: oraclejdk8
+        env: SCOVERAGE_DISABLE=true
+
+install:
+   - sbt update
 
 script:
   - sbt -Dscoverage.disable=$SCOVERAGE_DISABLE ++$TRAVIS_SCALA_VERSION coverage test

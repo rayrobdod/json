@@ -26,8 +26,6 @@
 */
 package com.rayrobdod.json.parser;
 
-import java.text.ParseException;
-import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.union.{JsonValue, StringOrInt, ParserRetVal}
 import com.rayrobdod.json.builder._
@@ -221,25 +219,25 @@ class JsonParserTest_Unhappy extends FunSpec {
 		it ("""provides a correct index in a nested value (array, array)""") {
 			val source = """[[,]]"""
 			assertFailureParse("",2){
-				new JsonParser().parse(new SeqBuilder(new PrimitiveSeqBuilder[StringOrInt, JsonValue]), source)
+				new JsonParser().parse(new SeqBuilder(new PrimitiveSeqBuilder[JsonValue]), source)
 			}
 		}
 		it ("""provides a correct index in a nested value (array, object)""") {
 			val source = """[{},{,}]"""
 			assertFailureParse("",5){
-				new JsonParser().parse(new SeqBuilder(new PrimitiveSeqBuilder[StringOrInt, JsonValue]), source)
+				new JsonParser().parse(new SeqBuilder(new PrimitiveSeqBuilder[JsonValue]), source)
 			}
 		}
 		it ("""provides a correct index in a nested value (object, array)""") {
 			val source = """{"":[,]}"""
 			assertFailureParse("",5){
-				new JsonParser().parse(new SeqBuilder(new PrimitiveSeqBuilder[StringOrInt, JsonValue]), source)
+				new JsonParser().parse(new SeqBuilder(new PrimitiveSeqBuilder[JsonValue]), source)
 			}
 		}
 		it ("""provides a correct index in a nested value (object, object)""") {
 			val source = """{"" : {,}}"""
 			assertFailureParse("",7){
-				new JsonParser().parse(new SeqBuilder(new PrimitiveSeqBuilder[StringOrInt, JsonValue]), source)
+				new JsonParser().parse(new SeqBuilder(new PrimitiveSeqBuilder[JsonValue]), source)
 			}
 		}
 		it ("""Throwbuilder (array of string)""") {

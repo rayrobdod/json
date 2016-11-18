@@ -26,13 +26,9 @@
 */
 package com.rayrobdod.json.parser;
 
-import java.text.ParseException;
-import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.PrimitiveSeqBuilder;
 import com.rayrobdod.json.builder.SeqBuilder;
-import com.rayrobdod.json.builder.MapBuilder;
-import java.nio.charset.StandardCharsets.UTF_8
 
 final class CsvParserTest_Happy extends FunSpec {
 	
@@ -77,12 +73,12 @@ final class CsvParserTest_Happy extends FunSpec {
 			
 			it (name) {
 				val source = source2
-				val result = new CsvParser(charMeans).parse(new SeqBuilder(new PrimitiveSeqBuilder[Int, String]), source).fold({x => x},{x => x},{(a,b) => a})
+				val result = new CsvParser(charMeans).parse(new SeqBuilder(new PrimitiveSeqBuilder[String]), source).fold({x => x},{x => x},{(a,b) => a})
 				assertResult(expected){result}
 			}
 			it (name + " (reader)") {
 				val source = new java.io.StringReader(source2)
-				val result = new CsvParser(charMeans).parse(new SeqBuilder(new PrimitiveSeqBuilder[Int, String]), source).fold({x => x},{x => x},{(a,b) => a})
+				val result = new CsvParser(charMeans).parse(new SeqBuilder(new PrimitiveSeqBuilder[String]), source).fold({x => x},{x => x},{(a,b) => a})
 				assertResult(expected){result}
 			}
 		}

@@ -26,15 +26,10 @@
 */
 package com.rayrobdod.json.builder;
 
-import scala.beans.BeanProperty;
-import java.text.ParseException;
-import scala.collection.immutable.Seq;
 import org.scalatest.FunSpec;
+import scala.collection.immutable.Seq;
 import com.rayrobdod.json.parser.FailureParser
 import com.rayrobdod.json.parser.IdentityParser
-import com.rayrobdod.json.parser.SeqParser
-import com.rayrobdod.json.parser.PrimitiveSeqParser
-import com.rayrobdod.json.parser.CaseClassParser
 
 class BuilderTest extends FunSpec {
 	
@@ -45,7 +40,48 @@ class BuilderTest extends FunSpec {
 			val myValue2 = new Object
 			
 			assertResult(Left("FailureParser", 0)){
-				new SeqBuilder(new PrimitiveSeqBuilder[String, Object]).mapValue[Object].apply(Nil, "sdfa", myValue2, new FailureParser())
+				new SeqBuilder(new PrimitiveSeqBuilder[Object]).mapValue[Object].apply(Nil, "sdfa", myValue2, new FailureParser())
+			}
+		}
+	}
+	describe("Builder.flatMapValue") {
+		def parseInt(x:String):Either[(String,Int),Int] = {
+			try {
+				Right(java.lang.Integer.parseInt(x))
+			} catch {
+				case ex:java.lang.NumberFormatException => Left(("Not an integer", 0))
+			}
+		}
+		
+		it ("when success and condition passes, continue being success") {
+			assertResult(Right(125 :: Nil)){
+				new PrimitiveSeqBuilder[Int]
+					.flatMapValue[String](parseInt)
+					.apply(Nil, 0, "125", new IdentityParser[String])
+			}
+		}
+		it ("when success but condition fails, become a fail") {
+			assertResult(Left(("Not an integer", 0))){
+				new PrimitiveSeqBuilder[Int]
+					.flatMapValue[String](parseInt)
+					.apply(Nil, 0, "abc", new IdentityParser[String])
+			}
+		}
+		it ("when failure, continue being a fail") {
+			assertResult(Left(("FailureParser", 0))){
+				new PrimitiveSeqBuilder[Int]
+					.flatMapValue[String](parseInt)
+					.apply(Nil, 0, "abc", new FailureParser)
+			}
+		}
+		it ("nesting") {
+			import com.rayrobdod.json.union.{StringOrInt, JsonValue}
+			import com.rayrobdod.json.union.JsonValue.JsonValueNumber
+			
+			assertResult(Right(Seq(Seq(1, 2)))){
+				new SeqBuilder[StringOrInt, Int, Seq[Int]](new PrimitiveSeqBuilder[Int])
+					.flatMapValue[JsonValue]{v => v match {case JsonValueNumber(x) => Right(x.intValue); case _ => Left("unexpected value", 0)}}
+					.apply(Seq.empty, 0, "[1,2]":Iterable[Char], new com.rayrobdod.json.parser.JsonParser)
 			}
 		}
 	}

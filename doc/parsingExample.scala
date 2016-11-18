@@ -4,11 +4,10 @@
 
 // other imports
 import scala.util.{Either, Left, Right}
-import java.text.ParseException
 
 // imports from this library;
 import com.rayrobdod.json.parser.{Parser, JsonParser}
-import com.rayrobdod.json.builder.{Builder, BuildableBuilder, PrimitiveSeqBuilder, ThrowBuilder}
+import com.rayrobdod.json.builder.{Builder, PiecewiseBuilder, PrimitiveSeqBuilder}
 import com.rayrobdod.json.union.{StringOrInt, JsonValue, ParserRetVal}
 
 // the data classes
@@ -23,50 +22,47 @@ val json = """{
       "family":"Dodge"
     },
     "gender":"male",
-    "isDead":false,
+    "isAlive":true,
     "interests":["bowling", "tennis", "programming", "twitch plays pokémon"]
 }"""
 
-// Exaple using subclassing of Builder
+// Example directly subclassing Builder
 object NameBuilder extends Builder[StringOrInt, JsonValue, Name] {
   override def init:Name = Name("", "", "")
   override def apply[Input](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Name] = {
     // we only expect strings, so might as well parse the value at the beginning
-    parser.parsePrimitive(input).right.flatMap{value:JsonValue =>
-      ((key, value)) match {
-        case ((StringOrInt.Left("given"), JsonValue.JsonValueString(x))) => Right(folding.copy(given = x))
-        case ((StringOrInt.Left("middle"), JsonValue.JsonValueString(x))) => Right(folding.copy(middle = x))
-        case ((StringOrInt.Left("family"), JsonValue.JsonValueString(x))) => Right(folding.copy(family = x))
+    parser.parsePrimitive(input).right.flatMap{value:JsonValue => value.stringToEither{strValue:String =>
+      key match {
+        case StringOrInt.Left("given") => Right(folding.copy(given = strValue))
+        case StringOrInt.Left("middle") => Right(folding.copy(middle = strValue))
+        case StringOrInt.Left("family") => Right(folding.copy(family = strValue))
         case x => Left("NameBuilder: Unexpected key/value: " + x, 0)
       }
-    }
+    }}
   }
 }
 
-// example using BuildableBuilder
+// example using PiecewiseBuilder
 val PersonBuilder = {
-  new BuildableBuilder[StringOrInt, JsonValue, Person](Person(Name("", "", ""), "", false, Seq.empty))
+  new PiecewiseBuilder[StringOrInt, JsonValue, Person](Person(Name("", "", ""), "", false, Seq.empty))
     // paritioned complex key def
-    .addDef("name", BuildableBuilder.partitionedComplexKeyDef[StringOrInt, JsonValue, Person, Name](
+    .addDef("name", PiecewiseBuilder.partitionedComplexKeyDef[StringOrInt, JsonValue, Person, Name](
       NameBuilder,
       {(folding, name) => Right(folding.copy(n = name))}
     ))
     // paritioned private key def
-    .addDef("gender", BuildableBuilder.partitionedPrimitiveKeyDef[StringOrInt, JsonValue, Person, String](
+    .addDef("gender", PiecewiseBuilder.partitionedPrimitiveKeyDef[StringOrInt, JsonValue, Person, String](
       {case JsonValue.JsonValueString(g) => Right(g)},
       {(folding,x) => folding.copy(gender = x)}
     ))
     // raw private key def
-    .addDef("isDead", new BuildableBuilder.KeyDef[StringOrInt, JsonValue, Person]{
+    .addDef("isAlive", new PiecewiseBuilder.KeyDef[StringOrInt, JsonValue, Person]{
       override def apply[Input](folding:Person, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Person] = {
-        parser.parsePrimitive(input) match {
-          case Right(JsonValue.JsonValueBoolean(b)) => Right(folding.copy(isDead = b));
-          case unknown => Left(("isDead not boolean: " + unknown, 0))
-        }
+        parser.parsePrimitive(input).right.flatMap{_.booleanToEither{b => Right(folding.copy(isDead = !b))}}
       }
     })
     // raw complex key def
-    .addDef("interests", new BuildableBuilder.KeyDef[StringOrInt, JsonValue, Person]{
+    .addDef("interests", new PiecewiseBuilder.KeyDef[StringOrInt, JsonValue, Person]{
       override def apply[Input](folding:Person, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Person] = {
         parser.parse(new PrimitiveSeqBuilder, input) match {
           case ParserRetVal.Complex(seq) => {

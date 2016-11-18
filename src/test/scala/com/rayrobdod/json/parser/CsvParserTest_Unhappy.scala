@@ -27,9 +27,8 @@
 package com.rayrobdod.json.parser
 
 import org.scalatest.FunSpec
-import java.text.ParseException
-import scala.collection.immutable.{Seq, Map}
-import com.rayrobdod.json.union.{JsonValue, ParserRetVal}
+import scala.collection.immutable.Map
+import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.builder._
 
 class CsvParserTest_Unhappy extends FunSpec {
@@ -45,7 +44,7 @@ class CsvParserTest_Unhappy extends FunSpec {
 			assertFailureParse("",12){
 				new CsvParser().parse(MapBuilder.apply2[Int, String, Any]({x:Int => x match {
 					case 1 => new MapBuilder.MapChildBuilder[Int, String, Any, Any](new ThrowBuilder[Int, String].mapValue[String], {x:Any => x})
-					case _ => new MapBuilder.MapChildBuilder[Int, String, Map[Int, Either[_, String]], Any](MapBuilder[Int, String], {x:Any => x})
+					case _ => new MapBuilder.MapChildBuilder[Int, String, MapBuilder.RecursiveSubjectType[Int,String], Any](MapBuilder[Int, String], {x:Any => x})
 				}}), source)
 			}
 		}

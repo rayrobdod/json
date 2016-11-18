@@ -26,24 +26,31 @@
 */
 package com.rayrobdod.json.parser
 
-import scala.util.{Either, Left, Right}
+import scala.util.Either
 import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.union.ParserRetVal
 
 /**
- * A parser
+ * An object that parses an input into a sequence of key-value pairs for the
+ * purpose of inserting those key-value pairs into a Builder
+ * 
  * @see [[com.rayrobdod.json.builder.Builder]]
  * @since 3.0
  * @tparam Key the key types
  * @tparam Value the primitive value types
  * @tparam Input the input to the parser
  */
-trait Parser[Key, Value, Input] {
+trait Parser[+Key, +Value, -Input] {
 	
 	/**
-	 * Parse the input into either a Value or an Output
-	 * @param builder a builder in the case the the parser finds a complex value
-	 * @param i the input to the parser
+	 * Convert the input into a series of key-value pairs, insert those key-value pairs into `builder`, return the value output by `builder`
+	 * 
+	 * @param builder a builder that consumes key-value pairs and produced a complex value. 
+	 * @param i the input to the parser - the implementation of parser determines what it uses as input
+	 * @return
+		- An error containing a message and index into i
+		- A primitive value
+		- A complex value produced by feeding key-value pairs to the builder
 	 * @tparam ComplexOutput the type of object the Builder produces
 	 */
 	def parse[ComplexOutput](builder:Builder[Key, Value, ComplexOutput], i:Input):ParserRetVal[ComplexOutput, Value]
@@ -58,7 +65,7 @@ trait Parser[Key, Value, Input] {
 			def apply[I](a:Any,k:Key,i:I,p:Parser[Key,Value,I]):Either[(String, Int), Any] = Right(a)
 		}
 		
-		this.parse(ignoreAllBuilder, i).fold({c => Left(("Expected primitive value", 0))}, {p => Right(p)}, {(m,i) => Left((m,i))})
+		this.parse(ignoreAllBuilder, i).primitive.toEither
 	}
 	
 	
@@ -72,8 +79,16 @@ trait Parser[Key, Value, Input] {
 	/** Change the type of value that this builder requires */
 	final def mapValue[V2](implicit fun:Function1[Value,V2]):Parser[Key,V2,Input] = new Parser[Key,V2,Input] {
 		override def parse[Output](builder:Builder[Key,V2,Output], i:Input):ParserRetVal[Output, V2] = {
-			import ParserRetVal._
-			Parser.this.parse[Output](builder.mapValue[Value](fun), i).fold({x => Complex(x)}, {x => Primitive(fun(x))}, {(m,i) => Failure(m,i)})
+			Parser.this.parse[Output](builder.mapValue[Value](fun), i).primitive.map(fun)
+		}
+	}
+	
+	/** Change the type of value that this builder requires, with the option of indicating an error condition */
+	final def flatMapValue[V2](fun:Function1[Value,Either[(String,Int),V2]]):Parser[Key,V2,Input] = new Parser[Key,V2,Input] {
+		override def parse[Output](builder:Builder[Key,V2,Output], i:Input):ParserRetVal[Output, V2] = {
+			Parser.this.parse[Output](builder.flatMapValue[Value](fun), i).primitive.flatMap{pe => 
+				ParserRetVal.eitherToPrimitive(fun(pe))
+			}
 		}
 	}
 	

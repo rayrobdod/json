@@ -26,11 +26,7 @@
 */
 package com.rayrobdod.json.builder;
 
-import java.text.ParseException;
-import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
-import com.rayrobdod.json.parser.{IdentityParser, SeqParser, MapParser}
-import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter};
 
 class ThrowBuilderTest extends FunSpec {
 	

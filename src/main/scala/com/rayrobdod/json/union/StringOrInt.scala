@@ -26,8 +26,6 @@
 */
 package com.rayrobdod.json.union
 
-import com.rayrobdod.json.builder.Builder
-import com.rayrobdod.json.parser.Parser
 import scala.language.implicitConversions
 
 /**
@@ -40,7 +38,7 @@ sealed trait StringOrInt{
 }
 
 /**
- * Methods used to create StringOrInts
+ * The cases of StringOrInt and implicits to convert other things into StringOrInts.
  * @since 3.0
  */
 object StringOrInt {

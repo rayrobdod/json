@@ -24,35 +24,33 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json.parser
+package com.rayrobdod.json
 
-import org.scalatest.FunSpec
-import scala.collection.immutable.Seq
-import com.rayrobdod.json.builder.{SeqBuilder, PrettyJsonBuilder, ThrowBuilder, PrimitiveSeqBuilder}
-import com.rayrobdod.json.union.JsonValue
+import scala.collection.immutable.{Seq => ISeq}
 
-class SeqParserTest extends FunSpec {
-	describe("SeqParser") {
-		it ("""builder failure""") {
-			val exp = ("using ThrowBuilder::apply", 0)
-			val src = Seq(Seq.empty, Seq(true, false))
-			val res = new SeqParser(new PrimitiveSeqParser[Boolean]).parse(new ThrowBuilder[Int, Boolean], src).fold({x => throw new IllegalArgumentException()}, {x => throw new IllegalArgumentException()}, {(a,b) => (a,b)})
-			
-			assertResult(exp){res}
-		}
-	}
+package object testing {
 	
-	describe("SeqParser + Json") {
-		it ("""can be used with the json stuff to serialze and deserialize a Seq""") {
-			val src = Seq(Seq.empty, Seq(JsonValue(true), JsonValue(12.5)))
-			val json = new SeqParser(new PrimitiveSeqParser[JsonValue])
-					.parse(new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams).mapKey[Int], src)
-					.fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
-			val res = new JsonParser()
-					.parse(new SeqBuilder(new PrimitiveSeqBuilder[JsonValue]), json)
-					.fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
-			
-			assertResult(src){res}
+	/**
+	 * A string interpolater that hex-decodes strings into a sequence of bytes.
+	 * Any characters outside the hex character range are filtered out and ignored.
+	 * @example {{{
+	 * 	hexSeq"0001 11FF" == immutable.Seq[Byte](0,1,17,-1)
+	 * }}}
+	 * @version 2.0
+	 */
+	private[json] implicit class HexArrayStringConverter(val sc: StringContext) extends AnyVal {
+		def hexSeq(args: Nothing*):ISeq[Byte] = {
+			sc.parts.mkString("","","")
+				.filter{x =>
+					('A' <= x && x <= 'F') || ('a' <= x && x <= 'f') || ('0' <= x && x <= '9')
+				}
+				.grouped(2)
+				.map{x => Integer.parseInt(x, 16)}
+				.map{_.byteValue}
+				.to[ISeq]
+		}
+		def hexArray(args: Nothing*):Array[Byte] = {
+			hexSeq(args:_*).toArray
 		}
 	}
 }

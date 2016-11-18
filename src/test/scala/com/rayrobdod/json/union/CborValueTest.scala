@@ -27,10 +27,45 @@
 package com.rayrobdod.json.union
 
 import org.scalatest.FunSpec
-import java.text.ParseException
 import com.rayrobdod.json.union.CborValue._
 
 class CborValueTest extends FunSpec {
+	
+	describe("CborValue") {
+		// string, double, integer, boolean, null
+		val values = Seq(
+			CborValueString(""), CborValueByteStr(new Array[Byte](2)), 
+			CborValueNumber(1.5), CborValueNumber(42),
+			CborValueBoolean(true), CborValueNull
+		)
+		val ToEitherFuns = Seq[CborValue => Either[(String, Int),Any]](
+			{x => x.stringToEither{s => Right(s)}},
+			{x => x.byteArrayToEither{s => Right(s)}},
+			{x => x.numberToEither{s => Right(s)}},
+			{x => x.integerToEither{s => Right(s)}},
+			{x => x.booleanToEither{s => Right(s)}}
+		)
+		val names = Seq("stringToEither", "byteArrayToEither", "numberToEither", "integerToEither", "booleanToEither", "nullToEither")
+		val foldResults = Seq(0, 1, 2, 2, 3, 4)
+		
+		for (
+			(v, vi) <- values.zipWithIndex;
+			(f, fi) <- ToEitherFuns.zipWithIndex
+		) {
+			val rightExpected = (vi == fi) || (vi == 3 && fi == 2)
+			
+			it (s"""${v}.${names(fi)}(Right.apply) is ${if (rightExpected) {"right"} else {"left"}}""") {
+				assertResult(rightExpected){f(v).isRight}
+			}
+		}
+		
+		for ((v, vi) <- values.zipWithIndex) {
+			it (s"""${v}.fold invokes the ${foldResults(vi)}th  function""") {
+				assertResult(foldResults(vi)){v.fold({x => 0}, {x => 1}, {x => 2}, {x => 3}, {() => 4})}
+			}
+		}
+	}
+	
 	describe("CborValueByteStr") {
 		it ("""is equal to a similar CborValueByteStr""") {
 			val a = CborValueByteStr(Array(1,2,3,4,5))
@@ -51,6 +86,27 @@ class CborValueTest extends FunSpec {
 			val b = "asdf"
 			
 			assert(a != b)
+		}
+		it ("""is not linked to the source array (input)""") {
+			val exp = Array[Byte](1,2,3,4,5)
+			val arr = java.util.Arrays.copyOf(exp, 5)
+			val cbor = CborValueByteStr(arr)
+			assert(java.util.Arrays.equals(arr, cbor.s))
+			
+			arr(2) = 42
+			assert(! java.util.Arrays.equals(arr, cbor.s))
+		}
+		it ("""is not linked to the source array (output)""") {
+			val cbor = CborValueByteStr(Array[Byte](1,2,3,4,5))
+			val arr = cbor.s
+			assert(java.util.Arrays.equals(arr, cbor.s))
+			
+			arr(2) = 42
+			assert(! java.util.Arrays.equals(arr, cbor.s))
+		}
+		it ("""tostring""") {
+			val cbor = CborValueByteStr(Array[Byte](1,2,3,4,5))
+			assertResult("CborValueByteStr([1, 2, 3, 4, 5])"){cbor.toString}
 		}
 	}
 	
@@ -80,15 +136,6 @@ class CborValueTest extends FunSpec {
 				val res:CborValue = JsonValue.JsonValueNull
 				assertResult(CborValueNull){res}
 			}
-		}
-		it ("""unwrap null""") {
-			assertResult(null){CborValue.unwrap(CborValueNull)}
-		}
-		it ("""unsafeWrap bytestr succeeds""") {
-			assertResult(CborValue(Array[Byte](1,2,3,4))){CborValue.unsafeWrap(Array[Byte](1,2,3,4))}
-		}
-		it ("""unsafeWrap intstr fails""") {
-			intercept[MatchError]{ CborValue.unsafeWrap(Array[Int](1,2,3,4)) }
 		}
 	}
 }

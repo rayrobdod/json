@@ -24,35 +24,13 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json.parser
+package com.rayrobdod.json
 
-import org.scalatest.FunSpec
-import scala.collection.immutable.Seq
-import com.rayrobdod.json.builder.{SeqBuilder, PrettyJsonBuilder, ThrowBuilder, PrimitiveSeqBuilder}
-import com.rayrobdod.json.union.JsonValue
+/**
+ * Contains various tagged unions that are used in preference to Any-promotion.
+ */
+package object union {
+}
 
-class SeqParserTest extends FunSpec {
-	describe("SeqParser") {
-		it ("""builder failure""") {
-			val exp = ("using ThrowBuilder::apply", 0)
-			val src = Seq(Seq.empty, Seq(true, false))
-			val res = new SeqParser(new PrimitiveSeqParser[Boolean]).parse(new ThrowBuilder[Int, Boolean], src).fold({x => throw new IllegalArgumentException()}, {x => throw new IllegalArgumentException()}, {(a,b) => (a,b)})
-			
-			assertResult(exp){res}
-		}
-	}
-	
-	describe("SeqParser + Json") {
-		it ("""can be used with the json stuff to serialze and deserialize a Seq""") {
-			val src = Seq(Seq.empty, Seq(JsonValue(true), JsonValue(12.5)))
-			val json = new SeqParser(new PrimitiveSeqParser[JsonValue])
-					.parse(new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams).mapKey[Int], src)
-					.fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
-			val res = new JsonParser()
-					.parse(new SeqBuilder(new PrimitiveSeqBuilder[JsonValue]), json)
-					.fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
-			
-			assertResult(src){res}
-		}
-	}
+package union {
 }

@@ -26,10 +26,8 @@
 */
 package com.rayrobdod.json.parser;
 
-import java.text.ParseException
-import scala.collection.immutable.{Seq, Map, Stack}
 import scala.util.{Either, Left, Right}
-import com.rayrobdod.json.builder._
+import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.ParserRetVal
@@ -115,7 +113,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 		def apply(c:Char, index:Int):State[A] = c match {
 			case x if x.isWhitespace => this
 			case '"'  => new StringState("", {s:String =>
-				builder.apply[JsonValue](soFar, key, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]()) match {
+				builder.apply[JsonValue](soFar, key, JsonValue(s), new IdentityParser[JsonValue]()) match {
 					case Right(x) => new ObjectValueEndState(x, builder)
 					case Left(x) => new FailureState(x._1, x._2 + index)
 				}
@@ -133,7 +131,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 				}
 			})
 			case '-'  => new IntegerState("-", {s:Number =>
-				builder.apply[JsonValue](soFar, key, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]()) match {
+				builder.apply[JsonValue](soFar, key, JsonValue(s), new IdentityParser[JsonValue]()) match {
 					case Right(x) => new ObjectValueEndState(x, builder)
 					case Left(x) => new FailureState(x._1, x._2 + index)
 				}
@@ -142,13 +140,13 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 				new FailureState("Numeric value may not begin with a '.'", index)
 			}
 			case x if ('0' <= x && x <= '9') => new IntegerState("" + x, {s:Number =>
-				builder.apply[JsonValue](soFar, key, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]()) match {
+				builder.apply[JsonValue](soFar, key, JsonValue(s), new IdentityParser[JsonValue]()) match {
 					case Right(x) => new ObjectValueEndState(x, builder)
 					case Left(x) => new FailureState(x._1, x._2 + index)
 				}
 			})
 			case x if ('a' <= x && x <= 'z') => new KeywordState("" + x, {s:JsonValue =>
-				builder.apply[JsonValue](soFar, key, s, new IdentityParser[StringOrInt, JsonValue]()) match {
+				builder.apply[JsonValue](soFar, key, s, new IdentityParser[JsonValue]()) match {
 					case Right(x) => new ObjectValueEndState(x, builder)
 					case Left(x) => new FailureState(x._1, x._2 + index)
 				}
@@ -175,7 +173,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 			case x if x.isWhitespace => this
 			case ']'  if endObjectAllowed => new EndState(soFar)
 			case '"'  => new StringState("", {s:String =>
-				builder.apply[JsonValue](soFar, arrayIndex, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]()) match {
+				builder.apply[JsonValue](soFar, arrayIndex, JsonValue(s), new IdentityParser[JsonValue]()) match {
 					case Right(x) => new ArrayValueEndState(x, builder, arrayIndex)
 					case Left(x) => new FailureState(x._1, x._2 + charIndex)
 				}
@@ -193,7 +191,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 				}
 			})
 			case '-'  => new IntegerState("-", {s:Number =>
-				builder.apply[JsonValue](soFar, arrayIndex, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]()) match {
+				builder.apply[JsonValue](soFar, arrayIndex, JsonValue(s), new IdentityParser[JsonValue]()) match {
 					case Right(x) => new ArrayValueEndState(x, builder, arrayIndex)
 					case Left(x) => new FailureState(x._1, x._2 + charIndex)
 				}
@@ -203,13 +201,13 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 				new FailureState(msg, charIndex);
 			}
 			case x if ('0' <= x && x <= '9') => new IntegerState("" + x, {s:Number =>
-				builder.apply[JsonValue](soFar, arrayIndex, JsonValue(s), new IdentityParser[StringOrInt, JsonValue]()) match {
+				builder.apply[JsonValue](soFar, arrayIndex, JsonValue(s), new IdentityParser[JsonValue]()) match {
 					case Right(x) => new ArrayValueEndState(x, builder, arrayIndex)
 					case Left(x) => new FailureState(x._1, x._2 + charIndex)
 				}
 			})
 			case x if ('a' <= x && x <= 'z') => new KeywordState("" + x, {s:JsonValue =>
-				builder.apply[JsonValue](soFar, arrayIndex, s, new IdentityParser[StringOrInt, JsonValue]()) match {
+				builder.apply[JsonValue](soFar, arrayIndex, s, new IdentityParser[JsonValue]()) match {
 					case Right(x) => new ArrayValueEndState(x, builder, arrayIndex)
 					case Left(x) => new FailureState(x._1, x._2 + charIndex)
 				}

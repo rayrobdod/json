@@ -8,12 +8,12 @@ homepage := Some(new URL("http://rayrobdod.name/programming/libraries/java/json/
 
 apiURL := Some(url(s"http://doc.rayrobdod.name/json/${version.value}/"))
 
-version := "3.0-SNAPSHOT"
+version := "3.1-SNAPSHOT"
 
 scalaVersion := "2.10.6"
 
 crossScalaVersions := Seq("2.10.6", "2.11.8") ++
-    (if (System.getProperty("scoverage.disable", "") != "true") {Nil} else {Seq("2.12.0-M4")})
+    (if (System.getProperty("scoverage.disable", "") != "true") {Nil} else {Seq("2.12.0")})
 
 compileOrder := CompileOrder.JavaThenScala
 
@@ -21,7 +21,9 @@ javacOptions in Compile ++= Seq("-Xlint:deprecation", "-Xlint:unchecked", "-sour
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-target:jvm-1.7")
 
-libraryDependencies <+= scalaVersion.apply{("org.scala-lang" % "scala-reflect" % _)}
+scalacOptions ++= (if (scalaVersion.value != "2.11.8") {Nil} else {Seq("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint:_", "-Xlint:-adapted-args")})
+
+libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
 
 libraryDependencies += "org.spire-math" %% "spire" % "0.11.0"
 
@@ -50,21 +52,58 @@ packageOptions in (Compile, packageBin) += {
 
 licenses += (("3-point BSD", new URL("http://opensource.org/licenses/BSD-3-Clause") ))
 
-mappings in (Compile, packageSrc) <+= baseDirectory.map{(b) => (new File(b, "LICENSE.rst"), "LICENSE.rst" )}
-
-mappings in (Compile, packageBin) <+= baseDirectory.map{(b) => (new File(b, "LICENSE.rst"), "LICENSE.rst" )}
-
-mappings in (Compile, packageSrc) <+= baseDirectory.map{(b) => (new File(b, "CHANGES.md"), "CHANGES.md" )}
-
-mappings in (Compile, packageBin) <+= baseDirectory.map{(b) => (new File(b, "CHANGES.md"), "CHANGES.md" )}
+val readableNoteMappings = Def.task{ Seq(
+	baseDirectory.value / "LICENSE.rst" -> "LICENSE.rst",
+	baseDirectory.value / "CHANGES.md" -> "CHANGES.md"
+)}
+mappings in (Compile, packageSrc) ++= readableNoteMappings.value
+mappings in (Compile, packageBin) ++= readableNoteMappings.value
 
 scalastyleConfig := baseDirectory.value / "project" / "scalastyle-config.xml"
 
 
+if (System.getProperty("scoverage.disable", "") == "true") {
+	// provide no-op replacements for disabled tasks
+	TaskKey[Unit]("coverage") := {}
+} else {
+	TaskKey[Unit]("asfdsdfasdf") := {}
+}
+
+if (System.getProperty("scoverage.disable", "") == "true") {
+	// provide no-op replacements for disabled tasks
+	TaskKey[Unit]("coveralls") := {}
+} else {
+	TaskKey[Unit]("asfdsdfasdf") := {}
+}
+
+if (System.getProperty("scoverage.disable", "") == "true") {
+	// provide no-op replacements for disabled tasks
+	TaskKey[Unit]("coverageReport") := {}
+} else {
+	TaskKey[Unit]("asfdsdfasdf") := {}
+}
+
 
 // scalaTest
-libraryDependencies += "org.scalatest" %% "scalatest" % (
-      "2.2.6" 
-    ) % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.0" % "test"
 
 testOptions in Test += Tests.Argument("-oS", "-u", s"${crossTarget.value}/test-results-junit" /*, "-h", s"${crossTarget.value}/test-results-html" */)
+
+// compile sample as part of test
+val makeDocCompilable = taskKey[Seq[File]]("Create a scalac-compilable version of the example usage file")
+makeDocCompilable in Test := {
+	val outFile = (sourceManaged in Test).value / "parsingExample.scala"
+	val inFile = (baseDirectory).value / "doc" / "parsingExample.scala"
+	val inContents = IO.readLines(inFile)
+	val outContents = Seq("package com.rayrobdod.json.doc", "object parsingExample {") ++ inContents ++ Seq("}")
+	IO.writeLines(outFile, outContents)
+	
+	val outFile2 = (sourceManaged in Test).value / "serializeExample.scala"
+	val inFile2 = (baseDirectory).value / "doc" / "serializeExample.scala"
+	val inContents2 = IO.readLines(inFile2)
+	val outContents2 = Seq("package com.rayrobdod.json.doc", "object serializeExample {") ++ inContents2 ++ Seq("}")
+	IO.writeLines(outFile2, outContents2)
+	Seq(outFile, outFile2)
+}
+
+sourceGenerators in Test += (makeDocCompilable in Test).taskValue

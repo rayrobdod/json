@@ -26,12 +26,11 @@
 */
 package com.rayrobdod.json.builder;
 
-import java.lang.reflect.Method
 import com.rayrobdod.json.parser.Parser
 
 /** A builder that builds a JavaBean
  * 
- * As with anything that works with javabeans, this requires the class
+ * As with anything that works with java beans, this requires the class
  * to have a zero-argument constructor and will interact with methods
  * of the form `setX`.
  * 
@@ -43,6 +42,7 @@ import com.rayrobdod.json.parser.Parser
  * @param clazz the class of the objects to build
  * @param childBuilders a map of keys to builders of non-primitive bean values
  */
+@deprecated("Terribly un type-safe. Either create a new Builder subclass or an instance of PiecewiseBuilder", "3.0")
 final class BeanBuilder[Value, A](
 			clazz:Class[A],
 			childBuilders:Function1[String, Option[Builder[String, Value, _]]] = Map.empty.lift
@@ -63,12 +63,17 @@ final class BeanBuilder[Value, A](
 		val builder = childBuilders(key).getOrElse(new ThrowBuilder())
 		
 		// unwrap union values
-		parser.parse(builder, input).fold({x => Right(x)},{x => Right(x)},{(msg,idx) => Left((msg,idx))}).right.flatMap{a =>
+		parser.parse(builder, input).mergeToEither[Any].right.flatMap{a =>
 			val value = {
 				a match {
 					case com.rayrobdod.json.union.StringOrInt.Left(x) => x
 					case com.rayrobdod.json.union.StringOrInt.Right(x) => x
-					case x:com.rayrobdod.json.union.JsonValue => com.rayrobdod.json.union.JsonValue.unwrap(x)
+					case x:com.rayrobdod.json.union.JsonValue => x match {
+						case com.rayrobdod.json.union.JsonValue.JsonValueNull => null
+						case com.rayrobdod.json.union.JsonValue.JsonValueString(x) => x
+						case com.rayrobdod.json.union.JsonValue.JsonValueNumber(x) => x
+						case com.rayrobdod.json.union.JsonValue.JsonValueBoolean(x) => x
+					}
 					case x => x
 				}
 			}

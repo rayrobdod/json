@@ -31,30 +31,32 @@ import scala.util.{Either, Left, Right}
 import java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.charset.Charset;
 import com.rayrobdod.json.union.{StringOrInt, JsonValue}
-import com.rayrobdod.json.parser.{Parser, MapParser, SeqParser}
+import com.rayrobdod.json.parser.Parser
 
 
 /**
- * A builder that serializes its input into json format
+ * A builder whose output is a json-formatted string.
  * 
  * @since 3.0
- * @see [[http://argonaut.io/scaladocs/#argonaut.PrettyParams]] the only decent idea in argonaut
+ * @see [[http://json.org/]]
  * @constructor
- * @param params the pretty-printing parameters.
+ * Construct a PrettyJsonBuilder
+ * @param params the amount whitespace to insert between tokens
  * @param level the indentation level of this builder instance
  * @param charset The output will only contain characters that can be encoded using the specified charset.
  *           Any characters outside the charset will be u-escaped. Default is to keep all characters that are allowed by Json.
  *           There may be problems if the charset does not include at least ASCII characters.
  */
 final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Charset = UTF_8, level:Int = 0) extends Builder[StringOrInt, JsonValue, String] {
-	import MinifiedJsonObjectBuilder.serialize
+	import PrettyJsonBuilder.serialize
 
+	/** A builder to be used when serializing any 'complex' children of the values this builder is dealing with */
 	private[this] lazy val nextLevel = new PrettyJsonBuilder(params, charset, level + 1)
 	
 	val init:String = params.lbrace(level) + params.rbrace(level)
 	
 	def apply[Input](folding:String, key:StringOrInt, innerInput:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), String] = {
-		parser.parse(nextLevel, innerInput).fold({s => Right(s)}, {p => Right(serialize(p, charset))}, {(s,i) => Left((s,i))}).right.flatMap{encodedValue =>
+		parser.parse(nextLevel, innerInput).primitive.map{p => serialize(p, charset)}.mergeToEither.right.flatMap{encodedValue =>
 			if (init == folding) {
 				key match {
 					case StringOrInt.Right(0) => Right(params.lbrace(level) + encodedValue + params.rbrace(level))
@@ -88,12 +90,45 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 }
 
 /**
+ * PrettyParams and two implementations of it.
  * @since 3.0
  */
 object PrettyJsonBuilder {
+	
+	/** Encode a JsonValue as a serialized json value */
+	private[builder] def serialize(value:JsonValue, charset:Charset):String = value match {
+		case JsonValue.JsonValueNumber(x) => x.toString
+		case JsonValue.JsonValueBoolean(x) => x.toString
+		case JsonValue.JsonValueNull => "null"
+		case JsonValue.JsonValueString(x) => strToJsonStr(x, charset)
+	}
+	
+	/** Encode a string as a serialized json value */
+	private[builder] def strToJsonStr(s:String, charset:Charset):String = "\"" + s.flatMap{_ match {
+		case '"'  => "\\\""
+		case '\\' => """\\"""
+		case '\b' => "\\b"
+		case '\f' => "\\f"
+		case '\n' => "\\n"
+		case '\r' => "\\r"
+		case '\t' => "\\t"
+		case x if (x < ' ') => toUnicodeEscape(x)
+		case x if (! charset.newEncoder.canEncode(x)) => toUnicodeEscape(x)
+		case x => Seq(x)
+	}} + "\""
+	
+	/** Convert a character into a string representing a unicode escape */
+	@inline
+	private[this] def toUnicodeEscape(c:Char) = {
+		"\\u" + ("0000" + c.intValue.toHexString).takeRight(4)
+	}
+	
+	
+	
 	/**
 	 * The whitespace strings that will appear between significant portions of a serialized json file
-	 * @see [[com.rayrobdod.json.builder.PrettyJsonBuilder]]
+	 * 
+	 * @see [[http://argonaut.io/scaladocs/#argonaut.PrettyParams]]
 	 * @since 3.0
 	 * @define whitespace This value must contain only whitespace characters.
 	 * @define levelParam @param level the indentation depth to create a string for.
@@ -196,6 +231,10 @@ object PrettyJsonBuilder {
 	/**
 	 * A PrettyParams that will result in a minified json string. Every function returns the empty string.
 	 * @since 3.0
+	 * @example 
+	 * {{{
+	 * {"a":true,"b":[1,2,3]}
+	 * }}}
 	 */
 	object MinifiedPrettyParams extends PrettyParams {
 		def colonLeft(level:Int):String = ""
@@ -213,7 +252,18 @@ object PrettyJsonBuilder {
 	}
 	
 	/**
-	 * A PrettyParams for an indenting pattern with one space around each colon, commas at the end of the a line and brackets on their own line. 
+	 * A PrettyParams for an indenting pattern with one space around each colon, commas at the end of the a line and brackets on their own line.
+	 * @example
+	 * {{{
+	 * {
+	 * 	"a" : true,
+	 * 	"b" : [
+	 * 		1,
+	 * 		2,
+	 * 		3
+	 * 	]
+	 * }
+	 * }}}
 	 * @since 3.0
 	 * @define whitespace This value must contain only whitespace characters
 	 * 
