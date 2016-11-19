@@ -34,12 +34,6 @@ import com.rayrobdod.json.testing.HexArrayStringConverter
 
 class CborParserTest_Unhappy extends FunSpec {
 	describe("CborParser") {
-		it ("""errors when told to decode a half float""") {
-			val source = hexArray"F93C00"
-			assertFailure("", 0){
-				new CborParser().parse(MapBuilder.apply, byteArray2DataInput(source))
-			}
-		}
 		it ("""errors when array is incomplete""") {
 			val source = Array[Byte](0x58, 30) ++ (1 to 10).map{_.byteValue}
 			assertFailure("", 0){

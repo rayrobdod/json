@@ -121,19 +121,22 @@ final class CborParser extends Parser[CborValue, CborValue, DataInput] {
 					case SimpleValueCodes.FALSE => ParseReturnValueSimple(CborValue( false ))
 					case SimpleValueCodes.TRUE  => ParseReturnValueSimple(CborValue( true ))
 					case SimpleValueCodes.NULL => ParseReturnValueSimple(CborValue.CborValueNull)
-					case SimpleValueCodes.HALF_FLOAT => ParseReturnValueFailure("Half float", 0)
+					case SimpleValueCodes.HALF_FLOAT => additionalInfoData match {
+						case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(CborValue(value.shortValue)(Numeric.HalfFloatNumeric))
+						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate special value", 0)
+					}
 					case SimpleValueCodes.FLOAT => additionalInfoData match {
 						case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(CborValue( java.lang.Float.intBitsToFloat(value.intValue)))
-						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate tag value", 0)
+						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate special value", 0)
 					}
 					case SimpleValueCodes.DOUBLE => additionalInfoData match {
 						case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(CborValue( java.lang.Double.longBitsToDouble(value.longValue)))
-						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate tag value", 0)
+						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate special value", 0)
 					}
 					case SimpleValueCodes.END_OF_LIST => new ParseReturnValueEndOfIndeterminateObject
 					case _  => additionalInfoData match {
 						case AdditionalInfoDeterminate(value) => ParseReturnValueUnknownSimple(value.byteValue)
-						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate tag value", 0)
+						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate special value", 0)
 					}
 				}
 				// `whatver & 7` can only be a value between 0 through 7 inclusive, but

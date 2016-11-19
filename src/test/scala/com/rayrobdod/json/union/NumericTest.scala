@@ -131,12 +131,15 @@ class NumericTest extends FunSpec {
 		val tests = Seq[(Short, Option[BigDecimal], Option[BigInt],
 				Option[Double], Option[Float], Option[Long], Option[Int])](
 			  (0x0000.shortValue, Option(BigDecimal(0)), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0))
+			, (0x8000.shortValue, Option(BigDecimal(-0.0)), Option(BigInt(0)), Option(-0.0), Option(-0.0f), Option(0), Option(0))
 			, (0x3C00.shortValue, Option(BigDecimal(1)), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1))
 			, (0x4000.shortValue, Option(BigDecimal(2)), Option(BigInt(2)), Option(2), Option(2), Option(2), Option(2))
 			, (0x3800.shortValue, Option(BigDecimal(0.5)), None, Option(0.5), Option(0.5f), None, None)
 			, (0xBC00.shortValue, Option(BigDecimal(-1)), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1))
 			, (0x3E00.shortValue, Option(BigDecimal(1.5)), None, Option(1.5), Option(1.5F), None, None)
 			, (0x3555.shortValue, Option(BigDecimal(0.333251953125)), None, Option(0.333251953125), Option(0.333251953125f), None, None)
+			, (0x7BFF.shortValue, Option(BigDecimal(65504)), Option(BigInt(65504)), Option(65504), Option(65504), Option(65504), Option(65504))
+			, (0xC400.shortValue, Option(BigDecimal(-4)), Option(BigInt(-4)), Option(-4), Option(-4), Option(-4), Option(-4))
 		)
 		
 		tests.foreach{x =>

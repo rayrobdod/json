@@ -54,7 +54,7 @@ final class CborParserTest_Happy extends FunSpec {
 		("integer 43", Array[Byte](24, 43), CborParser.ParseReturnValueSimple(CborValueNumber[Long](43, implicitly[Numeric[Long]]))),
 		("integer -1", Array[Byte](0x20), CborParser.ParseReturnValueSimple(CborValueNumber[Long](-1, implicitly[Numeric[Long]]))),
 		("integer -5", Array[Byte](0x24), CborParser.ParseReturnValueSimple(CborValueNumber[Long](-5, implicitly[Numeric[Long]]))),
-		//	("halffloat 1.5", hexArray"F93C00", CborParser.ParseReturnValueSimple(CborValueNumber(1.5))),
+		("halffloat 1.5", hexArray"F93E00", CborParser.ParseReturnValueSimple(CborValueNumber[Float](1.5f, implicitly[Numeric[Float]]))),
 		("float 1.5", hexArray"FA3FC00000", CborParser.ParseReturnValueSimple(CborValueNumber[Float](1.5f, implicitly[Numeric[Float]]))),
 		("doublefloat -4.1", hexArray"fbc010666666666666", CborParser.ParseReturnValueSimple(CborValueNumber[Double](-4.1, implicitly[Numeric[Double]]))),
 		("byte string 0", Array[Byte](0x40), CborParser.ParseReturnValueSimple(CborValueByteStr(Array[Byte]()))),
