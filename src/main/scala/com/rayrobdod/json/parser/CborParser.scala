@@ -29,7 +29,7 @@ package com.rayrobdod.json.parser;
 import java.io.DataInput
 import java.nio.charset.StandardCharsets.UTF_8;
 import com.rayrobdod.json.builder.{Builder, PrimitiveSeqBuilder, CborBuilder, ThrowBuilder}
-import com.rayrobdod.json.union.{CborValue, ParserRetVal}
+import com.rayrobdod.json.union.{CborValue, ParserRetVal, Numeric}
 
 /**
  * A parser that will decode cbor data.
@@ -280,86 +280,60 @@ object CborParser {
 		case 2 /* Positive bignum */ => {i:DataInput =>
 			val bsOpt = new CborParser().parsePrimitive(i)
 			bsOpt.right.flatMap{_ match {
-				case CborValueByteStr(bs)=> Right(CborValueNumber(bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))}))
+				case CborValueByteStr(bs)=> Right(CborValueNumber(bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))}, implicitly[Numeric[BigInt]]))
 				case _ => Left("Tag 2 contained non-byte-string value", 0)
 			}}
 		}
 		case 3 /* Negative bignum */ => {i:DataInput =>
 			val bsOpt = new CborParser().parsePrimitive(i)
 			bsOpt.right.flatMap{_ match {
-				case CborValueByteStr(bs)=> Right(CborValueNumber((-1:BigInt) - bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))}))
+				case CborValueByteStr(bs)=> Right(CborValueNumber((-1:BigInt) - bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))}, implicitly[Numeric[BigInt]]))
 				case _ => Left("Tag 3 contained non-byte-string value", 0)
 			}}
 		}
 		case 4 /* Decimal Bigfloat */ => {i:DataInput =>
-			new CborParser().parse(new TwoNumberBuilder[BigDecimal]()(implicitly[Int => BigDecimal], implicitly[Long => BigDecimal], BigDecimal.apply) {
-				def init = CborValueNumber(BigDecimal(0))
-				def combine(a:BigDecimal, b:BigDecimal):BigDecimal = a * BigDecimal(10).pow(b.intValue)
-				def isAnA(n:Number):Option[BigDecimal] = n match {
-					case a:BigDecimal => Some(a)
-					case _ => None
-				}
-			}, i).fold({x => Right(x)}, {x => Left("Tag 4 contained primitive", 0)}, {(s,i) => Left(s,i)})
+			new CborParser().parse(new PairBigIntBuilder("Tag 4"), i).fold(
+				{x => val (a,b) = x; Right(BigDecimal(a) * BigDecimal(10).pow(b.intValue))},
+				{x => Left("Tag 4 contained primitive", 0)},
+				{(s,i) => Left(s,i)}
+			)
 		}
 		case 5 /* Binary Bigfloat */ => {i:DataInput =>
-			new CborParser().parse(new TwoNumberBuilder[BigDecimal]()(implicitly[Int => BigDecimal], implicitly[Long => BigDecimal], BigDecimal.apply) {
-				def init = CborValueNumber(BigDecimal(0))
-				def combine(a:BigDecimal, b:BigDecimal):BigDecimal = a * BigDecimal(2).pow(b.intValue)
-				def isAnA(n:Number):Option[BigDecimal] = n match {
-					case a:BigDecimal => Some(a)
-					case _ => None
-				}
-			}, i).fold({x => Right(x)}, {x => Left("Tag 5 contained primitive", 0)}, {(s,i) => Left(s,i)})
+			new CborParser().parse(new PairBigIntBuilder("Tag 5"), i).fold(
+				{x => val (a,b) = x; Right(BigDecimal(a) * BigDecimal(2).pow(b.intValue))},
+				{x => Left("Tag 5 contained primitive", 0)},
+				{(s,i) => Left(s,i)}
+			)
 		}
 		case 30 /* rational */ => {i:DataInput =>
-			new CborParser().parse(new TwoNumberBuilder[Rational]() {
-				def init = CborValueNumber(Rational(0))
-				def combine(a:Rational, b:Rational):Rational = a / b
-				def isAnA(n:Number):Option[Rational] = n match {
-					case a:Rational => Some(a)
-					case _ => None
-				}
-			}, i).fold({x => Right(x)}, {x => Left("Tag 30 contained primitive", 0)}, {(s,i) => Left(s,i)}) 
+			new CborParser().parse(new PairBigIntBuilder("Tag 30"), i).fold(
+				{x => val (a,b) = x; Right(Rational(a,b))},
+				{x => Left("Tag 30 contained primitive", 0)},
+				{(s,i) => Left(s,i)}
+			)
 		}
 	}
 	
-	private[this] abstract class TwoNumberBuilder[A <: Number](implicit fromInt:Int => A, fromLong:Long => A, fromBig:BigInt => A) extends Builder[CborValue, CborValue, CborValue] {
-		final def apply[Input](folding:CborValue, key:CborValue, input:Input, parser:Parser[CborValue, CborValue, Input]):Either[(String, Int), CborValueNumber] = {
-			val value = parser.parsePrimitive(input).right.flatMap{_ match {
-				case CborValueNumber(x:BigInt) => Right(fromBig(x))
-				case CborValueNumber(x:Integer) => Right(fromInt(x:Int))
-				case CborValueNumber(x:java.lang.Long) => Right(fromLong(x:Long))
-				case _ => Left("contained a non-integer value", 0)
-			}}
-			
-			val folding2 = folding match {
-				case CborValueNumber(x) => isAnA(x).fold[Either[(String,Int),A]]{Left("Invalid folding parameter", 0)}{x => Right(x)}
-				case _ => Left("Invalid folding parameter", 0)
-			}
-			val key2 = key match {
-				case CborValueNumber(x) => x.intValue match {
-					case 0 => Right(true)
-					case 1 => Right(false)
-					case _ => Left("Key not 0 or 1", 0)
-				}
-				case _ => Left("Key not 0 or 1", 0)
-			}
-			
-			for (
-				folding3 <- folding2.right;
-				key3 <- key2.right;
-				value3 <- value.right
-			) yield {
-				if (key3) {
-					CborValueNumber(value3)
-				} else {
-					CborValueNumber(this.combine(folding3, value3))
+	private[this] class PairBigIntBuilder(tagNumber:String) extends Builder[CborValue, CborValue, (BigInt, BigInt)] {
+		private[this] def nonIntError:String = tagNumber + " array contained a non-integer value"
+		private[this] def keyError:String = tagNumber + " array key not 0 or 1"
+		
+		override def init:(BigInt, BigInt) = ((BigInt(1), BigInt(1)))
+		final def apply[Input](folding:(BigInt, BigInt), key:CborValue, input:Input, parser:Parser[CborValue, CborValue, Input]):Either[(String, Int), (BigInt, BigInt)] = {
+			parser.parsePrimitive(input).right.flatMap{_ match {
+				case CborValueNumber(x, num) => num.tryToBigInt(x).fold[Either[(String, Int),BigInt]](Left(nonIntError, 0)){x => Right(x)}
+				case _ => Left(nonIntError, 0)
+			}}.right.flatMap{value =>
+				key match {
+					case CborValueNumber(x, t) => t.tryToInt(x) match {
+						case Some(0) => Right(folding.copy(_1 = value))
+						case Some(1) => Right(folding.copy(_2 = value))
+						case _ => Left(keyError, 0)
+					}
+					case _ => Left(keyError, 0)
 				}
 			}
 		}
-		
-		def combine(a:A, b:A):A
-		def isAnA(n:Number):Option[A]
 	}
 	
 	

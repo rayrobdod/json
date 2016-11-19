@@ -31,6 +31,7 @@ import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.MapBuilder;
 import com.rayrobdod.json.union.CborValue
 import com.rayrobdod.json.union.CborValue._
+import com.rayrobdod.json.union.Numeric
 import com.rayrobdod.json.testing.HexArrayStringConverter
 
 final class CborParserTest_Happy extends FunSpec {
@@ -42,20 +43,20 @@ final class CborParserTest_Happy extends FunSpec {
 		("unknown", Array[Byte](0xE4.byteValue), CborParser.ParseReturnValueUnknownSimple(4)),
 		("unknown (+byte)", hexArray"F842", CborParser.ParseReturnValueUnknownSimple(0x42)),
 		("endOfObject", Array[Byte](0xFF.byteValue), CborParser.ParseReturnValueEndOfIndeterminateObject()),
-		("integer 0", Array[Byte](0), CborParser.ParseReturnValueSimple(CborValueNumber(0))),
-		("integer 1", Array[Byte](1), CborParser.ParseReturnValueSimple(CborValueNumber(1))),
-		("integer 15", Array[Byte](15), CborParser.ParseReturnValueSimple(CborValueNumber(15))),
-		("integer 23", Array[Byte](23), CborParser.ParseReturnValueSimple(CborValueNumber(23))),
-		("integer 0x12", Array[Byte](24, 0x12), CborParser.ParseReturnValueSimple(CborValueNumber(0x12))),
-		("integer 0x1234", Array[Byte](25, 0x12, 0x34), CborParser.ParseReturnValueSimple(CborValueNumber(0x1234))),
-		("integer 0x12345678", Array[Byte](26, 0x12, 0x34, 0x56, 0x78), CborParser.ParseReturnValueSimple(CborValueNumber(0x12345678))),
-		("integer 0x1234567890ABCDEF", Array(27, 0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF).map{_.byteValue}, CborParser.ParseReturnValueSimple(CborValueNumber(0x1234567890ABCDEFl))),
-		("integer 43", Array[Byte](24, 43), CborParser.ParseReturnValueSimple(CborValueNumber(43))),
-		("integer -1", Array[Byte](0x20), CborParser.ParseReturnValueSimple(CborValueNumber(-1))),
-		("integer -5", Array[Byte](0x24), CborParser.ParseReturnValueSimple(CborValueNumber(-5))),
+		("integer 0", Array[Byte](0), CborParser.ParseReturnValueSimple(CborValueNumber[Long](0, implicitly[Numeric[Long]]))),
+		("integer 1", Array[Byte](1), CborParser.ParseReturnValueSimple(CborValueNumber[Long](1, implicitly[Numeric[Long]]))),
+		("integer 15", Array[Byte](15), CborParser.ParseReturnValueSimple(CborValueNumber[Long](15, implicitly[Numeric[Long]]))),
+		("integer 23", Array[Byte](23), CborParser.ParseReturnValueSimple(CborValueNumber[Long](23, implicitly[Numeric[Long]]))),
+		("integer 0x12", Array[Byte](24, 0x12), CborParser.ParseReturnValueSimple(CborValueNumber[Long](0x12, implicitly[Numeric[Long]]))),
+		("integer 0x1234", Array[Byte](25, 0x12, 0x34), CborParser.ParseReturnValueSimple(CborValueNumber[Long](0x1234, implicitly[Numeric[Long]]))),
+		("integer 0x12345678", Array[Byte](26, 0x12, 0x34, 0x56, 0x78), CborParser.ParseReturnValueSimple(CborValueNumber[Long](0x12345678, implicitly[Numeric[Long]]))),
+		("integer 0x1234567890ABCDEF", Array(27, 0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF).map{_.byteValue}, CborParser.ParseReturnValueSimple(CborValueNumber[Long](0x1234567890ABCDEFl, implicitly[Numeric[Long]]))),
+		("integer 43", Array[Byte](24, 43), CborParser.ParseReturnValueSimple(CborValueNumber[Long](43, implicitly[Numeric[Long]]))),
+		("integer -1", Array[Byte](0x20), CborParser.ParseReturnValueSimple(CborValueNumber[Long](-1, implicitly[Numeric[Long]]))),
+		("integer -5", Array[Byte](0x24), CborParser.ParseReturnValueSimple(CborValueNumber[Long](-5, implicitly[Numeric[Long]]))),
 		//	("halffloat 1.5", hexArray"F93C00", CborParser.ParseReturnValueSimple(CborValueNumber(1.5))),
-		("float 1.5", hexArray"FA3FC00000", CborParser.ParseReturnValueSimple(CborValueNumber(1.5))),
-		("doublefloat -4.1", hexArray"fbc010666666666666", CborParser.ParseReturnValueSimple(CborValueNumber(-4.1))),
+		("float 1.5", hexArray"FA3FC00000", CborParser.ParseReturnValueSimple(CborValueNumber[Float](1.5f, implicitly[Numeric[Float]]))),
+		("doublefloat -4.1", hexArray"fbc010666666666666", CborParser.ParseReturnValueSimple(CborValueNumber[Double](-4.1, implicitly[Numeric[Double]]))),
 		("byte string 0", Array[Byte](0x40), CborParser.ParseReturnValueSimple(CborValueByteStr(Array[Byte]()))),
 		("byte string 4", Array[Byte](0x44, 1,2,3,4), CborParser.ParseReturnValueSimple(CborValueByteStr(Array[Byte](1,2,3,4)))),
 		("byte string 30", Array[Byte](0x58, 30) ++ (1 to 30).map{_.byteValue}, CborParser.ParseReturnValueSimple(CborValueByteStr((1.byteValue to 30.byteValue).map{_.byteValue}.toArray))),

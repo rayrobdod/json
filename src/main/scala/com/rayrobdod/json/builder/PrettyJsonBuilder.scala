@@ -97,7 +97,7 @@ object PrettyJsonBuilder {
 	
 	/** Encode a JsonValue as a serialized json value */
 	private[builder] def serialize(value:JsonValue, charset:Charset):String = value match {
-		case JsonValue.JsonValueNumber(x) => x.toString
+		case JsonValue.JsonValueNumber(x, t) => t.tryToBigDecimal(x).x.toString
 		case JsonValue.JsonValueBoolean(x) => x.toString
 		case JsonValue.JsonValueNull => "null"
 		case JsonValue.JsonValueString(x) => strToJsonStr(x, charset)

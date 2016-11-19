@@ -27,6 +27,7 @@
 package com.rayrobdod.json.union
 
 import scala.language.implicitConversions
+import com.rayrobdod.json.union.Numeric.NumericPair
 
 /**
  * A union type representing primitive types in Cbor objects
@@ -44,10 +45,10 @@ sealed trait CborValue {
 	 * @param fz the function to apply if `this` is a CborValueNull
 	 * @return the results of applying the corresponding function
 	 */
-	final def fold[A](fs:String => A, fbs:Array[Byte] => A, fn:Number => A, fb:Boolean => A, fz:Function0[A]):A = this match {
+	final def fold[A](fs:String => A, fbs:Array[Byte] => A, fn:Numeric.NumericPair[_] => A, fb:Boolean => A, fz:Function0[A]):A = this match {
 		case CborValueString(s) => fs(s)
 		case CborValueByteStr(bs) => fbs(bs)
-		case CborValueNumber(n) => fn(n)
+		case CborValueNumber(n, t) => fn(Numeric.NumericPair(n)(t))
 		case CborValueBoolean(b) => fb(b)
 		case CborValueNull => fz.apply
 	}
@@ -70,11 +71,9 @@ sealed trait CborValue {
 	
 	/**
 	 * Executes and returns `fi(this.i)` if this is a CborValueNumber which holds an number convertible to integer, else return a Left with an error message.
-	 * 
-	 * I somewhat doubt this method's ability to deal with numbers more precise than doubles can handle, but there is no Number -> BigFloat function. 
 	 */
 	final def integerToEither[A](fi:Int => Either[(String, Int),A]):Either[(String, Int),A] = {
-		val number = {n:Number => if (n.intValue.doubleValue == n.doubleValue) {fi(n.intValue)} else {Left("Expected integral number", 0)}} 
+		val number = {n:NumericPair[_] => n.tryToInt.fold[Either[(String, Int), A]](Left(("Expected integral number", 0))){fi}}
 		val unexpected = new ReturnLeft("Expected integral number")
 		this.fold(unexpected, unexpected, number, unexpected, unexpected)
 	}
@@ -83,8 +82,9 @@ sealed trait CborValue {
 	 * Executes and returns `fn(this.i)` if this is a CborValueNumber, else return a Left with an error message.
 	 */
 	final def numberToEither[A](fn:Number => Either[(String, Int),A]):Either[(String, Int),A] = {
+		val number = {n:NumericPair[_] => n.tryToBigDecimal.fold[Either[(String, Int),A]](Left(("Expected number", 0))){fn}}
 		val unexpected = new ReturnLeft("Expected number")
-		this.fold(unexpected, unexpected, fn, unexpected, unexpected)
+		this.fold(unexpected, unexpected, number, unexpected, unexpected)
 	}
 	
 	/**
@@ -103,7 +103,15 @@ sealed trait CborValue {
  */
 object CborValue {
 	final case class CborValueString(s:String) extends CborValue
-	final case class CborValueNumber(i:Number) extends CborValue
+	final case class CborValueNumber[A](value:A, typ:Numeric[A]) extends CborValue {
+		override def equals(other:Any) = {
+			if (other.isInstanceOf[CborValueNumber[_]]) {
+				val other2 = other.asInstanceOf[CborValueNumber[_]]
+				other2.tryToBigDecimal == this.tryToBigDecimal
+			} else {false}
+		}
+		private def tryToBigDecimal:Option[BigDecimal] = typ.tryToBigDecimal(value)
+	}
 	final case class CborValueBoolean(b:Boolean) extends CborValue
 	object CborValueNull extends CborValue
 	final class CborValueByteStr(s3:Array[Byte]) extends CborValue {
@@ -125,21 +133,21 @@ object CborValue {
 	implicit def apply(s:String):CborValue = CborValueString(s)
 	implicit def apply(b:Boolean):CborValue = CborValueBoolean(b)
 	implicit def apply(s:Array[Byte]):CborValue = CborValueByteStr(s)
-	implicit def apply(i:Number):CborValue = CborValueNumber(i)
+	implicit def apply[A](i:A)(implicit t:Numeric[A]):CborValue = CborValueNumber(i, t)
 	
 	
 	/** Convert a StringOrInt value intoa CborValue */
 	// Can't be called 'apply' as otherwise `CborValue(x:Int)` confuses the compiler
 	implicit def stringOrInt2CborValue(s:StringOrInt):CborValue = s match {
 		case StringOrInt.Left(s) => CborValueString(s)
-		case StringOrInt.Right(i) => CborValueNumber(i)
+		case StringOrInt.Right(i) => CborValueNumber(i, Numeric.IntNumeric)
 	}
 	
 	/** Convert a JsonValue value into a CborValue */
 	// Can't be called 'apply' as otherwise `CborValue(x:Int)` confuses the compiler
 	implicit def jsonValue2CborValue(s:JsonValue):CborValue = s match {
 		case JsonValue.JsonValueString(s) => CborValue.CborValueString(s)
-		case JsonValue.JsonValueNumber(s) => CborValue.CborValueNumber(s)
+		case JsonValue.JsonValueNumber(n, t) => CborValue.CborValueNumber(n, t)
 		case JsonValue.JsonValueBoolean(s) => CborValue.CborValueBoolean(s)
 		case JsonValue.JsonValueNull => CborValue.CborValueNull
 	}

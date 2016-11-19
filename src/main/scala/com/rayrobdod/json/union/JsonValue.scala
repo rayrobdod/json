@@ -27,6 +27,7 @@
 package com.rayrobdod.json.union
 
 import scala.language.implicitConversions
+import com.rayrobdod.json.union.Numeric.NumericPair
 
 /**
  * A union type representing primitive types in Json objects
@@ -43,9 +44,9 @@ sealed trait JsonValue {
 	 * @param fz the function to apply if `this` is a JsonValueNull
 	 * @return the results of applying the corresponding function
 	 */
-	final def fold[A](fs:String => A, fn:Number => A, fb:Boolean => A, fz:Function0[A]):A = this match {
+	final def fold[A](fs:String => A, fn:Numeric.NumericPair[_] => A, fb:Boolean => A, fz:Function0[A]):A = this match {
 		case JsonValueString(s) => fs(s)
-		case JsonValueNumber(n) => fn(n)
+		case JsonValueNumber(n, t) => fn(Numeric.NumericPair(n)(t))
 		case JsonValueBoolean(b) => fb(b)
 		case JsonValueNull => fz.apply
 	}
@@ -60,11 +61,9 @@ sealed trait JsonValue {
 	
 	/**
 	 * Executes and returns `fi(this.i)` if this is a JsonValueNumber which holds an number convertible to integer, else return a Left with an error message.
-	 * 
-	 * I somewhat doubt this method's ability to deal with numbers more precise than doubles can handle, but there is no Number -> BigFloat function. 
 	 */
 	final def integerToEither[A](fi:Int => Either[(String, Int),A]):Either[(String, Int),A] = {
-		val number = {n:Number => if (n.intValue.doubleValue == n.doubleValue) {fi(n.intValue)} else {Left("Expected integral number", 0)}} 
+		val number = {n:NumericPair[_] => n.tryToInt.fold[Either[(String, Int), A]](Left(("Expected integral number", 0))){fi}}
 		val unexpected = new ReturnLeft("Expected integral number")
 		this.fold(unexpected, number, unexpected, unexpected)
 	}
@@ -73,8 +72,9 @@ sealed trait JsonValue {
 	 * Executes and returns `fn(this.i)` if this is a JsonValueNumber, else return a Left with an error message.
 	 */
 	final def numberToEither[A](fn:Number => Either[(String, Int),A]):Either[(String, Int),A] = {
+		val number = {n:NumericPair[_] => n.tryToBigDecimal.fold[Either[(String, Int),A]](Left(("Expected number", 0))){fn}}
 		val unexpected = new ReturnLeft("Expected number")
-		this.fold(unexpected, fn, unexpected, unexpected)
+		this.fold(unexpected, number, unexpected, unexpected)
 	}
 	
 	/**
@@ -92,7 +92,15 @@ sealed trait JsonValue {
  */
 object JsonValue {
 	final case class JsonValueString(s:String) extends JsonValue
-	final case class JsonValueNumber(i:Number) extends JsonValue
+	final case class JsonValueNumber[A](value:A, typ:Numeric[A]) extends JsonValue {
+		override def equals(other:Any) = {
+			if (other.isInstanceOf[JsonValueNumber[_]]) {
+				val other2 = other.asInstanceOf[JsonValueNumber[_]]
+				other2.tryToBigDecimal == this.tryToBigDecimal
+			} else {false}
+		}
+		private def tryToBigDecimal:Option[BigDecimal] = typ.tryToBigDecimal(value)
+	}
 	final case class JsonValueBoolean(b:Boolean) extends JsonValue
 	object JsonValueNull extends JsonValue {
 		override def toString = "JsonValueNull"
@@ -100,7 +108,7 @@ object JsonValue {
 	
 	implicit def apply(s:String):JsonValue = JsonValueString(s)
 	implicit def apply(b:Boolean):JsonValue = JsonValueBoolean(b)
-	implicit def apply(i:Number):JsonValue = JsonValueNumber(i)
+	implicit def apply[A](i:A)(implicit t:Numeric[A]):JsonValue = JsonValueNumber(i, t)
 	
 	
 	
@@ -108,7 +116,7 @@ object JsonValue {
 	// Can't be called 'apply' as otherwise `JsonValue(x:Int)` confuses the compiler
 	implicit def stringOrInt2JsonValue(s:StringOrInt):JsonValue = s match {
 		case StringOrInt.Left(s) => JsonValueString(s)
-		case StringOrInt.Right(i) => JsonValueNumber(i)
+		case StringOrInt.Right(i) => JsonValueNumber(i, Numeric.IntNumeric)
 	}
 	
 	/** 
@@ -118,7 +126,7 @@ object JsonValue {
 	def cborValueHexencodeByteStr(x:CborValue):JsonValue = x match {
 		case CborValue.CborValueString(s) => JsonValueString(s)
 		case CborValue.CborValueBoolean(b) => JsonValueBoolean(b)
-		case CborValue.CborValueNumber(b) => JsonValueNumber(b)
+		case CborValue.CborValueNumber(n, t) => JsonValueNumber(n, t)
 		case CborValue.CborValueByteStr(s) => JsonValueString(new String(
 			s.flatMap{byte => ("00" + (0xFF & byte.intValue).toHexString).takeRight(2)}
 		))

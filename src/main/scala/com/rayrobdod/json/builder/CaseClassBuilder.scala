@@ -68,7 +68,7 @@ final class CaseClassBuilder[Value, A <: Product](
 					case x:com.rayrobdod.json.union.JsonValue => x match {
 						case com.rayrobdod.json.union.JsonValue.JsonValueNull => null
 						case com.rayrobdod.json.union.JsonValue.JsonValueString(x) => x
-						case com.rayrobdod.json.union.JsonValue.JsonValueNumber(x) => x
+						case com.rayrobdod.json.union.JsonValue.JsonValueNumber(x,t) => t.tryToBigDecimal(x).get
 						case com.rayrobdod.json.union.JsonValue.JsonValueBoolean(x) => x
 					}
 					case x => x

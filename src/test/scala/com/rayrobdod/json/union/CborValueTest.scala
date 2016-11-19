@@ -35,7 +35,7 @@ class CborValueTest extends FunSpec {
 		// string, double, integer, boolean, null
 		val values = Seq(
 			CborValueString(""), CborValueByteStr(new Array[Byte](2)), 
-			CborValueNumber(1.5), CborValueNumber(42),
+			CborValueNumber(1.5, implicitly[Numeric[Double]]), CborValueNumber(42L, implicitly[Numeric[Long]]),
 			CborValueBoolean(true), CborValueNull
 		)
 		val ToEitherFuns = Seq[CborValue => Either[(String, Int),Any]](

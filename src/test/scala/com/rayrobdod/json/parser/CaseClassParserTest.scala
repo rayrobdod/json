@@ -46,7 +46,7 @@ class CaseClassParserTest extends FunSpec {
 			assertResult(exp.mapValues{x => Right(x)}){res}
 		}
 	}
-	describe("CaseClassParser + Json") {
+	ignore("CaseClassParser + Json") {
 		it ("""can be used with the json stuff to serialize and deserialize a case class""") {
 			val src = Foo(-5, "asdf", true)
 			val json = new CaseClassParser().parse(new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams).mapKey[String].mapValue[Any]{_ match {

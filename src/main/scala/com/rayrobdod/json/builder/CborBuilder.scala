@@ -66,7 +66,7 @@ final class CborBuilder(forceObject:Boolean = false) extends Builder[CborValue, 
 			
 			if (majorType == MajorTypeCodes.ARRAY) {
 				key match {
-					case CborValue.CborValueNumber(x) if (x == objectLength) => {
+					case CborValue.CborValueNumber(x,t) if (t.tryToLong(x) == Option(objectLength)) => {
 						// continue being array
 						Right(encodeLength(MajorTypeCodes.ARRAY, objectLength + 1) ++ passData ++ encodedValue)
 					}
@@ -117,14 +117,30 @@ private[builder] object CborBuilder {
 		case CborValueBoolean(false) => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.FALSE)
 		case CborValueBoolean(true)  => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.TRUE)
 		case CborValueNull  => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.NULL)
-		case CborValueNumber(x:java.lang.Float) => Seq((0xE0 + SimpleValueCodes.FLOAT).byteValue) ++ long2ByteArray(java.lang.Float.floatToIntBits(x), 4)
-		case CborValueNumber(x:java.lang.Double) => Seq((0xE0 + SimpleValueCodes.DOUBLE).byteValue) ++ long2ByteArray(java.lang.Double.doubleToLongBits(x))
+		case CborValueNumber(value, typ) => {
+			typ.tryToLong(value).fold{
+				typ.tryToFloat(value).fold{
+					typ.tryToDouble(value).fold{
+						throw new NumberFormatException("")
+					}{d:Double =>
+						Seq((0xE0 + SimpleValueCodes.DOUBLE).byteValue) ++ long2ByteArray(java.lang.Double.doubleToLongBits(d))
+					}
+				}{f:Float =>
+					Seq((0xE0 + SimpleValueCodes.FLOAT).byteValue) ++ long2ByteArray(java.lang.Float.floatToIntBits(f), 4)
+				}
+			}{i:Long =>
+				if (i >= 0) {
+					encodeLength(MajorTypeCodes.POSITIVE_INT, i)
+				} else {
+					encodeLength(MajorTypeCodes.NEGATIVE_INT, -1 - i)
+				}
+			}
+			
+		}
 		case CborValueString(x:String) => {
 			val bytes = x.getBytes(UTF_8)
 			encodeLength(MajorTypeCodes.STRING, bytes.length) ++ bytes
 		}
-		case CborValueNumber(x:Number) if (x.longValue >= 0) => encodeLength(MajorTypeCodes.POSITIVE_INT, x.longValue)
-		case CborValueNumber(x:Number) if (x.longValue < 0) => encodeLength(MajorTypeCodes.NEGATIVE_INT, -1 - x.longValue)
 		case CborValueByteStr(bytes:Array[Byte]) => encodeLength(MajorTypeCodes.BYTE_ARRAY, bytes.length) ++ bytes
 	}
 	

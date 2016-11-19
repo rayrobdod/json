@@ -144,8 +144,8 @@ class MinifiedJsonObjectBuilderTest extends FunSpec {
 			assertResult("""{"4":5}"""){
 				new CborParser().parse(
 					new MinifiedJsonObjectBuilder()
-							.mapKey[CborValue]{_ match {case CborValue.CborValueNumber(x) => x.toString; case _ => ""}}
-							.mapValue[CborValue]{_ match {case CborValue.CborValueNumber(x) => x; case _ => JsonValueNull}},
+							.mapKey[CborValue]{_ match {case CborValue.CborValueNumber(x, t) => x.toString; case _ => ""}}
+							.mapValue[CborValue]{_ match {case CborValue.CborValueNumber(x, t) => t.tryToInt(x).get; case _ => JsonValueNull}},
 					byteArray2DataInput(hexArray"A10405")
 				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
 			}

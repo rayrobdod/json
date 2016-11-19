@@ -27,6 +27,7 @@
 package com.rayrobdod.json.parser;
 
 import scala.util.{Either, Left, Right}
+import scala.math.BigDecimal
 import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue
@@ -130,7 +131,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 					case Left(x) => new FailureState(x._1, x._2 + index)
 				}
 			})
-			case '-'  => new IntegerState("-", {s:Number =>
+			case '-'  => new IntegerState("-", {s:BigDecimal =>
 				builder.apply[JsonValue](soFar, key, JsonValue(s), new IdentityParser[JsonValue]()) match {
 					case Right(x) => new ObjectValueEndState(x, builder)
 					case Left(x) => new FailureState(x._1, x._2 + index)
@@ -139,7 +140,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 			case '.'  => {
 				new FailureState("Numeric value may not begin with a '.'", index)
 			}
-			case x if ('0' <= x && x <= '9') => new IntegerState("" + x, {s:Number =>
+			case x if ('0' <= x && x <= '9') => new IntegerState("" + x, {s:BigDecimal =>
 				builder.apply[JsonValue](soFar, key, JsonValue(s), new IdentityParser[JsonValue]()) match {
 					case Right(x) => new ObjectValueEndState(x, builder)
 					case Left(x) => new FailureState(x._1, x._2 + index)
@@ -190,7 +191,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 					case Left(x) => new FailureState(x._1, x._2 + charIndex)
 				}
 			})
-			case '-'  => new IntegerState("-", {s:Number =>
+			case '-'  => new IntegerState("-", {s:BigDecimal =>
 				builder.apply[JsonValue](soFar, arrayIndex, JsonValue(s), new IdentityParser[JsonValue]()) match {
 					case Right(x) => new ArrayValueEndState(x, builder, arrayIndex)
 					case Left(x) => new FailureState(x._1, x._2 + charIndex)
@@ -200,7 +201,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 				val msg = "Numeric value may not begin with a '.'"
 				new FailureState(msg, charIndex);
 			}
-			case x if ('0' <= x && x <= '9') => new IntegerState("" + x, {s:Number =>
+			case x if ('0' <= x && x <= '9') => new IntegerState("" + x, {s:BigDecimal =>
 				builder.apply[JsonValue](soFar, arrayIndex, JsonValue(s), new IdentityParser[JsonValue]()) match {
 					case Right(x) => new ArrayValueEndState(x, builder, arrayIndex)
 					case Left(x) => new FailureState(x._1, x._2 + charIndex)
@@ -282,12 +283,12 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 		}
 	}
 	
-	private[this] class IntegerState[A](str:String, pop:(Number => State[A])) extends State[A] {
+	private[this] class IntegerState[A](str:String, pop:(BigDecimal => State[A])) extends State[A] {
 		def apply(c:Char, charIndex:Int):State[A] = {
 			if (c == '}' || c == ']' || c == ',') {
 				val rawNewValue = str.toString.trim
 				try {
-					val newValue:Number = scala.math.BigDecimal(rawNewValue)
+					val newValue:BigDecimal = BigDecimal(rawNewValue)
 					pop(newValue).apply(c, charIndex)
 				} catch {
 					case _:NumberFormatException => {
