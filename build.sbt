@@ -25,8 +25,6 @@ scalacOptions ++= (if (scalaVersion.value != "2.11.8") {Nil} else {Seq("-Ywarn-u
 
 libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
 
-libraryDependencies += "org.spire-math" %% "spire" % "0.11.0"
-
 scalacOptions in doc in Compile ++= Seq(
 		"-doc-title", name.value,
 		"-doc-version", version.value,

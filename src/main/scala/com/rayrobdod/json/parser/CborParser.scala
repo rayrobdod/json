@@ -278,7 +278,7 @@ object CborParser {
 	
 	import CborValue._
 	import scala.math.{BigDecimal, BigInt}
-	import spire.math.Rational
+	import com.rayrobdod.json.union.Numeric.Rational
 	val numberTags:PartialFunction[Int,Function1[DataInput, Either[(String,Int),CborValue]]] = {
 		case 2 /* Positive bignum */ => {i:DataInput =>
 			val bsOpt = new CborParser().parsePrimitive(i)
@@ -310,7 +310,7 @@ object CborParser {
 		}
 		case 30 /* rational */ => {i:DataInput =>
 			new CborParser().parse(new PairBigIntBuilder("Tag 30"), i).fold(
-				{x => val (a,b) = x; Right(Rational(a,b))},
+				{x => val (a,b) = x; Right(new Rational(a,b))},
 				{x => Left("Tag 30 contained primitive", 0)},
 				{(s,i) => Left(s,i)}
 			)

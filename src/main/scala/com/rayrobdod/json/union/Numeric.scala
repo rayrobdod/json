@@ -28,8 +28,6 @@ package com.rayrobdod.json.union
 
 import java.math.MathContext.UNLIMITED
 import scala.math.{BigInt, BigDecimal}
-import scala.language.implicitConversions
-import spire.math.Rational
 
 /**
  * A typeclass represeting a set of functions that can convert to various numeric formats
@@ -37,12 +35,12 @@ import spire.math.Rational
  * @since next
  */
 trait Numeric[A]{
-	def tryToBigDecimal(a:A):Some[BigDecimal]
+	def tryToBigDecimal(a:A):Option[BigDecimal]
 	def tryToBigInt(a:A):Option[BigInt]
 	def tryToDouble(a:A):Option[Double]
 	def tryToFloat(a:A):Option[Float] = this.tryToDouble(a).collect{case x if (x == x.floatValue.doubleValue) => x.floatValue}
-	def tryToLong(a:A):Option[Long]
-	def tryToInt(a:A):Option[Int] = this.tryToLong(a).collect{case x if (Int.MinValue < x && x < Int.MaxValue) => x.intValue}
+	def tryToLong(a:A):Option[Long] = this.tryToBigInt(a).collect{case x if (Long.MinValue < x && x < Long.MaxValue) => x.longValue}
+	def tryToInt(a:A):Option[Int] = this.tryToBigInt(a).collect{case x if (Int.MinValue < x && x < Int.MaxValue) => x.intValue}
 }
 
 /**
@@ -82,9 +80,9 @@ object Numeric {
 	}
 	
 	
-	
+	/** For when something need not know what `A` is, just that there is a numeric for it */
 	case class NumericPair[A](a:A)(implicit Num:Numeric[A]) {
-		def tryToBigDecimal:Some[BigDecimal] = a.tryToBigDecimal
+		def tryToBigDecimal:Option[BigDecimal] = a.tryToBigDecimal
 		def tryToBigInt:Option[BigInt] = a.tryToBigInt
 		def tryToDouble:Option[Double] = a.tryToDouble
 		def tryToFloat:Option[Float] = a.tryToFloat
@@ -93,14 +91,14 @@ object Numeric {
 	}
 	
 	implicit object BigDecimalNumeric extends Numeric[BigDecimal] {
-		override def tryToBigDecimal(a:BigDecimal):Some[BigDecimal] = Some(a:BigDecimal)
+		override def tryToBigDecimal(a:BigDecimal):Option[BigDecimal] = Some(a:BigDecimal)
 		override def tryToBigInt(a:BigDecimal):Option[BigInt] = if (a.isWhole) { a.toBigIntExact } else {None}
 		override def tryToDouble(a:BigDecimal):Option[Double] = if ( BigDecimal(a.doubleValue) == a) {Option(a.doubleValue)} else {None}
 		override def tryToLong(a:BigDecimal):Option[Long] = if (BigDecimal(a.longValue) == a) {Option(a.longValue)} else {None}
 	}
 	
 	implicit object BigIntNumeric extends Numeric[BigInt] {
-		override def tryToBigDecimal(a:BigInt):Some[BigDecimal] = Some(BigDecimal(a))
+		override def tryToBigDecimal(a:BigInt):Option[BigDecimal] = Some(BigDecimal(a))
 		override def tryToBigInt(a:BigInt):Option[BigInt] = if (a.isWhole) { Option(a) } else {None}
 		override def tryToDouble(a:BigInt):Option[Double] = if ( BigInt(a.doubleValue.toString) == a) {Option(a.doubleValue)} else {None}
 		override def tryToLong(a:BigInt):Option[Long] = if (Long.MinValue <= a && a <= Long.MaxValue) {Option(a.longValue)} else {None}
@@ -121,7 +119,7 @@ object Numeric {
 		val zeroExponent:Short = -1023
 		val significandBitCount:Byte = 52
 		
-		override def tryToBigDecimal(a:Double):Some[BigDecimal] = Some(buildBigDecimal(this.split(a), zeroExponent, significandBitCount))
+		override def tryToBigDecimal(a:Double):Option[BigDecimal] = Some(buildBigDecimal(this.split(a), zeroExponent, significandBitCount))
 		override def tryToBigInt(a:Double):Option[BigInt] = if (a.isWhole) {Option(buildBigInt(this.split(a), zeroExponent, significandBitCount))} else {None}
 		override def tryToDouble(a:Double):Option[Double] = Option(a)
 		override def tryToLong(a:Double):Option[Long] = if (a.longValue.doubleValue == a) { Option(a.longValue) } else {None}
@@ -143,13 +141,14 @@ object Numeric {
 		private[this] val zeroExponent:Short = -127
 		private[this] val significandBitCount:Byte = 23
 		
-		override def tryToBigDecimal(a:Float):Some[BigDecimal] = Some(buildBigDecimal(this.split(a), zeroExponent, significandBitCount))
+		override def tryToBigDecimal(a:Float):Option[BigDecimal] = Some(buildBigDecimal(this.split(a), zeroExponent, significandBitCount))
 		override def tryToBigInt(a:Float):Option[BigInt] = if (a.isWhole) {Option(buildBigInt(this.split(a), zeroExponent, significandBitCount))} else {None}
 		override def tryToDouble(a:Float):Option[Double] = Option(a)
 		override def tryToFloat(a:Float):Option[Float] = Option(a)
 		override def tryToLong(a:Float):Option[Long] = if (a.longValue.floatValue == a) { Option(a.longValue) } else {None}
 	}
 	
+	/** A Numeric that treats a Short as if it contains the bit-sequence for encoding a half-width floating point */
 	object HalfFloatNumeric extends Numeric[Short] {
 		private[this] def split(bits:Short):(Byte, Short, Long) = {
 			val signBitRaw = bits & 0x8000
@@ -164,7 +163,7 @@ object Numeric {
 		private[this] val zeroExponent:Short = -15
 		private[this] val significandBitCount:Byte = 10
 		
-		override def tryToBigDecimal(a:Short):Some[BigDecimal] = Some(buildBigDecimal(this.split(a), zeroExponent, significandBitCount))
+		override def tryToBigDecimal(a:Short):Option[BigDecimal] = Some(buildBigDecimal(this.split(a), zeroExponent, significandBitCount))
 		override def tryToBigInt(a:Short):Option[BigInt] = this.tryToBigDecimal(a).collect{case x if (x.isWhole) => x.toBigIntExact}.flatten
 		override def tryToDouble(a:Short):Option[Double] = Option{
 			if (a == 0) {0.0} else if (a == 0x8000.shortValue) {-0.0} else {
@@ -181,7 +180,7 @@ object Numeric {
 	}
 	
 	implicit object IntNumeric extends Numeric[Int] {
-		override def tryToBigDecimal(a:Int):Some[BigDecimal] = Some(a:BigDecimal)
+		override def tryToBigDecimal(a:Int):Option[BigDecimal] = Some(a:BigDecimal)
 		override def tryToBigInt(a:Int):Option[BigInt] = Option(a:BigInt)
 		override def tryToDouble(a:Int):Option[Double] = Option(a:Double)
 		override def tryToLong(a:Int):Option[Long] = Option(a)
@@ -189,23 +188,33 @@ object Numeric {
 	}
 	
 	implicit object LongNumeric extends Numeric[Long] {
-		override def tryToBigDecimal(a:Long):Some[BigDecimal] = Some(a:BigDecimal)
+		override def tryToBigDecimal(a:Long):Option[BigDecimal] = Some(a:BigDecimal)
 		override def tryToBigInt(a:Long):Option[BigInt] = Option(a:BigInt)
 		override def tryToDouble(a:Long):Option[Double] = if (a.doubleValue.longValue == a) {Option(a:Double)} else {None}
 		override def tryToLong(a:Long):Option[Long] = Option(a)
 		override def tryToInt(a:Long):Option[Int] = if (a.isValidInt) { Option(a.intValue) } else {None}
 	}
 	
+	/** A value represeting a whole number divided by another whole number */
+	private[json] class Rational(num:BigInt, denom:BigInt) {
+		def isWhole:Boolean = (num mod denom.abs) == BigInt(0)
+		def toBigDecimal:BigDecimal = BigDecimal(num, java.math.MathContext.UNLIMITED) / BigDecimal(denom, java.math.MathContext.UNLIMITED)
+		def tryToBigDecimal:Option[BigDecimal] = (try {Option(this.toBigDecimal)} catch {case e:java.lang.ArithmeticException => None})
+		def toBigInt:BigInt = num / denom
+		def toDouble:Double = this.toBigDecimal.doubleValue
+		override def toString:String = this.num.toString + "/" + this.denom.toString
+	}
+	
 	implicit object RationalNumeric extends Numeric[Rational] {
-		override def tryToBigDecimal(a:Rational):Some[BigDecimal] = Some(a.toBigDecimal(java.math.MathContext.UNLIMITED))
+		override def tryToBigDecimal(a:Rational):Option[BigDecimal] = a.tryToBigDecimal
 		override def tryToBigInt(a:Rational):Option[BigInt] = if(a.isWhole) {Option(a.toBigInt)} else {None}
-		override def tryToDouble(a:Rational):Option[Double] = if (BigDecimal(a.doubleValue) == a.toBigDecimal(java.math.MathContext.UNLIMITED)) {Option(a.doubleValue)} else {None}
+		override def tryToDouble(a:Rational):Option[Double] = this.tryToBigDecimal(a).collect{case a if (BigDecimal(a.doubleValue) == a) => a.doubleValue}
 		override def tryToLong(a:Rational):Option[Long] = this.tryToBigInt(a).collect{case a if (Long.MinValue <= a && a <= Long.MaxValue) => a.longValue}
 	}
 	
 	
 	implicit class NumericSyntax[A](self:A)(implicit Num:Numeric[A]) {
-		def tryToBigDecimal:Some[BigDecimal] = Num.tryToBigDecimal(self)
+		def tryToBigDecimal:Option[BigDecimal] = Num.tryToBigDecimal(self)
 		def tryToBigInt:Option[BigInt] = Num.tryToBigInt(self)
 		def tryToDouble:Option[Double] = Num.tryToDouble(self)
 		def tryToFloat:Option[Float] = Num.tryToFloat(self)
