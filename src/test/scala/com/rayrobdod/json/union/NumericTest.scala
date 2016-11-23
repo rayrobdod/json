@@ -35,24 +35,28 @@ class NumericTest extends FunSpec {
 	private val intMaxPlusOne = (Int.MaxValue:Long) + 1
 	private val intMinMinusOne = (Int.MinValue:Long) - 1
 	
-	describe("IntNumeric") {
-		val tests = Seq[(Int, Option[BigDecimal], Option[BigInt],
+	describe("BigIntNumeric") {
+		val tests = Seq[(BigInt, Option[BigDecimal], Option[BigInt],
 				Option[Double], Option[Float], Option[Long], Option[Int])](
 			  (0, Option(BigDecimal(0)), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0))
 			, (1, Option(BigDecimal(1)), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1))
 			, (-1, Option(BigDecimal(-1)), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1))
 			, (Int.MaxValue, Option(BigDecimal(Int.MaxValue)), Option(BigInt(Int.MaxValue)), Option(Int.MaxValue), None, Option(Int.MaxValue), Option(Int.MaxValue))
+			, (intMaxPlusOne, Option(BigDecimal(intMaxPlusOne)), Option(BigInt(intMaxPlusOne)), Option(intMaxPlusOne), Option(intMaxPlusOne), Option(intMaxPlusOne), None)
 			, (Int.MinValue, Option(BigDecimal(Int.MinValue)), Option(BigInt(Int.MinValue)), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue))
+			, (intMinMinusOne, Option(BigDecimal(intMinMinusOne)), Option(BigInt(intMinMinusOne)), Option(intMinMinusOne), None, Option(intMinMinusOne), None)
+			, (Long.MaxValue, Option(BigDecimal(Long.MaxValue)), Option(BigInt(Long.MaxValue)), None, None, Option(Long.MaxValue), None)
+			, (BigInt(10).pow(20), Option(BigDecimal(1e20)), Option(BigInt(10).pow(20)), Option(1e20), None, None, None)
 		)
 		
 		tests.foreach{x =>
 			describe("In Value: " + x._1) {
-				it ("convert to BigDec: " + x._2) {assertResult(x._2){LongNumeric.tryToBigDecimal(x._1)}}
-				it ("convert to BigInt: " + x._3) {assertResult(x._3){LongNumeric.tryToBigInt(x._1)}}
-				it ("convert to Double: " + x._4) {assertResult(x._4){LongNumeric.tryToDouble(x._1)}}
-				it ("convert to Float: " + x._5) {assertResult(x._5){LongNumeric.tryToFloat(x._1)}}
-				it ("convert to Long: " + x._6) {assertResult(x._6){LongNumeric.tryToLong(x._1)}}
-				it ("convert to Int: " + x._7) {assertResult(x._7){LongNumeric.tryToInt(x._1)}}
+				it ("convert to BigDec: " + x._2) {assertResult(x._2){BigIntNumeric.tryToBigDecimal(x._1)}}
+				it ("convert to BigInt: " + x._3) {assertResult(x._3){BigIntNumeric.tryToBigInt(x._1)}}
+				it ("convert to Double: " + x._4) {assertResult(x._4){BigIntNumeric.tryToDouble(x._1)}}
+				it ("convert to Float: " + x._5) {assertResult(x._5){BigIntNumeric.tryToFloat(x._1)}}
+				it ("convert to Long: " + x._6) {assertResult(x._6){BigIntNumeric.tryToLong(x._1)}}
+				it ("convert to Int: " + x._7) {assertResult(x._7){BigIntNumeric.tryToInt(x._1)}}
 			}
 		}
 	}
@@ -66,7 +70,7 @@ class NumericTest extends FunSpec {
 			, (intMaxPlusOne, Option(BigDecimal(intMaxPlusOne)), Option(BigInt(intMaxPlusOne)), Option(intMaxPlusOne), Option(intMaxPlusOne), Option(intMaxPlusOne), None)
 			, (Int.MinValue, Option(BigDecimal(Int.MinValue)), Option(BigInt(Int.MinValue)), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue))
 			, (intMinMinusOne, Option(BigDecimal(intMinMinusOne)), Option(BigInt(intMinMinusOne)), Option(intMinMinusOne), None, Option(intMinMinusOne), None)
-			, (Long.MaxValue, Option(BigDecimal(Long.MaxValue)), Option(BigInt(Long.MaxValue)), Option(Long.MaxValue), Option(Long.MaxValue), Option(Long.MaxValue), None)
+			, (Long.MaxValue, Option(BigDecimal(Long.MaxValue)), Option(BigInt(Long.MaxValue)), None, None, Option(Long.MaxValue), None)
 		)
 		
 		tests.foreach{x =>
@@ -80,6 +84,53 @@ class NumericTest extends FunSpec {
 			}
 		}
 	}
+	describe("IntNumeric") {
+		val tests = Seq[(Int, Option[BigDecimal], Option[BigInt],
+				Option[Double], Option[Float], Option[Long], Option[Int])](
+			  (0, Option(BigDecimal(0)), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0))
+			, (1, Option(BigDecimal(1)), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1))
+			, (-1, Option(BigDecimal(-1)), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1))
+			, (Int.MaxValue, Option(BigDecimal(Int.MaxValue)), Option(BigInt(Int.MaxValue)), Option(Int.MaxValue), None, Option(Int.MaxValue), Option(Int.MaxValue))
+			, (Int.MinValue, Option(BigDecimal(Int.MinValue)), Option(BigInt(Int.MinValue)), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue))
+		)
+		
+		tests.foreach{x =>
+			describe("In Value: " + x._1) {
+				it ("convert to BigDec: " + x._2) {assertResult(x._2){IntNumeric.tryToBigDecimal(x._1)}}
+				it ("convert to BigInt: " + x._3) {assertResult(x._3){IntNumeric.tryToBigInt(x._1)}}
+				it ("convert to Double: " + x._4) {assertResult(x._4){IntNumeric.tryToDouble(x._1)}}
+				it ("convert to Float: " + x._5) {assertResult(x._5){IntNumeric.tryToFloat(x._1)}}
+				it ("convert to Long: " + x._6) {assertResult(x._6){IntNumeric.tryToLong(x._1)}}
+				it ("convert to Int: " + x._7) {assertResult(x._7){IntNumeric.tryToInt(x._1)}}
+			}
+		}
+	}
+	
+	describe("BigDecimalNumeric") {
+		val tests = Seq[(BigDecimal, Option[BigDecimal], Option[BigInt],
+				Option[Double], Option[Float], Option[Long], Option[Int])](
+			  (BigDecimal("0"), Option(BigDecimal("0")), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0))
+			, (BigDecimal("1"), Option(BigDecimal("1")), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1))
+			, (BigDecimal("2"), Option(BigDecimal("2")), Option(BigInt(2)), Option(2), Option(2), Option(2), Option(2))
+			, (BigDecimal("0.5"), Option(BigDecimal("0.5")), None, Option(0.5), Option(0.5f), None, None)
+			, (BigDecimal("-1"), Option(BigDecimal("-1")), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1))
+			, (BigDecimal("1.5"), Option(BigDecimal("1.5")), None, Option(1.5), Option(1.5F), None, None)
+			, (BigDecimal(1e20), Option(BigDecimal(1e20)), Option(BigInt(10).pow(20)), Option(1e20), None, None, None)
+			, (Long.MaxValue, Option(BigDecimal(Long.MaxValue)), Option(BigInt(Long.MaxValue)), None, None, Option(Long.MaxValue), None)
+		)
+		
+		tests.foreach{x =>
+			describe("In Value: " + x._1.toString) {
+				it ("convert to BigDec: " + x._2) {assertResult(x._2){BigDecimalNumeric.tryToBigDecimal(x._1)}}
+				it ("convert to BigInt: " + x._3) {assertResult(x._3){BigDecimalNumeric.tryToBigInt(x._1)}}
+				it ("convert to Double: " + x._4) {assertResult(x._4){BigDecimalNumeric.tryToDouble(x._1)}}
+				it ("convert to Float: " + x._5) {assertResult(x._5){BigDecimalNumeric.tryToFloat(x._1)}}
+				it ("convert to Long: " + x._6) {assertResult(x._6){BigDecimalNumeric.tryToLong(x._1)}}
+				it ("convert to Int: " + x._7) {assertResult(x._7){BigDecimalNumeric.tryToInt(x._1)}}
+			}
+		}
+	}
+	
 	describe("DoubleNumeric") {
 		val tests = Seq[(Double, Option[BigDecimal], Option[BigInt],
 				Option[Double], Option[Float], Option[Long], Option[Int])](
@@ -103,6 +154,12 @@ class NumericTest extends FunSpec {
 				it ("convert to Float: " + x._5) {assertResult(x._5){DoubleNumeric.tryToFloat(x._1)}}
 				it ("convert to Long: " + x._6) {assertResult(x._6){DoubleNumeric.tryToLong(x._1)}}
 				it ("convert to Int: " + x._7) {assertResult(x._7){DoubleNumeric.tryToInt(x._1)}}
+				it ("convert to BigDec (syntax): " + x._2) {assertResult(x._2){x._1.tryToBigDecimal}}
+				it ("convert to BigInt (syntax): " + x._3) {assertResult(x._3){x._1.tryToBigInt}}
+				it ("convert to Double (syntax): " + x._4) {assertResult(x._4){x._1.tryToDouble}}
+				it ("convert to Float (syntax): " + x._5) {assertResult(x._5){x._1.tryToFloat}}
+				it ("convert to Long (syntax): " + x._6) {assertResult(x._6){x._1.tryToLong}}
+				it ("convert to Int (syntax): " + x._7) {assertResult(x._7){x._1.tryToInt}}
 			}
 		}
 	}
@@ -153,6 +210,7 @@ class NumericTest extends FunSpec {
 			}
 		}
 	}
+	
 	describe("RationalNumeric") {
 		val tests = Seq[(Rational, Option[BigDecimal], Option[BigInt],
 				Option[Double], Option[Float], Option[Long], Option[Int])](

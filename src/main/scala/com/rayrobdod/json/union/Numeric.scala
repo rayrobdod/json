@@ -39,8 +39,8 @@ trait Numeric[A]{
 	def tryToBigInt(a:A):Option[BigInt]
 	def tryToDouble(a:A):Option[Double]
 	def tryToFloat(a:A):Option[Float] = this.tryToDouble(a).collect{case x if (x == x.floatValue.doubleValue) => x.floatValue}
-	def tryToLong(a:A):Option[Long] = this.tryToBigInt(a).collect{case x if (Long.MinValue < x && x < Long.MaxValue) => x.longValue}
-	def tryToInt(a:A):Option[Int] = this.tryToBigInt(a).collect{case x if (Int.MinValue < x && x < Int.MaxValue) => x.intValue}
+	def tryToLong(a:A):Option[Long] = this.tryToBigInt(a).collect{case x if (Long.MinValue <= x && x <= Long.MaxValue) => x.longValue}
+	def tryToInt(a:A):Option[Int] = this.tryToBigInt(a).collect{case x if (Int.MinValue <= x && x <= Int.MaxValue) => x.intValue}
 }
 
 /**
@@ -49,11 +49,13 @@ trait Numeric[A]{
 object Numeric {
 	// Going through all the effort to deconstruct then reconstruct the floats as neither BigDecimal.apply nor BigDecimal.valueOf gave the result I wanted (an as-presice-as-possible translation)
 	
-	/** Build a BigDecimal from the parts of a floating point number */
+	/** Build a BigDecimal from the parts of a floating point number. Assumes not NaN nor Infinity */
 	private[this] def buildBigDecimal(floatParts:(Byte, Short, Long), zeroExponent:Short, significandBitCount:Byte):BigDecimal = {
 		val (sign, exponent, significand) = floatParts
 		if (exponent == zeroExponent) {
-			if (significand == (1L << significandBitCount)) { BigDecimal(0) } else {
+			if (significand == (1L << significandBitCount)) {
+				BigDecimal(0)
+			} else {
 				throw new UnsupportedOperationException("Subnormals")
 			}
 		} else {(
@@ -64,12 +66,14 @@ object Numeric {
 		)}
 	}
 	
-	/** Build a BigInt from the parts of a floating point number. Assumes is whole */
+	/** Build a BigInt from the parts of a floating point number. Assumes is whole and not NaN nor Infinity */
 	private[this] def buildBigInt(floatParts:(Byte, Short, Long), zeroExponent:Short, significandBits:Byte):BigInt = {
 		val (sign, exponent, significand) = floatParts
 		if (exponent == zeroExponent) {
-			if (significand == (1L << significandBits)) { BigInt(0) } else {
-				throw new UnsupportedOperationException("Nans, Infinities or Subnormals")
+			if (significand == (1L << significandBits)) {
+				BigInt(0)
+			} else {
+				throw new UnsupportedOperationException("Subnormals")
 			}
 		} else {(
 			BigInt(significand)
@@ -81,7 +85,7 @@ object Numeric {
 	
 	
 	/** For when something need not know what `A` is, just that there is a numeric for it */
-	case class NumericPair[A](a:A)(implicit Num:Numeric[A]) {
+	final case class NumericPair[A](a:A)(implicit Num:Numeric[A]) {
 		def tryToBigDecimal:Option[BigDecimal] = a.tryToBigDecimal
 		def tryToBigInt:Option[BigInt] = a.tryToBigInt
 		def tryToDouble:Option[Double] = a.tryToDouble
@@ -98,9 +102,9 @@ object Numeric {
 	}
 	
 	implicit object BigIntNumeric extends Numeric[BigInt] {
-		override def tryToBigDecimal(a:BigInt):Option[BigDecimal] = Some(BigDecimal(a))
-		override def tryToBigInt(a:BigInt):Option[BigInt] = if (a.isWhole) { Option(a) } else {None}
-		override def tryToDouble(a:BigInt):Option[Double] = if ( BigInt(a.doubleValue.toString) == a) {Option(a.doubleValue)} else {None}
+		override def tryToBigDecimal(a:BigInt):Option[BigDecimal] = Option(BigDecimal(a))
+		override def tryToBigInt(a:BigInt):Option[BigInt] = Option(a)
+		override def tryToDouble(a:BigInt):Option[Double] = DoubleNumeric.tryToBigInt(a.doubleValue).collect{case x if x == a => a.doubleValue}
 		override def tryToLong(a:BigInt):Option[Long] = if (Long.MinValue <= a && a <= Long.MaxValue) {Option(a.longValue)} else {None}
 	}
 	
@@ -190,7 +194,15 @@ object Numeric {
 	implicit object LongNumeric extends Numeric[Long] {
 		override def tryToBigDecimal(a:Long):Option[BigDecimal] = Some(a:BigDecimal)
 		override def tryToBigInt(a:Long):Option[BigInt] = Option(a:BigInt)
-		override def tryToDouble(a:Long):Option[Double] = if (a.doubleValue.longValue == a) {Option(a:Double)} else {None}
+		override def tryToDouble(a:Long):Option[Double] = {
+			if (a.doubleValue.longValue == a &&
+					Long.MinValue <= BigDecimal(a.doubleValue) &&
+					BigDecimal(a.doubleValue) <= Long.MaxValue) {
+				Option(a:Double)
+			} else {
+				None
+			}
+		}
 		override def tryToLong(a:Long):Option[Long] = Option(a)
 		override def tryToInt(a:Long):Option[Int] = if (a.isValidInt) { Option(a.intValue) } else {None}
 	}
@@ -201,7 +213,6 @@ object Numeric {
 		def toBigDecimal:BigDecimal = BigDecimal(num, java.math.MathContext.UNLIMITED) / BigDecimal(denom, java.math.MathContext.UNLIMITED)
 		def tryToBigDecimal:Option[BigDecimal] = (try {Option(this.toBigDecimal)} catch {case e:java.lang.ArithmeticException => None})
 		def toBigInt:BigInt = num / denom
-		def toDouble:Double = this.toBigDecimal.doubleValue
 		override def toString:String = this.num.toString + "/" + this.denom.toString
 	}
 	

@@ -36,7 +36,6 @@ import com.rayrobdod.json.union.{CborValue, ParserRetVal, Numeric}
  * 
  * This does not support
    - complex values in map keys
-   - halffloats
    - any tags
  * 
  * @version 3.0
