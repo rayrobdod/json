@@ -37,16 +37,18 @@ class NumericTest extends FunSpec {
 	
 	describe("BigIntNumeric") {
 		val tests = Seq[(BigInt, Option[BigDecimal], Option[BigInt],
-				Option[Double], Option[Float], Option[Long], Option[Int])](
-			  (0, Option(BigDecimal(0)), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0))
-			, (1, Option(BigDecimal(1)), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1))
-			, (-1, Option(BigDecimal(-1)), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1))
-			, (Int.MaxValue, Option(BigDecimal(Int.MaxValue)), Option(BigInt(Int.MaxValue)), Option(Int.MaxValue), None, Option(Int.MaxValue), Option(Int.MaxValue))
-			, (intMaxPlusOne, Option(BigDecimal(intMaxPlusOne)), Option(BigInt(intMaxPlusOne)), Option(intMaxPlusOne), Option(intMaxPlusOne), Option(intMaxPlusOne), None)
-			, (Int.MinValue, Option(BigDecimal(Int.MinValue)), Option(BigInt(Int.MinValue)), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue))
-			, (intMinMinusOne, Option(BigDecimal(intMinMinusOne)), Option(BigInt(intMinMinusOne)), Option(intMinMinusOne), None, Option(intMinMinusOne), None)
-			, (Long.MaxValue, Option(BigDecimal(Long.MaxValue)), Option(BigInt(Long.MaxValue)), None, None, Option(Long.MaxValue), None)
-			, (BigInt(10).pow(20), Option(BigDecimal(1e20)), Option(BigInt(10).pow(20)), Option(1e20), None, None, None)
+				Option[Double], Option[Float], Option[Long], Option[Int],
+				Option[SpecialValue]
+		)](
+			  (0, Option(BigDecimal(0)), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0), None)
+			, (1, Option(BigDecimal(1)), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1), None)
+			, (-1, Option(BigDecimal(-1)), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1), None)
+			, (Int.MaxValue, Option(BigDecimal(Int.MaxValue)), Option(BigInt(Int.MaxValue)), Option(Int.MaxValue), None, Option(Int.MaxValue), Option(Int.MaxValue), None)
+			, (intMaxPlusOne, Option(BigDecimal(intMaxPlusOne)), Option(BigInt(intMaxPlusOne)), Option(intMaxPlusOne), Option(intMaxPlusOne), Option(intMaxPlusOne), None, None)
+			, (Int.MinValue, Option(BigDecimal(Int.MinValue)), Option(BigInt(Int.MinValue)), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue), None)
+			, (intMinMinusOne, Option(BigDecimal(intMinMinusOne)), Option(BigInt(intMinMinusOne)), Option(intMinMinusOne), None, Option(intMinMinusOne), None, None)
+			, (Long.MaxValue, Option(BigDecimal(Long.MaxValue)), Option(BigInt(Long.MaxValue)), None, None, Option(Long.MaxValue), None, None)
+			, (BigInt(10).pow(20), Option(BigDecimal(1e20)), Option(BigInt(10).pow(20)), Option(1e20), None, None, None, None)
 		)
 		
 		tests.foreach{x =>
@@ -57,20 +59,23 @@ class NumericTest extends FunSpec {
 				it ("convert to Float: " + x._5) {assertResult(x._5){BigIntNumeric.tryToFloat(x._1)}}
 				it ("convert to Long: " + x._6) {assertResult(x._6){BigIntNumeric.tryToLong(x._1)}}
 				it ("convert to Int: " + x._7) {assertResult(x._7){BigIntNumeric.tryToInt(x._1)}}
+				it ("convert to special: " + x._8) {assertResult(x._8){BigIntNumeric.tryToSpecialValue(x._1)}}
 			}
 		}
 	}
 	describe("LongNumeric") {
 		val tests = Seq[(Long, Option[BigDecimal], Option[BigInt],
-				Option[Double], Option[Float], Option[Long], Option[Int])](
-			  (0, Option(BigDecimal(0)), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0))
-			, (1, Option(BigDecimal(1)), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1))
-			, (-1, Option(BigDecimal(-1)), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1))
-			, (Int.MaxValue, Option(BigDecimal(Int.MaxValue)), Option(BigInt(Int.MaxValue)), Option(Int.MaxValue), None, Option(Int.MaxValue), Option(Int.MaxValue))
-			, (intMaxPlusOne, Option(BigDecimal(intMaxPlusOne)), Option(BigInt(intMaxPlusOne)), Option(intMaxPlusOne), Option(intMaxPlusOne), Option(intMaxPlusOne), None)
-			, (Int.MinValue, Option(BigDecimal(Int.MinValue)), Option(BigInt(Int.MinValue)), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue))
-			, (intMinMinusOne, Option(BigDecimal(intMinMinusOne)), Option(BigInt(intMinMinusOne)), Option(intMinMinusOne), None, Option(intMinMinusOne), None)
-			, (Long.MaxValue, Option(BigDecimal(Long.MaxValue)), Option(BigInt(Long.MaxValue)), None, None, Option(Long.MaxValue), None)
+				Option[Double], Option[Float], Option[Long], Option[Int],
+				Option[SpecialValue]
+		)](
+			  (0, Option(BigDecimal(0)), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0), None)
+			, (1, Option(BigDecimal(1)), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1), None)
+			, (-1, Option(BigDecimal(-1)), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1), None)
+			, (Int.MaxValue, Option(BigDecimal(Int.MaxValue)), Option(BigInt(Int.MaxValue)), Option(Int.MaxValue), None, Option(Int.MaxValue), Option(Int.MaxValue), None)
+			, (intMaxPlusOne, Option(BigDecimal(intMaxPlusOne)), Option(BigInt(intMaxPlusOne)), Option(intMaxPlusOne), Option(intMaxPlusOne), Option(intMaxPlusOne), None, None)
+			, (Int.MinValue, Option(BigDecimal(Int.MinValue)), Option(BigInt(Int.MinValue)), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue), None)
+			, (intMinMinusOne, Option(BigDecimal(intMinMinusOne)), Option(BigInt(intMinMinusOne)), Option(intMinMinusOne), None, Option(intMinMinusOne), None, None)
+			, (Long.MaxValue, Option(BigDecimal(Long.MaxValue)), Option(BigInt(Long.MaxValue)), None, None, Option(Long.MaxValue), None, None)
 		)
 		
 		tests.foreach{x =>
@@ -81,17 +86,20 @@ class NumericTest extends FunSpec {
 				it ("convert to Float: " + x._5) {assertResult(x._5){LongNumeric.tryToFloat(x._1)}}
 				it ("convert to Long: " + x._6) {assertResult(x._6){LongNumeric.tryToLong(x._1)}}
 				it ("convert to Int: " + x._7) {assertResult(x._7){LongNumeric.tryToInt(x._1)}}
+				it ("convert to special: " + x._8) {assertResult(x._8){LongNumeric.tryToSpecialValue(x._1)}}
 			}
 		}
 	}
 	describe("IntNumeric") {
 		val tests = Seq[(Int, Option[BigDecimal], Option[BigInt],
-				Option[Double], Option[Float], Option[Long], Option[Int])](
-			  (0, Option(BigDecimal(0)), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0))
-			, (1, Option(BigDecimal(1)), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1))
-			, (-1, Option(BigDecimal(-1)), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1))
-			, (Int.MaxValue, Option(BigDecimal(Int.MaxValue)), Option(BigInt(Int.MaxValue)), Option(Int.MaxValue), None, Option(Int.MaxValue), Option(Int.MaxValue))
-			, (Int.MinValue, Option(BigDecimal(Int.MinValue)), Option(BigInt(Int.MinValue)), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue))
+				Option[Double], Option[Float], Option[Long], Option[Int],
+				Option[SpecialValue]
+		)](
+			  (0, Option(BigDecimal(0)), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0), None)
+			, (1, Option(BigDecimal(1)), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1), None)
+			, (-1, Option(BigDecimal(-1)), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1), None)
+			, (Int.MaxValue, Option(BigDecimal(Int.MaxValue)), Option(BigInt(Int.MaxValue)), Option(Int.MaxValue), None, Option(Int.MaxValue), Option(Int.MaxValue), None)
+			, (Int.MinValue, Option(BigDecimal(Int.MinValue)), Option(BigInt(Int.MinValue)), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue), None)
 		)
 		
 		tests.foreach{x =>
@@ -102,21 +110,24 @@ class NumericTest extends FunSpec {
 				it ("convert to Float: " + x._5) {assertResult(x._5){IntNumeric.tryToFloat(x._1)}}
 				it ("convert to Long: " + x._6) {assertResult(x._6){IntNumeric.tryToLong(x._1)}}
 				it ("convert to Int: " + x._7) {assertResult(x._7){IntNumeric.tryToInt(x._1)}}
+				it ("convert to special: " + x._8) {assertResult(x._8){IntNumeric.tryToSpecialValue(x._1)}}
 			}
 		}
 	}
 	
 	describe("BigDecimalNumeric") {
 		val tests = Seq[(BigDecimal, Option[BigDecimal], Option[BigInt],
-				Option[Double], Option[Float], Option[Long], Option[Int])](
-			  (BigDecimal("0"), Option(BigDecimal("0")), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0))
-			, (BigDecimal("1"), Option(BigDecimal("1")), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1))
-			, (BigDecimal("2"), Option(BigDecimal("2")), Option(BigInt(2)), Option(2), Option(2), Option(2), Option(2))
-			, (BigDecimal("0.5"), Option(BigDecimal("0.5")), None, Option(0.5), Option(0.5f), None, None)
-			, (BigDecimal("-1"), Option(BigDecimal("-1")), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1))
-			, (BigDecimal("1.5"), Option(BigDecimal("1.5")), None, Option(1.5), Option(1.5F), None, None)
-			, (BigDecimal(1e20), Option(BigDecimal(1e20)), Option(BigInt(10).pow(20)), Option(1e20), None, None, None)
-			, (Long.MaxValue, Option(BigDecimal(Long.MaxValue)), Option(BigInt(Long.MaxValue)), None, None, Option(Long.MaxValue), None)
+				Option[Double], Option[Float], Option[Long], Option[Int],
+				Option[SpecialValue]
+		)](
+			  (BigDecimal("0"), Option(BigDecimal("0")), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0), None)
+			, (BigDecimal("1"), Option(BigDecimal("1")), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1), None)
+			, (BigDecimal("2"), Option(BigDecimal("2")), Option(BigInt(2)), Option(2), Option(2), Option(2), Option(2), None)
+			, (BigDecimal("0.5"), Option(BigDecimal("0.5")), None, Option(0.5), Option(0.5f), None, None, None)
+			, (BigDecimal("-1"), Option(BigDecimal("-1")), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1), None)
+			, (BigDecimal("1.5"), Option(BigDecimal("1.5")), None, Option(1.5), Option(1.5F), None, None, None)
+			, (BigDecimal(1e20), Option(BigDecimal(1e20)), Option(BigInt(10).pow(20)), Option(1e20), None, None, None, None)
+			, (Long.MaxValue, Option(BigDecimal(Long.MaxValue)), Option(BigInt(Long.MaxValue)), None, None, Option(Long.MaxValue), None, None)
 		)
 		
 		tests.foreach{x =>
@@ -127,23 +138,28 @@ class NumericTest extends FunSpec {
 				it ("convert to Float: " + x._5) {assertResult(x._5){BigDecimalNumeric.tryToFloat(x._1)}}
 				it ("convert to Long: " + x._6) {assertResult(x._6){BigDecimalNumeric.tryToLong(x._1)}}
 				it ("convert to Int: " + x._7) {assertResult(x._7){BigDecimalNumeric.tryToInt(x._1)}}
+				it ("convert to special: " + x._8) {assertResult(x._8){BigDecimalNumeric.tryToSpecialValue(x._1)}}
 			}
 		}
 	}
 	
 	describe("DoubleNumeric") {
 		val tests = Seq[(Double, Option[BigDecimal], Option[BigInt],
-				Option[Double], Option[Float], Option[Long], Option[Int])](
-			  (0, Option(BigDecimal(0)), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0))
-			, (1, Option(BigDecimal(1)), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1))
-			, (-1, Option(BigDecimal(-1)), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1))
-			, (Int.MaxValue, Option(BigDecimal(Int.MaxValue)), Option(BigInt(Int.MaxValue)), Option(Int.MaxValue), None, Option(Int.MaxValue), Option(Int.MaxValue))
-			, (intMaxPlusOne, Option(BigDecimal(intMaxPlusOne)), Option(BigInt(intMaxPlusOne)), Option(intMaxPlusOne), Option(intMaxPlusOne), Option(intMaxPlusOne), None)
-			, (Int.MinValue, Option(BigDecimal(Int.MinValue)), Option(BigInt(Int.MinValue)), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue))
-			, (intMinMinusOne, Option(BigDecimal(intMinMinusOne)), Option(BigInt(intMinMinusOne)), Option(intMinMinusOne), None, Option(intMinMinusOne), None)
-			, (1.5, Option(BigDecimal(1.5)), None, Option(1.5), Option(1.5F), None, None)
-			, (1e20, Option(BigDecimal(1e20)), Option(BigInt(10).pow(20)), Option(1e20), None, None, None)
-			, (math.pow(2, 80), Option(BigDecimal(2, UNLIMITED).pow(80)), Option(BigInt(2).pow(80)), Option(math.pow(2, 80)), Option(math.pow(2, 80).floatValue), None, None)
+				Option[Double], Option[Float], Option[Long], Option[Int],
+				Option[SpecialValue]
+		)](
+			  (0, Option(BigDecimal(0)), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0), None)
+			, (1, Option(BigDecimal(1)), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1), None)
+			, (-1, Option(BigDecimal(-1)), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1), None)
+			, (Int.MaxValue, Option(BigDecimal(Int.MaxValue)), Option(BigInt(Int.MaxValue)), Option(Int.MaxValue), None, Option(Int.MaxValue), Option(Int.MaxValue), None)
+			, (intMaxPlusOne, Option(BigDecimal(intMaxPlusOne)), Option(BigInt(intMaxPlusOne)), Option(intMaxPlusOne), Option(intMaxPlusOne), Option(intMaxPlusOne), None, None)
+			, (Int.MinValue, Option(BigDecimal(Int.MinValue)), Option(BigInt(Int.MinValue)), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue), None)
+			, (intMinMinusOne, Option(BigDecimal(intMinMinusOne)), Option(BigInt(intMinMinusOne)), Option(intMinMinusOne), None, Option(intMinMinusOne), None, None)
+			, (1.5, Option(BigDecimal(1.5)), None, Option(1.5), Option(1.5F), None, None, None)
+			, (1e20, Option(BigDecimal(1e20)), Option(BigInt(10).pow(20)), Option(1e20), None, None, None, None)
+			, (math.pow(2, 80), Option(BigDecimal(2, UNLIMITED).pow(80)), Option(BigInt(2).pow(80)), Option(math.pow(2, 80)), Option(math.pow(2, 80).floatValue), None, None, None)
+			, (Double.PositiveInfinity, None, None, Option(Double.PositiveInfinity), Option(Float.PositiveInfinity), None, None, Option(Numeric.PositiveInfinity))
+			, (Double.NegativeInfinity, None, None, Option(Double.NegativeInfinity), Option(Float.NegativeInfinity), None, None, Option(Numeric.NegativeInfinity))
 		)
 		
 		tests.foreach{x =>
@@ -154,23 +170,39 @@ class NumericTest extends FunSpec {
 				it ("convert to Float: " + x._5) {assertResult(x._5){DoubleNumeric.tryToFloat(x._1)}}
 				it ("convert to Long: " + x._6) {assertResult(x._6){DoubleNumeric.tryToLong(x._1)}}
 				it ("convert to Int: " + x._7) {assertResult(x._7){DoubleNumeric.tryToInt(x._1)}}
+				it ("convert to special: " + x._8) {assertResult(x._8){DoubleNumeric.tryToSpecialValue(x._1)}}
 				it ("convert to BigDec (syntax): " + x._2) {assertResult(x._2){x._1.tryToBigDecimal}}
 				it ("convert to BigInt (syntax): " + x._3) {assertResult(x._3){x._1.tryToBigInt}}
 				it ("convert to Double (syntax): " + x._4) {assertResult(x._4){x._1.tryToDouble}}
 				it ("convert to Float (syntax): " + x._5) {assertResult(x._5){x._1.tryToFloat}}
 				it ("convert to Long (syntax): " + x._6) {assertResult(x._6){x._1.tryToLong}}
 				it ("convert to Int (syntax): " + x._7) {assertResult(x._7){x._1.tryToInt}}
+				it ("convert to special (syntax): " + x._8) {assertResult(x._8){x._1.tryToSpecialValue}}
 			}
+		}
+		
+		describe("In Value: NaN") {
+			it ("convert to BigDec: ") {assertResult(None){DoubleNumeric.tryToBigDecimal(Double.NaN)}}
+			it ("convert to BigInt: ") {assertResult(None){DoubleNumeric.tryToBigInt(Double.NaN)}}
+			it ("convert to Double: ") {assert{DoubleNumeric.tryToDouble(Double.NaN).get.isNaN}}
+			it ("convert to Float: ") {assert{DoubleNumeric.tryToFloat(Double.NaN).get.isNaN}}
+			it ("convert to Long: ") {assertResult(None){DoubleNumeric.tryToLong(Double.NaN)}}
+			it ("convert to Int: ") {assertResult(None){DoubleNumeric.tryToInt(Double.NaN)}}
+			it ("convert to special: ") {assertResult(Option(Numeric.NaN)){DoubleNumeric.tryToSpecialValue(Double.NaN)}}
 		}
 	}
 	describe("FloatNumeric") {
 		val tests = Seq[(Float, Option[BigDecimal], Option[BigInt],
-				Option[Double], Option[Float], Option[Long], Option[Int])](
-			  (0, Option(BigDecimal(0)), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0))
-			, (1, Option(BigDecimal(1)), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1))
-			, (-1, Option(BigDecimal(-1)), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1))
-			, (1.5f, Option(BigDecimal("1.5")), None, Option(1.5), Option(1.5F), None, None)
-			, (math.pow(2, 80).floatValue, Option(BigDecimal(2, UNLIMITED).pow(80)), Option(BigInt(2).pow(80)), Option(math.pow(2, 80)), Option(math.pow(2, 80).floatValue), None, None)
+				Option[Double], Option[Float], Option[Long], Option[Int],
+				Option[SpecialValue]
+		)](
+			  (0, Option(BigDecimal(0)), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0), None)
+			, (1, Option(BigDecimal(1)), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1), None)
+			, (-1, Option(BigDecimal(-1)), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1), None)
+			, (1.5f, Option(BigDecimal("1.5")), None, Option(1.5), Option(1.5F), None, None, None)
+			, (math.pow(2, 80).floatValue, Option(BigDecimal(2, UNLIMITED).pow(80)), Option(BigInt(2).pow(80)), Option(math.pow(2, 80)), Option(math.pow(2, 80).floatValue), None, None, None)
+			, (Float.PositiveInfinity, None, None, Option(Double.PositiveInfinity), Option(Float.PositiveInfinity), None, None, Option(Numeric.PositiveInfinity))
+			, (Float.NegativeInfinity, None, None, Option(Double.NegativeInfinity), Option(Float.NegativeInfinity), None, None, Option(Numeric.NegativeInfinity))
 		)
 		
 		tests.foreach{x =>
@@ -181,22 +213,36 @@ class NumericTest extends FunSpec {
 				it ("convert to Float: " + x._5) {assertResult(x._5){FloatNumeric.tryToFloat(x._1)}}
 				it ("convert to Long: " + x._6) {assertResult(x._6){FloatNumeric.tryToLong(x._1)}}
 				it ("convert to Int: " + x._7) {assertResult(x._7){FloatNumeric.tryToInt(x._1)}}
+				it ("convert to special: " + x._8) {assertResult(x._8){FloatNumeric.tryToSpecialValue(x._1)}}
 			}
+		}
+		describe("In Value: NaN") {
+			it ("convert to BigDec: ") {assertResult(None){FloatNumeric.tryToBigDecimal(Float.NaN)}}
+			it ("convert to BigInt: ") {assertResult(None){FloatNumeric.tryToBigInt(Float.NaN)}}
+			it ("convert to Double: ") {assert{FloatNumeric.tryToDouble(Float.NaN).get.isNaN}}
+			it ("convert to Float: ") {assert{FloatNumeric.tryToFloat(Float.NaN).get.isNaN}}
+			it ("convert to Long: ") {assertResult(None){FloatNumeric.tryToLong(Float.NaN)}}
+			it ("convert to Int: ") {assertResult(None){FloatNumeric.tryToInt(Float.NaN)}}
+			it ("convert to special: ") {assertResult(Option(Numeric.NaN)){FloatNumeric.tryToSpecialValue(Float.NaN)}}
 		}
 	}
 	describe("HalfFloatNumeric") {
 		val tests = Seq[(Short, Option[BigDecimal], Option[BigInt],
-				Option[Double], Option[Float], Option[Long], Option[Int])](
-			  (0x0000.shortValue, Option(BigDecimal(0)), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0))
-			, (0x8000.shortValue, Option(BigDecimal(-0.0)), Option(BigInt(0)), Option(-0.0), Option(-0.0f), Option(0), Option(0))
-			, (0x3C00.shortValue, Option(BigDecimal(1)), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1))
-			, (0x4000.shortValue, Option(BigDecimal(2)), Option(BigInt(2)), Option(2), Option(2), Option(2), Option(2))
-			, (0x3800.shortValue, Option(BigDecimal("0.5")), None, Option(0.5), Option(0.5f), None, None)
-			, (0xBC00.shortValue, Option(BigDecimal(-1)), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1))
-			, (0x3E00.shortValue, Option(BigDecimal("1.5")), None, Option(1.5), Option(1.5F), None, None)
-			, (0x3555.shortValue, Option(BigDecimal("0.333251953125")), None, Option(0.333251953125), Option(0.333251953125f), None, None)
-			, (0x7BFF.shortValue, Option(BigDecimal(65504)), Option(BigInt(65504)), Option(65504), Option(65504), Option(65504), Option(65504))
-			, (0xC400.shortValue, Option(BigDecimal(-4)), Option(BigInt(-4)), Option(-4), Option(-4), Option(-4), Option(-4))
+				Option[Double], Option[Float], Option[Long], Option[Int],
+				Option[SpecialValue]
+		)](
+			  (0x0000.shortValue, Option(BigDecimal(0)), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0), None)
+			, (0x8000.shortValue, Option(BigDecimal(-0.0)), Option(BigInt(0)), Option(-0.0), Option(-0.0f), Option(0), Option(0), None)
+			, (0x3C00.shortValue, Option(BigDecimal(1)), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1), None)
+			, (0x4000.shortValue, Option(BigDecimal(2)), Option(BigInt(2)), Option(2), Option(2), Option(2), Option(2), None)
+			, (0x3800.shortValue, Option(BigDecimal("0.5")), None, Option(0.5), Option(0.5f), None, None, None)
+			, (0xBC00.shortValue, Option(BigDecimal(-1)), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1), None)
+			, (0x3E00.shortValue, Option(BigDecimal("1.5")), None, Option(1.5), Option(1.5F), None, None, None)
+			, (0x3555.shortValue, Option(BigDecimal("0.333251953125")), None, Option(0.333251953125), Option(0.333251953125f), None, None, None)
+			, (0x7BFF.shortValue, Option(BigDecimal(65504)), Option(BigInt(65504)), Option(65504), Option(65504), Option(65504), Option(65504), None)
+			, (0xC400.shortValue, Option(BigDecimal(-4)), Option(BigInt(-4)), Option(-4), Option(-4), Option(-4), Option(-4), None)
+			, (0x7C00.shortValue, None, None, Option(Double.PositiveInfinity), Option(Float.PositiveInfinity), None, None, Option(Numeric.PositiveInfinity))
+			, (0xFC00.shortValue, None, None, Option(Double.NegativeInfinity), Option(Float.NegativeInfinity), None, None, Option(Numeric.NegativeInfinity))
 		)
 		
 		tests.foreach{x =>
@@ -207,23 +253,38 @@ class NumericTest extends FunSpec {
 				it ("convert to Float: " + x._5) {assertResult(x._5){HalfFloatNumeric.tryToFloat(x._1)}}
 				it ("convert to Long: " + x._6) {assertResult(x._6){HalfFloatNumeric.tryToLong(x._1)}}
 				it ("convert to Int: " + x._7) {assertResult(x._7){HalfFloatNumeric.tryToInt(x._1)}}
+				it ("convert to special: " + x._8) {assertResult(x._8){HalfFloatNumeric.tryToSpecialValue(x._1)}}
 			}
+		}
+		describe("In Value: NaN") {
+			val HalfFloatNaN = 0x7C20.shortValue
+			it ("convert to BigDec: ") {assertResult(None){HalfFloatNumeric.tryToBigDecimal(HalfFloatNaN)}}
+			it ("convert to BigInt: ") {assertResult(None){HalfFloatNumeric.tryToBigInt(HalfFloatNaN)}}
+			it ("convert to Double: ") {assert{HalfFloatNumeric.tryToDouble(HalfFloatNaN).get.isNaN}}
+			it ("convert to Float: ") {assert{HalfFloatNumeric.tryToFloat(HalfFloatNaN).get.isNaN}}
+			it ("convert to Long: ") {assertResult(None){HalfFloatNumeric.tryToLong(HalfFloatNaN)}}
+			it ("convert to Int: ") {assertResult(None){HalfFloatNumeric.tryToInt(HalfFloatNaN)}}
+			it ("convert to special: ") {assertResult(Option(Numeric.NaN)){HalfFloatNumeric.tryToSpecialValue(HalfFloatNaN)}}
 		}
 	}
 	
 	describe("RationalNumeric") {
 		val tests = Seq[(Rational, Option[BigDecimal], Option[BigInt],
-				Option[Double], Option[Float], Option[Long], Option[Int])](
-			  (new Rational(0,1), Option(BigDecimal("0")), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0))
-			, (new Rational(0,15), Option(BigDecimal("0")), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0))
-			, (new Rational(1,1), Option(BigDecimal("1")), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1))
-			, (new Rational(5,5), Option(BigDecimal("1")), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1))
-			, (new Rational(2,1), Option(BigDecimal("2")), Option(BigInt(2)), Option(2), Option(2), Option(2), Option(2))
-			, (new Rational(1,2), Option(BigDecimal("0.5")), None, Option(0.5), Option(0.5f), None, None)
-			, (new Rational(-1,1), Option(BigDecimal("-1")), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1))
-			, (new Rational(1,-1), Option(BigDecimal("-1")), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1))
-			, (new Rational(3,2), Option(BigDecimal("1.5")), None, Option(1.5), Option(1.5F), None, None)
-			, (new Rational(1,3), None, None, None, None, None, None)
+				Option[Double], Option[Float], Option[Long], Option[Int],
+				Option[SpecialValue]
+		)](
+			  (new Rational(0,1), Option(BigDecimal("0")), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0), None)
+			, (new Rational(0,15), Option(BigDecimal("0")), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0), None)
+			, (new Rational(1,1), Option(BigDecimal("1")), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1), None)
+			, (new Rational(5,5), Option(BigDecimal("1")), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1), None)
+			, (new Rational(2,1), Option(BigDecimal("2")), Option(BigInt(2)), Option(2), Option(2), Option(2), Option(2), None)
+			, (new Rational(1,2), Option(BigDecimal("0.5")), None, Option(0.5), Option(0.5f), None, None, None)
+			, (new Rational(-1,1), Option(BigDecimal("-1")), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1), None)
+			, (new Rational(1,-1), Option(BigDecimal("-1")), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1), None)
+			, (new Rational(3,2), Option(BigDecimal("1.5")), None, Option(1.5), Option(1.5F), None, None, None)
+			, (new Rational(1,3), None, None, None, None, None, None, None)
+			, (new Rational(1,0), None, None, Option(Double.PositiveInfinity), Option(Float.PositiveInfinity), None, None, Option(Numeric.PositiveInfinity))
+			, (new Rational(-1,0), None, None, Option(Double.NegativeInfinity), Option(Float.NegativeInfinity), None, None, Option(Numeric.NegativeInfinity))
 		)
 		
 		tests.foreach{x =>
@@ -234,7 +295,18 @@ class NumericTest extends FunSpec {
 				it ("convert to Float: " + x._5) {assertResult(x._5){RationalNumeric.tryToFloat(x._1)}}
 				it ("convert to Long: " + x._6) {assertResult(x._6){RationalNumeric.tryToLong(x._1)}}
 				it ("convert to Int: " + x._7) {assertResult(x._7){RationalNumeric.tryToInt(x._1)}}
+				it ("convert to special: " + x._8) {assertResult(x._8){RationalNumeric.tryToSpecialValue(x._1)}}
 			}
+		}
+		describe("In Value: 0/0") {
+			val RationalNaN = new Rational(0,0)
+			it ("convert to BigDec: ") {assertResult(None){RationalNumeric.tryToBigDecimal(RationalNaN)}}
+			it ("convert to BigInt: ") {assertResult(None){RationalNumeric.tryToBigInt(RationalNaN)}}
+			it ("convert to Double: ") {assert{RationalNumeric.tryToDouble(RationalNaN).get.isNaN}}
+			it ("convert to Float: ") {assert{RationalNumeric.tryToFloat(RationalNaN).get.isNaN}}
+			it ("convert to Long: ") {assertResult(None){RationalNumeric.tryToLong(RationalNaN)}}
+			it ("convert to Int: ") {assertResult(None){RationalNumeric.tryToInt(RationalNaN)}}
+			it ("convert to special: ") {assertResult(Option(Numeric.NaN)){RationalNumeric.tryToSpecialValue(RationalNaN)}}
 		}
 	}
 }	
