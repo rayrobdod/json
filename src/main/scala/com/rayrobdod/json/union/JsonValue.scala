@@ -44,9 +44,9 @@ sealed trait JsonValue {
 	 * @param fz the function to apply if `this` is a JsonValueNull
 	 * @return the results of applying the corresponding function
 	 */
-	final def fold[A](fs:String => A, fn:Numeric.NumericPair[_] => A, fb:Boolean => A, fz:Function0[A]):A = this match {
+	final def fold[A](fs:String => A, fn:BigDecimal => A, fb:Boolean => A, fz:Function0[A]):A = this match {
 		case JsonValueString(s) => fs(s)
-		case JsonValueNumber(n, t) => fn(Numeric.NumericPair(n)(t))
+		case JsonValueNumber(n) => fn(n)
 		case JsonValueBoolean(b) => fb(b)
 		case JsonValueNull => fz.apply
 	}
@@ -63,7 +63,7 @@ sealed trait JsonValue {
 	 * Executes and returns `fi(this.i)` if this is a JsonValueNumber which holds an number convertible to integer, else return a Left with an error message.
 	 */
 	final def integerToEither[A](fi:Int => Either[(String, Int),A]):Either[(String, Int),A] = {
-		val number = {n:NumericPair[_] => n.tryToInt.fold[Either[(String, Int), A]](Left(("Expected integral number", 0))){fi}}
+		val number = {n:BigDecimal => Numeric.BigDecimalNumeric.tryToInt(n).fold[Either[(String, Int), A]](Left(("Expected Int: " + n, 0))){fi}}
 		val unexpected = new ReturnLeft("Expected integral number")
 		this.fold(unexpected, number, unexpected, unexpected)
 	}
@@ -71,10 +71,9 @@ sealed trait JsonValue {
 	/**
 	 * Executes and returns `fn(this.i)` if this is a JsonValueNumber, else return a Left with an error message.
 	 */
-	final def numberToEither[A](fn:Number => Either[(String, Int),A]):Either[(String, Int),A] = {
-		val number = {n:NumericPair[_] => n.tryToBigDecimal.fold[Either[(String, Int),A]](Left(("Expected number", 0))){fn}}
+	final def numberToEither[A](fn:BigDecimal => Either[(String, Int),A]):Either[(String, Int),A] = {
 		val unexpected = new ReturnLeft("Expected number")
-		this.fold(unexpected, number, unexpected, unexpected)
+		this.fold(unexpected, fn, unexpected, unexpected)
 	}
 	
 	/**
@@ -92,14 +91,7 @@ sealed trait JsonValue {
  */
 object JsonValue {
 	final case class JsonValueString(s:String) extends JsonValue
-	final case class JsonValueNumber[A](value:A, typ:Numeric[A]) extends JsonValue {
-		override def equals(other:Any) = {
-			if (other.isInstanceOf[JsonValueNumber[_]]) {
-				val other2 = other.asInstanceOf[JsonValueNumber[_]]
-				other2.tryToBigDecimal == this.tryToBigDecimal
-			} else {false}
-		}
-		private def tryToBigDecimal:Option[BigDecimal] = typ.tryToBigDecimal(value)
+	final case class JsonValueNumber(value:BigDecimal) extends JsonValue {
 	}
 	final case class JsonValueBoolean(b:Boolean) extends JsonValue
 	object JsonValueNull extends JsonValue {
@@ -108,15 +100,19 @@ object JsonValue {
 	
 	implicit def apply(s:String):JsonValue = JsonValueString(s)
 	implicit def apply(b:Boolean):JsonValue = JsonValueBoolean(b)
-	implicit def apply[A](i:A)(implicit t:Numeric[A]):JsonValue = JsonValueNumber(i, t)
+	implicit def apply(i:BigDecimal):JsonValue = JsonValueNumber(i)
 	
+	
+	implicit def int2JsonValue(i:Int):JsonValue = JsonValueNumber(i)
+	implicit def long2JsonValue(i:Long):JsonValue = JsonValueNumber(i)
+	implicit def double2JsonValue(i:Double):JsonValue = JsonValueNumber(i)
 	
 	
 	/** Convert a StringOrInt value into a JsonValue */
 	// Can't be called 'apply' as otherwise `JsonValue(x:Int)` confuses the compiler
 	implicit def stringOrInt2JsonValue(s:StringOrInt):JsonValue = s match {
 		case StringOrInt.Left(s) => JsonValueString(s)
-		case StringOrInt.Right(i) => JsonValueNumber(i, Numeric.IntNumeric)
+		case StringOrInt.Right(i) => JsonValueNumber(i)
 	}
 	
 	/** 
@@ -126,7 +122,7 @@ object JsonValue {
 	def cborValueHexencodeByteStr(x:CborValue):JsonValue = x match {
 		case CborValue.CborValueString(s) => JsonValueString(s)
 		case CborValue.CborValueBoolean(b) => JsonValueBoolean(b)
-		case CborValue.CborValueNumber(n, t) => JsonValueNumber(n, t)
+		case CborValue.CborValueNumber(n, i) => JsonValueNumber(i.tryToBigDecimal(n).get)
 		case CborValue.CborValueByteStr(s) => JsonValueString(new String(
 			s.flatMap{byte => ("00" + (0xFF & byte.intValue).toHexString).takeRight(2)}
 		))

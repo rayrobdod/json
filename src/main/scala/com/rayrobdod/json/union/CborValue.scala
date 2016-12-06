@@ -147,7 +147,7 @@ object CborValue {
 	// Can't be called 'apply' as otherwise `CborValue(x:Int)` confuses the compiler
 	implicit def jsonValue2CborValue(s:JsonValue):CborValue = s match {
 		case JsonValue.JsonValueString(s) => CborValue.CborValueString(s)
-		case JsonValue.JsonValueNumber(n, t) => CborValue.CborValueNumber(n, t)
+		case JsonValue.JsonValueNumber(n) => CborValue.CborValueNumber(n, Numeric.BigDecimalNumeric)
 		case JsonValue.JsonValueBoolean(s) => CborValue.CborValueBoolean(s)
 		case JsonValue.JsonValueNull => CborValue.CborValueNull
 	}

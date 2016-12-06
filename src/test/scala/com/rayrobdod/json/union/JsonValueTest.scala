@@ -35,8 +35,8 @@ class JsonValueTest extends FunSpec {
 		// string, double, integer, boolean, null
 		val values = Seq(
 			JsonValueString(""),
-			JsonValueNumber(1.5F, implicitly[Numeric[Float]]),
-			JsonValueNumber(42L, implicitly[Numeric[Long]]),
+			JsonValueNumber(1.5),
+			JsonValueNumber(42),
 			JsonValueBoolean(true), JsonValueNull
 		)
 		val ToEitherFuns = Seq[JsonValue => Either[(String, Int),Any]](
