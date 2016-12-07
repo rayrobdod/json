@@ -35,7 +35,7 @@ import com.rayrobdod.json.union.ParserRetVal
  * This parser is lenient, in that it ignores trailing delimiters
  * 
  * A CSV file is always two levels deep - a two dimensional array.
- * @version 3.0
+ * @version 3.0.1
  * 
  * @constructor
  * Creates a CsvParser instance.
@@ -45,7 +45,7 @@ final class CsvParser(
 		meaningfulCharacters:CsvParser.CharacterMeanings = CsvParser.csvCharacterMeanings
 ) extends Parser[Int, String, Iterable[Char]] {
 	import CsvParser.State
-	val lineParser = new CsvParser.LineParser(meaningfulCharacters)
+	private[this] val lineParser = new CsvParser.LineParser(meaningfulCharacters)
 	
 	/**
 	 * Decodes the input values to an object.
@@ -102,7 +102,7 @@ final class CsvParser(
  * Contains classes used to customize the CsvParser's behavior, as
  * well as a few common instances of those classes.
  * @since 2.0
- * @version 2.0
+ * @version 3.0.1
  */
 object CsvParser {
 	/**

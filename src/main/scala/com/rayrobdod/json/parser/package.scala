@@ -172,10 +172,12 @@ package parser {
 	
 	/**
 	 * A 'parser' that echos the value provided in its parse method
+	 * 
+	 * Somewhat useful to be the 'recursed' parser in cases where the 'root' parser has already decoded a value.
 	 * @version 3.0
 	 */
 	final class IdentityParser[V] extends Parser[Nothing,V,V] {
-		/** Returns `scala.util.Right(v)` */
+		/** Returns `v` wrapped in a [[com.rayrobdod.json.union.ParserRetVal.Primitive]] */
 		def parse[A](b:Builder[Nothing,V,A], v:V):ParserRetVal.Primitive[V] = ParserRetVal.Primitive(v)
 	}
 	
