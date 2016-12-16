@@ -64,6 +64,17 @@ class CborValueTest extends FunSpec {
 				assertResult(foldResults(vi)){v.fold({x => 0}, {x => 1}, {x => 2}, {x => 3}, {() => 4})}
 			}
 		}
+		
+		for (
+			(v1, v1i) <- values.zipWithIndex;
+			(v2, v2i) <- values.zipWithIndex
+		) {
+			if (v1i == v2i) {
+				it (s"""${v1} == ${v2}""") { v1 == v2 }
+			} else {
+				it (s"""${v1} != ${v2}""") { v1 != v2 }
+			}
+		}
 	}
 	
 	describe("CborValueByteStr") {

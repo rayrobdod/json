@@ -39,14 +39,20 @@ trait Numeric[A]{
 	
 	def tryToSpecialValue(a:A):Option[Numeric.SpecialValue]
 	
+	/** Return a BigDecimal with a value equal to this, if there is such a BigDecmial */
 	def tryToBigDecimal(a:A):Option[BigDecimal]
+	/** Return a BigInt with a value equal to this, if there is such a BigInt */
 	def tryToBigInt(a:A):Option[BigInt]
+	/** Return a Double with a value equal to this, if there is such a Double */
 	def tryToDouble(a:A):Option[Double]
+	/** Return a Float with a value equal to this, if there is such a Float */
 	def tryToFloat(a:A):Option[Float] = this.tryToDouble(a).collect{
 		case x if (x.isNaN) => Float.NaN
 		case x if (x == x.floatValue.doubleValue) => x.floatValue
 	}
+	/** Return a Long with a value equal to this, if there is such a Long */
 	def tryToLong(a:A):Option[Long] = this.tryToBigInt(a).collect{case x if (Long.MinValue <= x && x <= Long.MaxValue) => x.longValue}
+	/** Return an Int with a value equal to this, if there is such an Int */
 	def tryToInt(a:A):Option[Int] = this.tryToBigInt(a).collect{case x if (Int.MinValue <= x && x <= Int.MaxValue) => x.intValue}
 }
 
@@ -54,8 +60,10 @@ trait Numeric[A]{
  * @since next
  */
 object Numeric {
-	// Going through all the effort to deconstruct then reconstruct the floats as neither BigDecimal.apply nor BigDecimal.valueOf gave the result I wanted (an as-precise-as-possible translation)
 	
+	// Going through all the effort to deconstruct then reconstruct the floats
+	// as neither BigDecimal.apply nor BigDecimal.valueOf gave the result I wanted
+	// (an as-precise-as-possible translation)
 	/** Build a BigDecimal from the parts of a floating point number. Assumes not NaN nor Infinity */
 	private[this] def buildBigDecimal(floatParts:(Byte, Short, Long), zeroExponent:Short, significandBitCount:Byte):BigDecimal = {
 		val (sign, exponent, significand) = floatParts
@@ -117,7 +125,6 @@ object Numeric {
 		override def tryToBigDecimal(a:BigInt):Option[BigDecimal] = Option(BigDecimal(a))
 		override def tryToBigInt(a:BigInt):Option[BigInt] = Option(a)
 		override def tryToDouble(a:BigInt):Option[Double] = DoubleNumeric.tryToBigInt(a.doubleValue).collect{case x if x == a => a.doubleValue}
-		override def tryToLong(a:BigInt):Option[Long] = if (Long.MinValue <= a && a <= Long.MaxValue) {Option(a.longValue)} else {None}
 	}
 	
 	implicit object DoubleNumeric extends Numeric[Double] {

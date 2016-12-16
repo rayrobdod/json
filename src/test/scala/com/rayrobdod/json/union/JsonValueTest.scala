@@ -76,6 +76,14 @@ class JsonValueTest extends FunSpec {
 				val res:JsonValue = StringOrInt(234)
 				assertResult(JsonValue(234)){res}
 			}
+			it ("""Int to JsonValue""") {
+				val res:JsonValue = 234
+				assertResult(JsonValue(234)){res}
+			}
+			it ("""Long to JsonValue""") {
+				val res:JsonValue = 234L
+				assertResult(JsonValue(234)){res}
+			}
 		}
 		describe("cborValueHexencodeByteStr") {
 			it ("String") {assertResult(JsonValue("abc")){cborValueHexencodeByteStr(CborValue("abc"))}}

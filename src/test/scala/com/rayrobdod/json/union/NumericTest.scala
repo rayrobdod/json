@@ -178,6 +178,13 @@ class NumericTest extends FunSpec {
 				it ("convert to Long (syntax): " + x._6) {assertResult(x._6){x._1.tryToLong}}
 				it ("convert to Int (syntax): " + x._7) {assertResult(x._7){x._1.tryToInt}}
 				it ("convert to special (syntax): " + x._8) {assertResult(x._8){x._1.tryToSpecialValue}}
+				it ("convert to BigDec (pair): " + x._2) {assertResult(x._2){NumericPair(x._1)(DoubleNumeric).tryToBigDecimal}}
+				it ("convert to BigInt (pair): " + x._3) {assertResult(x._3){NumericPair(x._1)(DoubleNumeric).tryToBigInt}}
+				it ("convert to Double (pair): " + x._4) {assertResult(x._4){NumericPair(x._1)(DoubleNumeric).tryToDouble}}
+				it ("convert to Float (pair): " + x._5) {assertResult(x._5){NumericPair(x._1)(DoubleNumeric).tryToFloat}}
+				it ("convert to Long (pair): " + x._6) {assertResult(x._6){NumericPair(x._1)(DoubleNumeric).tryToLong}}
+				it ("convert to Int (pair): " + x._7) {assertResult(x._7){NumericPair(x._1)(DoubleNumeric).tryToInt}}
+				it ("convert to special (pair): " + x._8) {assertResult(x._8){NumericPair(x._1)(DoubleNumeric).tryToSpecialValue}}
 			}
 		}
 		
