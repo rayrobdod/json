@@ -134,6 +134,15 @@ object ParserRetVal {
 			case f:Failure => f
 		}
 		
+		/** Flatmap the backing value if the backing value is a Complex, else return the backing value
+		 * @since 3.1
+		 */
+		def flatMap[PP >: P, X](fun:C => ParserRetVal[X, PP]):ParserRetVal[X, PP] = backing match {
+			case Complex(c) => fun(c)
+			case p:Primitive[P] => p
+			case f:Failure => f
+		}
+		
 		/** Return a Right if the backing value is a Complex, else return a left */
 		def toEither:Either[(String,Int),C] = backing match {
 			case Complex(c) => Right(c)
