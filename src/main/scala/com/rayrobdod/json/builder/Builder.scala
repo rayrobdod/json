@@ -41,7 +41,8 @@ import com.rayrobdod.json.parser.Parser
  */
 trait Builder[-Key, -Value, Subject] {
 	/**
-	 * An 'empty' object to be used to start the folding process
+	 * An 'empty' object. Can be thought of as either the value used at the
+	 * start of a fold-left operation, or as an object filled with default values.
 	 */
 	def init:Subject
 	

@@ -95,6 +95,36 @@ package parser {
 	}
 	
 	/**
+	 * A parser that can parse the results of recursive MapBuilder builds
+	 * @tparam K the type of keys contained in the Map
+	 * @tparam V the primitive values contained in the Map
+	 * TODO make not-private in future version
+	 */
+	private[parser] final class RecusiveMapParser[K,V] extends Parser[K, V, com.rayrobdod.json.builder.MapBuilder.RecursiveSubjectType[K,V]] {
+		import com.rayrobdod.json.builder.MapBuilder
+		type RecursiveSubjectTupleType[K,V] = Tuple2[K, Either[MapBuilder.RecursiveSubject[K, V], V]]
+		
+		/**
+		 * Decodes the input values to an object.
+		 * @param vals the sequence containing values
+		 * @return the parsed object
+		 */
+		def parse[A](topBuilder:Builder[K,V,A], vals:MapBuilder.RecursiveSubjectType[K,V]):ParserRetVal[A,V] = {
+			val a = vals.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], keyValue:RecursiveSubjectTupleType[K,V]) => 
+				val (key, value) = keyValue;
+				state.right.flatMap{folding =>
+					value.fold({complex:MapBuilder.RecursiveSubject[K,V] =>
+						topBuilder.apply(folding, key, complex.value, RecusiveMapParser.this)
+					}, {simple =>
+						topBuilder.apply(folding, key, simple, new IdentityParser[V])
+					})
+				}
+			}
+			ParserRetVal.eitherToComplex(a)
+		}
+	}
+	
+	/**
 	 * A parser that reads each Value and its index from a Seq
 	 * @version 3.0
 	 * 
@@ -142,10 +172,12 @@ package parser {
 	
 	/**
 	 * A 'parser' that echos the value provided in its parse method
+	 * 
+	 * Somewhat useful to be the 'recursed' parser in cases where the 'root' parser has already decoded a value.
 	 * @version 3.0
 	 */
 	final class IdentityParser[V] extends Parser[Nothing,V,V] {
-		/** Returns `scala.util.Right(v)` */
+		/** Returns `v` wrapped in a [[com.rayrobdod.json.union.ParserRetVal.Primitive]] */
 		def parse[A](b:Builder[Nothing,V,A], v:V):ParserRetVal.Primitive[V] = ParserRetVal.Primitive(v)
 	}
 	

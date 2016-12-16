@@ -29,6 +29,7 @@ package com.rayrobdod.json.parser;
 import scala.util.{Either, Left, Right}
 import scala.math.BigDecimal
 import com.rayrobdod.json.builder.Builder
+import com.rayrobdod.json.builder.MapBuilder
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.ParserRetVal
@@ -39,12 +40,14 @@ import com.rayrobdod.json.union.ParserRetVal
  * This parser is intended to be relatively strict.
  * 
  * @see [[http://json.org/]]
- * @version 3.0
+ * @version 3.0.1
  *
  * @constructor
  * Creates a JsonParser instance.
  */
 final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
+	private[this] type MBRST = MapBuilder.RecursiveSubjectType[StringOrInt, JsonValue]
+	
 	
 	/**
 	 * Decodes the input values to an object.
@@ -76,6 +79,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 		def apply(c:Char, index:Int):State[A]
 	}
 	
+	/** State after finding the end of the outermost object */
 	private[this] class EndState[A](val result:A) extends State[A] {
 		def apply(c:Char, index:Int):State[A] = c match {
 			case x if x.isWhitespace => this
@@ -83,57 +87,63 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 		}
 	}
 	
+	/** State before anything significant has been found */
 	private[this] class InitState[A](builder:Builder[StringOrInt, JsonValue, A]) extends State[A] {
 		def apply(c:Char, index:Int):State[A] = c match {
 			case '\ufeff' => this // byte-order-mark
 			case x if x.isWhitespace => this
-			case '{'  => new ObjectKeyStartState(builder.init, builder, true)
-			case '['  => new ArrayValueStartState(builder.init, builder)
+			case '{'  => new ObjectKeyStartState(builder.init, builder, true, {a:A => new EndState(a)})
+			case '['  => new ArrayValueStartState(builder.init, builder, {a:A => new EndState(a)})
 			case _    => new FailureState("Expecting '{' or '['; found " + c, index)
 		}
 	}
 	
-	private[this] class ObjectKeyStartState[A](soFar:A, builder:Builder[StringOrInt, JsonValue, A], endObjectAllowed:Boolean) extends State[A] {
+	private[this] class ObjectKeyStartState[A, Curr](soFar:Curr, builder:Builder[StringOrInt, JsonValue, Curr], endObjectAllowed:Boolean, pop:Function1[Curr, State[A]]) extends State[A] {
 		def apply(c:Char, index:Int):State[A] = c match {
 			case x if x.isWhitespace => this
-			case '"'  => new StringState("", {s:String => new ObjectKeyEndState(soFar, builder, s)})
-			case '}'  if endObjectAllowed => new EndState(soFar)
+			case '"'  => new StringState("", {s:String => new ObjectKeyEndState(soFar, builder, s, pop)})
+			case '}'  if endObjectAllowed => pop(soFar)
 			case _    => new FailureState("Expecting start of key; found " + c, index)
 		}
 	}
 	
-	private[this] class ObjectKeyEndState[A](soFar:A, builder:Builder[StringOrInt, JsonValue, A], key:String) extends State[A] {
+	private[this] class ObjectKeyEndState[A, Curr](soFar:Curr, builder:Builder[StringOrInt, JsonValue, Curr], key:String, pop:Function1[Curr, State[A]]) extends State[A] {
 		def apply(c:Char, index:Int):State[A] = c match {
 			case x if x.isWhitespace => this
-			case ':'  => new ObjectValueStartState[A](soFar, builder, key)
+			case ':'  => new ObjectValueStartState[A, Curr](soFar, builder, key, pop)
 			case _    => new FailureState("Expecting ':'; found " + c, index)
 		}
 	}
 	
-	private[this] class ObjectValueStartState[A](soFar:A, builder:Builder[StringOrInt, JsonValue, A], key:String) extends State[A] {
+	private[this] class ObjectValueStartState[A, Curr](soFar:Curr, builder:Builder[StringOrInt, JsonValue, Curr], key:String, pop:Function1[Curr, State[A]]) extends State[A] {
 		def apply(c:Char, index:Int):State[A] = c match {
 			case x if x.isWhitespace => this
 			case '"'  => new StringState("", {s:String =>
 				builder.apply[JsonValue](soFar, key, JsonValue(s), new IdentityParser[JsonValue]()) match {
-					case Right(x) => new ObjectValueEndState(x, builder)
+					case Right(x) => new ObjectValueEndState(x, builder, pop)
 					case Left(x) => new FailureState(x._1, x._2 + index)
 				}
 			})
-			case '['  => new InnerObjectState("[", {s:String => 
-				builder.apply[Iterable[Char]](soFar, key, s, JsonParser.this) match {
-					case Right(x) => new ObjectValueEndState(x, builder)
+			case '['  => new ArrayValueStartState[A, MBRST](
+				MapBuilder[StringOrInt, JsonValue].init,
+				MapBuilder[StringOrInt, JsonValue],
+				{a:MBRST => builder.apply(soFar, key, a, new RecusiveMapParser[StringOrInt, JsonValue]) match {
+					case Right(x) => new ObjectValueEndState(x, builder, pop)
 					case Left(x) => new FailureState(x._1, x._2 + index)
-				}
-			})
-			case '{'  => new InnerObjectState("{", {s:String => 
-				builder.apply[Iterable[Char]](soFar, key, s, JsonParser.this) match {
-					case Right(x) => new ObjectValueEndState(x, builder)
+				}}
+			)
+			case '{'  => new ObjectKeyStartState[A, MBRST](
+				MapBuilder[StringOrInt, JsonValue].init,
+				MapBuilder[StringOrInt, JsonValue],
+				true,
+				{a:MBRST => builder.apply(soFar, key, a, new RecusiveMapParser[StringOrInt, JsonValue]) match {
+					case Right(x) => new ObjectValueEndState(x, builder, pop)
 					case Left(x) => new FailureState(x._1, x._2 + index)
-				}
-			})
+				}}
+			)
 			case '-'  => new IntegerState("-", {s:BigDecimal =>
 				builder.apply[JsonValue](soFar, key, JsonValue(s), new IdentityParser[JsonValue]()) match {
-					case Right(x) => new ObjectValueEndState(x, builder)
+					case Right(x) => new ObjectValueEndState(x, builder, pop)
 					case Left(x) => new FailureState(x._1, x._2 + index)
 				}
 			})
@@ -142,13 +152,13 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 			}
 			case x if ('0' <= x && x <= '9') => new IntegerState("" + x, {s:BigDecimal =>
 				builder.apply[JsonValue](soFar, key, JsonValue(s), new IdentityParser[JsonValue]()) match {
-					case Right(x) => new ObjectValueEndState(x, builder)
+					case Right(x) => new ObjectValueEndState(x, builder, pop)
 					case Left(x) => new FailureState(x._1, x._2 + index)
 				}
 			})
 			case x if ('a' <= x && x <= 'z') => new KeywordState("" + x, {s:JsonValue =>
 				builder.apply[JsonValue](soFar, key, s, new IdentityParser[JsonValue]()) match {
-					case Right(x) => new ObjectValueEndState(x, builder)
+					case Right(x) => new ObjectValueEndState(x, builder, pop)
 					case Left(x) => new FailureState(x._1, x._2 + index)
 				}
 			})
@@ -156,44 +166,49 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 		}
 	}
 	
-	private[this] class ObjectValueEndState[A](soFar:A, builder:Builder[StringOrInt, JsonValue, A]) extends State[A] {
+	private[this] class ObjectValueEndState[A, Curr](soFar:Curr, builder:Builder[StringOrInt, JsonValue, Curr], pop:Function1[Curr, State[A]]) extends State[A] {
 		def apply(c:Char, charIndex:Int):State[A] = c match {
 			case x if x.isWhitespace => this
-			case ','  => new ObjectKeyStartState(soFar, builder, false)
-			case '}'  => new EndState(soFar) 
+			case ','  => new ObjectKeyStartState(soFar, builder, false, pop)
+			case '}'  => pop(soFar) 
 			case _    => new FailureState("Expecting ',' or '}'; found " + c, charIndex)
 		}
 	}
 	
 	
-	private[this] class ArrayValueStartState[A](soFar:A, builder:Builder[StringOrInt, JsonValue, A], arrayIndex:Int = 0) extends State[A] {
+	private[this] class ArrayValueStartState[A, Curr](soFar:Curr, builder:Builder[StringOrInt, JsonValue, Curr], pop:Function1[Curr, State[A]], arrayIndex:Int = 0) extends State[A] {
 		/** true iff the next character is allowed to end the array - i.e. be a ']' */
 		private[this] val endObjectAllowed:Boolean = (arrayIndex == 0);
 		
 		def apply(c:Char, charIndex:Int):State[A] = c match {
 			case x if x.isWhitespace => this
-			case ']'  if endObjectAllowed => new EndState(soFar)
+			case ']'  if endObjectAllowed => pop(soFar)
 			case '"'  => new StringState("", {s:String =>
 				builder.apply[JsonValue](soFar, arrayIndex, JsonValue(s), new IdentityParser[JsonValue]()) match {
-					case Right(x) => new ArrayValueEndState(x, builder, arrayIndex)
+					case Right(x) => new ArrayValueEndState(x, builder, arrayIndex, pop)
 					case Left(x) => new FailureState(x._1, x._2 + charIndex)
 				}
 			})
-			case '['  => new InnerObjectState("[", {s:String => 
-				builder.apply[Iterable[Char]](soFar, arrayIndex, s, JsonParser.this) match {
-					case Right(x) => new ArrayValueEndState(x, builder, arrayIndex)
+			case '['  => new ArrayValueStartState[A, MBRST](
+				MapBuilder[StringOrInt, JsonValue].init,
+				MapBuilder[StringOrInt, JsonValue],
+				{a:MBRST => builder.apply(soFar, arrayIndex, a, new RecusiveMapParser[StringOrInt, JsonValue]) match {
+					case Right(x) => new ArrayValueEndState(x, builder, arrayIndex, pop)
 					case Left(x) => new FailureState(x._1, x._2 + charIndex)
-				}
-			})
-			case '{'  => new InnerObjectState("{", {s:String => 
-				builder.apply[Iterable[Char]](soFar, arrayIndex, s, JsonParser.this) match {
-					case Right(x) => new ArrayValueEndState(x, builder, arrayIndex)
+				}}
+			)
+			case '{'  => new ObjectKeyStartState[A, MBRST](
+				MapBuilder[StringOrInt, JsonValue].init,
+				MapBuilder[StringOrInt, JsonValue],
+				true,
+				{a:MBRST => builder.apply(soFar, arrayIndex, a, new RecusiveMapParser[StringOrInt, JsonValue]) match {
+					case Right(x) => new ArrayValueEndState(x, builder, arrayIndex, pop)
 					case Left(x) => new FailureState(x._1, x._2 + charIndex)
-				}
-			})
+				}}
+			)
 			case '-'  => new IntegerState("-", {s:BigDecimal =>
 				builder.apply[JsonValue](soFar, arrayIndex, JsonValue(s), new IdentityParser[JsonValue]()) match {
-					case Right(x) => new ArrayValueEndState(x, builder, arrayIndex)
+					case Right(x) => new ArrayValueEndState(x, builder, arrayIndex, pop)
 					case Left(x) => new FailureState(x._1, x._2 + charIndex)
 				}
 			})
@@ -203,13 +218,13 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 			}
 			case x if ('0' <= x && x <= '9') => new IntegerState("" + x, {s:BigDecimal =>
 				builder.apply[JsonValue](soFar, arrayIndex, JsonValue(s), new IdentityParser[JsonValue]()) match {
-					case Right(x) => new ArrayValueEndState(x, builder, arrayIndex)
+					case Right(x) => new ArrayValueEndState(x, builder, arrayIndex, pop)
 					case Left(x) => new FailureState(x._1, x._2 + charIndex)
 				}
 			})
 			case x if ('a' <= x && x <= 'z') => new KeywordState("" + x, {s:JsonValue =>
 				builder.apply[JsonValue](soFar, arrayIndex, s, new IdentityParser[JsonValue]()) match {
-					case Right(x) => new ArrayValueEndState(x, builder, arrayIndex)
+					case Right(x) => new ArrayValueEndState(x, builder, arrayIndex, pop)
 					case Left(x) => new FailureState(x._1, x._2 + charIndex)
 				}
 			})
@@ -218,25 +233,16 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 		}
 	}
 	
-	private[this] class ArrayValueEndState[A](soFar:A, builder:Builder[StringOrInt, JsonValue, A], arrayIndex:Int) extends State[A] {
+	private[this] class ArrayValueEndState[A, Curr](soFar:Curr, builder:Builder[StringOrInt, JsonValue, Curr], arrayIndex:Int, pop:Function1[Curr, State[A]]) extends State[A] {
 		def apply(c:Char, charIndex:Int):State[A] = c match {
 			case x if x.isWhitespace => this
-			case ','  => new ArrayValueStartState(soFar, builder, arrayIndex + 1)
-			case ']'  => new EndState(soFar)
+			case ','  => new ArrayValueStartState(soFar, builder, pop, arrayIndex + 1)
+			case ']'  => pop(soFar)
 			case _    => new FailureState("Expecting ',' or ']'; found " + c, charIndex)
 		}
 	}
 	
-	private[this] case class InnerObjectState[A](str:String, pop:(String => State[A]), nesting:Int = 1) extends State[A] {
-		def apply(c:Char, index:Int):State[A] = c match {
-			case '[' => this.copy(str = str + c, nesting = nesting + 1)
-			case '{' => this.copy(str = str + c, nesting = nesting + 1)
-			case ']' => if (nesting == 1) {this.pop(str + c)} else {this.copy(str = str + c, nesting = nesting - 1)}
-			case '}' => if (nesting == 1) {this.pop(str + c)} else {this.copy(str = str + c, nesting = nesting - 1)}
-			case _ => this.copy(str = str + c)
-		}
-	}
-	
+	/** State while inside a string and no escaping is currently active */
 	private[this] class StringState[A](str:String, pop:(String => State[A])) extends State[A] {
 		def apply(c:Char, charIndex:Int):State[A] = {
 			if (c < ' ') {
@@ -251,6 +257,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 		}
 	}
 	
+	/** State while inside a string and the slash-escape just happened */
 	private[this] class StringEscapeState[A](str:String, pop:(String => State[A])) extends State[A] {
 		def apply(c:Char, charIndex:Int):State[A] = c match {
 			case '"'  => new StringState(str + "\"", pop)
@@ -266,6 +273,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 		}
 	}
 	
+	/** State while inside a string and processing a unicode-escape */
 	private[this] class StringUnicodeEscapeState[A](str:String, pop:(String => State[A]), characters:Int = 0, value:Int = 0) extends State[A] {
 		def apply(c:Char, charIndex:Int):State[A] = {
 			if (('0' <= c && c <= '9') || ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F')) {
@@ -283,6 +291,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 		}
 	}
 	
+	/** State while inside an integer */
 	private[this] class IntegerState[A](str:String, pop:(BigDecimal => State[A])) extends State[A] {
 		def apply(c:Char, charIndex:Int):State[A] = {
 			if (c == '}' || c == ']' || c == ',') {
@@ -301,6 +310,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 		}
 	}
 	
+	/** State while inside a keyword */
 	private[this] class KeywordState[A](str:String, pop:(JsonValue => State[A])) extends State[A] {
 		def apply(c:Char, charIndex:Int):State[A] = {
 			if (c == '}' || c == ']' || c == ',') {
@@ -321,6 +331,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, Iterable[Char]] {
 		}
 	}
 	
+	/** State after some failure has occured */
 	private[this] class FailureState[A](val msg:String, val off:Int) extends State[A] {
 		def apply(c:Char, charIndex:Int):State[A] = this
 	}
