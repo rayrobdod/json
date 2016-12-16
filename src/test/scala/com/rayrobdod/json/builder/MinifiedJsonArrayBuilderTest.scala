@@ -31,7 +31,8 @@ import java.nio.charset.StandardCharsets.US_ASCII;
 import com.rayrobdod.json.union.{StringOrInt, JsonValue, CborValue}
 import com.rayrobdod.json.union.JsonValue._
 import com.rayrobdod.json.parser.{IdentityParser, FailureParser}
-import com.rayrobdod.json.parser.{byteArray2DataInput, HexArrayStringConverter};
+import com.rayrobdod.json.parser.byteArray2DataInput
+import com.rayrobdod.json.testing.HexArrayStringConverter
 
 @deprecated("MinifiedJsonArrayBuilder is deprecated; using to suppress warnings tests related to that class", "3.0")
 class MinifiedJsonArrayBuilderTest extends FunSpec {

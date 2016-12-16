@@ -33,8 +33,8 @@ import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.CborValue
 import com.rayrobdod.json.union.CborValue._
 import com.rayrobdod.json.parser.IdentityParser
-import com.rayrobdod.json.parser.HexArrayStringConverter;
 import com.rayrobdod.json.parser.FailureParser
+import com.rayrobdod.json.testing.HexArrayStringConverter
 import scala.language.implicitConversions
 
 class CborBuilderTest extends FunSpec {
