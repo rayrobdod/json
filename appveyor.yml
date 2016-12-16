@@ -48,8 +48,3 @@ test_script:
 artifacts:
   - path: publish
     name: sbt_publish_directory
-cache:
-  - C:\sbt\
-  - C:\graphviz\
-  - C:\Users\appveyor\.m2
-  - C:\Users\appveyor\.ivy2
