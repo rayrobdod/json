@@ -28,52 +28,144 @@ package com.rayrobdod.json.builder;
 
 import org.scalatest.FunSpec;
 import scala.collection.immutable.Seq;
+import com.rayrobdod.json.parser.Parser
 import com.rayrobdod.json.parser.FailureParser
 import com.rayrobdod.json.parser.IdentityParser
 
 class BuilderTest extends FunSpec {
 	
+	private[this] final class ReportKeyValueBuilder[A,B] extends Builder[A,B,(A,B)] {
+		def init = null
+		def apply[Input](folding:(A,B), key:A, input:Input, parser:Parser[A, B, Input]):Either[(String, Int), (A,B)] = {
+			parser.parsePrimitive(input).right.map{value => ((key, value))}
+		}
+	}
+	
+	
 	describe("Builder.mapKey") {
+		it ("The new builder's init is the same as the old builder's init") {
+			val builder = new ThrowBuilder[Int, String]
+			assertResult(builder.init){builder.mapKey[Int]{x => x}.init}
+		}
+		it ("when a success, continue being a success") {
+			assertResult(Right("key", "value")){
+				new ReportKeyValueBuilder[String, String]
+						.mapKey[Int]{case x => "key"}
+						.apply(null, 1, "value",  new IdentityParser[String])
+			}
+		}
+		it ("passes through a parser's failure") {
+			assertResult(Left("FailureParser", 0)){
+				new ReportKeyValueBuilder[String, String]
+						.mapKey[Int]{case x => "key"}
+						.apply(null, 1, "value",  new FailureParser)
+			}
+		}
+		it ("passes through a builder's failure") {
+			assertResult(Left("using ThrowBuilder::apply", 0)){
+				new ThrowBuilder[String, String]
+						.mapKey[Int]{case x => "key"}
+						.apply(null, 1, "value",  new IdentityParser[String])
+			}
+		}
+	}
+	describe("Builder.flatMapKey") {
+		it ("The new builder's init is the same as the old builder's init") {
+			val builder = new ThrowBuilder[Int, String]
+			assertResult(builder.init){builder.flatMapKey[Int]{case x => Right(x)}.init}
+		}
+		it ("when a success, continue being a success") {
+			assertResult(Right("key", "value")){
+				new ReportKeyValueBuilder[String, String]
+						.flatMapKey[Int]{case x => Right("key")}
+						.apply(null, 1, "value",  new IdentityParser[String])
+			}
+		}
+		it ("passes through a parser's failure") {
+			assertResult(Left("FailureParser", 0)){
+				new ReportKeyValueBuilder[String, String]
+						.flatMapKey[Int]{case x => Right("key")}
+						.apply(null, 1, "value",  new FailureParser)
+			}
+		}
+		it ("passes through a builder's failure") {
+			assertResult(Left("using ThrowBuilder::apply", 0)){
+				new ThrowBuilder[String, String]
+						.flatMapKey[Int]{case x => Right("key")}
+						.apply(null, 1, "value",  new IdentityParser[String])
+			}
+		}
+		it ("passes through a fun's failure") {
+			assertResult(Left("???", 0)){
+				new ReportKeyValueBuilder[String, String]
+						.flatMapKey[Int]{case x => Left(("???", 0))}
+						.apply(null, 1, "value",  new IdentityParser[String])
+			}
+		}
 	}
 	describe("Builder.mapValue") {
-		it ("passes through a parser's falure") {
-			val myValue2 = new Object
-			
+		it ("The new builder's init is the same as the old builder's init") {
+			val builder = new ThrowBuilder[Int, String]
+			assertResult(builder.init){builder.mapValue[String]{case x => x}.init}
+		}
+		it ("when a success, continue being a success") {
+			assertResult(Right("key", "value")){
+				new ReportKeyValueBuilder[String, String]
+						.mapValue[Int]{case x => "value"}
+						.apply(null, "key", 1,  new IdentityParser[Int])
+			}
+		}
+		it ("passes through a parser's failure") {
 			assertResult(Left("FailureParser", 0)){
-				new SeqBuilder(new PrimitiveSeqBuilder[Object]).mapValue[Object].apply(Nil, "sdfa", myValue2, new FailureParser())
+				new ReportKeyValueBuilder[String, String]
+						.mapValue[Int]{case x => "value"}
+						.apply(null, "key", 1,  new FailureParser)
+			}
+		}
+		it ("passes through a builder's failure") {
+			assertResult(Left("using ThrowBuilder::apply", 0)){
+				new ThrowBuilder[String, String]
+						.mapValue[Int]{case x => "value"}
+						.apply(null, "key", 1,  new IdentityParser[Int])
 			}
 		}
 	}
 	describe("Builder.flatMapValue") {
-		def parseInt(x:String):Either[(String,Int),Int] = {
-			try {
-				Right(java.lang.Integer.parseInt(x))
-			} catch {
-				case ex:java.lang.NumberFormatException => Left(("Not an integer", 0))
+		it ("The new builder's init is the same as the old builder's init") {
+			val builder = new ThrowBuilder[Int, String]
+			assertResult(builder.init){builder.flatMapValue[String]{case x => Right(x)}.init}
+		}
+		it ("when a success, continue being a success") {
+			assertResult(Right("key", "value")){
+				new ReportKeyValueBuilder[String, String]
+						.flatMapValue[Int]{case x => Right("value")}
+						.apply(null, "key", 1,  new IdentityParser[Int])
+			}
+		}
+		it ("passes through a parser's failure") {
+			assertResult(Left("FailureParser", 0)){
+				new ReportKeyValueBuilder[String, String]
+						.flatMapValue[Int]{case x => Right("value")}
+						.apply(null, "key", 1,  new FailureParser)
+			}
+		}
+		it ("passes through a builder's failure") {
+			assertResult(Left("using ThrowBuilder::apply", 0)){
+				new ThrowBuilder[String, String]
+						.flatMapValue[Int]{case x => Right("value")}
+						.apply(null, "key", 1,  new IdentityParser[Int])
+			}
+		}
+		it ("passes through a fun's failure") {
+			assertResult(Left("???", 0)){
+				new ReportKeyValueBuilder[String, String]
+						.flatMapValue[Int]{case x => Left("???", 0)}
+						.apply(null, "key", 1,  new IdentityParser[Int])
 			}
 		}
 		
-		it ("when success and condition passes, continue being success") {
-			assertResult(Right(125 :: Nil)){
-				new PrimitiveSeqBuilder[Int]
-					.flatMapValue[String](parseInt)
-					.apply(Nil, 0, "125", new IdentityParser[String])
-			}
-		}
-		it ("when success but condition fails, become a fail") {
-			assertResult(Left(("Not an integer", 0))){
-				new PrimitiveSeqBuilder[Int]
-					.flatMapValue[String](parseInt)
-					.apply(Nil, 0, "abc", new IdentityParser[String])
-			}
-		}
-		it ("when failure, continue being a fail") {
-			assertResult(Left(("FailureParser", 0))){
-				new PrimitiveSeqBuilder[Int]
-					.flatMapValue[String](parseInt)
-					.apply(Nil, 0, "abc", new FailureParser)
-			}
-		}
+		
+		
 		it ("nesting") {
 			import com.rayrobdod.json.union.{StringOrInt, JsonValue}
 			import com.rayrobdod.json.union.JsonValue.JsonValueNumber
