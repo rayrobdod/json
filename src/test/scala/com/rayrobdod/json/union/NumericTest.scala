@@ -52,6 +52,7 @@ class NumericTest extends FunSpec {
 		)
 		
 		tests.foreach{x =>
+			val rat = Some(new Rational(x._1, 1))
 			describe("In Value: " + x._1) {
 				it ("convert to BigDec: " + x._2) {assertResult(x._2){BigIntNumeric.tryToBigDecimal(x._1)}}
 				it ("convert to BigInt: " + x._3) {assertResult(x._3){BigIntNumeric.tryToBigInt(x._1)}}
@@ -60,6 +61,7 @@ class NumericTest extends FunSpec {
 				it ("convert to Long: " + x._6) {assertResult(x._6){BigIntNumeric.tryToLong(x._1)}}
 				it ("convert to Int: " + x._7) {assertResult(x._7){BigIntNumeric.tryToInt(x._1)}}
 				it ("convert to special: " + x._8) {assertResult(x._8){BigIntNumeric.tryToSpecialValue(x._1)}}
+				it ("convert to Rational: " + rat) {assertResult(rat){BigIntNumeric.tryToRational(x._1)}}
 			}
 		}
 	}
@@ -79,6 +81,7 @@ class NumericTest extends FunSpec {
 		)
 		
 		tests.foreach{x =>
+			val rat = Some(new Rational(x._1, 1))
 			describe("In Value: " + x._1) {
 				it ("convert to BigDec: " + x._2) {assertResult(x._2){LongNumeric.tryToBigDecimal(x._1)}}
 				it ("convert to BigInt: " + x._3) {assertResult(x._3){LongNumeric.tryToBigInt(x._1)}}
@@ -87,6 +90,7 @@ class NumericTest extends FunSpec {
 				it ("convert to Long: " + x._6) {assertResult(x._6){LongNumeric.tryToLong(x._1)}}
 				it ("convert to Int: " + x._7) {assertResult(x._7){LongNumeric.tryToInt(x._1)}}
 				it ("convert to special: " + x._8) {assertResult(x._8){LongNumeric.tryToSpecialValue(x._1)}}
+				it ("convert to Rational: " + rat) {assertResult(rat){LongNumeric.tryToRational(x._1)}}
 			}
 		}
 	}
@@ -103,6 +107,7 @@ class NumericTest extends FunSpec {
 		)
 		
 		tests.foreach{x =>
+			val rat = Some(new Rational(x._1, 1))
 			describe("In Value: " + x._1) {
 				it ("convert to BigDec: " + x._2) {assertResult(x._2){IntNumeric.tryToBigDecimal(x._1)}}
 				it ("convert to BigInt: " + x._3) {assertResult(x._3){IntNumeric.tryToBigInt(x._1)}}
@@ -111,6 +116,7 @@ class NumericTest extends FunSpec {
 				it ("convert to Long: " + x._6) {assertResult(x._6){IntNumeric.tryToLong(x._1)}}
 				it ("convert to Int: " + x._7) {assertResult(x._7){IntNumeric.tryToInt(x._1)}}
 				it ("convert to special: " + x._8) {assertResult(x._8){IntNumeric.tryToSpecialValue(x._1)}}
+				it ("convert to Rational: " + rat) {assertResult(rat){IntNumeric.tryToRational(x._1)}}
 			}
 		}
 	}
@@ -118,16 +124,16 @@ class NumericTest extends FunSpec {
 	describe("BigDecimalNumeric") {
 		val tests = Seq[(BigDecimal, Option[BigDecimal], Option[BigInt],
 				Option[Double], Option[Float], Option[Long], Option[Int],
-				Option[SpecialValue]
+				Option[SpecialValue], Option[Rational]
 		)](
-			  (BigDecimal("0"), Option(BigDecimal("0")), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0), None)
-			, (BigDecimal("1"), Option(BigDecimal("1")), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1), None)
-			, (BigDecimal("2"), Option(BigDecimal("2")), Option(BigInt(2)), Option(2), Option(2), Option(2), Option(2), None)
-			, (BigDecimal("0.5"), Option(BigDecimal("0.5")), None, Option(0.5), Option(0.5f), None, None, None)
-			, (BigDecimal("-1"), Option(BigDecimal("-1")), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1), None)
-			, (BigDecimal("1.5"), Option(BigDecimal("1.5")), None, Option(1.5), Option(1.5F), None, None, None)
-			, (BigDecimal(1e20), Option(BigDecimal(1e20)), Option(BigInt(10).pow(20)), Option(1e20), None, None, None, None)
-			, (Long.MaxValue, Option(BigDecimal(Long.MaxValue)), Option(BigInt(Long.MaxValue)), None, None, Option(Long.MaxValue), None, None)
+			  (BigDecimal("0"), Option(BigDecimal("0")), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0), None, Option(new Rational(0,1)))
+			, (BigDecimal("1"), Option(BigDecimal("1")), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1), None, Option(new Rational(1,1)))
+			, (BigDecimal("2"), Option(BigDecimal("2")), Option(BigInt(2)), Option(2), Option(2), Option(2), Option(2), None, Option(new Rational(2,1)))
+			, (BigDecimal("0.5"), Option(BigDecimal("0.5")), None, Option(0.5), Option(0.5f), None, None, None, Option(new Rational(1,2)))
+			, (BigDecimal("-1"), Option(BigDecimal("-1")), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1), None, Option(new Rational(-1,1)))
+			, (BigDecimal("1.5"), Option(BigDecimal("1.5")), None, Option(1.5), Option(1.5F), None, None, None, Option(new Rational(3,2)))
+			, (BigDecimal(1e20), Option(BigDecimal(1e20)), Option(BigInt(10).pow(20)), Option(1e20), None, None, None, None, Option(new Rational(BigInt(10).pow(20), 1)))
+			, (Long.MaxValue, Option(BigDecimal(Long.MaxValue)), Option(BigInt(Long.MaxValue)), None, None, Option(Long.MaxValue), None, None, Option(new Rational(BigInt(Long.MaxValue), 1)))
 		)
 		
 		tests.foreach{x =>
@@ -139,6 +145,7 @@ class NumericTest extends FunSpec {
 				it ("convert to Long: " + x._6) {assertResult(x._6){BigDecimalNumeric.tryToLong(x._1)}}
 				it ("convert to Int: " + x._7) {assertResult(x._7){BigDecimalNumeric.tryToInt(x._1)}}
 				it ("convert to special: " + x._8) {assertResult(x._8){BigDecimalNumeric.tryToSpecialValue(x._1)}}
+				it ("convert to Rational: " + x._9) {assertResult(x._9){BigDecimalNumeric.tryToRational(x._1)}}
 			}
 		}
 	}
@@ -146,20 +153,20 @@ class NumericTest extends FunSpec {
 	describe("DoubleNumeric") {
 		val tests = Seq[(Double, Option[BigDecimal], Option[BigInt],
 				Option[Double], Option[Float], Option[Long], Option[Int],
-				Option[SpecialValue]
+				Option[SpecialValue], Option[Rational]
 		)](
-			  (0, Option(BigDecimal(0)), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0), None)
-			, (1, Option(BigDecimal(1)), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1), None)
-			, (-1, Option(BigDecimal(-1)), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1), None)
-			, (Int.MaxValue, Option(BigDecimal(Int.MaxValue)), Option(BigInt(Int.MaxValue)), Option(Int.MaxValue), None, Option(Int.MaxValue), Option(Int.MaxValue), None)
-			, (intMaxPlusOne, Option(BigDecimal(intMaxPlusOne)), Option(BigInt(intMaxPlusOne)), Option(intMaxPlusOne), Option(intMaxPlusOne), Option(intMaxPlusOne), None, None)
-			, (Int.MinValue, Option(BigDecimal(Int.MinValue)), Option(BigInt(Int.MinValue)), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue), None)
-			, (intMinMinusOne, Option(BigDecimal(intMinMinusOne)), Option(BigInt(intMinMinusOne)), Option(intMinMinusOne), None, Option(intMinMinusOne), None, None)
-			, (1.5, Option(BigDecimal(1.5)), None, Option(1.5), Option(1.5F), None, None, None)
-			, (1e20, Option(BigDecimal(1e20)), Option(BigInt(10).pow(20)), Option(1e20), None, None, None, None)
-			, (math.pow(2, 80), Option(BigDecimal(2, UNLIMITED).pow(80)), Option(BigInt(2).pow(80)), Option(math.pow(2, 80)), Option(math.pow(2, 80).floatValue), None, None, None)
-			, (Double.PositiveInfinity, None, None, Option(Double.PositiveInfinity), Option(Float.PositiveInfinity), None, None, Option(Numeric.PositiveInfinity))
-			, (Double.NegativeInfinity, None, None, Option(Double.NegativeInfinity), Option(Float.NegativeInfinity), None, None, Option(Numeric.NegativeInfinity))
+			  (0, Option(BigDecimal(0)), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0), None, Option(new Rational(0,1)))
+			, (1, Option(BigDecimal(1)), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1), None, Option(new Rational(1,1)))
+			, (-1, Option(BigDecimal(-1)), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1), None, Option(new Rational(-1,1)))
+			, (Int.MaxValue, Option(BigDecimal(Int.MaxValue)), Option(BigInt(Int.MaxValue)), Option(Int.MaxValue), None, Option(Int.MaxValue), Option(Int.MaxValue), None, Option(new Rational(Int.MaxValue,1)))
+			, (intMaxPlusOne, Option(BigDecimal(intMaxPlusOne)), Option(BigInt(intMaxPlusOne)), Option(intMaxPlusOne), Option(intMaxPlusOne), Option(intMaxPlusOne), None, None, Option(new Rational(intMaxPlusOne,1)))
+			, (Int.MinValue, Option(BigDecimal(Int.MinValue)), Option(BigInt(Int.MinValue)), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue), Option(Int.MinValue), None, Option(new Rational(Int.MinValue,1)))
+			, (intMinMinusOne, Option(BigDecimal(intMinMinusOne)), Option(BigInt(intMinMinusOne)), Option(intMinMinusOne), None, Option(intMinMinusOne), None, None, Option(new Rational(intMinMinusOne,1)))
+			, (1.5, Option(BigDecimal(1.5)), None, Option(1.5), Option(1.5F), None, None, None, Option(new Rational(3,2)))
+			, (1e20, Option(BigDecimal(1e20)), Option(BigInt(10).pow(20)), Option(1e20), None, None, None, None, Option(new Rational(BigInt(10).pow(20),1)))
+			, (math.pow(2, 80), Option(BigDecimal(2, UNLIMITED).pow(80)), Option(BigInt(2).pow(80)), Option(math.pow(2, 80)), Option(math.pow(2, 80).floatValue), None, None, None, Option(new Rational(BigInt(2).pow(80),1)))
+			, (Double.PositiveInfinity, None, None, Option(Double.PositiveInfinity), Option(Float.PositiveInfinity), None, None, Option(Numeric.PositiveInfinity), Option(new Rational(1,0)))
+			, (Double.NegativeInfinity, None, None, Option(Double.NegativeInfinity), Option(Float.NegativeInfinity), None, None, Option(Numeric.NegativeInfinity), Option(new Rational(-1,0)))
 		)
 		
 		tests.foreach{x =>
@@ -171,6 +178,7 @@ class NumericTest extends FunSpec {
 				it ("convert to Long: " + x._6) {assertResult(x._6){DoubleNumeric.tryToLong(x._1)}}
 				it ("convert to Int: " + x._7) {assertResult(x._7){DoubleNumeric.tryToInt(x._1)}}
 				it ("convert to special: " + x._8) {assertResult(x._8){DoubleNumeric.tryToSpecialValue(x._1)}}
+				it ("convert to Rational: " + x._9) {assertResult(x._9){DoubleNumeric.tryToRational(x._1)}}
 				it ("convert to BigDec (syntax): " + x._2) {assertResult(x._2){x._1.tryToBigDecimal}}
 				it ("convert to BigInt (syntax): " + x._3) {assertResult(x._3){x._1.tryToBigInt}}
 				it ("convert to Double (syntax): " + x._4) {assertResult(x._4){x._1.tryToDouble}}
@@ -178,6 +186,7 @@ class NumericTest extends FunSpec {
 				it ("convert to Long (syntax): " + x._6) {assertResult(x._6){x._1.tryToLong}}
 				it ("convert to Int (syntax): " + x._7) {assertResult(x._7){x._1.tryToInt}}
 				it ("convert to special (syntax): " + x._8) {assertResult(x._8){x._1.tryToSpecialValue}}
+				it ("convert to Rational (syntax): " + x._9) {assertResult(x._9){x._1.tryToRational}}
 				it ("convert to BigDec (pair): " + x._2) {assertResult(x._2){NumericPair(x._1)(DoubleNumeric).tryToBigDecimal}}
 				it ("convert to BigInt (pair): " + x._3) {assertResult(x._3){NumericPair(x._1)(DoubleNumeric).tryToBigInt}}
 				it ("convert to Double (pair): " + x._4) {assertResult(x._4){NumericPair(x._1)(DoubleNumeric).tryToDouble}}
@@ -185,6 +194,7 @@ class NumericTest extends FunSpec {
 				it ("convert to Long (pair): " + x._6) {assertResult(x._6){NumericPair(x._1)(DoubleNumeric).tryToLong}}
 				it ("convert to Int (pair): " + x._7) {assertResult(x._7){NumericPair(x._1)(DoubleNumeric).tryToInt}}
 				it ("convert to special (pair): " + x._8) {assertResult(x._8){NumericPair(x._1)(DoubleNumeric).tryToSpecialValue}}
+				it ("convert to Rational (pair): " + x._9) {assertResult(x._9){NumericPair(x._1)(DoubleNumeric).tryToRational}}
 			}
 		}
 		
@@ -196,20 +206,21 @@ class NumericTest extends FunSpec {
 			it ("convert to Long: ") {assertResult(None){DoubleNumeric.tryToLong(Double.NaN)}}
 			it ("convert to Int: ") {assertResult(None){DoubleNumeric.tryToInt(Double.NaN)}}
 			it ("convert to special: ") {assertResult(Option(Numeric.NaN)){DoubleNumeric.tryToSpecialValue(Double.NaN)}}
+			it ("convert to Rational: ") {assert{DoubleNumeric.tryToRational(Double.NaN).get.isNaN}}
 		}
 	}
 	describe("FloatNumeric") {
 		val tests = Seq[(Float, Option[BigDecimal], Option[BigInt],
 				Option[Double], Option[Float], Option[Long], Option[Int],
-				Option[SpecialValue]
+				Option[SpecialValue], Option[Rational]
 		)](
-			  (0, Option(BigDecimal(0)), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0), None)
-			, (1, Option(BigDecimal(1)), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1), None)
-			, (-1, Option(BigDecimal(-1)), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1), None)
-			, (1.5f, Option(BigDecimal("1.5")), None, Option(1.5), Option(1.5F), None, None, None)
-			, (math.pow(2, 80).floatValue, Option(BigDecimal(2, UNLIMITED).pow(80)), Option(BigInt(2).pow(80)), Option(math.pow(2, 80)), Option(math.pow(2, 80).floatValue), None, None, None)
-			, (Float.PositiveInfinity, None, None, Option(Double.PositiveInfinity), Option(Float.PositiveInfinity), None, None, Option(Numeric.PositiveInfinity))
-			, (Float.NegativeInfinity, None, None, Option(Double.NegativeInfinity), Option(Float.NegativeInfinity), None, None, Option(Numeric.NegativeInfinity))
+			  (0, Option(BigDecimal(0)), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0), None, Option(new Rational(0,1)))
+			, (1, Option(BigDecimal(1)), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1), None, Option(new Rational(1,1)))
+			, (-1, Option(BigDecimal(-1)), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1), None, Option(new Rational(-1,1)))
+			, (1.5f, Option(BigDecimal("1.5")), None, Option(1.5), Option(1.5F), None, None, None, Option(new Rational(3,2)))
+			, (math.pow(2, 80).floatValue, Option(BigDecimal(2, UNLIMITED).pow(80)), Option(BigInt(2).pow(80)), Option(math.pow(2, 80)), Option(math.pow(2, 80).floatValue), None, None, None, Option(new Rational(BigInt(2).pow(80),1)))
+			, (Float.PositiveInfinity, None, None, Option(Double.PositiveInfinity), Option(Float.PositiveInfinity), None, None, Option(Numeric.PositiveInfinity), Option(new Rational(1,0)))
+			, (Float.NegativeInfinity, None, None, Option(Double.NegativeInfinity), Option(Float.NegativeInfinity), None, None, Option(Numeric.NegativeInfinity), Option(new Rational(-1,0)))
 		)
 		
 		tests.foreach{x =>
@@ -221,6 +232,7 @@ class NumericTest extends FunSpec {
 				it ("convert to Long: " + x._6) {assertResult(x._6){FloatNumeric.tryToLong(x._1)}}
 				it ("convert to Int: " + x._7) {assertResult(x._7){FloatNumeric.tryToInt(x._1)}}
 				it ("convert to special: " + x._8) {assertResult(x._8){FloatNumeric.tryToSpecialValue(x._1)}}
+				it ("convert to Rational: " + x._9) {assertResult(x._9){FloatNumeric.tryToRational(x._1)}}
 			}
 		}
 		describe("In Value: NaN") {
@@ -231,25 +243,26 @@ class NumericTest extends FunSpec {
 			it ("convert to Long: ") {assertResult(None){FloatNumeric.tryToLong(Float.NaN)}}
 			it ("convert to Int: ") {assertResult(None){FloatNumeric.tryToInt(Float.NaN)}}
 			it ("convert to special: ") {assertResult(Option(Numeric.NaN)){FloatNumeric.tryToSpecialValue(Float.NaN)}}
+			it ("convert to Rational: ") {assert{FloatNumeric.tryToRational(Float.NaN).get.isNaN}}
 		}
 	}
 	describe("HalfFloatNumeric") {
 		val tests = Seq[(Short, Option[BigDecimal], Option[BigInt],
 				Option[Double], Option[Float], Option[Long], Option[Int],
-				Option[SpecialValue]
+				Option[SpecialValue], Option[Rational]
 		)](
-			  (0x0000.shortValue, Option(BigDecimal(0)), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0), None)
-			, (0x8000.shortValue, Option(BigDecimal(-0.0)), Option(BigInt(0)), Option(-0.0), Option(-0.0f), Option(0), Option(0), None)
-			, (0x3C00.shortValue, Option(BigDecimal(1)), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1), None)
-			, (0x4000.shortValue, Option(BigDecimal(2)), Option(BigInt(2)), Option(2), Option(2), Option(2), Option(2), None)
-			, (0x3800.shortValue, Option(BigDecimal("0.5")), None, Option(0.5), Option(0.5f), None, None, None)
-			, (0xBC00.shortValue, Option(BigDecimal(-1)), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1), None)
-			, (0x3E00.shortValue, Option(BigDecimal("1.5")), None, Option(1.5), Option(1.5F), None, None, None)
-			, (0x3555.shortValue, Option(BigDecimal("0.333251953125")), None, Option(0.333251953125), Option(0.333251953125f), None, None, None)
-			, (0x7BFF.shortValue, Option(BigDecimal(65504)), Option(BigInt(65504)), Option(65504), Option(65504), Option(65504), Option(65504), None)
-			, (0xC400.shortValue, Option(BigDecimal(-4)), Option(BigInt(-4)), Option(-4), Option(-4), Option(-4), Option(-4), None)
-			, (0x7C00.shortValue, None, None, Option(Double.PositiveInfinity), Option(Float.PositiveInfinity), None, None, Option(Numeric.PositiveInfinity))
-			, (0xFC00.shortValue, None, None, Option(Double.NegativeInfinity), Option(Float.NegativeInfinity), None, None, Option(Numeric.NegativeInfinity))
+			  (0x0000.shortValue, Option(BigDecimal(0)), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0), None, Option(new Rational(0,1)))
+			, (0x8000.shortValue, Option(BigDecimal(-0.0)), Option(BigInt(0)), Option(-0.0), Option(-0.0f), Option(0), Option(0), None, Option(new Rational(0,1)))
+			, (0x3C00.shortValue, Option(BigDecimal(1)), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1), None, Option(new Rational(1,1)))
+			, (0x4000.shortValue, Option(BigDecimal(2)), Option(BigInt(2)), Option(2), Option(2), Option(2), Option(2), None, Option(new Rational(2,1)))
+			, (0x3800.shortValue, Option(BigDecimal("0.5")), None, Option(0.5), Option(0.5f), None, None, None, Option(new Rational(1,2)))
+			, (0xBC00.shortValue, Option(BigDecimal(-1)), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1), None, Option(new Rational(-1,1)))
+			, (0x3E00.shortValue, Option(BigDecimal("1.5")), None, Option(1.5), Option(1.5F), None, None, None, Option(new Rational(3,2)))
+			, (0x3555.shortValue, Option(BigDecimal("0.333251953125")), None, Option(0.333251953125), Option(0.333251953125f), None, None, None, Option(new Rational(1365, 4096)))
+			, (0x7BFF.shortValue, Option(BigDecimal(65504)), Option(BigInt(65504)), Option(65504), Option(65504), Option(65504), Option(65504), None, Option(new Rational(65504,1)))
+			, (0xC400.shortValue, Option(BigDecimal(-4)), Option(BigInt(-4)), Option(-4), Option(-4), Option(-4), Option(-4), None, Option(new Rational(-4,1)))
+			, (0x7C00.shortValue, None, None, Option(Double.PositiveInfinity), Option(Float.PositiveInfinity), None, None, Option(Numeric.PositiveInfinity), Option(new Rational(1,0)))
+			, (0xFC00.shortValue, None, None, Option(Double.NegativeInfinity), Option(Float.NegativeInfinity), None, None, Option(Numeric.NegativeInfinity), Option(new Rational(-1,0)))
 		)
 		
 		tests.foreach{x =>
@@ -261,6 +274,7 @@ class NumericTest extends FunSpec {
 				it ("convert to Long: " + x._6) {assertResult(x._6){HalfFloatNumeric.tryToLong(x._1)}}
 				it ("convert to Int: " + x._7) {assertResult(x._7){HalfFloatNumeric.tryToInt(x._1)}}
 				it ("convert to special: " + x._8) {assertResult(x._8){HalfFloatNumeric.tryToSpecialValue(x._1)}}
+				it ("convert to rational: " + x._9) {assertResult(x._9){HalfFloatNumeric.tryToRational(x._1)}}
 			}
 		}
 		describe("In Value: NaN") {
@@ -278,20 +292,20 @@ class NumericTest extends FunSpec {
 	describe("RationalNumeric") {
 		val tests = Seq[(Rational, Option[BigDecimal], Option[BigInt],
 				Option[Double], Option[Float], Option[Long], Option[Int],
-				Option[SpecialValue]
+				Option[SpecialValue], Option[Rational]
 		)](
-			  (new Rational(0,1), Option(BigDecimal("0")), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0), None)
-			, (new Rational(0,15), Option(BigDecimal("0")), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0), None)
-			, (new Rational(1,1), Option(BigDecimal("1")), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1), None)
-			, (new Rational(5,5), Option(BigDecimal("1")), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1), None)
-			, (new Rational(2,1), Option(BigDecimal("2")), Option(BigInt(2)), Option(2), Option(2), Option(2), Option(2), None)
-			, (new Rational(1,2), Option(BigDecimal("0.5")), None, Option(0.5), Option(0.5f), None, None, None)
-			, (new Rational(-1,1), Option(BigDecimal("-1")), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1), None)
-			, (new Rational(1,-1), Option(BigDecimal("-1")), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1), None)
-			, (new Rational(3,2), Option(BigDecimal("1.5")), None, Option(1.5), Option(1.5F), None, None, None)
-			, (new Rational(1,3), None, None, None, None, None, None, None)
-			, (new Rational(1,0), None, None, Option(Double.PositiveInfinity), Option(Float.PositiveInfinity), None, None, Option(Numeric.PositiveInfinity))
-			, (new Rational(-1,0), None, None, Option(Double.NegativeInfinity), Option(Float.NegativeInfinity), None, None, Option(Numeric.NegativeInfinity))
+			  (new Rational(0,1), Option(BigDecimal("0")), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0), None, Option(new Rational(0,1)))
+			, (new Rational(0,15), Option(BigDecimal("0")), Option(BigInt(0)), Option(0), Option(0), Option(0), Option(0), None, Option(new Rational(0,1)))
+			, (new Rational(1,1), Option(BigDecimal("1")), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1), None, Option(new Rational(1,1)))
+			, (new Rational(5,5), Option(BigDecimal("1")), Option(BigInt(1)), Option(1), Option(1), Option(1), Option(1), None, Option(new Rational(1,1)))
+			, (new Rational(2,1), Option(BigDecimal("2")), Option(BigInt(2)), Option(2), Option(2), Option(2), Option(2), None, Option(new Rational(2,1)))
+			, (new Rational(1,2), Option(BigDecimal("0.5")), None, Option(0.5), Option(0.5f), None, None, None, Option(new Rational(1,2)))
+			, (new Rational(-1,1), Option(BigDecimal("-1")), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1), None, Option(new Rational(-1,1)))
+			, (new Rational(1,-1), Option(BigDecimal("-1")), Option(BigInt(-1)), Option(-1), Option(-1), Option(-1), Option(-1), None, Option(new Rational(-1,1)))
+			, (new Rational(3,2), Option(BigDecimal("1.5")), None, Option(1.5), Option(1.5F), None, None, None, Option(new Rational(3,2)))
+			, (new Rational(1,3), None, None, None, None, None, None, None, Option(new Rational(1,3)))
+			, (new Rational(1,0), None, None, Option(Double.PositiveInfinity), Option(Float.PositiveInfinity), None, None, Option(Numeric.PositiveInfinity), Option(new Rational(1, 0)))
+			, (new Rational(-1,0), None, None, Option(Double.NegativeInfinity), Option(Float.NegativeInfinity), None, None, Option(Numeric.NegativeInfinity), Option(new Rational(-1,0)))
 		)
 		
 		tests.foreach{x =>
@@ -303,6 +317,7 @@ class NumericTest extends FunSpec {
 				it ("convert to Long: " + x._6) {assertResult(x._6){RationalNumeric.tryToLong(x._1)}}
 				it ("convert to Int: " + x._7) {assertResult(x._7){RationalNumeric.tryToInt(x._1)}}
 				it ("convert to special: " + x._8) {assertResult(x._8){RationalNumeric.tryToSpecialValue(x._1)}}
+				it ("convert to Rational: " + x._9) {assertResult(x._9){RationalNumeric.tryToRational(x._1)}}
 			}
 		}
 		describe("In Value: 0/0") {
@@ -314,6 +329,7 @@ class NumericTest extends FunSpec {
 			it ("convert to Long: ") {assertResult(None){RationalNumeric.tryToLong(RationalNaN)}}
 			it ("convert to Int: ") {assertResult(None){RationalNumeric.tryToInt(RationalNaN)}}
 			it ("convert to special: ") {assertResult(Option(Numeric.NaN)){RationalNumeric.tryToSpecialValue(RationalNaN)}}
+			it ("convert to Rational: ") {assert{RationalNumeric.tryToRational(RationalNaN).get.isNaN}}
 		}
 	}
 }	

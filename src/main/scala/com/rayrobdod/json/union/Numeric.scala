@@ -35,10 +35,29 @@ import scala.math.{BigInt, BigDecimal}
  * @since next
  */
 trait Numeric[A]{
-	// TODO: fold
+	
+	/**
+	 * Call one of the second-parameter-list's parameters using a value equivalent to `a` and return the result.
+	 * It is not defined which function is called if multiple are applicable.
+	 *
+	 * This will probably be one of the least stable methods in this library,
+	 * extended if something else is deemed numeric which cannot fit inside either
+	 * a BigDecimal or a Rational. But, at the same time, this function will
+	 * remain a complete function, whereas every other function will have some
+	 * cases which will return Option.
+	 * 
+	 * I imagine most common deserialization cases are happy failing if they
+	 * recieve unexpected data, in which case the `tryTo` methods will be more
+	 * than sufficient, but if one needs a complete function *and to be told via
+	 * compiler error when said function becomes imcomplete* (which would exclude
+	 * chained `Option::flatMap`s), then one would need that function.
+	 */
+	def fold[B](a:A)(fbd:BigDecimal => B, fr:Numeric.Rational => B):B
 	
 	def tryToSpecialValue(a:A):Option[Numeric.SpecialValue]
 	
+	/** Return a Rational with a value equal to this, if there is such a Rational */
+	def tryToRational(a:A):Option[Numeric.Rational]
 	/** Return a BigDecimal with a value equal to this, if there is such a BigDecmial */
 	def tryToBigDecimal(a:A):Option[BigDecimal]
 	/** Return a BigInt with a value equal to this, if there is such a BigInt */
@@ -64,7 +83,7 @@ object Numeric {
 	// Going through all the effort to deconstruct then reconstruct the floats
 	// as neither BigDecimal.apply nor BigDecimal.valueOf gave the result I wanted
 	// (an as-precise-as-possible translation)
-	/** Build a BigDecimal from the parts of a floating point number. Assumes not NaN nor Infinity */
+	/** Build a BigDecimal from the parts of an IEEE floating point number. Assumes not NaN nor Infinity */
 	private[this] def buildBigDecimal(floatParts:(Byte, Short, Long), zeroExponent:Short, significandBitCount:Byte):BigDecimal = {
 		val (sign, exponent, significand) = floatParts
 		if (exponent == zeroExponent) {
@@ -81,7 +100,7 @@ object Numeric {
 		)}
 	}
 	
-	/** Build a BigInt from the parts of a floating point number. Assumes is whole and not NaN nor Infinity */
+	/** Build a BigInt from the parts of an IEEE floating point number. Assumes is whole and not NaN nor Infinity */
 	private[this] def buildBigInt(floatParts:(Byte, Short, Long), zeroExponent:Short, significandBits:Byte):BigInt = {
 		val (sign, exponent, significand) = floatParts
 		if (exponent == zeroExponent) {
@@ -98,9 +117,38 @@ object Numeric {
 		)}
 	}
 	
+	/** Build a Rational from the parts of an IEEE floating point number. Assumes not NaN nor Infinity */
+	private[this] def buildRational(floatParts:(Byte, Short, Long), zeroExponent:Short, significandBitCount:Byte):Rational = {
+		val (sign, exponent, significand) = floatParts
+		if (exponent == zeroExponent) {
+			if (significand == (1L << significandBitCount)) {
+				new Rational(0, 1)
+			} else {
+				throw new UnsupportedOperationException("Subnormals")
+			}
+		} else {(
+			if (exponent > 0) {
+				new Rational(
+					BigInt(significand)
+						* (if (sign < 0) {-1} else {1})
+						* BigInt(2).pow(exponent),
+					BigInt(2).pow(significandBitCount)
+				)
+			} else {
+				new Rational(
+					BigInt(significand)
+						* (if (sign < 0) {-1} else {1}),
+					BigInt(2).pow(significandBitCount - exponent)
+				)
+			}
+		)}
+	}
+	
 	
 	/** For when something need not know what `A` is, just that there is a numeric for it */
 	final case class NumericPair[A](a:A)(implicit Num:Numeric[A]) {
+		def fold[B](fbd:BigDecimal => B, fr:Numeric.Rational => B):B = Num.fold(a)(fbd, fr)
+		def tryToRational:Option[Numeric.Rational] = a.tryToRational
 		def tryToSpecialValue:Option[Numeric.SpecialValue] = a.tryToSpecialValue
 		def tryToBigDecimal:Option[BigDecimal] = a.tryToBigDecimal
 		def tryToBigInt:Option[BigInt] = a.tryToBigInt
@@ -111,8 +159,17 @@ object Numeric {
 	}
 	
 	implicit object BigDecimalNumeric extends Numeric[BigDecimal] {
+		override def fold[B](a:BigDecimal)(fbd:BigDecimal => B, fr:Numeric.Rational => B):B = fbd(a)
 		override def tryToSpecialValue(a:BigDecimal):Option[SpecialValue] = None
 		
+		override def tryToRational(a:BigDecimal):Option[Rational] = {
+			val ulp = a.ulp
+			if (ulp > 1) {
+				Option(new Rational(a.toBigInt, 1))
+			} else {
+				Option(new Rational((a / ulp).toBigInt, (1 / ulp).toBigInt))
+			}
+		}
 		override def tryToBigDecimal(a:BigDecimal):Option[BigDecimal] = Some(a:BigDecimal)
 		override def tryToBigInt(a:BigDecimal):Option[BigInt] = if (a.isWhole) { a.toBigIntExact } else {None}
 		override def tryToDouble(a:BigDecimal):Option[Double] = if ( BigDecimal(a.doubleValue) == a) {Option(a.doubleValue)} else {None}
@@ -120,8 +177,10 @@ object Numeric {
 	}
 	
 	implicit object BigIntNumeric extends Numeric[BigInt] {
+		override def fold[B](a:BigInt)(fbd:BigDecimal => B, fr:Numeric.Rational => B):B = fbd(BigDecimal(a))
 		override def tryToSpecialValue(a:BigInt):Option[SpecialValue] = None
 		
+		override def tryToRational(a:BigInt):Option[Rational] = Option(new Rational(a, 1))
 		override def tryToBigDecimal(a:BigInt):Option[BigDecimal] = Option(BigDecimal(a))
 		override def tryToBigInt(a:BigInt):Option[BigInt] = Option(a)
 		override def tryToDouble(a:BigInt):Option[Double] = DoubleNumeric.tryToBigInt(a.doubleValue).collect{case x if x == a => a.doubleValue}
@@ -141,6 +200,16 @@ object Numeric {
 		}
 		val zeroExponent:Short = -1023
 		val significandBitCount:Byte = 52
+		
+		override def fold[B](a:Double)(fbd:BigDecimal => B, fr:Numeric.Rational => B):B = fr(this.toRational(a))
+		
+		override def tryToRational(a:Double):Option[Rational] = Option(this.toRational(a))
+		private[this] def toRational(a:Double):Rational = {
+			if (a.isNaN) {new Rational(0,0)}
+			else if (a.isPosInfinity) {new Rational(1,0)}
+			else if (a.isNegInfinity) {new Rational(-1,0)}
+			else {buildRational(this.split(a), zeroExponent, significandBitCount)}
+		}
 		
 		override def tryToSpecialValue(a:Double):Option[SpecialValue] = {
 			if (a.isNaN) {Option(Numeric.NaN)}
@@ -173,6 +242,16 @@ object Numeric {
 		private[this] val zeroExponent:Short = -127
 		private[this] val significandBitCount:Byte = 23
 		
+		override def fold[B](a:Float)(fbd:BigDecimal => B, fr:Numeric.Rational => B):B = fr(this.toRational(a))
+		
+		override def tryToRational(a:Float):Option[Rational] = Option(this.toRational(a))
+		private[this] def toRational(a:Float):Rational = {
+			if (a.isNaN) {new Rational(0,0)}
+			else if (a.isPosInfinity) {new Rational(1,0)}
+			else if (a.isNegInfinity) {new Rational(-1,0)}
+			else {buildRational(this.split(a), zeroExponent, significandBitCount)}
+		}
+		
 		override def tryToSpecialValue(a:Float):Option[SpecialValue] = {
 			if (a.isNaN) {Option(Numeric.NaN)}
 			else if (a.isPosInfinity) {Option(Numeric.PositiveInfinity)}
@@ -203,6 +282,16 @@ object Numeric {
 		}
 		private[this] val zeroExponent:Short = -15
 		private[this] val significandBitCount:Byte = 10
+		
+		override def fold[B](a:Short)(fbd:BigDecimal => B, fr:Numeric.Rational => B):B = fr(this.toRational(a))
+		
+		override def tryToRational(a:Short):Option[Rational] = Option(this.toRational(a))
+		private[this] def toRational(a:Short):Rational = {
+			if (a == 0x7C00) {new Rational(1,0)}
+			else if (a == 0xFC00.shortValue) {new Rational(-1,0)}
+			else if ((a & 0x7C00) == 0x7C00) {new Rational(0,0)}
+			else {buildRational(this.split(a), zeroExponent, significandBitCount)}
+		}
 		
 		override def tryToSpecialValue(a:Short):Option[SpecialValue] = {
 			if (a == 0x7C00) {Option(Numeric.PositiveInfinity)}
@@ -238,8 +327,10 @@ object Numeric {
 	}
 	
 	implicit object IntNumeric extends Numeric[Int] {
-		override def tryToSpecialValue(a:Int):Option[SpecialValue] = None
+		override def fold[B](a:Int)(fbd:BigDecimal => B, fr:Numeric.Rational => B):B = fbd(a:BigDecimal)
 		
+		override def tryToSpecialValue(a:Int):Option[SpecialValue] = None
+		override def tryToRational(a:Int):Option[Rational] = Option(new Rational(a, 1))
 		override def tryToBigDecimal(a:Int):Option[BigDecimal] = Some(a:BigDecimal)
 		override def tryToBigInt(a:Int):Option[BigInt] = Option(a:BigInt)
 		override def tryToDouble(a:Int):Option[Double] = Option(a:Double)
@@ -248,8 +339,10 @@ object Numeric {
 	}
 	
 	implicit object LongNumeric extends Numeric[Long] {
-		override def tryToSpecialValue(a:Long):Option[SpecialValue] = None
+		override def fold[B](a:Long)(fbd:BigDecimal => B, fr:Numeric.Rational => B):B = fbd(a:BigDecimal)
 		
+		override def tryToSpecialValue(a:Long):Option[SpecialValue] = None
+		override def tryToRational(a:Long):Option[Rational] = Option(new Rational(a, 1))
 		override def tryToBigDecimal(a:Long):Option[BigDecimal] = Some(a:BigDecimal)
 		override def tryToBigInt(a:Long):Option[BigInt] = Option(a:BigInt)
 		override def tryToDouble(a:Long):Option[Double] = {
@@ -266,7 +359,7 @@ object Numeric {
 	}
 	
 	/** A value represeting a whole number divided by another whole number */
-	private[json] class Rational(num:BigInt, denom:BigInt) {
+	final class Rational(num:BigInt, denom:BigInt) {
 		def isNaN:Boolean = denom == 0 && num == 0
 		def isPosInfinity:Boolean = denom == 0 && num > 0
 		def isNegInfinity:Boolean = denom == 0 && num < 0
@@ -275,9 +368,22 @@ object Numeric {
 		def tryToBigDecimal:Option[BigDecimal] = (try {Option(this.toBigDecimal)} catch {case e:java.lang.ArithmeticException => None})
 		def toBigInt:BigInt = num / denom
 		override def toString:String = this.num.toString + "/" + this.denom.toString
+		override def equals(other2:Any):Boolean = other2 match {
+			case other:Rational => {
+				// NaN doesn't equal NaN for either Float type; so also not doing so here
+				if (this.isNaN) { false }
+				else if (other.isNaN) { false }
+				else if (this.isPosInfinity) { other.isPosInfinity }
+				else if (this.isNegInfinity) { other.isNegInfinity }
+				else { this.tryToBigDecimal == other.tryToBigDecimal }
+			}
+			case _ => false
+		}
 	}
 	
 	implicit object RationalNumeric extends Numeric[Rational] {
+		override def fold[B](a:Rational)(fbd:BigDecimal => B, fr:Numeric.Rational => B):B = fr(a)
+		
 		override def tryToSpecialValue(a:Rational):Option[SpecialValue] = {
 			if (a.isNaN) {Option(Numeric.NaN)}
 			else if (a.isPosInfinity) {Option(Numeric.PositiveInfinity)}
@@ -285,6 +391,7 @@ object Numeric {
 			else {None}
 		}
 		
+		override def tryToRational(a:Rational):Option[Rational] = Option(a)
 		override def tryToBigDecimal(a:Rational):Option[BigDecimal] = a.tryToBigDecimal
 		override def tryToBigInt(a:Rational):Option[BigInt] = if(a.isWhole) {Option(a.toBigInt)} else {None}
 		override def tryToDouble(a:Rational):Option[Double] = {
@@ -302,6 +409,7 @@ object Numeric {
 	
 	implicit class NumericSyntax[A](self:A)(implicit Num:Numeric[A]) {
 		def tryToSpecialValue:Option[SpecialValue] = Num.tryToSpecialValue(self)
+		def tryToRational:Option[Rational] = Num.tryToRational(self)
 		def tryToBigDecimal:Option[BigDecimal] = Num.tryToBigDecimal(self)
 		def tryToBigInt:Option[BigInt] = Num.tryToBigInt(self)
 		def tryToDouble:Option[Double] = Num.tryToDouble(self)
