@@ -90,7 +90,7 @@ final class CborBuilder(forceObject:Boolean = false) extends Builder[CborValue, 
 	}
 }
 
-private[builder] object CborBuilder {
+private object CborBuilder {
 	import com.rayrobdod.json.union.CborValue._
 	
 	/**
@@ -98,7 +98,7 @@ private[builder] object CborBuilder {
 	 * @param majorType the major type to prepend to the number. 0 ≥ x ≥ 7
 	 * @param value the value to encode
 	 */
-	private[builder] def encodeLength(majorType:Byte, value:Long):Seq[Byte] = {
+	private def encodeLength(majorType:Byte, value:Long):Seq[Byte] = {
 		val majorTypeShifted:Byte = (majorType << 5).byteValue
 		
 		val (headerByte:Int, rest:Seq[Byte]) = value match {
@@ -113,7 +113,7 @@ private[builder] object CborBuilder {
 		headerByte.byteValue +: rest
 	}
 	
-	private[builder] def encodeValue(v:CborValue):Seq[Byte] = v match {
+	private def encodeValue(v:CborValue):Seq[Byte] = v match {
 		case CborValueBoolean(false) => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.FALSE)
 		case CborValueBoolean(true)  => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.TRUE)
 		case CborValueNull  => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.NULL)

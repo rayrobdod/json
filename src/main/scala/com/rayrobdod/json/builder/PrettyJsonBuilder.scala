@@ -96,7 +96,7 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 object PrettyJsonBuilder {
 	
 	/** Encode a JsonValue as a serialized json value */
-	private[builder] def serialize(value:JsonValue, charset:Charset):String = value match {
+	private def serialize(value:JsonValue, charset:Charset):String = value match {
 		case JsonValue.JsonValueNumber(x) => x.toString
 		case JsonValue.JsonValueBoolean(x) => x.toString
 		case JsonValue.JsonValueNull => "null"
@@ -104,7 +104,7 @@ object PrettyJsonBuilder {
 	}
 	
 	/** Encode a string as a serialized json value */
-	private[builder] def strToJsonStr(s:String, charset:Charset):String = "\"" + s.flatMap{_ match {
+	private def strToJsonStr(s:String, charset:Charset):String = "\"" + s.flatMap{_ match {
 		case '"'  => "\\\""
 		case '\\' => """\\"""
 		case '\b' => "\\b"
