@@ -71,6 +71,57 @@ package parser {
 	}
 	
 	/**
+	 * A reader who takes charaters from the specified iterator
+	 * @since next
+	 */
+	private[parser] final class Iterator2Reader(iterator:Iterator[Char]) extends java.io.Reader {
+		override def read():Int = if (!iterator.hasNext) {-1} else {iterator.next().toInt}
+		override def close():Unit = {}
+		override def read(buff:Array[Char], off:Int, len:Int):Int = {
+			var idx = off
+			val limit = off + len
+			var c = this.read()
+			while (idx < limit && c >= 0) {
+				buff(idx) = c.toChar
+				idx = idx + 1
+				c = this.read()
+			}
+			idx - off
+		}
+	}
+	
+	/**
+	 * @since next
+	 */
+	final class CountingReader(back:java.io.Reader) {
+		private[this] var _idx : Int = -1
+		def index : Int = _idx
+		private[this] var repeat : Boolean = false
+		private[this] var repeatedChar : Char = '\u0000'
+		
+		def goBackOne():Unit = {
+			if (repeat) { throw new IllegalStateException("Already gone back one") }
+			_idx = _idx - 1
+			repeat = true
+		}
+		def read():Char = {
+			_idx = _idx + 1
+			if (repeat) {
+				repeat = false
+				repeatedChar
+			} else {
+				val retVal = back.read()
+				if (retVal < 0) {
+					throw new java.util.NoSuchElementException
+				} else {
+					repeatedChar = retVal.toChar
+					repeatedChar
+				}
+			}
+		}
+	}
+	
+	/**
 	 * A parser that reads each key-value pair from a Map
 	 * @version 3.0
 	 * 

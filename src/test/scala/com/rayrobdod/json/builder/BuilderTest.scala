@@ -173,7 +173,7 @@ class BuilderTest extends FunSpec {
 			assertResult(Right(Seq(Seq(1, 2)))){
 				new SeqBuilder[StringOrInt, Int, Seq[Int]](new PrimitiveSeqBuilder[Int])
 					.flatMapValue[JsonValue]{v => v match {case JsonValueNumber(x) => Right(x.intValue); case _ => Left("unexpected value", 0)}}
-					.apply(Seq.empty, 0, "[1,2]":Iterable[Char], new com.rayrobdod.json.parser.JsonParser)
+					.apply(Seq.empty, 0, new com.rayrobdod.json.parser.CountingReader(new java.io.StringReader("[1,2]")), new com.rayrobdod.json.parser.JsonParser)
 			}
 		}
 	}

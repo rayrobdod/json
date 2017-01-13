@@ -82,3 +82,10 @@ makeDocCompilable in Test := {
 }
 
 sourceGenerators in Test += (makeDocCompilable in Test).taskValue
+
+/// benchmarks
+enablePlugins(net.tixxit.sbt.benchmark.BenchmarkPlugin)
+
+libraryDependencies += "org.mdedetrich" %% "scala-json-ast" % "1.0.0-M7" % "benchmark-precompile"
+libraryDependencies += "org.spire-math" %% "jawn-parser" % "0.10.4" % "benchmark-precompile"
+libraryDependencies += "org.spire-math" %% "jawn-ast" % "0.10.4" % "benchmark-precompile"
