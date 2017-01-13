@@ -36,7 +36,7 @@ import com.rayrobdod.json.union.{StringOrInt, ParserRetVal}
  * This parser is lenient, in that it ignores trailing delimiters
  * 
  * A CSV file is always two levels deep, an array of key-value mappings.
- * @version 3.0.1
+ * @version next
  * 
  * @constructor
  * Creates a CsvParser instance.
@@ -55,76 +55,7 @@ final class CsvWithHeaderParser(
 	 * @return the parsed object
 	 */
 	def parse[A](builder:Builder[StringOrInt, String, A], chars:Iterable[Char]):ParserRetVal[A,Nothing] = {
-		val endState = chars.zipWithIndex.foldLeft(State(None, Right(builder.init), 0, "", "", false, false)){(state, ci) => 
-			val (char, index) = ci
-			
-			if (state.escaped) {
-				state.appendChar(char).copy(escaped = false)
-			} else if (state.quoted) {
-				val isQuote = meaningfulCharacters.stringDelimeter contains char;
-				state.appendChar(char).copy(quoted = !isQuote)
-			} else if (meaningfulCharacters.escape contains char) {
-				state.appendChar(char).copy(escaped = true)
-			} else if (meaningfulCharacters.stringDelimeter contains char) {
-				state.appendChar(char).copy(quoted = true)
-			} else if (meaningfulCharacters.recordDelimeter contains char) {
-				state.keys.fold{
-					val result = lineParser.parse(new PrimitiveSeqBuilder[String], state.innerInput)
-					result.fold({x:Seq[String] =>
-						new State[A](
-							keys = Option(x),
-							value = state.value,
-							innerIndex = state.innerIndex + 1,
-							innerInput = "",
-							endingWhitespace = "",
-							quoted = false,
-							escaped = false
-						)
-						
-					}, {x:Nothing => x}, {(s, i) =>
-						new State[A](
-							keys = state.keys,
-							value = Left(s,i),
-							innerIndex = state.innerIndex + 1,
-							innerInput = "",
-							endingWhitespace = "",
-							quoted = false,
-							escaped = false
-						)
-					})
-				}{keys:Seq[String] =>
-					new State[A](
-						keys = state.keys,
-						value = state.value.right.flatMap{x =>
-							builder.apply(x, state.innerIndex, state.innerInput, lineParser.mapKey[StringOrInt]{i =>
-								if (keys.isDefinedAt(i)) {StringOrInt(keys(i))} else {StringOrInt(i)}
-							}).left.map{x => ((x._1, x._2 + index))}
-						},
-						innerIndex = state.innerIndex + 1,
-						innerInput = "",
-						endingWhitespace = "",
-						quoted = false,
-						escaped = false
-					)
-				}
-			} else {
-				state.appendChar(char)
-			}
-		}
-		
-		(if (endState.innerInput.isEmpty) {
-			endState.value
-		} else {
-			endState.keys.fold{
-				endState.value
-			}{keys =>
-				endState.value.right.flatMap{x => 
-					builder.apply(x, endState.innerIndex, endState.innerInput, lineParser.mapKey[StringOrInt]{i =>
-						if (keys.isDefinedAt(i)) {StringOrInt(keys(i))} else {StringOrInt(i)}
-					})
-				}
-			}
-		}).fold({case (msg,idx) => ParserRetVal.Failure(msg,idx)}, {x => ParserRetVal.Complex(x)})
+		this.parse(builder, new Iterator2Reader(chars.iterator))
 	}
 	
 	/**
@@ -134,18 +65,36 @@ final class CsvWithHeaderParser(
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse[A](builder:Builder[StringOrInt, String, A], chars:java.io.Reader):ParserRetVal[A,String] = this.parse(builder, new Reader2Iterable(chars))
+	 def parse[A](builder:Builder[StringOrInt, String, A], chars:java.io.Reader):ParserRetVal[A,Nothing] = {
+		this.parse(builder, new CountingReader(chars))
+	}
 	
-	
-	private[this] final case class State[A] (
-		keys:Option[Seq[String]],
-		value:Either[(String,Int),A],
-		innerIndex:Int,
-		innerInput:String,
-		endingWhitespace:String,
-		quoted:Boolean,
-		escaped:Boolean
-	) {
-		def appendChar(c:Char):State[A] = this.copy(endingWhitespace = "", innerInput = innerInput + endingWhitespace + c)
+	def parse[A](builder:Builder[StringOrInt, String, A], chars:CountingReader):ParserRetVal[A,Nothing] = {
+		var folding:Either[(String, Int), A] = Right(builder.init)
+		var rowIdx:Int = 0
+		
+		val keys:Seq[String] = lineParser.parse(new PrimitiveSeqBuilder[String], chars).fold({x => x}, {x:Nothing => x}, {(s,i) => Nil})
+		val myLineParser = lineParser.mapKey[StringOrInt]{i =>
+			if (keys.isDefinedAt(i)) {StringOrInt(keys(i))} else {StringOrInt(i)}
+		}
+		
+		try {
+			while (folding.isRight) {
+				// check that there are more characters to read; throw if no such characters
+				// I have to do this as readers don't have a hasNext or similar method
+				chars.read()
+				chars.goBackOne()
+				val rowStartCharIndex = chars.index + 1
+				
+				folding = builder.apply(folding.right.get, StringOrInt(rowIdx), chars, myLineParser).left.map{x => ((x._1, x._2 + rowStartCharIndex))}
+				rowIdx = rowIdx + 1
+			}
+		} catch {
+			case ex:java.util.NoSuchElementException => {
+				// Readers don't have a hasNext
+			}
+		}
+		
+		ParserRetVal.eitherToComplex(folding)
 	}
 }
