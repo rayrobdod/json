@@ -35,7 +35,7 @@ class CborValueTest extends FunSpec {
 		// string, double, integer, boolean, null
 		val values = Seq(
 			CborValueString(""), CborValueByteStr(new Array[Byte](2)), 
-			CborValueNumber(1.5, implicitly[Numeric[Double]]), CborValueNumber(42L, implicitly[Numeric[Long]]),
+			CborValueNumber(1.5), CborValueNumber(42L),
 			CborValueBoolean(true), CborValueNull
 		)
 		val ToEitherFuns = Seq[CborValue => Either[(String, Int),Any]](
@@ -147,6 +147,28 @@ class CborValueTest extends FunSpec {
 				val res:CborValue = JsonValue.JsonValueNull
 				assertResult(CborValueNull){res}
 			}
+		}
+		describe("CborValueNumber$.apply can accept") {
+			val exp = CborValueNumber(new Rational(0, 1))
+			
+			it ("Int") {assertResult(exp){CborValueNumber(0)}}
+			it ("Long") {assertResult(exp){CborValueNumber(0L)}}
+			it ("BigInt") {assertResult(exp){CborValueNumber(scala.math.BigInt(0))}}
+			it ("Float") {assertResult(exp){CborValueNumber(0F)}}
+			it ("Double") {assertResult(exp){CborValueNumber(0D)}}
+			it ("BigDecimal") {assertResult(exp){CborValueNumber(scala.math.BigDecimal("0"))}}
+			it ("Rational") {assertResult(exp){CborValueNumber(new Rational(0,1))}}
+		}
+		describe("CborValue$.apply can accept") {
+			val exp = CborValueNumber(new Rational(0, 1))
+			
+			it ("Int") {assertResult(exp){CborValue(0)}}
+			it ("Long") {assertResult(exp){CborValue(0L)}}
+			it ("BigInt") {assertResult(exp){CborValue(scala.math.BigInt(0))}}
+			it ("Float") {assertResult(exp){CborValue(0F)}}
+			it ("Double") {assertResult(exp){CborValue(0D)}}
+			it ("BigDecimal") {assertResult(exp){CborValue(scala.math.BigDecimal("0"))}}
+			it ("Rational") {assertResult(exp){CborValue(new Rational(0,1))}}
 		}
 	}
 }

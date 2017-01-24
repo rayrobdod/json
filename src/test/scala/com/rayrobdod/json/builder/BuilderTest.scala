@@ -77,11 +77,10 @@ class BuilderTest extends FunSpec {
 		it ("nesting") {
 			import com.rayrobdod.json.union.{StringOrInt, JsonValue}
 			import com.rayrobdod.json.union.JsonValue.JsonValueNumber
-			import com.rayrobdod.json.union.Numeric.BigDecimalNumeric
 			
 			assertResult(Right(Seq(Seq(1, 2)))){
 				new SeqBuilder[StringOrInt, Int, Seq[Int]](new PrimitiveSeqBuilder[Int])
-					.flatMapValue[JsonValue]{v => v match {case JsonValueNumber(x) => BigDecimalNumeric.tryToInt(x).toRight("unexpected value", 0); case _ => Left("unexpected value", 0)}}
+					.flatMapValue[JsonValue]{v => v match {case JsonValueNumber(x) if x.isValidInt => Right(x.intValue); case _ => Left("unexpected value", 0)}}
 					.apply(Seq.empty, 0, "[1,2]":Iterable[Char], new com.rayrobdod.json.parser.JsonParser)
 			}
 		}

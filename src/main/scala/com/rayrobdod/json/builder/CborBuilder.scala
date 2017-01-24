@@ -66,7 +66,7 @@ final class CborBuilder(forceObject:Boolean = false) extends Builder[CborValue, 
 			
 			if (majorType == MajorTypeCodes.ARRAY) {
 				key match {
-					case CborValue.CborValueNumber(x,t) if (t.tryToLong(x) == Option(objectLength)) => {
+					case CborValue.CborValueNumber(r) if (r.tryToLong == Option(objectLength)) => {
 						// continue being array
 						Right(encodeLength(MajorTypeCodes.ARRAY, objectLength + 1) ++ passData ++ encodedValue)
 					}
@@ -117,10 +117,10 @@ private[builder] object CborBuilder {
 		case CborValueBoolean(false) => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.FALSE)
 		case CborValueBoolean(true)  => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.TRUE)
 		case CborValueNull  => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.NULL)
-		case CborValueNumber(value, typ) => {
-			typ.tryToLong(value).fold{
-				typ.tryToFloat(value).fold{
-					typ.tryToDouble(value).fold{
+		case CborValueNumber(value) => {
+			value.tryToLong.fold{
+				value.tryToFloat.fold{
+					value.tryToDouble.fold{
 						throw new NumberFormatException("")
 					}{d:Double =>
 						Seq((0xE0 + SimpleValueCodes.DOUBLE).byteValue) ++ long2ByteArray(java.lang.Double.doubleToLongBits(d))

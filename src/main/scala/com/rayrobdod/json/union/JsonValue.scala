@@ -31,6 +31,7 @@ import scala.language.implicitConversions
 /**
  * A union type representing primitive types in Json objects
  * @since 3.0
+ * @version next
  */
 sealed trait JsonValue {
 	import JsonValue._
@@ -62,7 +63,13 @@ sealed trait JsonValue {
 	 * Executes and returns `fi(this.i)` if this is a JsonValueNumber which holds an number convertible to integer, else return a Left with an error message.
 	 */
 	final def integerToEither[A](fi:Int => Either[(String, Int),A]):Either[(String, Int),A] = {
-		val number = {n:BigDecimal => Numeric.BigDecimalNumeric.tryToInt(n).fold[Either[(String, Int), A]](Left(("Expected Int: " + n, 0))){fi}}
+		val number = {n:BigDecimal =>
+			if (n.isValidInt) {
+				fi(n.intValue)
+			} else {
+				Left(("Expected Int: " + n, 0))
+			}
+		}
 		val unexpected = new ReturnLeft("Expected integral number")
 		this.fold(unexpected, number, unexpected, unexpected)
 	}
@@ -120,7 +127,7 @@ object JsonValue {
 	def cborValueHexencodeByteStr(x:CborValue):JsonValue = x match {
 		case CborValue.CborValueString(s) => JsonValueString(s)
 		case CborValue.CborValueBoolean(b) => JsonValueBoolean(b)
-		case CborValue.CborValueNumber(n, i) => JsonValueNumber(i.tryToBigDecimal(n).get)
+		case CborValue.CborValueNumber(r) => JsonValueNumber(r.tryToBigDecimal.get)
 		case CborValue.CborValueByteStr(s) => JsonValueString(new String(
 			s.flatMap{byte => ("00" + (0xFF & byte.intValue).toHexString).takeRight(2)}
 		))

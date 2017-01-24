@@ -85,7 +85,6 @@ class PiecewiseBuilderTest extends FunSpec {
 	describe("PiecewiseBuilder + JsonParser") {
 		import com.rayrobdod.json.parser.JsonParser
 		import com.rayrobdod.json.union.JsonValue._
-		import com.rayrobdod.json.union.Numeric.BigDecimalNumeric
 		
 		it ("works") {
 			val builder = new PiecewiseBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
@@ -103,7 +102,7 @@ class PiecewiseBuilderTest extends FunSpec {
 			
 			val personBuilder = new PiecewiseBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
 				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parsePrimitive(i).right.flatMap{_ match {case JsonValueString(i) => Right(s.copy(name = i)); case ex => Left("name not string: " + ex, 0)}}}})
-				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parsePrimitive(i).right.flatMap{_ match {case JsonValueNumber(x) => BigDecimalNumeric.tryToInt(x).map{i => (s.copy(age = i))}.toRight(("age not integer", 0)); case ex => Left("age not number: " + ex, 0)}}}})
+				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parsePrimitive(i).right.flatMap{_ match {case JsonValueNumber(x) if x.isValidInt => Right(s.copy(age = x.intValue)); case ex => Left("age not number: " + ex, 0)}}}})
 			
 			val seqBuilder = new PiecewiseBuilder[StringOrInt, JsonValue, Seq[Person]](
 				Nil,

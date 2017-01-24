@@ -29,7 +29,8 @@ package com.rayrobdod.json.parser;
 import java.io.DataInput
 import java.nio.charset.StandardCharsets.UTF_8;
 import com.rayrobdod.json.builder.{Builder, PrimitiveSeqBuilder, CborBuilder, ThrowBuilder}
-import com.rayrobdod.json.union.{CborValue, ParserRetVal, Numeric}
+import com.rayrobdod.json.union.{CborValue, ParserRetVal}
+import com.rayrobdod.json.union.CborValue.Rational
 
 /**
  * A parser that will decode cbor data.
@@ -121,7 +122,7 @@ final class CborParser extends Parser[CborValue, CborValue, DataInput] {
 					case SimpleValueCodes.TRUE  => ParseReturnValueSimple(CborValue( true ))
 					case SimpleValueCodes.NULL => ParseReturnValueSimple(CborValue.CborValueNull)
 					case SimpleValueCodes.HALF_FLOAT => additionalInfoData match {
-						case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(CborValue(value.shortValue)(Numeric.HalfFloatNumeric))
+						case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(CborValue(Rational.fromHalfFloat(value.shortValue)))
 						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate special value", 0)
 					}
 					case SimpleValueCodes.FLOAT => additionalInfoData match {
@@ -277,32 +278,31 @@ object CborParser {
 	
 	import CborValue._
 	import scala.math.{BigDecimal, BigInt}
-	import com.rayrobdod.json.union.Numeric.Rational
 	val numberTags:PartialFunction[Int,Function1[DataInput, Either[(String,Int),CborValue]]] = {
 		case 2 /* Positive bignum */ => {i:DataInput =>
 			val bsOpt = new CborParser().parsePrimitive(i)
 			bsOpt.right.flatMap{_ match {
-				case CborValueByteStr(bs)=> Right(CborValueNumber(bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))}, implicitly[Numeric[BigInt]]))
+				case CborValueByteStr(bs)=> Right(CborValueNumber(Rational(bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))})))
 				case _ => Left("Tag 2 contained non-byte-string value", 0)
 			}}
 		}
 		case 3 /* Negative bignum */ => {i:DataInput =>
 			val bsOpt = new CborParser().parsePrimitive(i)
 			bsOpt.right.flatMap{_ match {
-				case CborValueByteStr(bs)=> Right(CborValueNumber((-1:BigInt) - bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))}, implicitly[Numeric[BigInt]]))
+				case CborValueByteStr(bs)=> Right(CborValueNumber(Rational((-1:BigInt) - bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))})))
 				case _ => Left("Tag 3 contained non-byte-string value", 0)
 			}}
 		}
 		case 4 /* Decimal Bigfloat */ => {i:DataInput =>
 			new CborParser().parse(new PairBigIntBuilder("Tag 4"), i).fold(
-				{x => val (a,b) = x; Right(BigDecimal(a) * BigDecimal(10).pow(b.intValue))},
+				{x => val (a,b) = x; Right(CborValueNumber(Rational(BigDecimal(a) * BigDecimal(10).pow(b.intValue))))},
 				{x => Left("Tag 4 contained primitive", 0)},
 				{(s,i) => Left(s,i)}
 			)
 		}
 		case 5 /* Binary Bigfloat */ => {i:DataInput =>
 			new CborParser().parse(new PairBigIntBuilder("Tag 5"), i).fold(
-				{x => val (a,b) = x; Right(BigDecimal(a) * BigDecimal(2).pow(b.intValue))},
+				{x => val (a,b) = x; Right(CborValueNumber(Rational(BigDecimal(a) * BigDecimal(2).pow(b.intValue))))},
 				{x => Left("Tag 5 contained primitive", 0)},
 				{(s,i) => Left(s,i)}
 			)
@@ -323,11 +323,11 @@ object CborParser {
 		override def init:(BigInt, BigInt) = ((BigInt(1), BigInt(1)))
 		final def apply[Input](folding:(BigInt, BigInt), key:CborValue, input:Input, parser:Parser[CborValue, CborValue, Input]):Either[(String, Int), (BigInt, BigInt)] = {
 			parser.parsePrimitive(input).right.flatMap{_ match {
-				case CborValueNumber(x, num) => num.tryToBigInt(x).fold[Either[(String, Int),BigInt]](Left(nonIntError, 0)){x => Right(x)}
+				case CborValueNumber(x) => x.tryToBigInt.fold[Either[(String, Int),BigInt]](Left(nonIntError, 0)){x => Right(x)}
 				case _ => Left(nonIntError, 0)
 			}}.right.flatMap{value =>
 				key match {
-					case CborValueNumber(x, t) => t.tryToInt(x) match {
+					case CborValueNumber(x) => x.tryToInt match {
 						case Some(0) => Right(folding.copy(_1 = value))
 						case Some(1) => Right(folding.copy(_2 = value))
 						case _ => Left(keyError, 0)
