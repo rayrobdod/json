@@ -37,16 +37,21 @@ import com.rayrobdod.json.union.CborValue.Rational
  * 
  * This does not support
    - complex values in map keys
-   - any tags
+   - most tags
+ * 
+ * tags are handled via the `tagMatcher` constructor parameter. By default, it can handle tags (2,3,4,5,30,55799).
  * 
  * @version 3.0
  * @see [[http://tools.ietf.org/html/rfc7049]]
  * 
  * @constructor
  * Creates a CborParser instance.
+ * @param tagMatcher tag support
  */
-final class CborParser extends Parser[CborValue, CborValue, DataInput] {
+final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.allBuiltIn) extends Parser[CborValue, CborValue, DataInput] {
 	import CborParser._
+	// used in a match statement; therefore identifier needs to be uppercase
+	private[this] val UpperCaseTagMatcher = tagMatcher
 	
 	override def parse[ComplexOutput](builder:Builder[CborValue, CborValue, ComplexOutput], i:DataInput):ParserRetVal[ComplexOutput, CborValue] = {
 		import ParserRetVal.{Primitive, Complex, Failure}
@@ -113,7 +118,10 @@ final class CborParser extends Parser[CborValue, CborValue, DataInput] {
 				}
 				// tags
 				case MajorTypeCodes.TAG => additionalInfoData match {
-					case AdditionalInfoDeterminate(value) => new ParseReturnValueTaggedValue(value, this.parseDetailed(topBuilder, input))
+					case AdditionalInfoDeterminate(value) => value match {
+						case UpperCaseTagMatcher(fun) => fun.apply(topBuilder, input)
+						case _ => new ParseReturnValueTaggedValue(value, this.parseDetailed(topBuilder, input))
+					}
 					case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate tag value", 0)
 				}
 				// floats/simple
@@ -271,73 +279,114 @@ object CborParser {
 	final case class ParseReturnValueUnknownSimple(value:Byte) extends ParseReturnValue[Nothing]
 	final case class ParseReturnValueFailure(msg:String, idx:Int) extends ParseReturnValue[Nothing]
 	
-	//val selfdescribeTag:PartialFunction[Int, Function1[DataInput, ???]] = {
-	//	case 55799 => {i:DataInput => new CborParser().parse[A](i)}
-	//}
-	
-	
-	import CborValue._
-	import scala.math.{BigDecimal, BigInt}
-	val numberTags:PartialFunction[Int,Function1[DataInput, Either[(String,Int),CborValue]]] = {
-		case 2 /* Positive bignum */ => {i:DataInput =>
-			val bsOpt = new CborParser().parsePrimitive(i)
-			bsOpt.right.flatMap{_ match {
-				case CborValueByteStr(bs)=> Right(CborValueNumber(Rational(bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))})))
-				case _ => Left("Tag 2 contained non-byte-string value", 0)
-			}}
-		}
-		case 3 /* Negative bignum */ => {i:DataInput =>
-			val bsOpt = new CborParser().parsePrimitive(i)
-			bsOpt.right.flatMap{_ match {
-				case CborValueByteStr(bs)=> Right(CborValueNumber(Rational((-1:BigInt) - bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))})))
-				case _ => Left("Tag 3 contained non-byte-string value", 0)
-			}}
-		}
-		case 4 /* Decimal Bigfloat */ => {i:DataInput =>
-			new CborParser().parse(new PairBigIntBuilder("Tag 4"), i).fold(
-				{x => val (a,b) = x; Right(CborValueNumber(Rational(BigDecimal(a) * BigDecimal(10).pow(b.intValue))))},
-				{x => Left("Tag 4 contained primitive", 0)},
-				{(s,i) => Left(s,i)}
-			)
-		}
-		case 5 /* Binary Bigfloat */ => {i:DataInput =>
-			new CborParser().parse(new PairBigIntBuilder("Tag 5"), i).fold(
-				{x => val (a,b) = x; Right(CborValueNumber(Rational(BigDecimal(a) * BigDecimal(2).pow(b.intValue))))},
-				{x => Left("Tag 5 contained primitive", 0)},
-				{(s,i) => Left(s,i)}
-			)
-		}
-		case 30 /* rational */ => {i:DataInput =>
-			new CborParser().parse(new PairBigIntBuilder("Tag 30"), i).fold(
-				{x => val (a,b) = x; Right(new Rational(a,b))},
-				{x => Left("Tag 30 contained primitive", 0)},
-				{(s,i) => Left(s,i)}
-			)
-		}
+	/** A function that is parameterized at the function level instead of the class level */
+	trait TagFunction {
+		def apply[A](b:Builder[CborValue, CborValue, A], i:DataInput):ParseReturnValue[A] 
 	}
 	
-	private[this] class PairBigIntBuilder(tagNumber:String) extends Builder[CborValue, CborValue, (BigInt, BigInt)] {
-		private[this] def nonIntError:String = tagNumber + " array contained a non-integer value"
-		private[this] def keyError:String = tagNumber + " array key not 0 or 1"
+	/**
+	 * A partial function that takes a Cbor tag number and returns a function that builds the value described by the tags
+	 */
+	trait TagMatcher {
+		def unapply(tag:Long):Option[TagFunction]
 		
-		override def init:(BigInt, BigInt) = ((BigInt(1), BigInt(1)))
-		final def apply[Input](folding:(BigInt, BigInt), key:CborValue, input:Input, parser:Parser[CborValue, CborValue, Input]):Either[(String, Int), (BigInt, BigInt)] = {
-			parser.parsePrimitive(input).right.flatMap{_ match {
-				case CborValueNumber(x) => x.tryToBigInt.fold[Either[(String, Int),BigInt]](Left(nonIntError, 0)){x => Right(x)}
-				case _ => Left(nonIntError, 0)
-			}}.right.flatMap{value =>
-				key match {
-					case CborValueNumber(x) => x.tryToInt match {
-						case Some(0) => Right(folding.copy(_1 = value))
-						case Some(1) => Right(folding.copy(_2 = value))
-						case _ => Left(keyError, 0)
-					}
-					case _ => Left(keyError, 0)
-				}
+		/**
+		 * Composes this partial function with a fallback partial function which gets applied where this partial function is not defined. 
+		 */
+		final def orElse(rhs:TagMatcher):TagMatcher = new TagMatcher {
+			override def unapply(tag:Long):Option[TagFunction] = {
+				TagMatcher.this.unapply(tag).orElse(rhs.unapply(tag))
 			}
 		}
 	}
 	
+	object TagMatcher {
+		
+		/** a TagMatcher that maches no tags (and thus always returns None) */
+		val empty:TagMatcher = new TagMatcher {
+			def unapply(tag:Long):Option[Nothing] = None
+		}
+		
+		
+		/** The self-describe tag (55799) */
+		val selfDescribe:TagMatcher = new TagMatcher {
+			def unapply(tag:Long):Option[TagFunction] = tag match {
+				case 55799 => Some(new TagFunction{override def apply[A](b:Builder[CborValue, CborValue, A], i:DataInput) = {
+					new CborParser().parseDetailed(b, i)
+				}})
+				case _ => None
+			}
+		}
+		
+		import CborValue._
+		import scala.math.{BigDecimal, BigInt}
+		/** the tags indicating extended number formats; (2, 3, 4, 5, 30) */
+		val numbers:TagMatcher = new TagMatcher {
+			def unapply(tag:Long):Option[TagFunction] = tag match {
+				case 2 /* Positive bignum */ => Some(new TagFunction{override def apply[A](b:Builder[CborValue, CborValue, A], i:DataInput) = {
+					val bsOpt = new CborParser().parsePrimitive(i)
+					bsOpt.right.flatMap{_ match {
+						case CborValueByteStr(bs)=> Right(CborValueNumber(Rational(bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))})))
+						case _ => Left("Tag 2 contained non-byte-string value", 0)
+					}}.fold({x => ParseReturnValueFailure(x._1, x._2)}, {x => ParseReturnValueSimple(x)})
+				}})
+				case 3 /* Negative bignum */ => Some(new TagFunction{override def apply[A](b:Builder[CborValue, CborValue, A], i:DataInput) = {
+					val bsOpt = new CborParser().parsePrimitive(i)
+					bsOpt.right.flatMap{_ match {
+						case CborValueByteStr(bs)=> Right(CborValueNumber(Rational((-1:BigInt) - bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))})))
+						case _ => Left("Tag 3 contained non-byte-string value", 0)
+					}}.fold({x => ParseReturnValueFailure(x._1, x._2)}, {x => ParseReturnValueSimple(x)})
+				}})
+				case 4 /* Decimal Bigfloat */ => Some(new TagFunction{override def apply[A](b:Builder[CborValue, CborValue, A], i:DataInput) = {
+					new CborParser().parse(new PairBigIntBuilder("Tag 4"), i).fold(
+						{x => val (exp,mant) = x; ParseReturnValueSimple(CborValueNumber(Rational(BigDecimal(mant) * BigDecimal(10).pow(exp.intValue))))},
+						{x => ParseReturnValueFailure("Tag 4 contained primitive", 0)},
+						{(s,i) => ParseReturnValueFailure(s,i)}
+					)
+				}})
+				case 5 /* Binary Bigfloat */ => Some(new TagFunction{override def apply[A](b:Builder[CborValue, CborValue, A], i:DataInput) = {
+					new CborParser().parse(new PairBigIntBuilder("Tag 5"), i).fold(
+						{x => val (exp,mant) = x; ParseReturnValueSimple(CborValueNumber(Rational(BigDecimal(mant) * BigDecimal(2).pow(exp.intValue))))},
+						{x => ParseReturnValueFailure("Tag 5 contained primitive", 0)},
+						{(s,i) => ParseReturnValueFailure(s,i)}
+					)
+				}})
+				case 30 /* rational */ => Some(new TagFunction{override def apply[A](b:Builder[CborValue, CborValue, A], i:DataInput) = {
+					new CborParser().parse(new PairBigIntBuilder("Tag 30"), i).fold(
+						{x => val (a,b) = x; ParseReturnValueSimple(new Rational(a,b))},
+						{x => ParseReturnValueFailure("Tag 30 contained primitive", 0)},
+						{(s,i) => ParseReturnValueFailure(s,i)}
+					)
+				}})
+				case _ => None
+			}
+		}
+		
+		private[this] class PairBigIntBuilder(tagNumber:String) extends Builder[CborValue, CborValue, (BigInt, BigInt)] {
+			private[this] def nonIntError:String = tagNumber + " array contained a non-integer value"
+			private[this] def keyError:String = tagNumber + " array key not 0 or 1"
+			
+			override def init:(BigInt, BigInt) = ((BigInt(1), BigInt(1)))
+			final def apply[Input](folding:(BigInt, BigInt), key:CborValue, input:Input, parser:Parser[CborValue, CborValue, Input]):Either[(String, Int), (BigInt, BigInt)] = {
+				parser.parsePrimitive(input).right.flatMap{_ match {
+					case CborValueNumber(x) => x.tryToBigInt.fold[Either[(String, Int),BigInt]](Left(nonIntError, 0)){x => Right(x)}
+					case _ => Left(nonIntError, 0)
+				}}.right.flatMap{value =>
+					key match {
+						case CborValueNumber(x) => x.tryToInt match {
+							case Some(0) => Right(folding.copy(_1 = value))
+							case Some(1) => Right(folding.copy(_2 = value))
+							case _ => Left(keyError, 0)
+						}
+						case _ => Left(keyError, 0)
+					}
+				}
+			}
+		}
+		
+		/** Combines the other tag matchers  */
+		val allBuiltIn:TagMatcher = selfDescribe.orElse(numbers)
+	}
 	
 	
 	/**

@@ -144,10 +144,10 @@ class CborParserTest_Unhappy extends FunSpec {
 			}
 		}
 		
-		it ("IDENT Array of tag fails") {
+		it ("IDENT Array of unknown tag fails") {
 			val source = hexArray"9F d9d9f7 00 FF"
 			assertFailure("", 0){
-				new CborParser().parse(new PrimitiveSeqBuilder, byteArray2DataInput(source))
+				new CborParser(CborParser.TagMatcher.empty).parse(new PrimitiveSeqBuilder, byteArray2DataInput(source))
 			}
 		}
 		it ("IDENT Object with non-primitive key fails") {
