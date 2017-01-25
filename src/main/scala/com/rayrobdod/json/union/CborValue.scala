@@ -26,6 +26,7 @@
 */
 package com.rayrobdod.json.union
 
+import java.math.MathContext.UNLIMITED
 import scala.language.implicitConversions
 
 /**
@@ -178,7 +179,7 @@ object CborValue {
 		/**  */
 		def tryToBigDecimal:Option[BigDecimal] = {
 			try {
-				Option(BigDecimal(num, java.math.MathContext.UNLIMITED) / BigDecimal(denom, java.math.MathContext.UNLIMITED))
+				Option(BigDecimal(num, UNLIMITED) / BigDecimal(denom, UNLIMITED))
 			} catch {
 				case e:java.lang.ArithmeticException => None
 			}
@@ -191,9 +192,8 @@ object CborValue {
 			else if (this.isNegInfinity) {Option(Double.NegativeInfinity)}
 			else if (this.isNaN) {Option(Double.NaN)}
 			else {
-				// scala.math.BigDecimal#apply(Double) uses the LOSSY "double.toString" method,
-				// whereas java.math.BigDecimal#BigDecimal(Double) does not.
-				this.tryToBigDecimal.collect{case a if (scala.math.BigDecimal(new java.math.BigDecimal(a.doubleValue, java.math.MathContext.UNLIMITED)) == a) => a.doubleValue}
+				// I want exact representations of the double with none of this rounding "new BigDecimal(double.toString)" stuff that scala thinks I want 
+				this.tryToBigDecimal.collect{case a if (scala.math.BigDecimal(new java.math.BigDecimal(a.doubleValue, UNLIMITED)) == a) => a.doubleValue}
 			}
 		}
 		def tryToFloat:Option[Float] = this.tryToDouble.collect{
@@ -345,8 +345,11 @@ object CborValue {
 				if (significand == (1L << significandBitCount)) {
 					new Rational(0, 1)
 				} else {
-					// TODO: IeeeFloat subnormals
-					throw new UnsupportedOperationException("Subnormals")
+					new Rational(
+						BigInt(significand - (1L << significandBitCount))
+							* (if (sign < 0) {-1} else {1}),
+						BigInt(2).pow(-zeroExponent - 1 + significandBitCount)
+					)
 				}
 			} else {(
 				if (exponent > 0) {

@@ -261,6 +261,7 @@ class CborValueRationalTest extends FunSpec {
 			, (0.5, new Rational(1, 2))
 			, (1.5, new Rational(3, 2))
 			, (1e20, new Rational(BigInt(10).pow(20), 1))
+			, (4.9E-324, new Rational(1, BigInt(2).pow(1074)))
 			, (math.pow(2, 80), new Rational(BigInt(2).pow(80), 1))
 			, (-4.1D, new Rational(-18464758472219032L, 4503599627370496L))
 			, (Double.PositiveInfinity, Rational.PositiveInfinity)
@@ -296,6 +297,8 @@ class CborValueRationalTest extends FunSpec {
 			, (-1f, new Rational(-1, 1))
 			, (0.5f, new Rational(1, 2))
 			, (1.5f, new Rational(3, 2))
+			, (1.4e-45f, new Rational(1, BigInt(2).pow(149)))
+			, (5.6e-45f, new Rational(4, BigInt(2).pow(149)))
 			, (math.pow(2, 80).floatValue, new Rational(BigInt(2).pow(80), 1))
 			, (Float.PositiveInfinity, Rational.PositiveInfinity)
 			, (Float.NegativeInfinity, Rational.NegativeInfinity)
@@ -304,6 +307,7 @@ class CborValueRationalTest extends FunSpec {
 			  new Rational(BigInt(2).pow(80) + 1, 1)
 			, new Rational(BigInt(10).pow(20), 1)
 			, new Rational(1,3)
+			, new Rational(1, BigInt(2).pow(1074))
 		)
 		
 		describe("For value NaN") {
@@ -335,6 +339,7 @@ class CborValueRationalTest extends FunSpec {
 			, (0x3555.shortValue, new Rational(1365, 4096))
 			, (0x7BFF.shortValue, new Rational(65504, 1))
 			, (0xC400.shortValue, new Rational(-4, 1))
+			, (0x0001.shortValue, new Rational(1, 1 << 24))
 			, (0x7C00.shortValue, Rational.PositiveInfinity)
 			, (0xFC00.shortValue, Rational.NegativeInfinity)
 		)
@@ -342,6 +347,7 @@ class CborValueRationalTest extends FunSpec {
 			  new Rational(BigInt(2).pow(80), 1)
 			, new Rational(BigInt(10).pow(20), 1)
 			, new Rational(100000, 1)
+			, new Rational(1, 1 << 30)
 		)
 		
 		describe("For value NaN") {

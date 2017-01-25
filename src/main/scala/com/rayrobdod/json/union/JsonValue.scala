@@ -101,7 +101,7 @@ object JsonValue {
 	}
 	final case class JsonValueBoolean(b:Boolean) extends JsonValue
 	object JsonValueNull extends JsonValue {
-		override def toString = "JsonValueNull"
+		override def toString:String = "JsonValueNull"
 	}
 	
 	implicit def apply(s:String):JsonValue = JsonValueString(s)

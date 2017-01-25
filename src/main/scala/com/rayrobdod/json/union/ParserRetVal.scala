@@ -58,7 +58,9 @@ sealed trait ParserRetVal[+Complex, +Primitive]{
 	def complex:ComplexProjection[Complex,Primitive] = new ComplexProjection(this)
 	
 	/** Convert a Failure into a Left and the other two cases into a Right  */
-	def mergeToEither[A](implicit ev1:Primitive <:< A, ev2:Complex <:< A):Either[(String,Int),A] = this.fold({c => Right(ev2(c))}, {p => Right(ev1(p))}, {(s,i) => Left(s,i)})
+	def mergeToEither[A](implicit ev1:Primitive <:< A, ev2:Complex <:< A):Either[(String,Int),A] = {
+		this.fold({c => Right(ev2(c))}, {p => Right(ev1(p))}, {(s,i) => Left(s,i)})
+	}
 }
 
 /**
