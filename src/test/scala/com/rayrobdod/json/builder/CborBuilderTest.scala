@@ -108,6 +108,11 @@ class CborBuilderTest extends FunSpec {
 				new CborBuilder().apply(hexSeq"80", 0, CborValue(BigInt(2).pow(64)), new IdentityParser[CborValue])
 			}
 		}
+		it ("Appends -2**64 - 1 as BigInt") {
+			assertResult(Right(hexSeq"81 C349010000000000000000")){
+				new CborBuilder().apply(hexSeq"80", 0, CborValue(-BigInt(2).pow(64) - 1), new IdentityParser[CborValue])
+			}
+		}
 		it ("Appends Float") {
 			assertResult(Right(hexSeq"81 FA3FC00000")){
 				new CborBuilder().apply(hexSeq"80", 0, CborValue(1.5f), new IdentityParser[CborValue])

@@ -138,9 +138,21 @@ class CborValueRationalTest extends FunSpec {
 				assertResult("6/12"){new Rational(6, 12).toString}
 				assertResult("1/2"){new Rational(6, 12).reduce.toString}
 			}
-			it ("the denominator is always positive after reduction") {
+			it ("the denominator is always nonnegative after reduction") {
 				assertResult("2/-3"){new Rational(2, -3).toString}
 				assertResult("-2/3"){new Rational(2, -3).reduce.toString}
+			}
+			it ("posinf") {
+				assertResult(1){new Rational(5, 0).reduce.num}
+				assertResult(0){new Rational(5, 0).reduce.denom}
+			}
+			it ("neginf") {
+				assertResult(-1){new Rational(-5, 0).reduce.num}
+				assertResult(0){new Rational(-5, 0).reduce.denom}
+			}
+			it ("nan") {
+				assertResult(0){new Rational(0, 0).reduce.num}
+				assertResult(0){new Rational(0, 0).reduce.denom}
 			}
 		}
 	}
@@ -272,6 +284,7 @@ class CborValueRationalTest extends FunSpec {
 			, (1.5, new Rational(3, 2))
 			, (1e20, new Rational(BigInt(10).pow(20), 1))
 			, (4.9E-324, new Rational(1, BigInt(2).pow(1074)))
+			, (-4.9E-324, new Rational(-1, BigInt(2).pow(1074)))
 			, (math.pow(2, 80), new Rational(BigInt(2).pow(80), 1))
 			, (-4.1D, new Rational(-18464758472219032L, 4503599627370496L))
 			, (Double.PositiveInfinity, Rational.PositiveInfinity)
