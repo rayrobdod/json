@@ -69,6 +69,10 @@ class CborParserTagMatcherTest extends FunSpec {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(2).get
 					assertResult( ParseReturnValueSimple(CborValue(0x123456)) ){ tagFun.apply( MapBuilder.apply, hexArray"43123456" ) }
 				}
+				it ("happy when given a byte array (2 ** 64)") {
+					val tagFun = CborParser.TagMatcher.numbers.unapply(2).get
+					assertResult( ParseReturnValueSimple(CborValue(BigInt(2).pow(64))) ){ tagFun.apply( MapBuilder.apply, hexArray"49010000000000000000" ) }
+				}
 				it ("fails when given a posint") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(2).get
 					assert( tagFun.apply( MapBuilder.apply, hexArray"11" ).isInstanceOf[ParseReturnValueFailure] )
@@ -132,7 +136,7 @@ class CborParserTagMatcherTest extends FunSpec {
 					assert( tagFun.apply( MapBuilder.apply, hexArray"A2 4121 01 4222 02" ).isInstanceOf[ParseReturnValueFailure] )
 				}
 			}
-			describe("unapply(5) decimal bigfloat") {
+			describe("unapply(5) binary bigfloat") {
 				it ("isDefined") {
 					assert( CborParser.TagMatcher.numbers.unapply(5).isDefined )
 				}

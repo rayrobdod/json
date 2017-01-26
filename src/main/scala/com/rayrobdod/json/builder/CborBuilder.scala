@@ -28,7 +28,7 @@ package com.rayrobdod.json.builder;
 
 import scala.collection.immutable.Seq
 import java.nio.charset.StandardCharsets.UTF_8
-import com.rayrobdod.json.parser.CborParser.{MajorTypeCodes, SimpleValueCodes}
+import com.rayrobdod.json.parser.CborParser.{MajorTypeCodes, SimpleValueCodes, TagCodes}
 import com.rayrobdod.json.union.CborValue
 import com.rayrobdod.json.parser.{Parser, CborParser, byteArray2DataInput}
 
@@ -118,21 +118,44 @@ private[builder] object CborBuilder {
 		case CborValueBoolean(true)  => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.TRUE)
 		case CborValueNull  => encodeLength(MajorTypeCodes.SPECIAL, SimpleValueCodes.NULL)
 		case CborValueNumber(value) => {
-			value.tryToLong.fold{
+			value.tryToBigInt.fold{
 				value.tryToFloat.fold{
 					value.tryToDouble.fold{
-						throw new NumberFormatException("")
+						value.tryToBigDecimal.fold{
+							val r = value.reduce
+							encodeLength(MajorTypeCodes.TAG, TagCodes.RATIONAL) ++
+									encodeLength(MajorTypeCodes.ARRAY, 2) ++
+									encodeValue(CborValueNumber(r.num)) ++
+									encodeValue(CborValueNumber(r.denom))
+						}{d:BigDecimal =>
+							val d2 = d.underlying.stripTrailingZeros
+							encodeLength(MajorTypeCodes.TAG, TagCodes.BIG_DECIMAL) ++
+									encodeLength(MajorTypeCodes.ARRAY, 2) ++
+									encodeValue(CborValueNumber(- d2.scale)) ++
+									encodeValue(CborValueNumber(d2.unscaledValue))
+							
+						}
 					}{d:Double =>
 						Seq((0xE0 + SimpleValueCodes.DOUBLE).byteValue) ++ long2ByteArray(java.lang.Double.doubleToLongBits(d))
 					}
 				}{f:Float =>
 					Seq((0xE0 + SimpleValueCodes.FLOAT).byteValue) ++ long2ByteArray(java.lang.Float.floatToIntBits(f), 4)
 				}
-			}{i:Long =>
-				if (i >= 0) {
-					encodeLength(MajorTypeCodes.POSITIVE_INT, i)
+			}{i:BigInt =>
+				if (i.isValidLong) {
+					if (i >= 0) {
+						encodeLength(MajorTypeCodes.POSITIVE_INT, i.longValue)
+					} else {
+						encodeLength(MajorTypeCodes.NEGATIVE_INT, -1 - i.longValue)
+					}
 				} else {
-					encodeLength(MajorTypeCodes.NEGATIVE_INT, -1 - i)
+					if (i >= 0) {
+						encodeLength(MajorTypeCodes.TAG, TagCodes.POS_BIG_INT) ++
+								encodeValue(CborValueByteStr(i.toByteArray))
+					} else {
+						encodeLength(MajorTypeCodes.TAG, TagCodes.NEG_BIG_INT) ++
+								encodeValue(CborValueByteStr((-1 - i).toByteArray))
+					}
 				}
 			}
 			

@@ -170,7 +170,7 @@ object CborValue {
 	 * A value represeting a whole number divided by another whole number
 	 * @since next
 	 */
-	final class Rational(private val num:BigInt, private val denom:BigInt) {
+	final case class Rational(val num:BigInt, val denom:BigInt) {
 		def isNaN:Boolean = denom == 0 && num == 0
 		def isPosInfinity:Boolean = denom == 0 && num > 0
 		def isNegInfinity:Boolean = denom == 0 && num < 0
@@ -214,6 +214,22 @@ object CborValue {
 			else if (this.isNaN) {Double.NaN}
 			else {
 				num.toDouble / denom.toDouble
+			}
+		}
+		
+		private[this] def signum = this.num.signum * this.denom.signum
+		
+		/**  */
+		def reduce:Rational = {
+			if (this.isNaN) {Rational.NaN} else
+			if (this.isPosInfinity) {Rational.PositiveInfinity} else
+			if (this.isNegInfinity) {Rational.NegativeInfinity} else
+			{
+				val divisor = this.num.abs gcd this.denom.abs
+				new Rational(
+					this.signum * this.num.abs / divisor,
+					this.denom.abs / divisor
+				)
 			}
 		}
 		

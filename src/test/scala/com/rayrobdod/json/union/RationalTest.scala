@@ -133,6 +133,16 @@ class CborValueRationalTest extends FunSpec {
 				assert(math.abs(0.33333 - new Rational(1,3).toDouble) <= 0.0001)
 			}
 		}
+		describe("reduce") {
+			it ("returns an equivalent value with the smallest possible num and denom") {
+				assertResult("6/12"){new Rational(6, 12).toString}
+				assertResult("1/2"){new Rational(6, 12).reduce.toString}
+			}
+			it ("the denominator is always positive after reduction") {
+				assertResult("2/-3"){new Rational(2, -3).toString}
+				assertResult("-2/3"){new Rational(2, -3).reduce.toString}
+			}
+		}
 	}
 	
 	describe("Int conversions") {
