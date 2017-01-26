@@ -1,3 +1,17 @@
+## 3.1
+* Remove deprecated builders and parsers
+  - BeanBuilder, CaseClassBuilder, CborObjectBuilder, CborArrayBuilder,
+    MinifiedJsonOjectBuilder, MinifiedJsonArrayBuilder, CaseClassParser
+* Add Builder and Parser transforms
+  - flatMapKey
+* Add ComplexProjection::flatMap
+* Change JsonValue.Number from containing a "Number" to containing a "BigDecimal"
+* Change CborValue.Number from containing a "Number" to containing a "Rational"
+* Add number tags and HalfFloat support to CborParser
+* Add number tags support to CborBuilder
+* CborBuilder reads int32 values larger than Integer.MaxValue (2 ** 31 - 1) correctly
+  - int64 values larger than Long.MaxValue (2 ** 63 - 1) are still not read correctly
+
 ## 3.0.1
 * Various optimizations
 * Fix JsonParer's parsing of nested objects containing strings containing `[]{}` characters

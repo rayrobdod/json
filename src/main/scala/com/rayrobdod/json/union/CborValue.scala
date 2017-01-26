@@ -100,6 +100,7 @@ sealed trait CborValue {
 /**
  * The cases of CborValue and methods to convert other things into CborValues.
  * @since 3.0
+ * @version next
  */
 object CborValue {
 	final case class CborValueString(s:String) extends CborValue

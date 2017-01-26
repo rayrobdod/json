@@ -41,7 +41,7 @@ import com.rayrobdod.json.union.CborValue.Rational
  * 
  * tags are handled via the `tagMatcher` constructor parameter. By default, it can handle tags (2,3,4,5,30,55799).
  * 
- * @version 3.0
+ * @version next
  * @see [[http://tools.ietf.org/html/rfc7049]]
  * 
  * @constructor
@@ -277,19 +277,23 @@ object CborParser {
 	 * Unless you're trying to see this value, you shouldn't see this value.
 	 */
 	final case class ParseReturnValueEndOfIndeterminateObject() extends ParseReturnValue[Nothing]
-	/** A tagged value */
+	/** An unknown tagged value */
 	final case class ParseReturnValueTaggedValue[A](tag:Long, x:ParseReturnValue[A]) extends ParseReturnValue[A]
 	/** A simple value other than the known ones */
 	final case class ParseReturnValueUnknownSimple(value:Byte) extends ParseReturnValue[Nothing]
 	final case class ParseReturnValueFailure(msg:String, idx:Int) extends ParseReturnValue[Nothing]
 	
-	/** A function that is parameterized at the function level instead of the class level */
+	/**
+	 * A function that is parameterized at the function level instead of the class level
+	 * @since next
+	 */
 	trait TagFunction {
 		def apply[A](b:Builder[CborValue, CborValue, A], i:DataInput):ParseReturnValue[A] 
 	}
 	
 	/**
 	 * A partial function that takes a Cbor tag number and returns a function that builds the value described by the tags
+	 * @since next
 	 */
 	trait TagMatcher {
 		def unapply(tag:Long):Option[TagFunction]
@@ -304,6 +308,10 @@ object CborParser {
 		}
 	}
 	
+	/**
+	 * Built-in TagMatchers
+	 * @since next
+	 */
 	object TagMatcher {
 		
 		/** a TagMatcher that maches no tags (and thus always returns None) */
