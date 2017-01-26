@@ -35,7 +35,7 @@ class CborValueTest extends FunSpec {
 		// string, double, integer, boolean, null
 		val values = Seq(
 			CborValueString(""), CborValueByteStr(new Array[Byte](2)), 
-			CborValueNumber(1.5), CborValueNumber(42),
+			CborValueNumber(1.5), CborValueNumber(42L),
 			CborValueBoolean(true), CborValueNull
 		)
 		val ToEitherFuns = Seq[CborValue => Either[(String, Int),Any]](
@@ -62,6 +62,17 @@ class CborValueTest extends FunSpec {
 		for ((v, vi) <- values.zipWithIndex) {
 			it (s"""${v}.fold invokes the ${foldResults(vi)}th  function""") {
 				assertResult(foldResults(vi)){v.fold({x => 0}, {x => 1}, {x => 2}, {x => 3}, {() => 4})}
+			}
+		}
+		
+		for (
+			(v1, v1i) <- values.zipWithIndex;
+			(v2, v2i) <- values.zipWithIndex
+		) {
+			if (v1i == v2i) {
+				it (s"""${v1} == ${v2}""") { v1 == v2 }
+			} else {
+				it (s"""${v1} != ${v2}""") { v1 != v2 }
 			}
 		}
 	}
@@ -136,6 +147,28 @@ class CborValueTest extends FunSpec {
 				val res:CborValue = JsonValue.JsonValueNull
 				assertResult(CborValueNull){res}
 			}
+		}
+		describe("CborValueNumber$.apply can accept") {
+			val exp = CborValueNumber(new Rational(0, 1))
+			
+			it ("Int") {assertResult(exp){CborValueNumber(0)}}
+			it ("Long") {assertResult(exp){CborValueNumber(0L)}}
+			it ("BigInt") {assertResult(exp){CborValueNumber(scala.math.BigInt(0))}}
+			it ("Float") {assertResult(exp){CborValueNumber(0F)}}
+			it ("Double") {assertResult(exp){CborValueNumber(0D)}}
+			it ("BigDecimal") {assertResult(exp){CborValueNumber(scala.math.BigDecimal("0"))}}
+			it ("Rational") {assertResult(exp){CborValueNumber(new Rational(0,1))}}
+		}
+		describe("CborValue$.apply can accept") {
+			val exp = CborValueNumber(new Rational(0, 1))
+			
+			it ("Int") {assertResult(exp){CborValue(0)}}
+			it ("Long") {assertResult(exp){CborValue(0L)}}
+			it ("BigInt") {assertResult(exp){CborValue(scala.math.BigInt(0))}}
+			it ("Float") {assertResult(exp){CborValue(0F)}}
+			it ("Double") {assertResult(exp){CborValue(0D)}}
+			it ("BigDecimal") {assertResult(exp){CborValue(scala.math.BigDecimal("0"))}}
+			it ("Rational") {assertResult(exp){CborValue(new Rational(0,1))}}
 		}
 	}
 }
