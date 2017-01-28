@@ -27,35 +27,44 @@
 package com.rayrobdod.json.parser
 
 import org.scalatest.FunSpec
-import scala.collection.immutable.Map
-import com.rayrobdod.json.union.ParserRetVal
-import com.rayrobdod.json.builder._
+import scala.collection.immutable.Seq
+import com.rayrobdod.json.builder.{SeqBuilder, PrettyJsonBuilder, ThrowBuilder, PrimitiveSeqBuilder}
+import com.rayrobdod.json.union.JsonValue
 
-class CsvParserTest_Unhappy extends FunSpec {
-	describe("CsvParser") {
-		it ("""Throw builder immediate""") {
-			val source = "a,b,c\nd,e,f\n"
-			assertFailureParse("",0){
-				new CsvParser().parse(new ThrowBuilder[Int, String], source)
-			}
+class packageTest extends FunSpec {
+	describe("Iterator2Reader") {
+		it ("full read") {
+			val buf = new Array[Char](8)
+			val count = new Iterator2Reader("12345".iterator).read(buf)
+			assertResult(Array('1', '2', '3', '4', '5', '\0', '\0', '\0')){buf}
+			assertResult(5){count}
 		}
-		it ("""Throw builder indirect""") {
-			val source = "a,b,c\nd,e,f\n"
-			assertFailureParse("",6){
-				new CsvParser().parse(MapBuilder.apply2[Int, String, Any]({x:Int => x match {
-					case 1 => new MapBuilder.MapChildBuilder[Int, String, Any, Any](new ThrowBuilder[Int, String].mapValue[String], {x:Any => x})
-					case _ => new MapBuilder.MapChildBuilder[Int, String, MapBuilder.RecursiveSubjectType[Int,String], Any](MapBuilder[Int, String], {x:Any => x})
-				}}), source)
-			}
+		it ("partial read") {
+			val buf = new Array[Char](8)
+			val count = new Iterator2Reader("12345".iterator).read(buf, 2, 3)
+			assertResult(Array('\0', '\0', '1', '2', '3', '\0', '\0', '\0')){buf}
+			assertResult(3){count}
+		}
+		it ("close") {
+			new Iterator2Reader("12345".iterator).close()
 		}
 	}
-	
-	
-	def assertFailureParse(msg:String, idx:Int)(result:ParserRetVal[_,_]):Unit = result match {
-		case ParserRetVal.Failure(msg2, idx2) => {
-	//		assertResult(msg){msg2}
-			assertResult(idx){idx2}
+	describe("CountingReader") {
+		describe ("goBackOne") {
+			it ("throws if called twice consecutively") {
+				intercept[IllegalStateException] {
+					val dut = new CountingReader(new java.io.StringReader("adf"))
+					dut.read()
+					dut.goBackOne()
+					dut.goBackOne()
+				}
+			}
+			it ("causes the previously read character to be output upon the next read") {
+				val dut = new CountingReader(new java.io.StringReader("adf"))
+				assertResult('a'){dut.read()}
+				dut.goBackOne()
+				assertResult('a'){dut.read()}
+			}
 		}
-		case x => fail("Not a Failure: " + x)
 	}
 }

@@ -28,34 +28,24 @@ package com.rayrobdod.json.parser
 
 import org.scalatest.FunSpec
 import scala.collection.immutable.Map
-import com.rayrobdod.json.union.ParserRetVal
-import com.rayrobdod.json.builder._
+import com.rayrobdod.json.builder.MapBuilder
 
-class CsvParserTest_Unhappy extends FunSpec {
-	describe("CsvParser") {
-		it ("""Throw builder immediate""") {
-			val source = "a,b,c\nd,e,f\n"
-			assertFailureParse("",0){
-				new CsvParser().parse(new ThrowBuilder[Int, String], source)
-			}
-		}
-		it ("""Throw builder indirect""") {
-			val source = "a,b,c\nd,e,f\n"
-			assertFailureParse("",6){
-				new CsvParser().parse(MapBuilder.apply2[Int, String, Any]({x:Int => x match {
-					case 1 => new MapBuilder.MapChildBuilder[Int, String, Any, Any](new ThrowBuilder[Int, String].mapValue[String], {x:Any => x})
-					case _ => new MapBuilder.MapChildBuilder[Int, String, MapBuilder.RecursiveSubjectType[Int,String], Any](MapBuilder[Int, String], {x:Any => x})
-				}}), source)
-			}
-		}
-	}
+class RecursiveMapParserTest extends FunSpec {
 	
-	
-	def assertFailureParse(msg:String, idx:Int)(result:ParserRetVal[_,_]):Unit = result match {
-		case ParserRetVal.Failure(msg2, idx2) => {
-	//		assertResult(msg){msg2}
-			assertResult(idx){idx2}
+	describe("RecursiveMapParser") {
+		it ("Is an inverse of the no-param MapBuilder") {
+			val exp = MapBuilder.RecursiveSubjectType[String, String](
+				"first" -> Right("here"),
+				"second" -> Left(MapBuilder.RecursiveSubject[String, String](MapBuilder.RecursiveSubjectType[String, String](
+					"a" -> Right("b"),
+					"c" -> Right("d"),
+					"e" -> Right("f")
+				))),
+				"third" -> Right("asdffsd")
+			)
+			val res = new RecursiveMapParser[String, String].parse(MapBuilder[String, String], exp)
+						.fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
+			assertResult(exp){res}
 		}
-		case x => fail("Not a Failure: " + x)
 	}
 }
