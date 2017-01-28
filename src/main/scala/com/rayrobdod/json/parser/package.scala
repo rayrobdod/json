@@ -50,25 +50,6 @@ package object parser {
 }
 
 package parser {
-	/**
-	 * An iterable whose iterator reads characters from the reader one at a time
-	 * @version 2.0
-	 */
-	private[parser] final class Reader2Iterable(r:java.io.Reader) extends Iterable[Char] {
-		def iterator:Iterator[Char] = {
-			new Iterator[Char]() {
-				private[this] var nextChar:Int = r.read()
-				override def next:Char = {
-					val retVal = nextChar;
-					nextChar = r.read();
-					retVal.toChar
-				}
-				override def hasNext:Boolean = {
-					nextChar != -1;
-				}
-			}
-		}
-	}
 	
 	/**
 	 * A reader who takes charaters from the specified iterator
@@ -151,7 +132,7 @@ package parser {
 	 * @tparam V the primitive values contained in the Map
 	 * TODO make not-private in future version
 	 */
-	private[parser] final class RecusiveMapParser[K,V] extends Parser[K, V, com.rayrobdod.json.builder.MapBuilder.RecursiveSubjectType[K,V]] {
+	private[parser] final class RecursiveMapParser[K,V] extends Parser[K, V, com.rayrobdod.json.builder.MapBuilder.RecursiveSubjectType[K,V]] {
 		import com.rayrobdod.json.builder.MapBuilder
 		type RecursiveSubjectTupleType[K,V] = Tuple2[K, Either[MapBuilder.RecursiveSubject[K, V], V]]
 		
@@ -165,7 +146,7 @@ package parser {
 				val (key, value) = keyValue;
 				state.right.flatMap{folding =>
 					value.fold({complex:MapBuilder.RecursiveSubject[K,V] =>
-						topBuilder.apply(folding, key, complex.value, RecusiveMapParser.this)
+						topBuilder.apply(folding, key, complex.value, RecursiveMapParser.this)
 					}, {simple =>
 						topBuilder.apply(folding, key, simple, new IdentityParser[V])
 					})
