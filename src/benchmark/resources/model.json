@@ -1,0 +1,33 @@
+[{
+	"name":"Iron Sword",
+	"power":5,
+	"accuracy":95,
+	"requiredExp":"E",
+	"cost":360
+},{
+	"name":"Steel Sword",
+	"power":8,
+	"accuracy":90,
+	"requiredExp":"D",
+	"cost":720
+},{
+	"name":"Silver Sword",
+	"power":11,
+	"accuracy":80,
+	"requiredExp":"B",
+	"cost":2400
+},{
+	"name":"Ranged Sword",
+	"power":9,
+	"accuracy":85,
+	"range":[1,2],
+	"requiredExp":"A",
+	"cost":10000
+},{
+	"name":"Throwing Sword",
+	"power":6,
+	"accuracy":80,
+	"range":2,
+	"requiredExp":"B",
+	"cost":3000
+}]

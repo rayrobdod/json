@@ -102,7 +102,7 @@ class PiecewiseBuilderTest extends FunSpec {
 			
 			val personBuilder = new PiecewiseBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
 				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parsePrimitive(i).right.flatMap{_ match {case JsonValueString(i) => Right(s.copy(name = i)); case ex => Left("name not string: " + ex, 0)}}}})
-				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parsePrimitive(i).right.flatMap{_ match {case JsonValueNumber(i) => Right(s.copy(age = i.intValue)); case ex => Left("age not number: " + ex, 0)}}}})
+				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parsePrimitive(i).right.flatMap{_ match {case JsonValueNumber(x) if x.isValidInt => Right(s.copy(age = x.intValue)); case ex => Left("age not number: " + ex, 0)}}}})
 			
 			val seqBuilder = new PiecewiseBuilder[StringOrInt, JsonValue, Seq[Person]](
 				Nil,

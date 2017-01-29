@@ -59,7 +59,6 @@ class MapBuilderTest extends FunSpec {
 	
 	describe("MapBuilder integration") {
 		import com.rayrobdod.json.parser.JsonParser
-		import BeanBuilderTest.Person
 		
 		it ("MapBuilder + JsonParser + primitive") {
 			assertResult(Map("a" -> 61, "b" -> 62, "c" -> 63).map{x => ((StringOrInt(x._1), Right(JsonValue(x._2))))}){
@@ -70,4 +69,8 @@ class MapBuilderTest extends FunSpec {
 			}
 		}
 	}
+}
+
+object MapBuilderTest {
+	final case class Person(name:String, age:java.lang.Long)
 }

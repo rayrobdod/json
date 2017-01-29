@@ -40,6 +40,7 @@ import com.rayrobdod.json.union.ParserRetVal.{ComplexProjection, PrimitiveProjec
  * A union type representing possible return values of [[com.rayrobdod.json.parser.Parser.parse `Parser.parse`]].
  * 
  * @since 3.0
+ * @version 3.0.1
  */
 sealed trait ParserRetVal[+Complex, +Primitive]{
 	/**
@@ -57,12 +58,15 @@ sealed trait ParserRetVal[+Complex, +Primitive]{
 	def complex:ComplexProjection[Complex,Primitive] = new ComplexProjection(this)
 	
 	/** Convert a Failure into a Left and the other two cases into a Right  */
-	def mergeToEither[A](implicit ev1:Primitive <:< A, ev2:Complex <:< A):Either[(String,Int),A] = this.fold({c => Right(ev2(c))}, {p => Right(ev1(p))}, {(s,i) => Left(s,i)})
+	def mergeToEither[A](implicit ev1:Primitive <:< A, ev2:Complex <:< A):Either[(String,Int),A] = {
+		this.fold({c => Right(ev2(c))}, {p => Right(ev1(p))}, {(s,i) => Left(s,i)})
+	}
 }
 
 /**
  * A container for the types of [[ParserRetVal]]s
  * @since 3.0
+ * @version 3.0.1
  */
 object ParserRetVal {
 	
@@ -128,6 +132,15 @@ object ParserRetVal {
 		/** Map the backing value if the backing value is a Complex, else return the backing value */
 		def map[X](fun:C => X):ParserRetVal[X,P] = backing match {
 			case Complex(c) => Complex(fun(c))
+			case p:Primitive[P] => p
+			case f:Failure => f
+		}
+		
+		/** Flatmap the backing value if the backing value is a Complex, else return the backing value
+		 * @since 3.1
+		 */
+		def flatMap[PP >: P, X](fun:C => ParserRetVal[X, PP]):ParserRetVal[X, PP] = backing match {
+			case Complex(c) => fun(c)
 			case p:Primitive[P] => p
 			case f:Failure => f
 		}

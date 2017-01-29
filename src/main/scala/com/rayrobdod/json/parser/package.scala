@@ -50,21 +50,53 @@ package object parser {
 }
 
 package parser {
+	
 	/**
-	 * An iterable whose iterator reads characters from the reader one at a time
-	 * @version 2.0
+	 * A reader who takes charaters from the specified iterator
+	 * @since next
 	 */
-	private[parser] final class Reader2Iterable(r:java.io.Reader) extends Iterable[Char] {
-		def iterator:Iterator[Char] = {
-			new Iterator[Char]() {
-				private[this] var nextChar:Int = r.read()
-				override def next:Char = {
-					val retVal = nextChar;
-					nextChar = r.read();
-					retVal.toChar
-				}
-				override def hasNext:Boolean = {
-					nextChar != -1;
+	private[parser] final class Iterator2Reader(iterator:Iterator[Char]) extends java.io.Reader {
+		override def read():Int = if (!iterator.hasNext) {-1} else {iterator.next().toInt}
+		override def close():Unit = {}
+		override def read(buff:Array[Char], off:Int, len:Int):Int = {
+			var idx = off
+			val limit = off + len
+			var c = this.read()
+			while (idx < limit && c >= 0) {
+				buff(idx) = c.toChar
+				idx = idx + 1
+				c = this.read()
+			}
+			idx - off
+		}
+	}
+	
+	/**
+	 * @since next
+	 */
+	final class CountingReader(back:java.io.Reader) {
+		private[this] var _idx : Int = -1
+		def index : Int = _idx
+		private[this] var repeat : Boolean = false
+		private[this] var repeatedChar : Char = '\u0000'
+		
+		def goBackOne():Unit = {
+			if (repeat) { throw new IllegalStateException("Already gone back one") }
+			_idx = _idx - 1
+			repeat = true
+		}
+		def read():Char = {
+			_idx = _idx + 1
+			if (repeat) {
+				repeat = false
+				repeatedChar
+			} else {
+				val retVal = back.read()
+				if (retVal < 0) {
+					throw new java.util.NoSuchElementException
+				} else {
+					repeatedChar = retVal.toChar
+					repeatedChar
 				}
 			}
 		}
@@ -89,6 +121,36 @@ package parser {
 			val a = vals.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], keyValue:(K, V)) => 
 				val (key, value) = keyValue;
 				state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[V])}
+			}
+			ParserRetVal.eitherToComplex(a)
+		}
+	}
+	
+	/**
+	 * A parser that can parse the results of recursive MapBuilder builds
+	 * @tparam K the type of keys contained in the Map
+	 * @tparam V the primitive values contained in the Map
+	 * TODO make not-private in future version
+	 */
+	private[parser] final class RecursiveMapParser[K,V] extends Parser[K, V, com.rayrobdod.json.builder.MapBuilder.RecursiveSubjectType[K,V]] {
+		import com.rayrobdod.json.builder.MapBuilder
+		type RecursiveSubjectTupleType[K,V] = Tuple2[K, Either[MapBuilder.RecursiveSubject[K, V], V]]
+		
+		/**
+		 * Decodes the input values to an object.
+		 * @param vals the sequence containing values
+		 * @return the parsed object
+		 */
+		def parse[A](topBuilder:Builder[K,V,A], vals:MapBuilder.RecursiveSubjectType[K,V]):ParserRetVal[A,V] = {
+			val a = vals.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], keyValue:RecursiveSubjectTupleType[K,V]) => 
+				val (key, value) = keyValue;
+				state.right.flatMap{folding =>
+					value.fold({complex:MapBuilder.RecursiveSubject[K,V] =>
+						topBuilder.apply(folding, key, complex.value, RecursiveMapParser.this)
+					}, {simple =>
+						topBuilder.apply(folding, key, simple, new IdentityParser[V])
+					})
+				}
 			}
 			ParserRetVal.eitherToComplex(a)
 		}
@@ -142,10 +204,12 @@ package parser {
 	
 	/**
 	 * A 'parser' that echos the value provided in its parse method
+	 * 
+	 * Somewhat useful to be the 'recursed' parser in cases where the 'root' parser has already decoded a value.
 	 * @version 3.0
 	 */
 	final class IdentityParser[V] extends Parser[Nothing,V,V] {
-		/** Returns `scala.util.Right(v)` */
+		/** Returns `v` wrapped in a [[com.rayrobdod.json.union.ParserRetVal.Primitive]] */
 		def parse[A](b:Builder[Nothing,V,A], v:V):ParserRetVal.Primitive[V] = ParserRetVal.Primitive(v)
 	}
 	

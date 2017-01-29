@@ -41,7 +41,8 @@ import com.rayrobdod.json.parser.Parser
  */
 trait Builder[-Key, -Value, Subject] {
 	/**
-	 * An 'empty' object to be used to start the folding process
+	 * An 'empty' object. Can be thought of as either the value used at the
+	 * start of a fold-left operation, or as an object filled with default values.
 	 */
 	def init:Subject
 	
@@ -71,6 +72,18 @@ trait Builder[-Key, -Value, Subject] {
 		override def init:Subject = Builder.this.init
 		override def apply[Input](a:Subject, key:K2, b:Input, c:Parser[K2, Value, Input]):Either[(String, Int), Subject] = {
 			Builder.this.apply(a, fun(key), b, c.mapKey(fun))
+		}
+	}
+	
+	/**
+	 * Change the type of key that this builder requires, with the option of indicating an error condition
+	 * @param fun a conversion function from the new key to this's key
+	 * @since 3.1
+	 */
+	final def flatMapKey[K2](fun:Function1[K2,Either[(String,Int),Key]]):Builder[K2,Value,Subject] = new Builder[K2,Value,Subject] {
+		override def init:Subject = Builder.this.init
+		override def apply[Input](a:Subject, key:K2, b:Input, c:Parser[K2, Value, Input]):Either[(String, Int), Subject] = {
+			fun(key).right.flatMap{k2 => Builder.this.apply(a, k2, b, c.flatMapKey(fun))}
 		}
 	}
 	

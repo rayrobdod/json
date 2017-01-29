@@ -35,12 +35,12 @@ class CsvWithHeaderParserTest_Unhappy extends FunSpec {
 	describe("CsvWithHeaderParser") {
 		it ("""Throw builder immediate""") {
 			val source = "g,h,i\na,b,c\nd,e,f\n"
-			assertFailureParse("",11){
+			assertFailureParse("",6){
 				new CsvWithHeaderParser().parse(new ThrowBuilder[StringOrInt, String], source)
 			}
 		}
 		it ("""Throw builder indirect""") {
-			val source = "a,b,c\nd,e,f\n"
+			val source = "g,h,i\na,b,c\nd,e,f\n"
 			assertFailureParse("",12){
 				new CsvWithHeaderParser().parse(MapBuilder.apply2[StringOrInt, String, Any]({x:StringOrInt => x match {
 					case StringOrInt.Right(1) => new MapBuilder.MapChildBuilder[StringOrInt, String, Any, Any](new ThrowBuilder[StringOrInt, String].mapValue[String], {x:Any => x})

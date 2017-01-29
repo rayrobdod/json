@@ -34,7 +34,9 @@ class JsonValueTest extends FunSpec {
 	describe("JsonValue") {
 		// string, double, integer, boolean, null
 		val values = Seq(
-			JsonValueString(""), JsonValueNumber(1.5), JsonValueNumber(42),
+			JsonValueString(""),
+			JsonValueNumber(1.5),
+			JsonValueNumber(42),
 			JsonValueBoolean(true), JsonValueNull
 		)
 		val ToEitherFuns = Seq[JsonValue => Either[(String, Int),Any]](
@@ -72,6 +74,14 @@ class JsonValueTest extends FunSpec {
 			}
 			it ("""StringOrInt.Right to JsonValue""") {
 				val res:JsonValue = StringOrInt(234)
+				assertResult(JsonValue(234)){res}
+			}
+			it ("""Int to JsonValue""") {
+				val res:JsonValue = 234
+				assertResult(JsonValue(234)){res}
+			}
+			it ("""Long to JsonValue""") {
+				val res:JsonValue = 234L
 				assertResult(JsonValue(234)){res}
 			}
 		}

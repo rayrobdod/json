@@ -53,6 +53,12 @@ final class MapBuilder[K, V, Inner](childBuilders:Function1[K, MapBuilder.MapChi
  */
 object MapBuilder {
 	type RecursiveSubjectType[K,V] = Map[K, Either[RecursiveSubject[K, V], V]]
+	private[json] def RecursiveSubjectType[K,V](
+		vals:Tuple2[K, Either[RecursiveSubject[K, V], V]]*
+	):Map[K, Either[RecursiveSubject[K, V], V]] = {
+		Map.apply(vals:_*)
+	}
+	
 	/** Types cannot be recursive without some kind of 'real' type in there somewhere */
 	final case class RecursiveSubject[K,V](val value:Map[K, Either[RecursiveSubject[K, V], V]])
 	

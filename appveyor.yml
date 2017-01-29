@@ -21,7 +21,7 @@ install:
       }
       
   - cmd: SET SBT_HOME=C:\sbt\sbt\bin
-  - cmd: SET SBT_OPTS=-Dscoverage.disable=true -Xmx512M -XX:MaxPermSize=256m
+  - cmd: SET SBT_OPTS=-Xmx512M -XX:MaxPermSize=256m
   - cmd: SET SBT_CMD="%JAVA_HOME%\bin\java.exe" %SBT_OPTS% -cp "%SBT_HOME%\sbt-launch.jar" xsbt.boot.Boot
 environment:
   matrix:
@@ -31,7 +31,7 @@ environment:
   - SCALA_VERSION: 2.11.8
     JAVA_HOME: C:\Program Files (x86)\Java\jdk1.7.0
     SBT_CROSS_TARGET: scala-2.11
-  - SCALA_VERSION: 2.12.0
+  - SCALA_VERSION: 2.12.1
     JAVA_HOME: C:\Program Files (x86)\Java\jdk1.8.0
     SBT_CROSS_TARGET: scala-2.12
 build_script:
@@ -48,8 +48,3 @@ test_script:
 artifacts:
   - path: publish
     name: sbt_publish_directory
-cache:
-  - C:\sbt\
-  - C:\graphviz\
-  - C:\Users\appveyor\.m2
-  - C:\Users\appveyor\.ivy2

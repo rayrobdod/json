@@ -104,6 +104,22 @@ class JsonParserTest_Happy extends FunSpec {
 		("array containing keyword (null)", """[null]""", Map(SIRight(0) -> Right(JsonValue.JsonValueNull))),
 		("array containing keyword (null) (whitespace)", """[ null ]""", Map(SIRight(0) -> Right(JsonValue.JsonValueNull)))
 		
+		, ("array with nesting and '[' strings", """[[["[["]]]""", Map(SIRight(0) -> Left(MBRS(Map(SIRight(0) -> Left(MBRS(Map(SIRight(0) -> Right(JsonValue("[["))))))))))
+		, ("array with nesting and '{' strings", """[[["{{"]]]""", Map(SIRight(0) -> Left(MBRS(Map(SIRight(0) -> Left(MBRS(Map(SIRight(0) -> Right(JsonValue("{{"))))))))))
+		, ("array with nesting and ']' strings", """[[["]]"]]]""", Map(SIRight(0) -> Left(MBRS(Map(SIRight(0) -> Left(MBRS(Map(SIRight(0) -> Right(JsonValue("]]"))))))))))
+		, ("array with nesting and '}' strings", """[[["}}"]]]""", Map(SIRight(0) -> Left(MBRS(Map(SIRight(0) -> Left(MBRS(Map(SIRight(0) -> Right(JsonValue("}}"))))))))))
+		, ("object with nesting and '[' strings", """{"":{"":{"":"[["}}}""", Map(SILeft("") -> Left(MBRS(Map(SILeft("") -> Left(MBRS(Map(SILeft("") -> Right(JsonValue("[["))))))))))
+		, ("object with nesting and '{' strings", """{"":{"":{"":"{{"}}}""", Map(SILeft("") -> Left(MBRS(Map(SILeft("") -> Left(MBRS(Map(SILeft("") -> Right(JsonValue("{{"))))))))))
+		, ("object with nesting and ']' strings", """{"":{"":{"":"]]"}}}""", Map(SILeft("") -> Left(MBRS(Map(SILeft("") -> Left(MBRS(Map(SILeft("") -> Right(JsonValue("]]"))))))))))
+		, ("object with nesting and '}' strings", """{"":{"":{"":"}}"}}}""", Map(SILeft("") -> Left(MBRS(Map(SILeft("") -> Left(MBRS(Map(SILeft("") -> Right(JsonValue("}}"))))))))))
+		, ("array with nesting and '[\"' strings", """[[["[\"["]]]""", Map(SIRight(0) -> Left(MBRS(Map(SIRight(0) -> Left(MBRS(Map(SIRight(0) -> Right(JsonValue("[\"["))))))))))
+		, ("array with nesting and '{\"' strings", """[[["{\"{"]]]""", Map(SIRight(0) -> Left(MBRS(Map(SIRight(0) -> Left(MBRS(Map(SIRight(0) -> Right(JsonValue("{\"{"))))))))))
+		, ("array with nesting and ']\"' strings", """[[["]\"]"]]]""", Map(SIRight(0) -> Left(MBRS(Map(SIRight(0) -> Left(MBRS(Map(SIRight(0) -> Right(JsonValue("]\"]"))))))))))
+		, ("array with nesting and '}\"' strings", """[[["}\"}"]]]""", Map(SIRight(0) -> Left(MBRS(Map(SIRight(0) -> Left(MBRS(Map(SIRight(0) -> Right(JsonValue("}\"}"))))))))))
+		, ("object with nesting and '[\"' strings", """{"":{"":{"":"[\"["}}}""", Map(SILeft("") -> Left(MBRS(Map(SILeft("") -> Left(MBRS(Map(SILeft("") -> Right(JsonValue("[\"["))))))))))
+		, ("object with nesting and '{\"' strings", """{"":{"":{"":"{\"{"}}}""", Map(SILeft("") -> Left(MBRS(Map(SILeft("") -> Left(MBRS(Map(SILeft("") -> Right(JsonValue("{\"{"))))))))))
+		, ("object with nesting and ']\"' strings", """{"":{"":{"":"]\"]"}}}""", Map(SILeft("") -> Left(MBRS(Map(SILeft("") -> Left(MBRS(Map(SILeft("") -> Right(JsonValue("]\"]"))))))))))
+		, ("object with nesting and '}\"' strings", """{"":{"":{"":"}\"}"}}}""", Map(SILeft("") -> Left(MBRS(Map(SILeft("") -> Left(MBRS(Map(SILeft("") -> Right(JsonValue("}\"}"))))))))))
 	)
 	
 	
@@ -120,6 +136,11 @@ class JsonParserTest_Happy extends FunSpec {
 			}
 			it (name + " (reader)") {
 				val source = new java.io.StringReader(source2)
+				val result = new JsonParser().parse(parser, source).fold({x => x},{x => x},{(a,b) => a})
+				assertResult(expected){result}
+			}
+			it (name + " (iterable)") {
+				val source = source2.to[List]
 				val result = new JsonParser().parse(parser, source).fold({x => x},{x => x},{(a,b) => a})
 				assertResult(expected){result}
 			}
