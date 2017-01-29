@@ -106,7 +106,7 @@ class ShapelessBuilderTest extends FunSpec {
 					{builder.apply(emptyIceCream, "flavor", JsonValue(31), new IdentityParser[JsonValue])}
 			}
 			it ("rejects an double value for the 'scoops' key") {
-				assertResult(Left("Expected integral number", 0))
+				assertResult(Left("Expected Int: 3.1415", 0))
 					{builder.apply(emptyIceCream, "scoops", JsonValue(3.1415), new IdentityParser[JsonValue])}
 			}
 			it ("rejects key 'asfdadf'") {

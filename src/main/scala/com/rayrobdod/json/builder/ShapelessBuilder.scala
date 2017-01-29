@@ -153,7 +153,7 @@ object ShapelessBuilder {
 	}
 	implicit def cborValueAsIfDouble:Converter[CborValue, Double] = new Converter[CborValue, Double]{
 		override def apply[Input](input:Input, parser:Parser[String, CborValue, Input]):Either[(String, Int), Double] = {
-			parser.parsePrimitive(input).right.flatMap{x => x.numberToEither{x => Right(x.doubleValue)}}
+			parser.parsePrimitive(input).right.flatMap{x => x.numberToEither{x => Right(x.toDouble)}}
 		}
 	}
 	implicit def cborValueAsIfBoolean:Converter[CborValue, Boolean] = new Converter[CborValue, Boolean]{

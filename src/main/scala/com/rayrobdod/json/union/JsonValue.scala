@@ -111,6 +111,7 @@ object JsonValue {
 	
 	implicit def int2JsonValue(i:Int):JsonValue = JsonValueNumber(i)
 	implicit def long2JsonValue(i:Long):JsonValue = JsonValueNumber(i)
+	implicit def double2JsonValue(i:Double):JsonValue = JsonValueNumber(i)
 	
 	
 	/** Convert a StringOrInt value into a JsonValue */
