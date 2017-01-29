@@ -40,7 +40,7 @@ import com.rayrobdod.json.union.ParserRetVal
  */
 final class ShapelessParser[Value, Input](implicit folder:ShapelessParser.Folder[Value, Input]) extends Parser[String, Value, Input] {
 	override def parse[ComplexOutput](builder:Builder[String, Value, ComplexOutput], i:Input):ParserRetVal[ComplexOutput, Value] = {
-		ParserRetVal.eitherToComplex(folder.parse(builder, i))
+		ParserRetVal.eitherToComplex(folder.parse(builder, i, Right(builder.init)))
 	}
 }
 
@@ -52,15 +52,16 @@ final class ShapelessParser[Value, Input](implicit folder:ShapelessParser.Folder
 object ShapelessParser {
 	/**
 	 * A slightly simplified Parser that rejects the possibility of returning a ParserRetVal.Primitive
+	 * and has a tailCall-style parameter `folding`
 	 */
 	trait Folder[+Value, -Input] {
-		def parse[ComplexOutput](builder:Builder[String, Value, ComplexOutput], i:Input):Either[(String, Int), ComplexOutput]
+		def parse[ComplexOutput](builder:Builder[String, Value, ComplexOutput], i:Input, folding:Either[(String, Int), ComplexOutput]):Either[(String, Int), ComplexOutput]
 	}
 	
 	
 	private[this] object HnilFolder extends Folder[Nothing, HNil]{
-		override def parse[ComplexOutput](builder:Builder[String, Nothing, ComplexOutput], i:HNil):Either[(String, Int), ComplexOutput] = {
-			Right(builder.init)
+		override def parse[ComplexOutput](builder:Builder[String, Nothing, ComplexOutput], i:HNil, folding:Either[(String, Int), ComplexOutput]):Either[(String, Int), ComplexOutput] = {
+			folding
 		}
 	}
 	/** A fallback Folder which reports that the key is unexpected */
@@ -72,12 +73,12 @@ object ShapelessParser {
 		, hParser: Parser[String, Value, H]
 		, tEncoder: Folder[Value, T]
 	):Folder[Value, FieldType[K, H] :: T] = new Folder[Value, FieldType[K, H] :: T]{
-		def parse[ComplexOutput](builder:Builder[String, Value, ComplexOutput], input:FieldType[K, H] :: T):Either[(String, Int), ComplexOutput] = {
-			tEncoder.parse(builder, input.tail).right.flatMap{x =>
+		def parse[ComplexOutput](builder:Builder[String, Value, ComplexOutput], input:FieldType[K, H] :: T, folding:Either[(String, Int), ComplexOutput]):Either[(String, Int), ComplexOutput] = {
+			folding.right.flatMap{x => 
 				val key = witness.value.name
 				val value = input.head
 				
-				builder.apply(x, key, value, hParser)
+				tEncoder.parse(builder, input.tail, builder.apply(x, key, value, hParser))
 			}
 		}
 	}
@@ -87,8 +88,8 @@ object ShapelessParser {
 		  generic:LabelledGeneric.Aux[Input, InputRepr]
 		, reprEncoder:Folder[Value, InputRepr]
 	):Folder[Value, Input] = new Folder[Value, Input]{
-		def parse[ComplexOutput](builder:Builder[String, Value, ComplexOutput], input:Input):Either[(String, Int), ComplexOutput] = {
-			reprEncoder.parse(builder, generic.to(input))
+		def parse[ComplexOutput](builder:Builder[String, Value, ComplexOutput], input:Input, folding:Either[(String, Int), ComplexOutput]):Either[(String, Int), ComplexOutput] = {
+			reprEncoder.parse(builder, generic.to(input), folding)
 		}
 	}
 	

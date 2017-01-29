@@ -105,7 +105,7 @@ class ShapelessParserTest extends FunSpec {
 		import ShapelessParser._
 		
 		it ("ShapelessParser + JsonBuilder + primitives") {
-			assertResult("""{"family":"Simpson","middle":"Jay","given":"Homer"}"""){
+			assertResult("""{"given":"Homer","middle":"Jay","family":"Simpson"}"""){
 				new ShapelessParser[JsonValue, Name].mapKey[StringOrInt].parse(
 					new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams),
 					Name("Homer", "Jay", "Simpson")
