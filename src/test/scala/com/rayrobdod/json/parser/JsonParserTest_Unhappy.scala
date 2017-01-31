@@ -140,6 +140,54 @@ class JsonParserTest_Unhappy extends FunSpec {
 				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
 			}
 		}
+		it ("""numbers cannot end with a dot""") {
+			val source = """{"":2.}"""
+			assertFailureParse("",4){
+				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
+			}
+		}
+		it ("""numbers cannot end with an e""") {
+			val source = """{"":2e}"""
+			assertFailureParse("",4){
+				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
+			}
+		}
+		it ("""numbers cannot be just a hypen-minus""") {
+			val source = """{"":-}"""
+			assertFailureParse("",4){
+				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
+			}
+		}
+		it ("""numbers must have digits between '.' and 'e'""") {
+			val source = """{"":9.e+1}"""
+			assertFailureParse("",4){
+				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
+			}
+		}
+		it ("""numbers cannot contain a leading zero""") {
+			val source = """{"":012}"""
+			assertFailureParse("",4){
+				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
+			}
+		}
+		it ("""numbers cannot contain a leading zero, even with a leading hyphen-minus""") {
+			val source = """{"":-012}"""
+			assertFailureParse("",4){
+				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
+			}
+		}
+		it ("""'True' is not a keyword""") {
+			val source = """{"":True}"""
+			assertFailureParse("",4){
+				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
+			}
+		}
+		it ("""'NaN' is not a keyword""") {
+			val source = """{"":NaN}"""
+			assertFailureParse("",4){
+				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
+			}
+		}
 		
 		
 		it ("""errors on control character inside string""") {

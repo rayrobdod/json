@@ -274,7 +274,18 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, CountingReader] {
 		val valueString = builder.toString.trim
 		val value = {
 			try {
-				Right(JsonValue(scala.math.BigDecimal(valueString)))
+				// Leading zero in 
+				if ("""-?0\d.+""".r.unapplySeq(valueString).isDefined) {
+					Left(("Not a number: " + valueString, startCharIndex))
+				// string terminated with a '.'
+				} else if (""".+\.""".r.unapplySeq(valueString).isDefined) {
+					Left(("Not a number: " + valueString, startCharIndex))
+				// '.' not followed by a digit
+				} else if (""".+\.[^\d].+""".r.unapplySeq(valueString).isDefined) {
+					Left(("Not a number: " + valueString, startCharIndex))
+				} else {
+					Right(JsonValue(scala.math.BigDecimal(valueString)))
+				}
 			} catch {
 				case ex:NumberFormatException =>
 					Left(("Not a number: " + valueString, startCharIndex))
