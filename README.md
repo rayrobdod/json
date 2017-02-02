@@ -40,5 +40,6 @@ are fed into the Parser's parse method and
 that method returns the resulting object (or an error).
 
 
-An example use is indicated in [/doc/exampleUsage.scala](doc/exampleUsage.scala).
+An example use is indicated in [/doc/parsingExample.scala](doc/parsingExample.scala)
+and [/doc/serializeExample.scala](doc/serializeExample.scala).
 
