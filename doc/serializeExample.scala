@@ -19,9 +19,9 @@ object NameParser extends Parser[StringOrInt, JsonValue, Name] {
   override def parse[A](builder:Builder[StringOrInt, JsonValue, A], input:Name):ParserRetVal[A, JsonValue] = {
     val a = builder.init
     val e = for (
-      b <- builder.apply(a, "first", input.given, new IdentityParser[String].mapValue[JsonValue]).right;
-      c <- builder.apply(b, "middles", input.middles, new PrimitiveSeqParser[String].mapValue[JsonValue].mapKey[StringOrInt]).right;
-      d <- builder.apply(c, "last", input.family, new IdentityParser[String].mapValue[JsonValue]).right
+      b <- builder.apply(a, "first", input.given, IdentityParser[JsonValue, String]).right;
+      c <- builder.apply(b, "middles", input.middles, PrimitiveSeqParser[StringOrInt, JsonValue, String]).right;
+      d <- builder.apply(c, "last", input.family, IdentityParser[JsonValue, String]).right
     ) yield {
       d
     }
@@ -38,10 +38,11 @@ val PersonParser = new PiecewiseParser[StringOrInt, JsonValue, Person](
     "name" valueIs ({x:Person => x.n}, NameParser)
   , "gender" valueIs {x => x.gender}
   , "isAlive" valueIs {x => ! x.isDead}
-  , "interests" valueIs ({x => x.interests}, new PrimitiveSeqParser[String].mapValue[JsonValue].mapKey[StringOrInt])
+  , "interests" valueIs ({x => x.interests}, PrimitiveSeqParser[StringOrInt, JsonValue, String])
 )
 
-val builder = new PrettyJsonBuilder(new PrettyJsonBuilder.IndentPrettyParams("  ", "\n"))
+// val builder = new PrettyJsonBuilder(new PrettyJsonBuilder.IndentPrettyParams("  ", "\n"))
+val builder = PrettyJsonBuilder.space2()
 
 val result = PersonParser.parse(builder, data)
 

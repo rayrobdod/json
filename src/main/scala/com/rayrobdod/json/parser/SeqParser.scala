@@ -52,6 +52,19 @@ final class PrimitiveSeqParser[V] extends Parser[Int,V,Seq[V]] {
 	}
 }
 
+object PrimitiveSeqParser {
+	/**
+	 * A PrimitiveSeqParser that parses `Seq[SeqValue]`, but with mappings to convert the native values into 
+	 * 
+	 * `new PrimitiveSeqParser[SeqValue].mapKey(keyMapping).mapValue(valueMapping)`
+	 */
+	def apply[BuilderKey, BuilderValue, SeqValue](
+		implicit keyMapping : Int => BuilderKey, valueMapping : SeqValue => BuilderValue
+	):Parser[BuilderKey, BuilderValue, Seq[SeqValue]] = {
+		new PrimitiveSeqParser[SeqValue].mapKey(keyMapping).mapValue(valueMapping)
+	}
+}
+
 /**
  * A parser that reads and parses each Value and its index from a Seq
  * @version 3.0

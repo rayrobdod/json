@@ -112,6 +112,12 @@ package parser {
 		def parse[A](b:Builder[Nothing,V,A], v:V):ParserRetVal.Primitive[V] = ParserRetVal.Primitive(v)
 	}
 	
+	object IdentityParser {
+		def apply[V] = new IdentityParser[V]
+		/** Equivalent to `new IdentityParser[V].mapValue[PV]` */
+		def apply[PV,V](implicit valueMapping:V => PV) = new IdentityParser[V].mapValue[PV]
+	}
+	
 	/**
 	 * A 'parser' that always returns a Failure
 	 * @version 3.0
