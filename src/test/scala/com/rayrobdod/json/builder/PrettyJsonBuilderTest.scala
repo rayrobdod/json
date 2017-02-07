@@ -31,6 +31,8 @@ import java.nio.charset.StandardCharsets.US_ASCII;
 import java.nio.charset.StandardCharsets.UTF_8
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.JsonValue._
+import com.rayrobdod.json.union.ParserRetVal
+import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
 import com.rayrobdod.json.parser.{IdentityParser, FailureParser}
 
 class PrettyJsonBuilderTest extends FunSpec {
@@ -39,8 +41,15 @@ class PrettyJsonBuilderTest extends FunSpec {
 	/** replaces characters that are special to both json and scalatest with characters not important to either */
 	def assertResultStr(e:String)(a:String):Unit = {
 		def doReplace(s:String):String = {s.replace("\n", "\\n").replace("\t", "\\t").replace('[','(').replace(']',')')}
-		
 		assertResult(doReplace(e))(doReplace(a))
+	}
+	/** replaces characters that are special to both json and scalatest with characters not important to either */
+	def assertResultComplexStr(e:Complex[String])(a:ParserRetVal[String, _]):Unit = {
+		val e2 = e.x
+		a match {
+			case Complex(a2) => assertResultStr(e2){a2}
+			case x => fail("Expected Complex(string); was " + x)
+		}
 	}
 	
 	describe("PrettyJsonBuilderTest") {
@@ -55,80 +64,80 @@ class PrettyJsonBuilderTest extends FunSpec {
 			assertResultStr(exp){dut.init}
 		}
 		it ("Appends null to an array") {
-			val exp = "[\n\tnull\n]"
+			val exp = Complex("[\n\tnull\n]")
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-			assertResultStr(exp){dut.apply(dut.init, 0,JsonValueNull, new IdentityParser[JsonValue]).right.get}
+			assertResultComplexStr(exp){dut.apply(dut.init, 0,JsonValueNull, new IdentityParser[JsonValue])}
 		}
 		it ("Appends true to an array") {
-			val exp = "[\n\ttrue\n]"
+			val exp = Complex("[\n\ttrue\n]")
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-			assertResultStr(exp){dut.apply(dut.init, 0,JsonValue(true), new IdentityParser[JsonValue]).right.get}
+			assertResultComplexStr(exp){dut.apply(dut.init, 0,JsonValue(true), new IdentityParser[JsonValue])}
 		}
 		it ("Appends a third value to an array") {
-			val exp = "[\n\t1,\n\t2,\n\t3\n]"
+			val exp = Complex("[\n\t1,\n\t2,\n\t3\n]")
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-			assertResultStr(exp){dut.apply("[\n\t1,\n\t2\n]", 2,JsonValue(3), new IdentityParser[JsonValue]).right.get}
+			assertResultComplexStr(exp){dut.apply("[\n\t1,\n\t2\n]", 2,JsonValue(3), new IdentityParser[JsonValue])}
 		}
 		it ("Appends a third value to an object") {
-			val exp = "{\n\t1,\n\t2,\n\t\"a\" : 3\n}"
+			val exp = Complex("{\n\t1,\n\t2,\n\t\"a\" : 3\n}")
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-			assertResultStr(exp){dut.apply("{\n\t1,\n\t2\n]", "a",JsonValue(3), new IdentityParser[JsonValue]).right.get}
+			assertResultComplexStr(exp){dut.apply("{\n\t1,\n\t2\n]", "a",JsonValue(3), new IdentityParser[JsonValue])}
 		}
 		it ("Appends a third value, level 2") {
-			val exp = "[\n\t\t1,\n\t\t2,\n\t\t3\n\t]"
+			val exp = Complex("[\n\t\t1,\n\t\t2,\n\t\t3\n\t]")
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"), level = 1)
-			assertResultStr(exp){dut.apply("[\n\t\t1,\n\t\t2\n\t]", 2,JsonValue(3), new IdentityParser[JsonValue]).right.get}
+			assertResultComplexStr(exp){dut.apply("[\n\t\t1,\n\t\t2\n\t]", 2,JsonValue(3), new IdentityParser[JsonValue])}
 		}
 		it ("Appends an integer to an object") {
-			val exp = """{\n\t"a" : 42\n}"""
+			val exp = Complex("""{\n\t"a" : 42\n}""")
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-			assertResultStr(exp){dut.apply(dut.init, "a",JsonValue(42), new IdentityParser[JsonValue]).right.get}
+			assertResultComplexStr(exp){dut.apply(dut.init, "a",JsonValue(42), new IdentityParser[JsonValue])}
 		}
 		it ("can handle alternate tab strings") {
-			val exp = """{\n    "a" : 42\n}"""
+			val exp = Complex("""{\n    "a" : 42\n}""")
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("    ", "\n"))
-			assertResultStr(exp){dut.apply(dut.init, "a",JsonValue(42), new IdentityParser[JsonValue]).right.get}
+			assertResultComplexStr(exp){dut.apply(dut.init, "a",JsonValue(42), new IdentityParser[JsonValue])}
 		}
 		it ("will throw if the folding string is not a valid json object or array (for certain easily detectable invalid values)") {
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-			assertResult(Left(("folding is wrong", 0))){
+			assertResult(Failure("folding is wrong", 0)){
 				dut.apply("a", "", JsonValue(42), new IdentityParser[JsonValue])
 			}
 		}
 		it ("will throw if the folding is an object and the key is a number") {
 			val dut = new PrettyJsonBuilder(MinifiedPrettyParams)
-			assertResult(Left(("Key type changed mid-object", 0))){
+			assertResult(Failure("Key type changed mid-object", 0)){
 				dut.apply("{\"a\":\"b\"}", 1,JsonValue(42), new IdentityParser[JsonValue])
 			}
 		}
 		it ("will throw if the folding is an array and the key is a string") {
 			val dut = new PrettyJsonBuilder(MinifiedPrettyParams)
-			assertResult(Left(("Key type changed mid-object", 0))){
+			assertResult(Failure("Key type changed mid-object", 0)){
 				dut.apply("[413]", "b",JsonValue(42), new IdentityParser[JsonValue])
 			}
 		}
 		it ("will throw the first items key is a non-zero integer") {
 			val dut = new PrettyJsonBuilder(MinifiedPrettyParams)
-			assertResult(Left(("Key: 42", 0))){
+			assertResult(Failure("Key: 42", 0)){
 				dut.apply("[]", 42,JsonValue(42), new IdentityParser[JsonValue])
 			}
 		}
 		it ("When the encoding parameter includes all characters of a string, it is included verbaitim") {
-			assertResult("""{rest,"":"Pokémon"}"""){
+			assertResult(Complex("""{rest,"":"Pokémon"}""")){
 				new PrettyJsonBuilder(MinifiedPrettyParams, UTF_8)
-						.apply("{rest}", "",JsonValue("Pokémon"), new IdentityParser[JsonValue]).right.get
+						.apply("{rest}", "",JsonValue("Pokémon"), new IdentityParser[JsonValue])
 			}
 		}
 		it ("When the encoding parameter does not include all characters of a string, the unknown characters are u-encoded") {
-			assertResult("""{rest,"":"Pok\""" + """u00e9mon"}"""){
+			assertResult( Complex("""{rest,"":"Pok\""" + """u00e9mon"}""") ){
 				new PrettyJsonBuilder(MinifiedPrettyParams, US_ASCII)
-						.apply("{rest}", "",JsonValue("Pokémon"), new IdentityParser[JsonValue]).right.get
+						.apply("{rest}", "",JsonValue("Pokémon"), new IdentityParser[JsonValue])
 			}
 		}
 		it ("When parser reports a failure, the failure is forwarded") {
-			assertResult( ("FailureParser", 0) ){
+			assertResult( Failure("FailureParser", 0) ){
 				new PrettyJsonBuilder(MinifiedPrettyParams, UTF_8)
-						.apply("{rest}", "", "", new FailureParser).left.get
+						.apply("{rest}", "", "", new FailureParser)
 			}
 		}
 	}

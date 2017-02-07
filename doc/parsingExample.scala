@@ -2,13 +2,12 @@
 // Easiest way to run the interpreter with this library in the class path is probably to run "sbt console" in this project's root directory
 
 
-// other imports
-import scala.util.{Either, Left, Right}
-
 // imports from this library;
 import com.rayrobdod.json.parser.{Parser, JsonParser}
 import com.rayrobdod.json.builder.{Builder, PiecewiseBuilder, PrimitiveSeqBuilder}
 import com.rayrobdod.json.union.{StringOrInt, JsonValue, ParserRetVal}
+import com.rayrobdod.json.union.NonPrimitiveParserRetVal
+import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
 
 // the data classes
 case class Name(given:String, middle:String, family:String)
@@ -29,7 +28,7 @@ val json = """{
 // Example directly subclassing Builder
 object NameBuilder extends Builder[StringOrInt, JsonValue, Name] {
   override def init:Name = Name("", "", "")
-  override def apply[Input](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Name] = {
+  override def apply[Input](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):NonPrimitiveParserRetVal[Name] = {
     // we only expect strings, so might as well parse the value at the beginning
     parser.parsePrimitive(input).right.flatMap{value:JsonValue => value.stringToEither{strValue:String =>
       key match {
@@ -38,7 +37,7 @@ object NameBuilder extends Builder[StringOrInt, JsonValue, Name] {
         case StringOrInt.Left("family") => Right(folding.copy(family = strValue))
         case x => Left("NameBuilder: Unexpected key/value: " + x, 0)
       }
-    }}
+    }}.fold({si => Failure(si._1, si._2)}, {x => Complex(x)})
   }
 }
 
@@ -48,32 +47,34 @@ val PersonBuilder = {
     // paritioned complex key def
     .addDef("name", PiecewiseBuilder.partitionedComplexKeyDef[StringOrInt, JsonValue, Person, Name](
       NameBuilder,
-      {(folding, name) => Right(folding.copy(n = name))}
+      {(folding, name) => Complex(folding.copy(n = name))}
     ))
     // paritioned private key def
     .addDef("gender", PiecewiseBuilder.partitionedPrimitiveKeyDef[StringOrInt, JsonValue, Person, String](
-      {case JsonValue.JsonValueString(g) => Right(g)},
+      {case JsonValue.JsonValueString(g) => Complex(g)},
       {(folding,x) => folding.copy(gender = x)}
     ))
     // raw private key def
     .addDef("isAlive", new PiecewiseBuilder.KeyDef[StringOrInt, JsonValue, Person]{
-      override def apply[Input](folding:Person, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Person] = {
-        parser.parsePrimitive(input).right.flatMap{_.booleanToEither{b => Right(folding.copy(isDead = !b))}}
+      override def apply[Input](folding:Person, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):NonPrimitiveParserRetVal[Person] = {
+        parser.parsePrimitive(input)
+        	.right.flatMap{_.booleanToEither{b => Right(folding.copy(isDead = !b))}}
+        	.fold({x => Failure(x._1, x._2)}, {x => Complex(x)})
       }
     })
     // raw complex key def
     .addDef("interests", new PiecewiseBuilder.KeyDef[StringOrInt, JsonValue, Person]{
-      override def apply[Input](folding:Person, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Person] = {
+      override def apply[Input](folding:Person, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):NonPrimitiveParserRetVal[Person] = {
         parser.parse(new PrimitiveSeqBuilder, input) match {
           case ParserRetVal.Complex(seq) => {
-            seq.foldLeft[Either[(String, Int),Vector[String]]](Right(Vector.empty)){(folding:Either[(String, Int),Vector[String]], value:JsonValue) => folding.right.flatMap(sequence => value match {
-              case JsonValue.JsonValueString(s) => Right(sequence :+ s)
-              case _ => Left("interests is seq, but contained non-strings", 0)
-            })}.right.map{x => folding.copy(interests = x)}
+            seq.foldLeft[NonPrimitiveParserRetVal[Vector[String]]](Complex(Vector.empty)){(folding:NonPrimitiveParserRetVal[Vector[String]], value:JsonValue) => folding.complex.flatMap(sequence => value match {
+              case JsonValue.JsonValueString(s) => Complex(sequence :+ s)
+              case _ => Failure("interests is seq, but contained non-strings", 0)
+            })}.complex.map{x => folding.copy(interests = x)}
           }
           // allow a single interest to be represented as a string not in an array
-          case ParserRetVal.Primitive(JsonValue.JsonValueString(interest)) => Right(folding.copy(interests = Seq(interest)))
-          case unknown => Left(("interests not Seq: " + unknown, 0))
+          case ParserRetVal.Primitive(JsonValue.JsonValueString(interest)) => Complex(folding.copy(interests = Seq(interest)))
+          case unknown => Failure("interests not Seq: " + unknown, 0)
         }
     }})
 }

@@ -31,13 +31,17 @@ import scala.collection.immutable.Seq;
 import com.rayrobdod.json.parser.Parser
 import com.rayrobdod.json.parser.FailureParser
 import com.rayrobdod.json.parser.IdentityParser
+import com.rayrobdod.json.union.ParserRetVal.{Failure, Complex}
+import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 
 class BuilderTest extends FunSpec {
 	
 	private[this] final class ReportKeyValueBuilder[A,B] extends Builder[A,B,(A,B)] {
 		def init = null
-		def apply[Input](folding:(A,B), key:A, input:Input, parser:Parser[A, B, Input]):Either[(String, Int), (A,B)] = {
-			parser.parsePrimitive(input).right.map{value => ((key, value))}
+		def apply[Input](folding:(A,B), key:A, input:Input, parser:Parser[A, B, Input]):NonPrimitiveParserRetVal[(A,B)] = {
+			parser.parsePrimitive(input)
+					.right.map{value => ((key, value))}
+					.fold({(mi) => Failure(mi._1, mi._2)}, {x => Complex(x)})
 		}
 	}
 	
@@ -48,21 +52,21 @@ class BuilderTest extends FunSpec {
 			assertResult(builder.init){builder.mapKey[Int]{x => x}.init}
 		}
 		it ("when a success, continue being a success") {
-			assertResult(Right("key", "value")){
+			assertResult(Complex("key", "value")){
 				new ReportKeyValueBuilder[String, String]
 						.mapKey[Int]{case x => "key"}
 						.apply(null, 1, "value",  new IdentityParser[String])
 			}
 		}
 		it ("passes through a parser's failure") {
-			assertResult(Left("FailureParser", 0)){
+			assertResult(Failure("FailureParser", 0)){
 				new ReportKeyValueBuilder[String, String]
 						.mapKey[Int]{case x => "key"}
 						.apply(null, 1, "value",  new FailureParser)
 			}
 		}
 		it ("passes through a builder's failure") {
-			assertResult(Left("using ThrowBuilder::apply", 0)){
+			assertResult(Failure("using ThrowBuilder::apply", 0)){
 				new ThrowBuilder[String, String]
 						.mapKey[Int]{case x => "key"}
 						.apply(null, 1, "value",  new IdentityParser[String])
@@ -75,28 +79,28 @@ class BuilderTest extends FunSpec {
 			assertResult(builder.init){builder.flatMapKey[Int]{case x => Right(x)}.init}
 		}
 		it ("when a success, continue being a success") {
-			assertResult(Right("key", "value")){
+			assertResult(Complex("key", "value")){
 				new ReportKeyValueBuilder[String, String]
 						.flatMapKey[Int]{case x => Right("key")}
 						.apply(null, 1, "value",  new IdentityParser[String])
 			}
 		}
 		it ("passes through a parser's failure") {
-			assertResult(Left("FailureParser", 0)){
+			assertResult(Failure("FailureParser", 0)){
 				new ReportKeyValueBuilder[String, String]
 						.flatMapKey[Int]{case x => Right("key")}
 						.apply(null, 1, "value",  new FailureParser)
 			}
 		}
 		it ("passes through a builder's failure") {
-			assertResult(Left("using ThrowBuilder::apply", 0)){
+			assertResult(Failure("using ThrowBuilder::apply", 0)){
 				new ThrowBuilder[String, String]
 						.flatMapKey[Int]{case x => Right("key")}
 						.apply(null, 1, "value",  new IdentityParser[String])
 			}
 		}
 		it ("passes through a fun's failure") {
-			assertResult(Left("???", 0)){
+			assertResult(Failure("???", 0)){
 				new ReportKeyValueBuilder[String, String]
 						.flatMapKey[Int]{case x => Left(("???", 0))}
 						.apply(null, 1, "value",  new IdentityParser[String])
@@ -109,21 +113,21 @@ class BuilderTest extends FunSpec {
 			assertResult(builder.init){builder.mapValue[String]{case x => x}.init}
 		}
 		it ("when a success, continue being a success") {
-			assertResult(Right("key", "value")){
+			assertResult(Complex("key", "value")){
 				new ReportKeyValueBuilder[String, String]
 						.mapValue[Int]{case x => "value"}
 						.apply(null, "key", 1,  new IdentityParser[Int])
 			}
 		}
 		it ("passes through a parser's failure") {
-			assertResult(Left("FailureParser", 0)){
+			assertResult(Failure("FailureParser", 0)){
 				new ReportKeyValueBuilder[String, String]
 						.mapValue[Int]{case x => "value"}
 						.apply(null, "key", 1,  new FailureParser)
 			}
 		}
 		it ("passes through a builder's failure") {
-			assertResult(Left("using ThrowBuilder::apply", 0)){
+			assertResult(Failure("using ThrowBuilder::apply", 0)){
 				new ThrowBuilder[String, String]
 						.mapValue[Int]{case x => "value"}
 						.apply(null, "key", 1,  new IdentityParser[Int])
@@ -136,28 +140,28 @@ class BuilderTest extends FunSpec {
 			assertResult(builder.init){builder.flatMapValue[String]{case x => Right(x)}.init}
 		}
 		it ("when a success, continue being a success") {
-			assertResult(Right("key", "value")){
+			assertResult(Complex("key", "value")){
 				new ReportKeyValueBuilder[String, String]
 						.flatMapValue[Int]{case x => Right("value")}
 						.apply(null, "key", 1,  new IdentityParser[Int])
 			}
 		}
 		it ("passes through a parser's failure") {
-			assertResult(Left("FailureParser", 0)){
+			assertResult(Failure("FailureParser", 0)){
 				new ReportKeyValueBuilder[String, String]
 						.flatMapValue[Int]{case x => Right("value")}
 						.apply(null, "key", 1,  new FailureParser)
 			}
 		}
 		it ("passes through a builder's failure") {
-			assertResult(Left("using ThrowBuilder::apply", 0)){
+			assertResult(Failure("using ThrowBuilder::apply", 0)){
 				new ThrowBuilder[String, String]
 						.flatMapValue[Int]{case x => Right("value")}
 						.apply(null, "key", 1,  new IdentityParser[Int])
 			}
 		}
 		it ("passes through a fun's failure") {
-			assertResult(Left("???", 0)){
+			assertResult(Failure("???", 0)){
 				new ReportKeyValueBuilder[String, String]
 						.flatMapValue[Int]{case x => Left("???", 0)}
 						.apply(null, "key", 1,  new IdentityParser[Int])
@@ -170,7 +174,7 @@ class BuilderTest extends FunSpec {
 			import com.rayrobdod.json.union.{StringOrInt, JsonValue}
 			import com.rayrobdod.json.union.JsonValue.JsonValueNumber
 			
-			assertResult(Right(Seq(Seq(1, 2)))){
+			assertResult(Complex(Seq(Seq(1, 2)))){
 				new SeqBuilder[StringOrInt, Int, Seq[Int]](new PrimitiveSeqBuilder[Int])
 					.flatMapValue[JsonValue]{v => v match {case JsonValueNumber(x) if x.isValidInt => Right(x.intValue); case _ => Left("unexpected value", 0)}}
 					.apply(Seq.empty, 0, new com.rayrobdod.json.parser.CountingReader(new java.io.StringReader("[1,2]")), new com.rayrobdod.json.parser.JsonParser)

@@ -27,6 +27,8 @@
 package com.rayrobdod.json.builder;
 
 import com.rayrobdod.json.parser.Parser
+import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
+import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 import scala.collection.immutable.Map
 
 /**
@@ -39,9 +41,9 @@ import scala.collection.immutable.Map
  */
 final class MapBuilder[K, V, Inner](childBuilders:Function1[K, MapBuilder.MapChildBuilder[K, V, _, Inner]]) extends Builder[K, V, Map[K, Either[Inner, V]]] {
 	override val init:Map[K, Either[Inner, V]] = Map.empty
-	override def apply[Input](folding:Map[K, Either[Inner, V]], key:K, innerInput:Input, parser:Parser[K, V, Input]):Either[(String, Int), Map[K, Either[Inner, V]]] = {
+	override def apply[Input](folding:Map[K, Either[Inner, V]], key:K, innerInput:Input, parser:Parser[K, V, Input]):NonPrimitiveParserRetVal[Map[K, Either[Inner, V]]] = {
 		val childBuilder = childBuilders(key)
-		childBuilder.apply(innerInput, parser).right.map{eitherRes =>
+		childBuilder.apply(innerInput, parser).complex.map{eitherRes =>
 			folding + (key -> eitherRes)
 		}
 	}
@@ -66,8 +68,8 @@ object MapBuilder {
 	 * Pairs a builder and a function into a function to create a value from a parser and input.
 	 */
 	final class MapChildBuilder[K, V, A, Inner](builder:Builder[K, V, A], result:Function1[A, Inner]) {
-		def apply[Input](innerInput:Input, parser:Parser[K, V, Input]):Either[(String, Int), Either[Inner, V]] = {
-			parser.parse(builder, innerInput).fold({s => Right(Left(result(s)))}, {p => Right(Right(p))}, {(s,i) => Left((s,i))})
+		def apply[Input](innerInput:Input, parser:Parser[K, V, Input]):NonPrimitiveParserRetVal[Either[Inner, V]] = {
+			parser.parse(builder, innerInput).fold({s => Complex(Left(result(s)))}, {p => Complex(Right(p))}, {(s,i) => Failure(s,i)})
 		}
 	}
 	

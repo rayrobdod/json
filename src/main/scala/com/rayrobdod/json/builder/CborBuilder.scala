@@ -29,7 +29,8 @@ package com.rayrobdod.json.builder;
 import scala.collection.immutable.Seq
 import java.nio.charset.StandardCharsets.UTF_8
 import com.rayrobdod.json.parser.CborParser.{MajorTypeCodes, SimpleValueCodes, TagCodes}
-import com.rayrobdod.json.union.CborValue
+import com.rayrobdod.json.union.{CborValue, NonPrimitiveParserRetVal}
+import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
 import com.rayrobdod.json.parser.{Parser, CborParser, byteArray2DataInput}
 
 /**
@@ -47,10 +48,10 @@ final class CborBuilder(forceObject:Boolean = false) extends Builder[CborValue, 
 	/** The bytes to encode a zero-length array or object  */
 	override val init:Seq[Byte] = encodeLength((if (forceObject) {MajorTypeCodes.OBJECT} else {MajorTypeCodes.ARRAY}), 0)
 	
-	override def apply[Input](folding:Seq[Byte], key:CborValue, input:Input, parser:Parser[CborValue, CborValue, Input]):Either[(String, Int), Seq[Byte]] = {
+	override def apply[Input](folding:Seq[Byte], key:CborValue, input:Input, parser:Parser[CborValue, CborValue, Input]):NonPrimitiveParserRetVal[Seq[Byte]] = {
 		val value = parser.parse[Seq[Byte]](this, input)
-		val encodedValueOpt = value.primitive.map{encodeValue}.mergeToEither
-		encodedValueOpt.right.flatMap{encodedValue =>
+		val encodedValueOpt = value.primitive.map{encodeValue}.mergeToComplex
+		encodedValueOpt.complex.flatMap{encodedValue =>
 		
 			val headerByte:Byte = folding.head
 			val majorType = (headerByte >> 5) & 0x07
@@ -68,23 +69,23 @@ final class CborBuilder(forceObject:Boolean = false) extends Builder[CborValue, 
 				key match {
 					case CborValue.CborValueNumber(r) if (r.tryToLong == Option(objectLength)) => {
 						// continue being array
-						Right(encodeLength(MajorTypeCodes.ARRAY, objectLength + 1) ++ passData ++ encodedValue)
+						Complex(encodeLength(MajorTypeCodes.ARRAY, objectLength + 1) ++ passData ++ encodedValue)
 					}
 					case _ => {
 						// convert into object
 						val newBuilder = new CborBuilder(true)
-						val convertedBytesTry = new CborParser().parse(newBuilder, byteArray2DataInput(folding.toArray)).fold({s => Right(s)}, {p => Left("invalid folding param: " + java.util.Arrays.toString(folding.toArray), 0)}, {(s,i) => Left((s,i))})
-						convertedBytesTry.right.map{convertedBytes =>
+						val convertedBytesTry = new CborParser().parse(newBuilder, byteArray2DataInput(folding.toArray)).primitive.flatMap{p => Failure("invalid folding param: " + java.util.Arrays.toString(folding.toArray), 0)}.mergeToComplex
+						convertedBytesTry.complex.map{convertedBytes =>
 							encodeLength(MajorTypeCodes.OBJECT, objectLength + 1) ++ convertedBytes.drop(folding.length - passData.length) ++ encodeValue(key) ++ encodedValue
 						}
 					}
 				}
 			} else if (majorType == MajorTypeCodes.OBJECT) {
 				
-				Right(encodeLength(MajorTypeCodes.OBJECT, objectLength + 1) ++ passData ++ encodeValue(key) ++ encodedValue)
+				Complex(encodeLength(MajorTypeCodes.OBJECT, objectLength + 1) ++ passData ++ encodeValue(key) ++ encodedValue)
 			} else {
 				
-				Left("Invalid folding parameter", 0)
+				Failure("Invalid folding parameter", 0)
 			}
 		}
 	}

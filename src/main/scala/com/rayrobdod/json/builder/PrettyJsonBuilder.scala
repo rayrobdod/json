@@ -27,10 +27,11 @@
 package com.rayrobdod.json.builder;
 
 import scala.collection.immutable.Seq;
-import scala.util.{Either, Left, Right}
 import java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.charset.Charset;
 import com.rayrobdod.json.union.{StringOrInt, JsonValue}
+import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
+import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 import com.rayrobdod.json.parser.Parser
 
 
@@ -55,32 +56,32 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 	
 	val init:String = params.lbrace(level) + params.rbrace(level)
 	
-	def apply[Input](folding:String, key:StringOrInt, innerInput:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), String] = {
-		parser.parse(nextLevel, innerInput).primitive.map{p => serialize(p, charset)}.mergeToEither.right.flatMap{encodedValue =>
+	def apply[Input](folding:String, key:StringOrInt, innerInput:Input, parser:Parser[StringOrInt, JsonValue, Input]):NonPrimitiveParserRetVal[String] = {
+		parser.parse(nextLevel, innerInput).primitive.map{p => serialize(p, charset)}.mergeToComplex.complex.flatMap{encodedValue =>
 			if (init == folding) {
 				key match {
-					case StringOrInt.Right(0) => Right(params.lbrace(level) + encodedValue + params.rbrace(level))
-					case StringOrInt.Right(int) => Left(s"Key: $int", 0) // params.lbracket(level) + serialze(int.toString, charset) + params.colon(level) + encodedValue + params.rbrace(level)
-					case StringOrInt.Left(str) => Right(params.lbracket(level) + serialize(str, charset) + params.colon(level) + encodedValue + params.rbracket(level))
+					case StringOrInt.Right(0) => Complex(params.lbrace(level) + encodedValue + params.rbrace(level))
+					case StringOrInt.Right(int) => Failure(s"Key: $int", 0) // params.lbracket(level) + serialze(int.toString, charset) + params.colon(level) + encodedValue + params.rbrace(level)
+					case StringOrInt.Left(str) => Complex(params.lbracket(level) + serialize(str, charset) + params.colon(level) + encodedValue + params.rbracket(level))
 				}
 			} else {
 				val bracket:Boolean = folding.take(params.lbracket(level).length) == params.lbracket(level)
 				val brace:Boolean = folding.take(params.lbrace(level).length) == params.lbrace(level)
-				val keptPartTry:Either[(String, Int), String] = {
-					if (bracket) {Right(folding.dropRight(params.rbracket(level).length))}
-					else if (brace) {Right(folding.dropRight(params.rbrace(level).length))}
-					else {Left("folding is wrong", 0)}
+				val keptPartTry:NonPrimitiveParserRetVal[String] = {
+					if (bracket) {Complex(folding.dropRight(params.rbracket(level).length))}
+					else if (brace) {Complex(folding.dropRight(params.rbrace(level).length))}
+					else {Failure("folding is wrong", 0)}
 				}
 				
-				keptPartTry.right.flatMap{keptPart:String =>
+				keptPartTry.complex.flatMap{keptPart:String =>
 					key match {
 						case StringOrInt.Right(int) if brace => {
-							Right(keptPart + params.comma(level) + encodedValue + params.rbrace(level))
+							Complex(keptPart + params.comma(level) + encodedValue + params.rbrace(level))
 						}
 						case StringOrInt.Left(str) if bracket => {
-							Right(keptPart + params.comma(level) + serialize(str, charset) + params.colon(level) + encodedValue + params.rbracket(level))
+							Complex(keptPart + params.comma(level) + serialize(str, charset) + params.colon(level) + encodedValue + params.rbracket(level))
 						}
-						case _ => Left("Key type changed mid-object", 0)
+						case _ => Failure("Key type changed mid-object", 0)
 					}
 				}
 			}

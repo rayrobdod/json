@@ -26,8 +26,8 @@
 */
 package com.rayrobdod.json
 
-import scala.util.Left
 import com.rayrobdod.json.parser.Parser
+import com.rayrobdod.json.union.ParserRetVal.Failure
 
 /**
  * Contains the various built-in builders.
@@ -46,6 +46,6 @@ package builder {
 	 */
 	private[json] final class ThrowBuilder[K,V] extends Builder[K,V,Any] {
 		override def init:Any = "using ThrowBuilder::init"
-		override def apply[I](a:Any,k:K,i:I,p:Parser[K,V,I]):Left[(String, Int), Any] = Left("using ThrowBuilder::apply", 0)
+		override def apply[I](a:Any,k:K,i:I,p:Parser[K,V,I]):Failure = Failure("using ThrowBuilder::apply", 0)
 	}
 }

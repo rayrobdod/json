@@ -32,6 +32,7 @@ import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.ParserRetVal
+import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 
 
 /**
@@ -77,11 +78,11 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, CountingReader] {
 		try {
 			var c = chars.read()
 			while (c.isWhitespace || c == '\ufeff') {c = chars.read()}
-			ParserRetVal.eitherToComplex(c match {
+			c match {
 				case '{' => parseObjectValue(builder.init, builder, true)(chars)
 				case '[' => parseArrayValue(builder.init, builder)(chars)
-				case c  => Left(("Expecting '{' or '['; found " + c, chars.index))
-			})
+				case c  => ParserRetVal.Failure("Expecting '{' or '['; found " + c, chars.index)
+			}
 		} catch {
 			case ex:java.util.NoSuchElementException => ParserRetVal.Failure("incomplete object", chars.index)
 			case ex:java.lang.StackOverflowError => ParserRetVal.Failure("too-deeply nested object", chars.index)
@@ -90,7 +91,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, CountingReader] {
 	
 	/** Read an object value. Do not include the first `'{'` in `r` */
 	@scala.annotation.tailrec
-	private[this] def parseObjectValue[A](soFar:A, builder:Builder[StringOrInt, JsonValue, A], endObjectAllowed:Boolean)(r:CountingReader):Either[(String, Int), A] = {
+	private[this] def parseObjectValue[A](soFar:A, builder:Builder[StringOrInt, JsonValue, A], endObjectAllowed:Boolean)(r:CountingReader):NonPrimitiveParserRetVal[A] = {
 		var c = r.read()
 		while (c.isWhitespace) {c = r.read()}
 		val keyOpt : JsonParser.MidObjectParseValue[String] = c match {
@@ -118,28 +119,40 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, CountingReader] {
 			val startCharIndex = r.index
 			c match {
 				case '"' => {
-					parseString(r).right.flatMap{x =>
-						builder.apply(soFar, key, JsonValue(x), identityParser).left.map{x => ((x._1, x._2 + startCharIndex))}
-					}.fold({x => JsonParser.Failure(x)}, {x => JsonParser.WithAddedValue(x)})
+					parseString(r).fold(
+						{err => JsonParser.Failure(err)},
+						{str => builder.apply(soFar, key, JsonValue(str), identityParser).fold(
+							{succ => JsonParser.WithAddedValue(succ)},
+							{(msg, idx) => JsonParser.Failure((msg, idx + startCharIndex))}
+						)}
+					)
 				}
 				case '[' | '{' => {
 					r.goBackOne()
-					builder.apply(soFar, key, r, JsonParser.this).fold({x => JsonParser.Failure(x)}, {x => JsonParser.WithAddedValue(x)})
+					builder.apply(soFar, key, r, JsonParser.this).fold({x => JsonParser.WithAddedValue(x)}, {(m,i) => JsonParser.Failure(m,i)})
 				}
 				case '.' => {
 					JsonParser.Failure(("Numeric value may not begin with a '.'", r.index))
 				}
 				case x if ('0' <= x && x <= '9') || (x == '-') => {
 					r.goBackOne()
-					parseNumber(r).right.flatMap{x =>
-						builder.apply(soFar, key, x, identityParser).left.map{x => ((x._1, x._2 + startCharIndex))}
-					}.fold({x => JsonParser.Failure(x)}, {x => JsonParser.WithAddedValue(x)})
+					parseNumber(r).fold(
+						{err => JsonParser.Failure(err)},
+						{int => builder.apply(soFar, key, int, identityParser).fold(
+							{succ => JsonParser.WithAddedValue(succ)},
+							{(msg, idx) => JsonParser.Failure((msg, idx + startCharIndex))}
+						)}
+					)
 				}
 				case x if ('a' <= x && x <= 'z') => {
 					r.goBackOne()
-					parseKeyword(r).right.flatMap{x =>
-						builder.apply(soFar, key, x, identityParser).left.map{x => ((x._1, x._2 + startCharIndex))}
-					}.fold({x => JsonParser.Failure(x)}, {x => JsonParser.WithAddedValue(x)})
+					parseKeyword(r).fold(
+						{err => JsonParser.Failure(err)},
+						{word => builder.apply(soFar, key, word, identityParser).fold(
+							{succ => JsonParser.WithAddedValue(succ)},
+							{(msg, idx) => JsonParser.Failure((msg, idx + startCharIndex))}
+						)}
+					)
 				}
 				case c => {
 					JsonParser.Failure("Expecting start of value; found " + c, r.index)
@@ -148,15 +161,15 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, CountingReader] {
 		}
 		
 		newSoFarOpt match {
-			case JsonParser.ReturnSuccess => Right(soFar)
-			case JsonParser.Failure(errMsg) => Left(errMsg)
+			case JsonParser.ReturnSuccess => ParserRetVal.Complex(soFar)
+			case JsonParser.Failure(errMsg) => ParserRetVal.Failure(errMsg._1, errMsg._2)
 			case JsonParser.WithAddedValue(newSoFar) => {
 				c = r.read()
 				while (c.isWhitespace) {c = r.read()}
 				c match {
 					case ',' => parseObjectValue(newSoFar, builder, false)(r)
-					case '}' => Right(newSoFar)
-					case c   => Left(("Expecting ',' or ']'; found " + c, r.index))
+					case '}' => ParserRetVal.Complex(newSoFar)
+					case c   => ParserRetVal.Failure("Expecting ',' or ']'; found " + c, r.index)
 				}
 			}
 		}
@@ -164,7 +177,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, CountingReader] {
 	
 	/** Read an array value. Do not include the first `'['` in `r` */
 	@scala.annotation.tailrec
-	private[this] def parseArrayValue[A](soFar:A, builder:Builder[StringOrInt, JsonValue, A], arrayIndex:Int = 0)(r:CountingReader):Either[(String, Int), A] = {
+	private[this] def parseArrayValue[A](soFar:A, builder:Builder[StringOrInt, JsonValue, A], arrayIndex:Int = 0)(r:CountingReader):NonPrimitiveParserRetVal[A] = {
 		/** true iff the next character is allowed to end the array - i.e. be a ']' */
 		val endObjectAllowed:Boolean = (arrayIndex == 0);
 		
@@ -176,28 +189,40 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, CountingReader] {
 				JsonParser.ReturnSuccess
 			}
 			case '"' => {
-				parseString(r).right.flatMap{x =>
-					builder.apply(soFar, arrayIndex, JsonValue(x), identityParser).left.map{x => ((x._1, x._2 + startCharIndex))}
-				}.fold({x => JsonParser.Failure(x)}, {x => JsonParser.WithAddedValue(x)})
+				parseString(r).fold(
+					{err => JsonParser.Failure(err)},
+					{str => builder.apply(soFar, arrayIndex, JsonValue(str), identityParser).fold(
+						{succ => JsonParser.WithAddedValue(succ)},
+						{(msg, idx) => JsonParser.Failure((msg, idx + startCharIndex))}
+					)}
+				)
 			}
 			case '[' | '{' => {
 				r.goBackOne()
-				builder.apply(soFar, arrayIndex, r, JsonParser.this).fold({x => JsonParser.Failure(x)}, {x => JsonParser.WithAddedValue(x)})
+				builder.apply(soFar, arrayIndex, r, JsonParser.this).fold({x => JsonParser.WithAddedValue(x)}, {(m,i) => JsonParser.Failure((m,i))})
 			}
 			case '.' => {
 				JsonParser.Failure(("Numeric value may not begin with a '.'", r.index))
 			}
 			case x if ('0' <= x && x <= '9') || (x == '-') => {
 				r.goBackOne()
-				parseNumber(r).right.flatMap{x =>
-					builder.apply(soFar, arrayIndex, x, identityParser).left.map{x => ((x._1, x._2 + startCharIndex))}
-				}.fold({x => JsonParser.Failure(x)}, {x => JsonParser.WithAddedValue(x)})
+				parseNumber(r).fold(
+					{err => JsonParser.Failure(err)},
+					{int => builder.apply(soFar, arrayIndex, int, identityParser).fold(
+						{succ => JsonParser.WithAddedValue(succ)},
+						{(msg, idx) => JsonParser.Failure((msg, idx + startCharIndex))}
+					)}
+				)
 			}
 			case x if ('a' <= x && x <= 'z') => {
 				r.goBackOne()
-				parseKeyword(r).right.flatMap{x =>
-					builder.apply(soFar, arrayIndex, x, identityParser).left.map{x => ((x._1, x._2 + startCharIndex))}
-				}.fold({x => JsonParser.Failure(x)}, {x => JsonParser.WithAddedValue(x)})
+				parseKeyword(r).fold(
+					{err => JsonParser.Failure(err)},
+					{word => builder.apply(soFar, arrayIndex, word, identityParser).fold(
+						{succ => JsonParser.WithAddedValue(succ)},
+						{(msg, idx) => JsonParser.Failure((msg, idx + startCharIndex))}
+					)}
+				)
 			}
 			case c => {
 				JsonParser.Failure("Expecting start of value; found " + c, r.index)
@@ -205,15 +230,15 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, CountingReader] {
 		}
 		
 		value match {
-			case JsonParser.ReturnSuccess => Right(soFar)
-			case JsonParser.Failure(errMsg) => Left(errMsg)
+			case JsonParser.ReturnSuccess => ParserRetVal.Complex(soFar)
+			case JsonParser.Failure(errMsg) => ParserRetVal.Failure(errMsg._1, errMsg._2)
 			case JsonParser.WithAddedValue(newSoFar) => {
 				c = r.read()
 				while (c.isWhitespace) {c = r.read()}
 				c match {
 					case ',' => parseArrayValue(newSoFar, builder, arrayIndex + 1)(r)
-					case ']' => Right(newSoFar)
-					case c   => Left(("Expecting ',' or ']'; found " + c, r.index))
+					case ']' => ParserRetVal.Complex(newSoFar)
+					case c   => ParserRetVal.Failure("Expecting ',' or ']'; found " + c, r.index)
 				}
 			}
 		}

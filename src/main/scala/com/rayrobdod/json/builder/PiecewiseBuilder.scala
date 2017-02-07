@@ -29,6 +29,8 @@ package com.rayrobdod.json.builder;
 import scala.collection.immutable.Map
 import com.rayrobdod.json.parser.Parser
 import com.rayrobdod.json.union.ParserRetVal
+import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
+import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 
 /**
  * A Builder which can be built piecewise.
@@ -76,7 +78,7 @@ final class PiecewiseBuilder[Key, Value, Subject](
 	}
 	
 	
-	override def apply[Input](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject] = {
+	override def apply[Input](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, Input]):NonPrimitiveParserRetVal[Subject] = {
 		keyDefs.getOrElse(key, defaultKeyDef).apply(folding, input, parser)
 	}
 }
@@ -86,7 +88,7 @@ final class PiecewiseBuilder[Key, Value, Subject](
  * @since 3.0
  */
 object PiecewiseBuilder{
-	private[this] val unexpectedValueErrorMessage:Function1[Any, Left[(String, Int), Nothing]] = {x => Left("Unexpected value: " + x, 0)}
+	private[this] val unexpectedValueErrorMessage:Function1[Any, Failure] = {x => Failure("Unexpected value: " + x, 0)}
 	
 	/**
 	 * A three-input function that accepts an object to build upon, and a input-parser pair that indicates a new value
@@ -94,7 +96,7 @@ object PiecewiseBuilder{
 	 */
 	abstract class KeyDef[Key, Value, Subject] {
 		/** add a key-value pair to `s`; where `p.parse(someBuilder, i)` is the value, and the key is hard-coded. */
-		def apply[Input](s:Subject, i:Input, p:Parser[Key, Value, Input]):Either[(String, Int), Subject]
+		def apply[Input](s:Subject, i:Input, p:Parser[Key, Value, Input]):NonPrimitiveParserRetVal[Subject]
 	}
 	
 	/**
@@ -108,15 +110,15 @@ object PiecewiseBuilder{
 	 */
 	def partitionedKeyDef[Key, Value, Subject, BuilderResult, MiddleType](
 		builder:Builder[Key, Value, BuilderResult],
-		convert:PartialFunction[ParserRetVal[BuilderResult, Value], Either[(String, Int), MiddleType]],
+		convert:PartialFunction[ParserRetVal[BuilderResult, Value], NonPrimitiveParserRetVal[MiddleType]],
 		fold:Function2[Subject, MiddleType, Subject]
 	):KeyDef[Key, Value, Subject] = new KeyDef[Key, Value, Subject]{
-		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject] = {
+		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):NonPrimitiveParserRetVal[Subject] = {
 			val parserRetVal = parser.parse(builder, input)
 			if (convert.isDefinedAt(parserRetVal)) {
-				convert(parserRetVal).right.map{x:MiddleType => fold(folding, x)}
+				convert(parserRetVal).complex.map{x:MiddleType => fold(folding, x)}
 			} else {
-				parserRetVal.fold(unexpectedValueErrorMessage, unexpectedValueErrorMessage, {(s, i) => Left(s,i)})
+				parserRetVal.fold(unexpectedValueErrorMessage, unexpectedValueErrorMessage, {(s, i) => Failure(s,i)})
 			}
 		}
 	}
@@ -130,16 +132,16 @@ object PiecewiseBuilder{
 	 */
 	def partitionedComplexKeyDef[Key, Value, Subject, BuilderResult](
 		builder:Builder[Key, Value, BuilderResult],
-		fold:Function2[Subject, BuilderResult, Either[(String, Int), Subject]]
+		fold:Function2[Subject, BuilderResult, NonPrimitiveParserRetVal[Subject]]
 	):KeyDef[Key, Value, Subject] = new KeyDef[Key, Value, Subject]{
-		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject] = {
+		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):NonPrimitiveParserRetVal[Subject] = {
 			parser.parse(builder, input)
 				.fold(
-					{x => Right(x)},
+					{x => Complex(x)},
 					unexpectedValueErrorMessage,
-					{(s,i) => Left(s,i)}
+					{(s,i) => Failure(s,i)}
 				)
-				.right.flatMap{x:BuilderResult => fold(folding, x)}
+				.complex.flatMap{x:BuilderResult => fold(folding, x)}
 		}
 	}
 	
@@ -152,13 +154,14 @@ object PiecewiseBuilder{
 	 * @param fold combine the previous subject and a successful convert into a new subject.
 	 */
 	def partitionedPrimitiveKeyDef[Key, Value, Subject, MiddleType](
-		convert:PartialFunction[Value, Either[(String, Int), MiddleType]],
+		convert:PartialFunction[Value, NonPrimitiveParserRetVal[MiddleType]],
 		fold:Function2[Subject, MiddleType, Subject]
 	):KeyDef[Key, Value, Subject] = new KeyDef[Key, Value, Subject]{
-		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject] = {
+		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):NonPrimitiveParserRetVal[Subject] = {
 			parser.parsePrimitive(input)
-				.right.flatMap{value => (if (convert.isDefinedAt(value)) { convert.apply(value) } else { unexpectedValueErrorMessage(value) } )}
-				.right.map{x:MiddleType => fold(folding, x)}
+				.fold({mi => Failure(mi._1, mi._2)}, {suc => Complex(suc)})
+				.complex.flatMap{value:Value => (if (convert.isDefinedAt(value)) { convert.apply(value) } else { unexpectedValueErrorMessage(value) } )}
+				.complex.map{x:MiddleType => fold(folding, x)}
 		}
 	}
 	
@@ -167,7 +170,7 @@ object PiecewiseBuilder{
 	 * @since 3.0
 	 */
 	def ignoreKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
-		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):Either[(String, Int), A] = Right(s)
+		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):NonPrimitiveParserRetVal[A] = Complex(s)
 	}
 	
 	/**
@@ -175,6 +178,6 @@ object PiecewiseBuilder{
 	 * @since 3.0
 	 */
 	def throwKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
-		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):Either[(String, Int), A] = Left("PiecewiseBuilder has no KeyDef for given key", 0)
+		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):NonPrimitiveParserRetVal[A] = Failure("PiecewiseBuilder has no KeyDef for given key", 0)
 	}
 }

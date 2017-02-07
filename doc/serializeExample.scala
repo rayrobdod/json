@@ -16,19 +16,20 @@ val data = Person(Name("Anon", Seq("N", "Y"), "Mouse"), "Undecided", false, Seq(
 
 // Example directly subclassing Parser
 object NameParser extends Parser[StringOrInt, JsonValue, Name] {
-  override def parse[A](builder:Builder[StringOrInt, JsonValue, A], input:Name):ParserRetVal[A, JsonValue] = {
+  override def parse[A](builder:Builder[StringOrInt, JsonValue, A], input:Name):ParserRetVal[A, Nothing] = {
     val a = builder.init
-    val e = for (
-      b <- builder.apply(a, "first", input.given, new IdentityParser[String].mapValue[JsonValue]).right;
-      c <- builder.apply(b, "middles", input.middles, new PrimitiveSeqParser[String].mapValue[JsonValue].mapKey[StringOrInt]).right;
-      d <- builder.apply(c, "last", input.family, new IdentityParser[String].mapValue[JsonValue]).right
-    ) yield {
-      d
+//    for (
+//      b <- builder.apply(a, "first", input.given, new IdentityParser[String].mapValue[JsonValue]).complex;
+//      c <- builder.apply(b, "middles", input.middles, new PrimitiveSeqParser[String].mapValue[JsonValue].mapKey[StringOrInt]).complex;
+//      d <- builder.apply(c, "last", input.family, new IdentityParser[String].mapValue[JsonValue]).complex
+//    ) yield {
+//      d
+//    }
+    builder.apply(a, "first", input.given, new IdentityParser[String].mapValue[JsonValue]).complex.flatMap{b:A =>
+      builder.apply(b, "middles", input.middles, new PrimitiveSeqParser[String].mapValue[JsonValue].mapKey[StringOrInt]).complex.flatMap{c:A =>
+        builder.apply(c, "last", input.family, new IdentityParser[String].mapValue[JsonValue])
+      }
     }
-    e.fold(
-      {si => ParserRetVal.Failure(si._1, si._2)},
-      {res => ParserRetVal.Complex(res)}
-    )
   }
 }
 

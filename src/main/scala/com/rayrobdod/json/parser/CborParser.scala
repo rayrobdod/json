@@ -29,7 +29,8 @@ package com.rayrobdod.json.parser;
 import java.io.DataInput
 import java.nio.charset.StandardCharsets.UTF_8;
 import com.rayrobdod.json.builder.{Builder, PrimitiveSeqBuilder, CborBuilder, ThrowBuilder}
-import com.rayrobdod.json.union.{CborValue, ParserRetVal}
+import com.rayrobdod.json.union.{CborValue, ParserRetVal, NonPrimitiveParserRetVal}
+import com.rayrobdod.json.union.ParserRetVal.{Complex, Primitive, Failure}
 import com.rayrobdod.json.union.CborValue.Rational
 
 /**
@@ -54,7 +55,6 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 	private[this] val UpperCaseTagMatcher = tagMatcher
 	
 	override def parse[ComplexOutput](builder:Builder[CborValue, CborValue, ComplexOutput], i:DataInput):ParserRetVal[ComplexOutput, CborValue] = {
-		import ParserRetVal.{Primitive, Complex, Failure}
 		val a = this.parseDetailed[ComplexOutput](builder, i)
 		a match {
 			case ParseReturnValueSimple(x:CborValue) => Primitive(x)
@@ -108,13 +108,13 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 				}
 				// array/list
 				case MajorTypeCodes.ARRAY => parseArray(topBuilder, input, additionalInfoData) match {
-					case Right(x) => ParseReturnValueComplex(x)
-					case Left(x) => ParseReturnValueFailure(x._1, x._2)
+					case Complex(x) => ParseReturnValueComplex(x)
+					case Failure(msg,idx) => ParseReturnValueFailure(msg, idx)
 				}
 				// map
 				case MajorTypeCodes.OBJECT => parseObject(topBuilder, input, additionalInfoData) match {
-					case Right(x) => ParseReturnValueComplex(x)
-					case Left(x) => ParseReturnValueFailure(x._1, x._2)
+					case Complex(x) => ParseReturnValueComplex(x)
+					case Failure(msg,idx) => ParseReturnValueFailure(msg, idx)
 				}
 				// tags
 				case MajorTypeCodes.TAG => additionalInfoData match {
@@ -190,13 +190,13 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 		}
 	}
 	
-	private[this] def parseArray[A](topBuilder:Builder[CborValue, CborValue, A], input:DataInput, aid:AdditionalInfoData):Either[(String, Int), A] = {
-		var retVal:Either[(String, Int), A] = Right(topBuilder.init)
+	private[this] def parseArray[A](topBuilder:Builder[CborValue, CborValue, A], input:DataInput, aid:AdditionalInfoData):NonPrimitiveParserRetVal[A] = {
+		var retVal:NonPrimitiveParserRetVal[A] = Complex(topBuilder.init)
 		
 		aid match {
 			case AdditionalInfoDeterminate(len:Long) => {
 				(0L until len).foreach{index =>
-					retVal = retVal.right.flatMap{x => topBuilder.apply[DataInput](x, CborValue(index), input, this)}
+					retVal = retVal.complex.flatMap{x => topBuilder.apply[DataInput](x, CborValue(index), input, this)}
 				}
 			}
 			case AdditionalInfoIndeterminate() => {
@@ -208,12 +208,12 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 					childObject match {
 						case ParseReturnValueEndOfIndeterminateObject() => {}
 						case ParseReturnValueSimple(x) => {
-							retVal = retVal.right.flatMap{y => topBuilder.apply[CborValue](y, CborValue(index), x, new IdentityParser())}
+							retVal = retVal.complex.flatMap{y => topBuilder.apply[CborValue](y, CborValue(index), x, new IdentityParser())}
 						}
 						case ParseReturnValueComplex(x) => {
-							retVal = retVal.right.flatMap{y => topBuilder.apply[DataInput](y, CborValue(index), byteArray2DataInput(x.toArray), this)}
+							retVal = retVal.complex.flatMap{y => topBuilder.apply[DataInput](y, CborValue(index), byteArray2DataInput(x.toArray), this)}
 						}
-						case _ => retVal = Left("Value not public", 0)
+						case _ => retVal = Failure("Value not public", 0)
 					}
 					index = index + 1
 				}
@@ -222,20 +222,22 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 		retVal
 	}
 	
-	private[this] def parseObject[A](topBuilder:Builder[CborValue, CborValue, A], input:DataInput, aid:AdditionalInfoData):Either[(String, Int), A] = {
-		var retVal:Either[(String, Int), A] = Right(topBuilder.init)
+	private[this] def parseObject[A](topBuilder:Builder[CborValue, CborValue, A], input:DataInput, aid:AdditionalInfoData):NonPrimitiveParserRetVal[A] = {
+		var retVal:NonPrimitiveParserRetVal[A] = Complex(topBuilder.init)
 		
 		aid match {
 			case AdditionalInfoDeterminate(len:Long) => {
 				(0L until len).foreach{index =>
-					val keyTry:Either[(String, Int), CborValue] = this.parseDetailed(new ThrowBuilder, input) match {
-						case ParseReturnValueSimple(x) => Right(x)
-						case ParseReturnValueFailure(msg,idx) => Left((msg,idx))
-						case _ => Left("Cannot handle non-simple map keys",0)
+					val keyTry:NonPrimitiveParserRetVal[CborValue] = this.parseDetailed(new ThrowBuilder, input) match {
+						case ParseReturnValueSimple(x) => Complex(x)
+						case ParseReturnValueFailure(msg,idx) => Failure(msg,idx)
+						case _ => Failure("Cannot handle non-simple map keys",0)
 					}
-					retVal = {for ( foldingObject <- retVal.right; keyObject <- keyTry.right ) yield {
-						topBuilder.apply[DataInput](foldingObject, keyObject, input, this)
-					}}.right.flatMap{x => x}
+					retVal = for (
+						foldingObject <- retVal.complex;
+						keyObject <- keyTry.complex;
+						newRetVal <- topBuilder.apply[DataInput](foldingObject, keyObject, input, this).complex
+					) yield {newRetVal}
 				}
 			}
 			case AdditionalInfoIndeterminate() => {
@@ -245,10 +247,10 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 					keyObject match {
 						case ParseReturnValueEndOfIndeterminateObject() => {}
 						case ParseReturnValueSimple(x) => {
-							retVal = retVal.right.flatMap{y => topBuilder.apply[DataInput](y, x, input, this)}
+							retVal = retVal.complex.flatMap{y => topBuilder.apply[DataInput](y, x, input, this)}
 						}
-						case ParseReturnValueFailure(msg,idx) => retVal = Left((msg,idx))
-						case _ => retVal = Left("Cannot handle non-simple map keys",0)
+						case ParseReturnValueFailure(msg,idx) => retVal = Failure(msg,idx)
+						case _ => retVal = Failure("Cannot handle non-simple map keys",0)
 					}
 				}
 			}
@@ -379,18 +381,21 @@ object CborParser {
 			private[this] def keyError:String = tagNumber + " array key not 0 or 1"
 			
 			override def init:(BigInt, BigInt) = ((BigInt(1), BigInt(1)))
-			final def apply[Input](folding:(BigInt, BigInt), key:CborValue, input:Input, parser:Parser[CborValue, CborValue, Input]):Either[(String, Int), (BigInt, BigInt)] = {
-				parser.parsePrimitive(input).right.flatMap{_ match {
-					case CborValueNumber(x) => x.tryToBigInt.fold[Either[(String, Int),BigInt]](Left(nonIntError, 0)){x => Right(x)}
-					case _ => Left(nonIntError, 0)
-				}}.right.flatMap{value =>
+			final def apply[Input](folding:(BigInt, BigInt), key:CborValue, input:Input, parser:Parser[CborValue, CborValue, Input]):NonPrimitiveParserRetVal[(BigInt, BigInt)] = {
+				parser.parsePrimitive(input).fold(
+					{msg => Failure(msg._1, msg._2)},
+					{_ match {
+						case CborValueNumber(x) => x.tryToBigInt.fold[NonPrimitiveParserRetVal[BigInt]](Failure(nonIntError, 0)){x => Complex(x)}
+						case _ => Failure(nonIntError, 0)
+					}}
+				).complex.flatMap{value =>
 					key match {
 						case CborValueNumber(x) => x.tryToInt match {
-							case Some(0) => Right(folding.copy(_1 = value))
-							case Some(1) => Right(folding.copy(_2 = value))
-							case _ => Left(keyError, 0)
+							case Some(0) => Complex(folding.copy(_1 = value))
+							case Some(1) => Complex(folding.copy(_2 = value))
+							case _ => Failure(keyError, 0)
 						}
-						case _ => Left(keyError, 0)
+						case _ => Failure(keyError, 0)
 					}
 				}
 			}

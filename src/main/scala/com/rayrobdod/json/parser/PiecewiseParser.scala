@@ -26,9 +26,9 @@
 */
 package com.rayrobdod.json.parser
 
-import scala.util.Either
 import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.union.ParserRetVal
+import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 import PiecewiseParser.KeyDef
 
 
@@ -63,11 +63,10 @@ final class PiecewiseParser[+Key, +Value, -Input] (
 		parts:KeyDef[Key,Value,Input]*
 ) extends Parser[Key,Value,Input] {
 	
-	override def parse[Output](builder:Builder[Key,Value,Output], i:Input):ParserRetVal[Output,Value] = {
-		val a = parts.foldLeft[Either[(String,Int),Output]](Right(builder.init)){(state:Either[(String,Int),Output], part:KeyDef[Key,Value,Input]) =>
-			state.right.flatMap{x => part.apply(builder, i, x)}
+	override def parse[Output](builder:Builder[Key,Value,Output], i:Input):NonPrimitiveParserRetVal[Output] = {
+		parts.foldLeft[NonPrimitiveParserRetVal[Output]](ParserRetVal.Complex(builder.init)){(state:NonPrimitiveParserRetVal[Output], part:KeyDef[Key,Value,Input]) =>
+			state.complex.flatMap{x => part.apply(builder, i, x)}
 		}
-		ParserRetVal.eitherToComplex(a)
 	}
 }
 
@@ -85,15 +84,15 @@ object PiecewiseParser {
 	 * while maintaining the possibility of extracting a complex value.
 	 */
 	abstract class KeyDef[+Key, +Value, -Input] {
-		def apply[Output](builder:Builder[Key,Value,Output], input:Input, currentOutput:Output):Either[(String,Int),Output]
+		def apply[Output](builder:Builder[Key,Value,Output], input:Input, currentOutput:Output):NonPrimitiveParserRetVal[Output]
 	}
 	
 	def optionalKeyDef[Key, Value, Input](backing:KeyDef[Key, Value, Input], filter:Input => Boolean):KeyDef[Key, Value, Input] = new KeyDef[Key, Value, Input]{
-		def apply[Output](builder:Builder[Key,Value,Output], input:Input, currentOutput:Output):Either[(String,Int),Output] = {
+		def apply[Output](builder:Builder[Key,Value,Output], input:Input, currentOutput:Output):NonPrimitiveParserRetVal[Output] = {
 			if (filter(input)) {
 				backing.apply(builder, input, currentOutput)
 			} else {
-				Right(currentOutput)
+				ParserRetVal.Complex(currentOutput)
 			}
 		}
 	}
@@ -103,7 +102,7 @@ object PiecewiseParser {
 	}
 	
 	def complexKeyDef[Key, Primitive, Value, Input](key:Key, backing:Function1[Input,Value], parser:Parser[Key,Primitive,Value]):KeyDef[Key, Primitive, Input] = new KeyDef[Key,Primitive,Input]{
-		def apply[Output](builder:Builder[Key,Primitive,Output], input:Input, currentOutput:Output):Either[(String,Int),Output] = {
+		def apply[Output](builder:Builder[Key,Primitive,Output], input:Input, currentOutput:Output):NonPrimitiveParserRetVal[Output] = {
 			val value = backing.apply(input)
 			builder.apply(currentOutput, key, value, parser)
 		}

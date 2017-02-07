@@ -27,7 +27,7 @@
 package com.rayrobdod.json.parser;
 
 import org.scalatest.FunSpec;
-import com.rayrobdod.json.union.{JsonValue, StringOrInt, ParserRetVal}
+import com.rayrobdod.json.union.{JsonValue, StringOrInt, ParserRetVal, NonPrimitiveParserRetVal}
 import com.rayrobdod.json.builder._
 
 class JsonParserTest_Unhappy extends FunSpec {
@@ -38,7 +38,7 @@ class JsonParserTest_Unhappy extends FunSpec {
 	 */
 	final class SubjectAsAnyBuilder[K,V,S](backing:Builder[K,V,S]) extends Builder[K,V,Any] {
 		override def init:Any = backing.init
-		override def apply[Input](folding:Any, key:K, input:Input, parser:Parser[K, V, Input]):Either[(String, Int), Any] = {
+		override def apply[Input](folding:Any, key:K, input:Input, parser:Parser[K, V, Input]):NonPrimitiveParserRetVal[Any] = {
 			val folding2:S = folding.asInstanceOf[S]
 			backing.apply[Input](folding2, key, input, parser)
 		}

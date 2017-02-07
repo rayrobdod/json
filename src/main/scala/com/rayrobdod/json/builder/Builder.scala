@@ -26,8 +26,9 @@
 */
 package com.rayrobdod.json.builder;
 
-import scala.util.Either
 import com.rayrobdod.json.parser.Parser
+import com.rayrobdod.json.union.NonPrimitiveParserRetVal
+import com.rayrobdod.json.union.ParserRetVal.Failure
 
 /**
  * An object which takes a series of key-value pairs and combines them into an object using
@@ -60,7 +61,7 @@ trait Builder[-Key, -Value, Subject] {
 	 *   - A [[scala.util.Right]] containing the built value, or
 	 *   - A [[scala.util.Left]] indicating an error message and error index
 	 */
-	def apply[Input](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject]
+	def apply[Input](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, Input]):NonPrimitiveParserRetVal[Subject]
 	
 	
 	/**
@@ -70,7 +71,7 @@ trait Builder[-Key, -Value, Subject] {
 	 */
 	final def mapKey[K2](implicit fun:Function1[K2,Key]):Builder[K2,Value,Subject] = new Builder[K2,Value,Subject] {
 		override def init:Subject = Builder.this.init
-		override def apply[Input](a:Subject, key:K2, b:Input, c:Parser[K2, Value, Input]):Either[(String, Int), Subject] = {
+		override def apply[Input](a:Subject, key:K2, b:Input, c:Parser[K2, Value, Input]):NonPrimitiveParserRetVal[Subject] = {
 			Builder.this.apply(a, fun(key), b, c.mapKey(fun))
 		}
 	}
@@ -82,8 +83,11 @@ trait Builder[-Key, -Value, Subject] {
 	 */
 	final def flatMapKey[K2](fun:Function1[K2,Either[(String,Int),Key]]):Builder[K2,Value,Subject] = new Builder[K2,Value,Subject] {
 		override def init:Subject = Builder.this.init
-		override def apply[Input](a:Subject, key:K2, b:Input, c:Parser[K2, Value, Input]):Either[(String, Int), Subject] = {
-			fun(key).right.flatMap{k2 => Builder.this.apply(a, k2, b, c.flatMapKey(fun))}
+		override def apply[Input](a:Subject, key:K2, b:Input, c:Parser[K2, Value, Input]):NonPrimitiveParserRetVal[Subject] = {
+			fun(key).fold(
+				{f => Failure(f._1, f._2)},
+				{k2 => Builder.this.apply(a, k2, b, c.flatMapKey(fun))}
+			)
 		}
 	}
 	
@@ -94,7 +98,7 @@ trait Builder[-Key, -Value, Subject] {
 	 */
 	final def mapValue[V2](implicit fun:Function1[V2,Value]):Builder[Key,V2,Subject] = new Builder[Key,V2,Subject] {
 		override def init:Subject = Builder.this.init
-		override def apply[Input](a:Subject, key:Key, b:Input, c:Parser[Key, V2, Input]):Either[(String, Int), Subject] = {
+		override def apply[Input](a:Subject, key:Key, b:Input, c:Parser[Key, V2, Input]):NonPrimitiveParserRetVal[Subject] = {
 			Builder.this.apply(a, key, b, c.mapValue(fun))
 		}
 	}
@@ -105,7 +109,7 @@ trait Builder[-Key, -Value, Subject] {
 	 */
 	final def flatMapValue[V2](fun:Function1[V2,Either[(String,Int),Value]]):Builder[Key,V2,Subject] = new Builder[Key,V2,Subject] {
 		override def init:Subject = Builder.this.init
-		override def apply[Input](a:Subject, key:Key, b:Input, c:Parser[Key, V2, Input]):Either[(String, Int), Subject] = {
+		override def apply[Input](a:Subject, key:Key, b:Input, c:Parser[Key, V2, Input]):NonPrimitiveParserRetVal[Subject] = {
 			Builder.this.apply(a, key, b, c.flatMapValue(fun))
 		}
 	}

@@ -29,6 +29,7 @@ package com.rayrobdod.json.parser
 import scala.util.Either
 import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.union.ParserRetVal
+import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 
 /**
  * An object that parses an input into a sequence of key-value pairs for the
@@ -62,7 +63,7 @@ trait Parser[+Key, +Value, -Input] {
 	final def parsePrimitive(i:Input):Either[(String, Int), Value] = {
 		val ignoreAllBuilder = new Builder[Key, Value, Any] {
 			def init:Any = this
-			def apply[I](a:Any,k:Key,i:I,p:Parser[Key,Value,I]):Either[(String, Int), Any] = Right(a)
+			def apply[I](a:Any,k:Key,i:I,p:Parser[Key,Value,I]):NonPrimitiveParserRetVal[Any] = ParserRetVal.Complex(a)
 		}
 		
 		this.parse(ignoreAllBuilder, i).primitive.toEither

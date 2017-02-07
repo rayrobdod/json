@@ -27,7 +27,8 @@
 package com.rayrobdod.json.parser
 
 import com.rayrobdod.json.builder.Builder
-import com.rayrobdod.json.union.ParserRetVal
+import com.rayrobdod.json.union.ParserRetVal.Complex
+import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 
 /**
  * A parser that reads each key-value pair from a Map
@@ -44,12 +45,11 @@ final class MapParser[K,V] extends Parser[K,V,Map[K,V]] {
 	 * @param vals the sequence containing values
 	 * @return the parsed object
 	 */
-	def parse[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):ParserRetVal[A,V] = {
-		val a = vals.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], keyValue:(K, V)) => 
+	def parse[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):NonPrimitiveParserRetVal[A] = {
+		vals.foldLeft[NonPrimitiveParserRetVal[A]](Complex(topBuilder.init)){(state:NonPrimitiveParserRetVal[A], keyValue:(K, V)) => 
 			val (key, value) = keyValue;
-			state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[V])}
+			state.complex.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[V])}
 		}
-		ParserRetVal.eitherToComplex(a)
 	}
 }
 
@@ -68,10 +68,10 @@ private[parser] final class RecursiveMapParser[K,V] extends Parser[K, V, com.ray
 	 * @param vals the sequence containing values
 	 * @return the parsed object
 	 */
-	def parse[A](topBuilder:Builder[K,V,A], vals:MapBuilder.RecursiveSubjectType[K,V]):ParserRetVal[A,V] = {
-		val a = vals.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], keyValue:RecursiveSubjectTupleType[K,V]) => 
+	def parse[A](topBuilder:Builder[K,V,A], vals:MapBuilder.RecursiveSubjectType[K,V]):NonPrimitiveParserRetVal[A] = {
+		vals.foldLeft[NonPrimitiveParserRetVal[A]](Complex(topBuilder.init)){(state:NonPrimitiveParserRetVal[A], keyValue:RecursiveSubjectTupleType[K,V]) => 
 			val (key, value) = keyValue;
-			state.right.flatMap{folding =>
+			state.complex.flatMap{folding =>
 				value.fold({complex:MapBuilder.RecursiveSubject[K,V] =>
 					topBuilder.apply(folding, key, complex.value, RecursiveMapParser.this)
 				}, {simple =>
@@ -79,6 +79,5 @@ private[parser] final class RecursiveMapParser[K,V] extends Parser[K, V, com.ray
 				})
 			}
 		}
-		ParserRetVal.eitherToComplex(a)
 	}
 }

@@ -27,7 +27,8 @@
 package com.rayrobdod.json.parser;
 
 import com.rayrobdod.json.builder.Builder
-import com.rayrobdod.json.union.ParserRetVal
+import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
+import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 
 /**
  * A streaming decoder for csv data.
@@ -53,7 +54,7 @@ final class CsvParser(
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse[A](builder:Builder[Int, String, A], chars:Iterable[Char]):ParserRetVal[A,Nothing] = {
+	def parse[A](builder:Builder[Int, String, A], chars:Iterable[Char]):NonPrimitiveParserRetVal[A] = {
 		this.parse(builder, new Iterator2Reader(chars.iterator))
 	}
 	
@@ -64,33 +65,42 @@ final class CsvParser(
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse[A](builder:Builder[Int, String, A], chars:java.io.Reader):ParserRetVal[A,Nothing] = {
+	def parse[A](builder:Builder[Int, String, A], chars:java.io.Reader):NonPrimitiveParserRetVal[A] = {
 		this.parse(builder, new CountingReader(chars))
 	}
 	
-	def parse[A](builder:Builder[Int, String, A], chars:CountingReader):ParserRetVal[A,Nothing] = {
-		// I am almost certain that I couldn't write a less idiomatic method if I tried
-		var folding:Either[(String, Int), A] = Right(builder.init)
-		var rowIdx:Int = 0
-		
-		try {
-			while (folding.isRight) {
+	def parse[A](builder:Builder[Int, String, A], chars:CountingReader):NonPrimitiveParserRetVal[A] = {
+		@scala.annotation.tailrec
+		def dothing(rowIdx:Int, folding:A):NonPrimitiveParserRetVal[A] = {
+			sealed trait ThingToDo
+			final case class Recurse(nextFolding:A) extends ThingToDo
+			object ReturnFolding extends ThingToDo
+			final case class ReturnFailure(msg:String, idx:Int) extends ThingToDo
+			
+			val thingToDo = try {
 				// check that there are more characters to read; throw if no such characters
 				// I have to do this as readers don't have a hasNext or similar method
 				chars.read()
 				chars.goBackOne()
 				val rowStartCharIndex = chars.index + 1
 				
-				folding = builder.apply(folding.right.get, rowIdx, chars, lineParser).left.map{x => ((x._1, x._2 + rowStartCharIndex))}
-				rowIdx = rowIdx + 1
-			}
-		} catch {
-			case ex:java.util.NoSuchElementException => {
+				builder.apply(folding, rowIdx, chars, lineParser).failure.map{(m,i) => ((m, i + rowStartCharIndex))} match {
+					case Complex(nextFolding) => Recurse(nextFolding)
+					case Failure(msg, idx) => ReturnFailure(msg, idx)
+				}
+			} catch {
 				// Readers don't have a hasNext
+				case ex:java.util.NoSuchElementException => ReturnFolding
+			}
+			
+			thingToDo match {
+				case Recurse(nextFolding) => dothing(rowIdx + 1, nextFolding)
+				case ReturnFolding => Complex(folding)
+				case ReturnFailure(msg, idx) => Failure(msg, idx)
 			}
 		}
 		
-		ParserRetVal.eitherToComplex(folding)
+		dothing(0, builder.init)
 	}
 }
 
@@ -159,7 +169,7 @@ object CsvParser {
 	 *		become true when an escape character is encountered and become false after encountering that literal character
 	 */
 	private[parser] final case class State[A] (
-		value:Either[(String,Int),A],
+		value:NonPrimitiveParserRetVal[A],
 		fieldStartIndex:Int,
 		innerIndex:Int,
 		innerInput:String,
@@ -173,9 +183,9 @@ object CsvParser {
 	
 	/** Splits a CSV record (i.e. one line) into fields */
 	private[parser] final class LineParser(meaningfulCharacters:CsvParser.CharacterMeanings) extends Parser[Int, String, CountingReader] {
-		def parse[A](builder:Builder[Int, String, A], chars:CountingReader):ParserRetVal[A,Nothing] = {
+		def parse[A](builder:Builder[Int, String, A], chars:CountingReader):NonPrimitiveParserRetVal[A] = {
 			val rowStartIndex = chars.index
-			var state = State(Right(builder.init), rowStartIndex, 0, "", "", false, false)
+			var state = State(Complex(builder.init), rowStartIndex, 0, "", "", false, false)
 			try {
 				var char = chars.read()
 				
@@ -198,7 +208,10 @@ object CsvParser {
 						state.copy(quoted = true)
 					} else if (meaningfulCharacters.fieldDelimeter contains char) {
 						new State(
-							value = state.value.right.flatMap{x => builder.apply(x, state.innerIndex, state.innerInput, new IdentityParser[String]).left.map{x => ((x._1, x._2 - rowStartIndex + state.fieldStartIndex))}},
+							value = state.value
+									.complex.flatMap{x => builder.apply(x, state.innerIndex, state.innerInput, new IdentityParser[String])
+										.failure.map{(msg, idx) => ((msg, idx - rowStartIndex + state.fieldStartIndex))}
+									},
 							fieldStartIndex = chars.index,
 							innerIndex = state.innerIndex + 1,
 							innerInput = "",
@@ -218,14 +231,14 @@ object CsvParser {
 				}
 			}
 			
-			ParserRetVal.eitherToComplex(if (state.innerInput.isEmpty) {
+			if (state.innerInput.isEmpty) {
 				state.value
 			} else {
-				state.value.right.flatMap{x => 
+				state.value.complex.flatMap{x =>
 					builder.apply(x, state.innerIndex, state.innerInput, new IdentityParser[String])
-						.left.map{x => ((x._1, x._2 - rowStartIndex + state.fieldStartIndex))}
+						.failure.map{(msg,idx) => ((msg, idx - rowStartIndex + state.fieldStartIndex))}
 				}
-			})
+			}
 		}
 	}
 }

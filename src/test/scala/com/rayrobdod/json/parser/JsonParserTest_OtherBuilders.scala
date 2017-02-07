@@ -32,6 +32,8 @@ import com.rayrobdod.json.builder.{Builder, ThrowBuilder}
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.ParserRetVal
+import com.rayrobdod.json.union.ParserRetVal.{Failure, Complex}
+import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 
 class JsonParserTest_OtherBuilders extends FunSpec {
 	describe("JsonParser with other builders") {
@@ -52,16 +54,16 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 			
 			object SetBuilder extends Builder[StringOrInt, JsonValue, Set[String]] {
 				def init:Set[String] = Set.empty
-				def apply[Input](folding:Set[String], key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Set[String]] = {
+				def apply[Input](folding:Set[String], key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):NonPrimitiveParserRetVal[Set[String]] = {
 					val inputVal = parser.parse(new ThrowBuilder, input)
 					val inputStr = inputVal match {case ParserRetVal.Primitive(JsonValue.JsonValueString(s)) => s; case _ => "????????"}
-					Right(folding + inputStr)
+					Complex(folding + inputStr)
 				}
 			}
 			
 			object NameBuilder extends Builder[StringOrInt, JsonValue, Name] {
 				override def init:Name = Name("", "", "")
-				override def apply[Input](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Name] = {
+				override def apply[Input](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):NonPrimitiveParserRetVal[Name] = {
 					// we only expect strings, so might as well parse the value at the beginning
 					parser.parsePrimitive(input).right.flatMap{value:JsonValue =>
 						((key, value)) match {
@@ -70,18 +72,18 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 							case ((StringOrInt.Left("family"), JsonValue.JsonValueString(x))) => Right(folding.copy(family = x))
 							case x => Left("NameBuilder: Unexpected key/value: " + x, 0)
 						}
-					}
+					}.fold({mi => Failure(mi._1, mi._2)}, Complex.apply)
 				}
 			}
 			
 			object PersonBuilder extends Builder[StringOrInt, JsonValue, Person] {
 				def init:Person = Person(Name("", "", ""), "", false, Set.empty)
-				def apply[Input](folding:Person, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):Either[(String, Int), Person] = key match {
-					case StringOrInt.Left("name") => Right(folding.copy(n = parser.parse(NameBuilder, input) match {case ParserRetVal.Complex(x) => x; case _ => new Name("","","")}))
-					case StringOrInt.Left("gender") => Right(folding.copy(gender = parser.parse(new ThrowBuilder, input) match {case ParserRetVal.Primitive(JsonValue.JsonValueString(s)) => s; case _ => "????????"}))
-					case StringOrInt.Left("isDead") => Right(folding.copy(isDead = parser.parse(new ThrowBuilder, input) match {case ParserRetVal.Primitive(JsonValue.JsonValueBoolean(s)) => s; case _ => false}))
-					case StringOrInt.Left("interests") => Right(folding.copy(interests = parser.parse(SetBuilder, input).fold({x => x}, {x => Set.empty}, {(a,b) => Set.empty})))
-					case _ => Left("Unexpected key: " + key, 0)
+				def apply[Input](folding:Person, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):NonPrimitiveParserRetVal[Person] = key match {
+					case StringOrInt.Left("name") => Complex(folding.copy(n = parser.parse(NameBuilder, input) match {case ParserRetVal.Complex(x) => x; case _ => new Name("","","")}))
+					case StringOrInt.Left("gender") => Complex(folding.copy(gender = parser.parse(new ThrowBuilder, input) match {case ParserRetVal.Primitive(JsonValue.JsonValueString(s)) => s; case _ => "????????"}))
+					case StringOrInt.Left("isDead") => Complex(folding.copy(isDead = parser.parse(new ThrowBuilder, input) match {case ParserRetVal.Primitive(JsonValue.JsonValueBoolean(s)) => s; case _ => false}))
+					case StringOrInt.Left("interests") => Complex(folding.copy(interests = parser.parse(SetBuilder, input).fold({x => x}, {x => Set.empty}, {(a,b) => Set.empty})))
+					case _ => Failure("Unexpected key: " + key, 0)
 				}
 			}
 			

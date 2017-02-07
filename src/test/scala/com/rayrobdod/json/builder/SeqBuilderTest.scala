@@ -32,6 +32,7 @@ import com.rayrobdod.json.parser.FailureParser
 import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.parser.SeqParser
 import com.rayrobdod.json.parser.PrimitiveSeqParser
+import com.rayrobdod.json.union.ParserRetVal
 
 class SeqBuilderTest extends FunSpec {
 	
@@ -42,7 +43,7 @@ class SeqBuilderTest extends FunSpec {
 		it ("Appends value") {
 			val myValue = new Object
 			
-			assertResult(Right(Seq(myValue))){
+			assertResult(ParserRetVal.Complex(Seq(myValue))){
 				new PrimitiveSeqBuilder().apply(Nil, "sdfa", myValue, new IdentityParser[Object])
 			}
 		}
@@ -50,7 +51,7 @@ class SeqBuilderTest extends FunSpec {
 			val myValue1 = new Object
 			val myValue2 = new Object
 			
-			assertResult(Right(Seq(myValue1, myValue2))){
+			assertResult(ParserRetVal.Complex(Seq(myValue1, myValue2))){
 				new PrimitiveSeqBuilder().apply(Seq(myValue1), "sdfa", myValue2, new IdentityParser[Object])
 			}
 		}
@@ -104,8 +105,8 @@ class SeqBuilderTest extends FunSpec {
 	}
 	
 	
-	def assertFailure[T](msg:String, idx:Int)(result:Either[_,_]):Unit = result match {
-		case Left(x) => {}
+	def assertFailure[T](msg:String, idx:Int)(result:ParserRetVal[_,_]):Unit = result match {
+		case ParserRetVal.Failure(mymsg, myidx) => {}
 		case x => fail("Not a Failure: " + x)
 	}
 }

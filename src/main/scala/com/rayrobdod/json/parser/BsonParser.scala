@@ -29,7 +29,8 @@ package com.rayrobdod.json.parser;
 import java.io.DataInput
 import java.nio.charset.StandardCharsets.UTF_8;
 import com.rayrobdod.json.builder.Builder
-import com.rayrobdod.json.union.{CborValue, ParserRetVal}
+import com.rayrobdod.json.union.{CborValue, NonPrimitiveParserRetVal}
+import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
 
 /**
  * A streaming parser for Bson values
@@ -47,16 +48,16 @@ import com.rayrobdod.json.union.{CborValue, ParserRetVal}
 final class BsonParser extends Parser[String, CborValue, DataInput] {
 	import BsonParser.{readCString, TypeCodes}
 	
-	def parse[A](builder:Builder[String, CborValue, A], input:DataInput):ParserRetVal[A,Nothing] = {
+	def parse[A](builder:Builder[String, CborValue, A], input:DataInput):NonPrimitiveParserRetVal[A] = {
 		try {
 			// We don't really care about the document length.
 			/* val length = */ Integer.reverseBytes( input.readInt() );
 			
-			var result:Either[(String,Int),A] = Right(builder.init)
+			var result:NonPrimitiveParserRetVal[A] = Complex(builder.init)
 			var valueType:Byte = input.readByte();
-			while (valueType != TypeCodes.END_OF_DOCUMENT && result.isRight) {
+			while (valueType != TypeCodes.END_OF_DOCUMENT && result.isInstanceOf[Complex[_]]) {
 				val key:String = readCString(input)
-				result = result.right.flatMap{result2 => valueType match {
+				result = result.complex.flatMap{result2 => valueType match {
 					case TypeCodes.FLOAT => {
 						val value = java.lang.Double.longBitsToDouble(
 							java.lang.Long.reverseBytes( input.readLong() )
@@ -69,7 +70,7 @@ final class BsonParser extends Parser[String, CborValue, DataInput] {
 						val bytes = new Array[Byte](len);
 						input.readFully(bytes);
 						if (bytes(len - 1) != 0) {
-							Left("Incorrect string length", 0)
+							Failure("Incorrect string length", 0)
 						} else {
 							val value = new String(bytes, 0, len - 1, UTF_8)
 							builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
@@ -97,15 +98,15 @@ final class BsonParser extends Parser[String, CborValue, DataInput] {
 						val value = java.lang.Long.reverseBytes( input.readLong() );
 						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
 					}
-					case _ => Left("Unknown data type: " + valueType,0)
+					case _ => Failure("Unknown data type: " + valueType,0)
 				}}
 				
 				valueType = input.readByte();
 			}
 			
-			result.fold({case (s,i) => ParserRetVal.Failure(s,i)},{x => ParserRetVal.Complex(x)})
+			result
 		} catch {
-			case ex:java.io.EOFException => ParserRetVal.Failure("Incomplete object (EOF reached)", 0)
+			case ex:java.io.EOFException => Failure("Incomplete object (EOF reached)", 0)
 		}
 	}
 }

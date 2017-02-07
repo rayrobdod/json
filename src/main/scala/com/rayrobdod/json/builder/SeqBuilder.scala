@@ -26,8 +26,10 @@
 */
 package com.rayrobdod.json.builder;
 
+import scala.collection.immutable.Seq
 import com.rayrobdod.json.parser.Parser
-import scala.collection.immutable.Seq;
+import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
+import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 
 /** 
  * A Builder that will build a Vector of values, where each inner value is produced by the parameter builder.
@@ -46,8 +48,11 @@ import scala.collection.immutable.Seq;
  */
 final class SeqBuilder[-Key, -Value, Inner](childBuilder:Builder[Key, Value, Inner]) extends Builder[Key, Value, Seq[Inner]] {
 	override def init:Seq[Inner] = Vector.empty[Inner]
-	override def apply[Input](folding:Seq[Inner], key:Key, innerInput:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Seq[Inner]] = {
-		parser.parse(childBuilder, innerInput).complex.map{x => folding :+ x}.complex.toEither
+	override def apply[Input](folding:Seq[Inner], key:Key, innerInput:Input, parser:Parser[Key, Value, Input]):NonPrimitiveParserRetVal[Seq[Inner]] = {
+		parser.parse(childBuilder, innerInput)
+				.complex.map{x => folding :+ x}
+				.primitive.flatMap{x => Failure("Primitive value in Seqbuilder", 0)}
+				.fold({x => Complex(x)}, {x => x}, {(msg, idx) => Failure(msg, idx)})
 	}
 }
 
@@ -63,7 +68,7 @@ final class SeqBuilder[-Key, -Value, Inner](childBuilder:Builder[Key, Value, Inn
  */
 final class PrimitiveSeqBuilder[Value] extends Builder[Any, Value, Seq[Value]] {
 	override def init:Seq[Value] = Vector.empty[Value]
-	override def apply[Input](folding:Seq[Value], key:Any, innerInput:Input, parser:Parser[Any, Value, Input]):Either[(String, Int), Seq[Value]] = {
-		parser.parsePrimitive(innerInput).right.map{x => folding :+ x}
+	override def apply[Input](folding:Seq[Value], key:Any, innerInput:Input, parser:Parser[Any, Value, Input]):NonPrimitiveParserRetVal[Seq[Value]] = {
+		parser.parsePrimitive(innerInput).fold({(mi) => Failure(mi._1, mi._2)}, {x => Complex(folding :+ x)})
 	}
 }

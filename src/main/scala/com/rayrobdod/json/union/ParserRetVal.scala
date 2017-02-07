@@ -27,7 +27,7 @@
 package com.rayrobdod.json.union
 
 import scala.util.{Either, Left, Right}
-import com.rayrobdod.json.union.ParserRetVal.{ComplexProjection, PrimitiveProjection}
+import com.rayrobdod.json.union.ParserRetVal.{ComplexProjection, PrimitiveProjection, FailureProjection}
 
 /*
  * The other classes in this package could easily be unions if the language supported anonymous unions.
@@ -40,9 +40,9 @@ import com.rayrobdod.json.union.ParserRetVal.{ComplexProjection, PrimitiveProjec
  * A union type representing possible return values of [[com.rayrobdod.json.parser.Parser.parse `Parser.parse`]].
  * 
  * @since 3.0
- * @version 3.0.1
+ * @version next
  */
-sealed trait ParserRetVal[+Complex, +Primitive]{
+sealed trait ParserRetVal[+Complex, +Primitive] {
 	/**
 	 * Applies a function corresponding to `this`'s type
 	 * @param c the function to apply if `this` is a [[ParserRetVal$.Complex Complex]]
@@ -56,10 +56,17 @@ sealed trait ParserRetVal[+Complex, +Primitive]{
 	def primitive:PrimitiveProjection[Complex,Primitive] = new PrimitiveProjection(this)
 	/** projects this ParserRetVal as a complex */
 	def complex:ComplexProjection[Complex,Primitive] = new ComplexProjection(this)
+	/** projects this ParserRetVal as a failure
+	 * @since next
+	 */
+	def failure:FailureProjection[Complex,Primitive] = new FailureProjection(this)
 	
 	/** Convert a Failure into a Left and the other two cases into a Right  */
 	def mergeToEither[A](implicit ev1:Primitive <:< A, ev2:Complex <:< A):Either[(String,Int),A] = {
 		this.fold({c => Right(ev2(c))}, {p => Right(ev1(p))}, {(s,i) => Left(s,i)})
+	}
+	def mergeToComplex[A](implicit ev1:Primitive <:< A, ev2:Complex <:< A):NonPrimitiveParserRetVal[A] = {
+		this.fold({c => ParserRetVal.Complex(ev2(c))}, {p => ParserRetVal.Complex(ev1(p))}, {(s,i) => ParserRetVal.Failure(s,i)})
 	}
 }
 
@@ -85,7 +92,7 @@ object ParserRetVal {
 	}
 	
 	/** Represents a value that was produced via consultation of a builder */
-	final case class Complex[+C](x:C) extends ParserRetVal[C, Nothing]{
+	final case class Complex[+C](x:C) extends ParserRetVal[C, Nothing] with NonPrimitiveParserRetVal[C] {
 		def fold[Out](c:Function1[C,Out], p:Function1[Nothing,Out], f:Function2[String,Int,Out]):Out = c(x)
 	}
 	
@@ -96,7 +103,7 @@ object ParserRetVal {
 	 * @param idx the location in the input of the error. The meaning of idx depends on the Parser's Input;
 	 * 	if the Input is a character sequence, then idx might be the index of the character that caused a problem.
 	 */
-	final case class Failure(msg:String, idx:Int) extends ParserRetVal[Nothing, Nothing]{
+	final case class Failure(msg:String, idx:Int) extends ParserRetVal[Nothing, Nothing] with NonPrimitiveParserRetVal[Nothing] {
 		def fold[Out](c:Function1[Nothing,Out], p:Function1[Nothing,Out], f:Function2[String,Int,Out]):Out = f(msg,idx)
 	}
 	
@@ -127,7 +134,7 @@ object ParserRetVal {
 	}
 	
 	/** A projection as if the ParserRetVal were a Complex */
-	final class ComplexProjection[+C,+P](backing:ParserRetVal[C,P]) {
+	sealed class ComplexProjection[+C,+P](backing:ParserRetVal[C,P]) {
 		
 		/** Map the backing value if the backing value is a Complex, else return the backing value */
 		def map[X](fun:C => X):ParserRetVal[X,P] = backing match {
@@ -153,4 +160,74 @@ object ParserRetVal {
 		}
 	}
 	
+	/** A projection as if the ParserRetVal were a Failure
+	 * @since next
+	 */
+	sealed class FailureProjection[+C,+P](backing:ParserRetVal[C,P]) {
+		
+		/** Map the backing value if the backing value is a Failure, else return the backing value */
+		def map(fun:(String, Int) => (String, Int)):ParserRetVal[C,P] = backing match {
+			case c:Complex[C] => c
+			case p:Primitive[P] => p
+			case Failure(msg, idx) => {
+				val (newMsg, newIdx) = fun.apply(msg, idx)
+				Failure(newMsg, newIdx)
+			}
+		}
+	}
+	
+}
+
+/** 
+ * @since next
+ */
+sealed trait NonPrimitiveParserRetVal[+Success] extends ParserRetVal[Success, Nothing] {
+	import ParserRetVal.{Complex, Failure}
+	
+	def fold[Out](fc:Function1[Success,Out], ff:Function2[String,Int,Out]):Out = this match {
+		case Complex(c) => fc(c)
+		case Failure(m,i) => ff(m,i)
+	}
+	
+	/** projects this ParserRetVal as a complex */
+	override def complex:NonPrimitiveParserRetVal.ComplexProjection[Success] = new NonPrimitiveParserRetVal.ComplexProjection(this)
+	/** projects this ParserRetVal as a failure */
+	override def failure:NonPrimitiveParserRetVal.FailureProjection[Success] = new NonPrimitiveParserRetVal.FailureProjection(this)
+}
+
+/** 
+ * @since next
+ */
+object NonPrimitiveParserRetVal {
+	import ParserRetVal.{Complex, Failure}
+	
+	/** A projection as if the ParserRetVal were a Complex */
+	final class ComplexProjection[+C](backing:NonPrimitiveParserRetVal[C]) extends ParserRetVal.ComplexProjection(backing) {
+		
+		/** Map the backing value if the backing value is a Complex, else return the backing value */
+		override def map[X](fun:C => X):NonPrimitiveParserRetVal[X] = backing match {
+			case Complex(c) => Complex(fun(c))
+			case f:Failure => f
+		}
+		
+		/** Flatmap the backing value if the backing value is a Complex, else return the backing value
+		 */
+		def flatMap[X](fun:C => NonPrimitiveParserRetVal[X]):NonPrimitiveParserRetVal[X] = backing match {
+			case Complex(c) => fun(c)
+			case f:Failure => f
+		}
+	}
+	
+	/** A projection as if the ParserRetVal were a Complex */
+	final class FailureProjection[+C](backing:NonPrimitiveParserRetVal[C]) extends ParserRetVal.FailureProjection(backing) {
+		
+		/** Map the backing value if the backing value is a Failure, else return the backing value */
+		override def map(fun:(String, Int) => (String, Int)):NonPrimitiveParserRetVal[C] = backing match {
+			case c:Complex[C] => c
+			case Failure(msg, idx) => {
+				val (newMsg, newIdx) = fun.apply(msg, idx)
+				Failure(newMsg, newIdx)
+			}
+		}
+	}
 }
