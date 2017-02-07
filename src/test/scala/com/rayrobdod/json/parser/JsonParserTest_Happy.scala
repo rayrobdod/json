@@ -102,6 +102,8 @@ class JsonParserTest_Happy extends FunSpec {
 		("string containing escape codes (unicode)", "[\"\\" + "u0123\"]", Map(SIRight(0) -> Right(JsonValue("ģ")))),
 		("string containing escape codes (unicode) 2", "[\"\\" + "u221E\"]", Map(SIRight(0) -> Right(JsonValue("\u221E")))),
 		("string containing escape codes (unicode) 3", "[\"\\" + "u0041A\"]", Map(SIRight(0) -> Right(JsonValue("AA")))),
+		("string containing 'comment' characters", """["a/*b*/c/*d//e"]""", Map(SIRight(0) -> Right("""a/*b*/c/*d//e"""))),
+		
 		("array containing keyword (true)", """[true]""", Map(SIRight(0) -> Right(JsonValue(true)))),
 		("array containing keyword (false)", """[false]""", Map(SIRight(0) -> Right(JsonValue(false)))),
 		("array containing keyword (null)", """[null]""", Map(SIRight(0) -> Right(JsonValue.JsonValueNull))),

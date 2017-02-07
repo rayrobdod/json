@@ -288,6 +288,18 @@ class JsonParserTest_Unhappy extends FunSpec {
 				new JsonParser().parse(new SeqBuilder(new PrimitiveSeqBuilder[JsonValue]), source)
 			}
 		}
+		it ("""Infinitly-nested arrays""") {
+			val source = Seq.fill(1000)('[') ++ Seq.fill(1000)(']')
+			new JsonParser().parse(MapBuilder.apply[StringOrInt, JsonValue], source) match {
+				case ParserRetVal.Failure(msg2, idx2) => {
+					/// idx is way too fragile to complare by a simple equals
+					assertResult("too-deeply nested object"){msg2}
+				}
+				case x => {
+					fail("Not a Failure: " + x)
+				}
+			}
+		}
 		it ("""Throwbuilder (array of string)""") {
 			val source = """["ab"]"""
 			assertFailureParse("",1){

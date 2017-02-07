@@ -85,6 +85,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, CountingReader] {
 			})
 		} catch {
 			case ex:java.util.NoSuchElementException => ParserRetVal.Failure("incomplete object", chars.index)
+			case ex:java.lang.StackOverflowError => ParserRetVal.Failure("too-deeply nested object", chars.index)
 		}
 	}
 	
