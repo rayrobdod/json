@@ -26,7 +26,6 @@
 */
 package com.rayrobdod.json.parser;
 
-import scala.util.{Left, Right}
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.{Builder, ThrowBuilder}
 import com.rayrobdod.json.union.StringOrInt
@@ -65,14 +64,14 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 				override def init:Name = Name("", "", "")
 				override def apply[Input](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):NonPrimitiveParserRetVal[Name] = {
 					// we only expect strings, so might as well parse the value at the beginning
-					parser.parsePrimitive(input).right.flatMap{value:JsonValue =>
+					parser.parsePrimitive(input).flatMap{value:JsonValue =>
 						((key, value)) match {
-							case ((StringOrInt.Left("given"), JsonValue.JsonValueString(x))) => Right(folding.copy(given = x))
-							case ((StringOrInt.Left("middle"), JsonValue.JsonValueString(x))) => Right(folding.copy(middle = x))
-							case ((StringOrInt.Left("family"), JsonValue.JsonValueString(x))) => Right(folding.copy(family = x))
-							case x => Left("NameBuilder: Unexpected key/value: " + x, 0)
+							case ((StringOrInt.Left("given"), JsonValue.JsonValueString(x))) => Complex(folding.copy(given = x))
+							case ((StringOrInt.Left("middle"), JsonValue.JsonValueString(x))) => Complex(folding.copy(middle = x))
+							case ((StringOrInt.Left("family"), JsonValue.JsonValueString(x))) => Complex(folding.copy(family = x))
+							case x => Failure("NameBuilder: Unexpected key/value: " + x, 0)
 						}
-					}.fold({mi => Failure(mi._1, mi._2)}, Complex.apply)
+					}.mergeToComplex
 				}
 			}
 			

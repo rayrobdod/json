@@ -69,6 +69,6 @@ final class SeqBuilder[-Key, -Value, Inner](childBuilder:Builder[Key, Value, Inn
 final class PrimitiveSeqBuilder[Value] extends Builder[Any, Value, Seq[Value]] {
 	override def init:Seq[Value] = Vector.empty[Value]
 	override def apply[Input](folding:Seq[Value], key:Any, innerInput:Input, parser:Parser[Any, Value, Input]):NonPrimitiveParserRetVal[Seq[Value]] = {
-		parser.parsePrimitive(innerInput).fold({(mi) => Failure(mi._1, mi._2)}, {x => Complex(folding :+ x)})
+		parser.parsePrimitive(innerInput).primitive.flatMap{x => Complex(folding :+ x)}.mergeToComplex
 	}
 }

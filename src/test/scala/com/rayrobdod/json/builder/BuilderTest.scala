@@ -40,8 +40,8 @@ class BuilderTest extends FunSpec {
 		def init = null
 		def apply[Input](folding:(A,B), key:A, input:Input, parser:Parser[A, B, Input]):NonPrimitiveParserRetVal[(A,B)] = {
 			parser.parsePrimitive(input)
-					.right.map{value => ((key, value))}
-					.fold({(mi) => Failure(mi._1, mi._2)}, {x => Complex(x)})
+					.primitive.map{value => ((key, value))}
+					.flip.mergeToComplex
 		}
 	}
 	

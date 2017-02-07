@@ -104,7 +104,7 @@ class PiecewiseParserTest extends FunSpec {
 				type Input = String
 				val key = "key"
 				val value = "value"
-				val child = new Parser[Key, Value, Input] { def parse[ComplexOutput](builder:Builder[Key, Value, ComplexOutput], i:Input):ParserRetVal[ComplexOutput, Value] = ParserRetVal.Failure("",0)}
+				val child = new Parser[Key, Value, Input] { def parse[ComplexOutput](builder:Builder[Key, Value, ComplexOutput], i:Input):ParserRetVal[ComplexOutput, Value] = Failure("",0)}
 				
 				object EchoBuilder extends Builder[Key, Value, (Key, Any, Parser[_,_,_])] {
 					def apply[Input](folding:(Key, Any, Parser[_,_,_]), key:Key, input:Input, parser:Parser[Key,Value,Input]):NonPrimitiveParserRetVal[(Key, Any, Parser[_,_,_])] = {

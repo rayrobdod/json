@@ -30,14 +30,14 @@ object NameBuilder extends Builder[StringOrInt, JsonValue, Name] {
   override def init:Name = Name("", "", "")
   override def apply[Input](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):NonPrimitiveParserRetVal[Name] = {
     // we only expect strings, so might as well parse the value at the beginning
-    parser.parsePrimitive(input).right.flatMap{value:JsonValue => value.stringToEither{strValue:String =>
+    parser.parsePrimitive(input).flatMap{value:JsonValue => value.stringToEither{strValue:String =>
       key match {
         case StringOrInt.Left("given") => Right(folding.copy(given = strValue))
         case StringOrInt.Left("middle") => Right(folding.copy(middle = strValue))
         case StringOrInt.Left("family") => Right(folding.copy(family = strValue))
         case x => Left("NameBuilder: Unexpected key/value: " + x, 0)
       }
-    }}.fold({si => Failure(si._1, si._2)}, {x => Complex(x)})
+    }.fold({si => Failure(si._1, si._2)}, {x => Complex(x)})}.mergeToComplex
   }
 }
 
@@ -58,8 +58,10 @@ val PersonBuilder = {
     .addDef("isAlive", new PiecewiseBuilder.KeyDef[StringOrInt, JsonValue, Person]{
       override def apply[Input](folding:Person, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):NonPrimitiveParserRetVal[Person] = {
         parser.parsePrimitive(input)
-        	.right.flatMap{_.booleanToEither{b => Right(folding.copy(isDead = !b))}}
-        	.fold({x => Failure(x._1, x._2)}, {x => Complex(x)})
+        	.flatMap{x:JsonValue => x.booleanToEither{b => Right(folding.copy(isDead = !b))}
+        		.fold({x => Failure(x._1, x._2)}, {x => Complex(x)})
+        	}
+        	.mergeToComplex
       }
     })
     // raw complex key def

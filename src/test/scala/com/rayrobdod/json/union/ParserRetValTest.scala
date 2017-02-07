@@ -31,6 +31,28 @@ import com.rayrobdod.json.union.ParserRetVal._
 
 final class ParserRetValTest extends FunSpec {
 	
+	describe("ParserRetVal") {
+		describe("map") {
+			it ("is avaliable for Complex =:= Nothing") {
+				assertResult(Primitive(6)){
+					(Primitive(3):ParserRetVal[Nothing, Int]).map{x:Int => x * 2}
+				}
+			}
+			it ("is avaliable for Primitive =:= Nothing") {
+				assertResult(Complex(6)){
+					(Complex(3):ParserRetVal[Int, Nothing]).map{x:Int => x * 2}
+				}
+			}
+			it ("is not avaliable if neither success param is Nothing") {
+				assertDoesNotCompile("""
+					val x:ParserRetVal[Int, Int] = Complex(3)
+					x.map{x => x * 2}
+				""")
+			}
+		}
+		
+	}
+	
 	describe("ComplexProjection") {
 		describe("map") {
 			it("Complex") { assertResult(Complex(12)){Complex(6).complex.map{x:Int => x * 2}} }

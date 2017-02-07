@@ -60,13 +60,13 @@ trait Parser[+Key, +Value, -Input] {
 	 * Parse the input into a Value. Return a Right if [[Parser.parse]] would have
 	 * returned a [[com.rayrobdod.json.union.ParserRetVal.Primitive Primitive]], else return a Left.
 	 */
-	final def parsePrimitive(i:Input):Either[(String, Int), Value] = {
+	final def parsePrimitive(i:Input):ParserRetVal[Nothing, Value] = {
 		val ignoreAllBuilder = new Builder[Key, Value, Any] {
 			def init:Any = this
 			def apply[I](a:Any,k:Key,i:I,p:Parser[Key,Value,I]):NonPrimitiveParserRetVal[Any] = ParserRetVal.Complex(a)
 		}
 		
-		this.parse(ignoreAllBuilder, i).primitive.toEither
+		this.parse(ignoreAllBuilder, i).complex.flatMap{x => ParserRetVal.Failure("Expecting Primitive", 0)}
 	}
 	
 	

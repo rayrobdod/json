@@ -47,7 +47,9 @@ class PiecewiseBuilderTest extends FunSpec {
 			val name = "Anony Mouse"
 			assertResult(Complex(new Person(name, 0))){
 				new PiecewiseBuilder(new Person("", 0))
-						.addDef("name", new KeyDef[String, String, Person]{def apply[I](s:Person, i:I, p:Parser[String, String, I]) = {Complex(s.copy(name = p.parsePrimitive(i).fold({x => ""}, {x => x})))}})
+						.addDef("name", new KeyDef[String, String, Person]{
+							def apply[I](s:Person, i:I, p:Parser[String, String, I]) = p.parsePrimitive(i).flatMap{x:String => Complex(s.copy(name = x))}.mergeToComplex
+						})
 						.apply(new Person("", 0), "name", name, new IdentityParser[String])
 			}
 		}
@@ -55,7 +57,9 @@ class PiecewiseBuilderTest extends FunSpec {
 			val age = 9001
 			assertResult(Complex(new Person("", age))){
 				new PiecewiseBuilder(new Person("", 0))
-						.addDef("age", new KeyDef[String, Int, Person]{def apply[I](s:Person, i:I, p:Parser[String, Int, I]) = {Complex(s.copy(age = p.parsePrimitive(i).fold({x => 0}, {x => x})))}})
+						.addDef("age", new KeyDef[String, Int, Person]{
+							def apply[I](s:Person, i:I, p:Parser[String, Int, I]) = p.parsePrimitive(i).flatMap{x:Int => Complex(s.copy(age = x))}.mergeToComplex
+						})
 						.apply(new Person("", 0), "age", age, new IdentityParser[Int])
 			}
 		}
@@ -87,8 +91,16 @@ class PiecewiseBuilderTest extends FunSpec {
 		
 		it ("works") {
 			val builder = new PiecewiseBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
-				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parsePrimitive(i).fold({mi => Failure(mi._1, mi._2)},{Complex.apply}).complex.flatMap{_ match {case JsonValueString(i) => Complex(s.copy(name = i)); case ex => Failure("name not string: " + ex, 0)}}}})
-				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parsePrimitive(i).fold({mi => Failure(mi._1, mi._2)},{Complex.apply}).complex.flatMap{_ match {case JsonValueNumber(i) => Complex(s.copy(age = i.intValue)); case ex => Failure("age not number: " + ex, 0)}}}})
+				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{
+					def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {
+						p.parsePrimitive(i).flatMap{x:JsonValue => x match {case JsonValueString(i) => Complex(s.copy(name = i)); case ex => Failure("name not string: " + ex, 0)}}.mergeToComplex
+					}
+				})
+				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{
+					def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {
+						p.parsePrimitive(i).flatMap{x:JsonValue => x match {case JsonValueNumber(i) => Complex(s.copy(age = i.intValue)); case ex => Failure("age not number: " + ex, 0)}}.mergeToComplex
+					}
+				})
 			
 			assertResult(Person("nqpppnl",1)){
 				new JsonParser().parse(builder, 
@@ -100,8 +112,16 @@ class PiecewiseBuilderTest extends FunSpec {
 			val exp = Seq(Person("a", 5), Person("b", 6))
 			
 			val personBuilder = new PiecewiseBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
-				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parsePrimitive(i).fold({mi => Failure(mi._1, mi._2)},{Complex.apply}).complex.flatMap{_ match {case JsonValueString(i) => Complex(s.copy(name = i)); case ex => Failure("name not string: " + ex, 0)}}}})
-				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{ def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {p.parsePrimitive(i).fold({mi => Failure(mi._1, mi._2)},{Complex.apply}).complex.flatMap{_ match {case JsonValueNumber(x) if x.isValidInt => Complex(s.copy(age = x.intValue)); case ex => Failure("age not number: " + ex, 0)}}}})
+				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{
+					def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {
+						p.parsePrimitive(i).flatMap{x:JsonValue => x match {case JsonValueString(i) => Complex(s.copy(name = i)); case ex => Failure("name not string: " + ex, 0)}}.mergeToComplex
+					}
+				})
+				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{
+					def apply[I](s:Person, i:I, p:Parser[StringOrInt, JsonValue, I]) = {
+						p.parsePrimitive(i).flatMap{x:JsonValue => x match {case JsonValueNumber(x) if x.isValidInt => Complex(s.copy(age = x.intValue)); case ex => Failure("age not number: " + ex, 0)}}.mergeToComplex
+					}
+				})
 			
 			val seqBuilder = new PiecewiseBuilder[StringOrInt, JsonValue, Seq[Person]](
 				Nil,

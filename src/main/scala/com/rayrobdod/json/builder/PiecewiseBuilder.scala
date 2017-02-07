@@ -159,7 +159,7 @@ object PiecewiseBuilder{
 	):KeyDef[Key, Value, Subject] = new KeyDef[Key, Value, Subject]{
 		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):NonPrimitiveParserRetVal[Subject] = {
 			parser.parsePrimitive(input)
-				.fold({mi => Failure(mi._1, mi._2)}, {suc => Complex(suc)})
+				.flip.mergeToComplex
 				.complex.flatMap{value:Value => (if (convert.isDefinedAt(value)) { convert.apply(value) } else { unexpectedValueErrorMessage(value) } )}
 				.complex.map{x:MiddleType => fold(folding, x)}
 		}

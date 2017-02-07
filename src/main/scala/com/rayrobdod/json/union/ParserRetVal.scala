@@ -69,9 +69,52 @@ sealed trait ParserRetVal[+Complex, +Primitive] {
 		this.fold({c => ParserRetVal.Complex(ev2(c))}, {p => ParserRetVal.Complex(ev1(p))}, {(s,i) => ParserRetVal.Failure(s,i)})
 	}
 	
+	/**
+	 * @since 4.0
+	 */
 	def flip:ParserRetVal[Primitive, Complex] = this match {
 		case ParserRetVal.Complex(x) => ParserRetVal.Primitive(x)
 		case ParserRetVal.Primitive(x) => ParserRetVal.Complex(x)
+		case x:ParserRetVal.Failure => x
+	}
+	
+	/**
+	 * Map Complex to a new type. Only avaliable if Primitive is Nothing
+	 * @since 4.0
+	 */
+	def map[A](fun : Complex => A)(implicit ev:Primitive <:< Nothing):ParserRetVal[A,Primitive] = this match {
+		case ParserRetVal.Complex(x) => ParserRetVal.Complex(fun(x))
+		case ParserRetVal.Primitive(x) => ParserRetVal.Primitive(x)
+		case x:ParserRetVal.Failure => x
+	}
+	
+	/**
+	 * Map Primtive to a new type. Only avaliable if Complex is Nothing
+	 * @since 4.0
+	 */
+	def map[A](fun : Primitive => A)(implicit ev:Complex <:< Nothing, ev2: Int =:= Int):ParserRetVal[Complex,A] = this match {
+		case ParserRetVal.Complex(x) => ParserRetVal.Complex(x)
+		case ParserRetVal.Primitive(x) => ParserRetVal.Primitive(fun(x))
+		case x:ParserRetVal.Failure => x
+	}
+	
+	/**
+	 * Flatmap Complex to a new type. Only avaliable if Primitive is Nothing
+	 * @since 4.0
+	 */
+	def flatMap[XX, PP](fun : Complex => ParserRetVal[XX, PP])(implicit ev:Primitive <:< Nothing):ParserRetVal[XX, PP] = this match {
+		case ParserRetVal.Complex(x) => fun(x)
+		case ParserRetVal.Primitive(x) => ParserRetVal.Primitive(ev(x))
+		case x:ParserRetVal.Failure => x
+	}
+	
+	/**
+	 * Flatmap Primtive to a new type. Only avaliable if Complex is Nothing
+	 * @since 4.0
+	 */
+	def flatMap[CC, XX](fun : Primitive => ParserRetVal[CC, XX])(implicit ev:Complex <:< Nothing, ev2: Int =:= Int):ParserRetVal[CC, XX] = this match {
+		case ParserRetVal.Complex(x) => ParserRetVal.Complex(ev(x))
+		case ParserRetVal.Primitive(x) => fun(x)
 		case x:ParserRetVal.Failure => x
 	}
 }

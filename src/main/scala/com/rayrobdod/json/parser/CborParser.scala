@@ -339,17 +339,17 @@ object CborParser {
 			def unapply(tag:Long):Option[TagFunction] = tag match {
 				case TagCodes.POS_BIG_INT => Some(new TagFunction{override def apply[A](b:Builder[CborValue, CborValue, A], i:DataInput) = {
 					val bsOpt = new CborParser().parsePrimitive(i)
-					bsOpt.right.flatMap{_ match {
-						case CborValueByteStr(bs)=> Right(CborValueNumber(Rational(bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))})))
-						case _ => Left("Tag 2 contained non-byte-string value", 0)
-					}}.fold({x => ParseReturnValueFailure(x._1, x._2)}, {x => ParseReturnValueSimple(x)})
+					bsOpt.primitive.flatMap{_ match {
+						case CborValueByteStr(bs)=> Complex(CborValueNumber(Rational(bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))})))
+						case _ => Failure("Tag 2 contained non-byte-string value", 0)
+					}}.mergeToEither.fold({x => ParseReturnValueFailure(x._1, x._2)}, {x => ParseReturnValueSimple(x)})
 				}})
 				case TagCodes.NEG_BIG_INT => Some(new TagFunction{override def apply[A](b:Builder[CborValue, CborValue, A], i:DataInput) = {
 					val bsOpt = new CborParser().parsePrimitive(i)
-					bsOpt.right.flatMap{_ match {
-						case CborValueByteStr(bs)=> Right(CborValueNumber(Rational((-1:BigInt) - bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))})))
-						case _ => Left("Tag 3 contained non-byte-string value", 0)
-					}}.fold({x => ParseReturnValueFailure(x._1, x._2)}, {x => ParseReturnValueSimple(x)})
+					bsOpt.primitive.flatMap{_ match {
+						case CborValueByteStr(bs)=> Complex(CborValueNumber(Rational((-1:BigInt) - bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))})))
+						case _ => Failure("Tag 3 contained non-byte-string value", 0)
+					}}.mergeToEither.fold({x => ParseReturnValueFailure(x._1, x._2)}, {x => ParseReturnValueSimple(x)})
 				}})
 				case TagCodes.BIG_DECIMAL => Some(new TagFunction{override def apply[A](b:Builder[CborValue, CborValue, A], i:DataInput) = {
 					new CborParser().parse(new PairBigIntBuilder("Tag 4"), i).fold(
@@ -382,13 +382,10 @@ object CborParser {
 			
 			override def init:(BigInt, BigInt) = ((BigInt(1), BigInt(1)))
 			final def apply[Input](folding:(BigInt, BigInt), key:CborValue, input:Input, parser:Parser[CborValue, CborValue, Input]):NonPrimitiveParserRetVal[(BigInt, BigInt)] = {
-				parser.parsePrimitive(input).fold(
-					{msg => Failure(msg._1, msg._2)},
-					{_ match {
+				parser.parsePrimitive(input).primitive.flatMap{_ match {
 						case CborValueNumber(x) => x.tryToBigInt.fold[NonPrimitiveParserRetVal[BigInt]](Failure(nonIntError, 0)){x => Complex(x)}
 						case _ => Failure(nonIntError, 0)
-					}}
-				).complex.flatMap{value =>
+				}}.mergeToComplex.complex.flatMap{value =>
 					key match {
 						case CborValueNumber(x) => x.tryToInt match {
 							case Some(0) => Complex(folding.copy(_1 = value))
