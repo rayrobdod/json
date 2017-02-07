@@ -29,7 +29,7 @@ package com.rayrobdod.json.builder;
 import scala.collection.immutable.Seq
 import java.nio.charset.StandardCharsets.UTF_8
 import com.rayrobdod.json.parser.CborParser.{MajorTypeCodes, SimpleValueCodes, TagCodes}
-import com.rayrobdod.json.union.{CborValue, NonPrimitiveParserRetVal}
+import com.rayrobdod.json.union.{CborValue, ParserRetVal}
 import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
 import com.rayrobdod.json.parser.{Parser, CborParser, byteArray2DataInput}
 
@@ -37,6 +37,7 @@ import com.rayrobdod.json.parser.{Parser, CborParser, byteArray2DataInput}
  * A builder whose output is a cbor-formatted byte string.
  * 
  * @since 3.0
+ * @version 4.0
  * @see [[http://tools.ietf.org/html/rfc7049]]
  * @constructor
  * A builder that will create cbor object format byte strings
@@ -48,7 +49,7 @@ final class CborBuilder(forceObject:Boolean = false) extends Builder[CborValue, 
 	/** The bytes to encode a zero-length array or object  */
 	override val init:Seq[Byte] = encodeLength((if (forceObject) {MajorTypeCodes.OBJECT} else {MajorTypeCodes.ARRAY}), 0)
 	
-	override def apply[Input](folding:Seq[Byte], key:CborValue, input:Input, parser:Parser[CborValue, CborValue, Input]):NonPrimitiveParserRetVal[Seq[Byte]] = {
+	override def apply[Input](folding:Seq[Byte], key:CborValue, input:Input, parser:Parser[CborValue, CborValue, Input]):ParserRetVal[Seq[Byte], Nothing] = {
 		val value = parser.parse[Seq[Byte]](this, input)
 		val encodedValueOpt = value.primitive.map{encodeValue}.mergeToComplex
 		encodedValueOpt.complex.flatMap{encodedValue =>

@@ -29,7 +29,7 @@ package com.rayrobdod.json.parser;
 import java.io.DataInput
 import java.nio.charset.StandardCharsets.UTF_8;
 import com.rayrobdod.json.builder.Builder
-import com.rayrobdod.json.union.{CborValue, NonPrimitiveParserRetVal}
+import com.rayrobdod.json.union.{CborValue, ParserRetVal}
 import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
 
 /**
@@ -39,7 +39,7 @@ import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
  * 4 (Array), 8 (Boolean), 10 (Null), 16 (Int32) and 18 (Int64).
  * Other types are unsupported.
  * 
- * @version 3.0
+ * @version 4.0
  * @see [[http://bsonspec.org/]]
  *
  * @constructor
@@ -48,12 +48,12 @@ import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
 final class BsonParser extends Parser[String, CborValue, DataInput] {
 	import BsonParser.{readCString, TypeCodes}
 	
-	def parse[A](builder:Builder[String, CborValue, A], input:DataInput):NonPrimitiveParserRetVal[A] = {
+	def parse[A](builder:Builder[String, CborValue, A], input:DataInput):ParserRetVal[A, Nothing] = {
 		try {
 			// We don't really care about the document length.
 			/* val length = */ Integer.reverseBytes( input.readInt() );
 			
-			var result:NonPrimitiveParserRetVal[A] = Complex(builder.init)
+			var result:ParserRetVal[A, Nothing] = Complex(builder.init)
 			var valueType:Byte = input.readByte();
 			while (valueType != TypeCodes.END_OF_DOCUMENT && result.isInstanceOf[Complex[_]]) {
 				val key:String = readCString(input)

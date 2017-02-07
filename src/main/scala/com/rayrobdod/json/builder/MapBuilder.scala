@@ -27,21 +27,21 @@
 package com.rayrobdod.json.builder;
 
 import com.rayrobdod.json.parser.Parser
+import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
-import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 import scala.collection.immutable.Map
 
 /**
  * A builder that creates maps.
  * 
- * @version 3.0
+ * @version 4.0
  * @constructor
  * Creates a MapBuilder which uses the specified key-to-MapChildBuilder function to create children
  * @param childBuilders A function that indicates which MapChildBuilder to use for a given key
  */
 final class MapBuilder[K, V, Inner](childBuilders:Function1[K, MapBuilder.MapChildBuilder[K, V, _, Inner]]) extends Builder[K, V, Map[K, Either[Inner, V]]] {
 	override val init:Map[K, Either[Inner, V]] = Map.empty
-	override def apply[Input](folding:Map[K, Either[Inner, V]], key:K, innerInput:Input, parser:Parser[K, V, Input]):NonPrimitiveParserRetVal[Map[K, Either[Inner, V]]] = {
+	override def apply[Input](folding:Map[K, Either[Inner, V]], key:K, innerInput:Input, parser:Parser[K, V, Input]):ParserRetVal[Map[K, Either[Inner, V]], Nothing] = {
 		val childBuilder = childBuilders(key)
 		childBuilder.apply(innerInput, parser).complex.map{eitherRes =>
 			folding + (key -> eitherRes)
@@ -61,14 +61,18 @@ object MapBuilder {
 		Map.apply(vals:_*)
 	}
 	
-	/** Types cannot be recursive without some kind of 'real' type in there somewhere */
+	/**
+	 * Types cannot be recursive without some kind of 'real' type in there somewhere
+	 * @version 4.0
+	 */
 	final case class RecursiveSubject[K,V](val value:Map[K, Either[RecursiveSubject[K, V], V]])
 	
 	/**
 	 * Pairs a builder and a function into a function to create a value from a parser and input.
+	 * @version 4.0
 	 */
 	final class MapChildBuilder[K, V, A, Inner](builder:Builder[K, V, A], result:Function1[A, Inner]) {
-		def apply[Input](innerInput:Input, parser:Parser[K, V, Input]):NonPrimitiveParserRetVal[Either[Inner, V]] = {
+		def apply[Input](innerInput:Input, parser:Parser[K, V, Input]):ParserRetVal[Either[Inner, V], Nothing] = {
 			parser.parse(builder, innerInput).fold({s => Complex(Left(result(s)))}, {p => Complex(Right(p))}, {(s,i) => Failure(s,i)})
 		}
 	}

@@ -32,7 +32,6 @@ import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.ParserRetVal
-import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 
 
 /**
@@ -40,7 +39,7 @@ import com.rayrobdod.json.union.NonPrimitiveParserRetVal
  * This parser is intended to be relatively strict.
  * 
  * @see [[http://json.org/]]
- * @version next
+ * @version 4.0
  *
  * @constructor
  * Creates a JsonParser instance.
@@ -91,7 +90,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, CountingReader] {
 	
 	/** Read an object value. Do not include the first `'{'` in `r` */
 	@scala.annotation.tailrec
-	private[this] def parseObjectValue[A](soFar:A, builder:Builder[StringOrInt, JsonValue, A], endObjectAllowed:Boolean)(r:CountingReader):NonPrimitiveParserRetVal[A] = {
+	private[this] def parseObjectValue[A](soFar:A, builder:Builder[StringOrInt, JsonValue, A], endObjectAllowed:Boolean)(r:CountingReader):ParserRetVal[A, Nothing] = {
 		var c = r.read()
 		while (c.isWhitespace) {c = r.read()}
 		val keyOpt : JsonParser.MidObjectParseValue[String] = c match {
@@ -123,13 +122,14 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, CountingReader] {
 						{err => JsonParser.Failure(err)},
 						{str => builder.apply(soFar, key, JsonValue(str), identityParser).fold(
 							{succ => JsonParser.WithAddedValue(succ)},
+							{x:Nothing => x},
 							{(msg, idx) => JsonParser.Failure((msg, idx + startCharIndex))}
 						)}
 					)
 				}
 				case '[' | '{' => {
 					r.goBackOne()
-					builder.apply(soFar, key, r, JsonParser.this).fold({x => JsonParser.WithAddedValue(x)}, {(m,i) => JsonParser.Failure(m,i)})
+					builder.apply(soFar, key, r, JsonParser.this).fold({x => JsonParser.WithAddedValue(x)}, {x:Nothing => x}, {(m,i) => JsonParser.Failure(m,i)})
 				}
 				case '.' => {
 					JsonParser.Failure(("Numeric value may not begin with a '.'", r.index))
@@ -140,6 +140,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, CountingReader] {
 						{err => JsonParser.Failure(err)},
 						{int => builder.apply(soFar, key, int, identityParser).fold(
 							{succ => JsonParser.WithAddedValue(succ)},
+							{x:Nothing => x},
 							{(msg, idx) => JsonParser.Failure((msg, idx + startCharIndex))}
 						)}
 					)
@@ -150,6 +151,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, CountingReader] {
 						{err => JsonParser.Failure(err)},
 						{word => builder.apply(soFar, key, word, identityParser).fold(
 							{succ => JsonParser.WithAddedValue(succ)},
+							{x:Nothing => x},
 							{(msg, idx) => JsonParser.Failure((msg, idx + startCharIndex))}
 						)}
 					)
@@ -177,7 +179,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, CountingReader] {
 	
 	/** Read an array value. Do not include the first `'['` in `r` */
 	@scala.annotation.tailrec
-	private[this] def parseArrayValue[A](soFar:A, builder:Builder[StringOrInt, JsonValue, A], arrayIndex:Int = 0)(r:CountingReader):NonPrimitiveParserRetVal[A] = {
+	private[this] def parseArrayValue[A](soFar:A, builder:Builder[StringOrInt, JsonValue, A], arrayIndex:Int = 0)(r:CountingReader):ParserRetVal[A, Nothing] = {
 		/** true iff the next character is allowed to end the array - i.e. be a ']' */
 		val endObjectAllowed:Boolean = (arrayIndex == 0);
 		
@@ -193,13 +195,14 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, CountingReader] {
 					{err => JsonParser.Failure(err)},
 					{str => builder.apply(soFar, arrayIndex, JsonValue(str), identityParser).fold(
 						{succ => JsonParser.WithAddedValue(succ)},
+						{x:Nothing => x},
 						{(msg, idx) => JsonParser.Failure((msg, idx + startCharIndex))}
 					)}
 				)
 			}
 			case '[' | '{' => {
 				r.goBackOne()
-				builder.apply(soFar, arrayIndex, r, JsonParser.this).fold({x => JsonParser.WithAddedValue(x)}, {(m,i) => JsonParser.Failure((m,i))})
+				builder.apply(soFar, arrayIndex, r, JsonParser.this).fold({x => JsonParser.WithAddedValue(x)}, {x:Nothing => x}, {(m,i) => JsonParser.Failure((m,i))})
 			}
 			case '.' => {
 				JsonParser.Failure(("Numeric value may not begin with a '.'", r.index))
@@ -210,6 +213,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, CountingReader] {
 					{err => JsonParser.Failure(err)},
 					{int => builder.apply(soFar, arrayIndex, int, identityParser).fold(
 						{succ => JsonParser.WithAddedValue(succ)},
+						{x:Nothing => x},
 						{(msg, idx) => JsonParser.Failure((msg, idx + startCharIndex))}
 					)}
 				)
@@ -220,6 +224,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, CountingReader] {
 					{err => JsonParser.Failure(err)},
 					{word => builder.apply(soFar, arrayIndex, word, identityParser).fold(
 						{succ => JsonParser.WithAddedValue(succ)},
+						{x:Nothing => x},
 						{(msg, idx) => JsonParser.Failure((msg, idx + startCharIndex))}
 					)}
 				)

@@ -28,7 +28,7 @@ package com.rayrobdod.json.parser;
 
 import org.scalatest.FunSpec;
 import scala.collection.immutable.Seq
-import com.rayrobdod.json.union.{CborValue, ParserRetVal, NonPrimitiveParserRetVal}
+import com.rayrobdod.json.union.{CborValue, ParserRetVal}
 import com.rayrobdod.json.builder._
 import com.rayrobdod.json.testing.HexArrayStringConverter
 
@@ -40,7 +40,7 @@ class CborParserTest_Unhappy extends FunSpec {
 	 */
 	final class SubjectAsAnyBuilder[K,V,S](backing:Builder[K,V,S]) extends Builder[K,V,Any] {
 		override def init:Any = backing.init
-		override def apply[Input](folding:Any, key:K, input:Input, parser:Parser[K, V, Input]):NonPrimitiveParserRetVal[Any] = {
+		override def apply[Input](folding:Any, key:K, input:Input, parser:Parser[K, V, Input]):ParserRetVal[Any, Nothing] = {
 			val folding2:S = folding.asInstanceOf[S]
 			backing.apply[Input](folding2, key, input, parser)
 		}

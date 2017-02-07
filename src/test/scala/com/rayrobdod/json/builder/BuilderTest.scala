@@ -31,14 +31,14 @@ import scala.collection.immutable.Seq;
 import com.rayrobdod.json.parser.Parser
 import com.rayrobdod.json.parser.FailureParser
 import com.rayrobdod.json.parser.IdentityParser
+import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.union.ParserRetVal.{Failure, Complex}
-import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 
 class BuilderTest extends FunSpec {
 	
 	private[this] final class ReportKeyValueBuilder[A,B] extends Builder[A,B,(A,B)] {
 		def init = null
-		def apply[Input](folding:(A,B), key:A, input:Input, parser:Parser[A, B, Input]):NonPrimitiveParserRetVal[(A,B)] = {
+		def apply[Input](folding:(A,B), key:A, input:Input, parser:Parser[A, B, Input]):ParserRetVal[(A,B), Nothing] = {
 			parser.parsePrimitive(input)
 					.primitive.map{value => ((key, value))}
 					.flip.mergeToComplex

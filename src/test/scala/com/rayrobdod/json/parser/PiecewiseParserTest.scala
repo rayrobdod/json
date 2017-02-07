@@ -33,7 +33,6 @@ import com.rayrobdod.json.builder.MapBuilder.{RecursiveSubject => MBRS}
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.union.ParserRetVal.{Failure, Complex}
-import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 
 class PiecewiseParserTest extends FunSpec {
 	private class Foo(val hello:Long, val world:String, val bazz:Boolean)
@@ -107,7 +106,7 @@ class PiecewiseParserTest extends FunSpec {
 				val child = new Parser[Key, Value, Input] { def parse[ComplexOutput](builder:Builder[Key, Value, ComplexOutput], i:Input):ParserRetVal[ComplexOutput, Value] = Failure("",0)}
 				
 				object EchoBuilder extends Builder[Key, Value, (Key, Any, Parser[_,_,_])] {
-					def apply[Input](folding:(Key, Any, Parser[_,_,_]), key:Key, input:Input, parser:Parser[Key,Value,Input]):NonPrimitiveParserRetVal[(Key, Any, Parser[_,_,_])] = {
+					def apply[Input](folding:(Key, Any, Parser[_,_,_]), key:Key, input:Input, parser:Parser[Key,Value,Input]):ParserRetVal[(Key, Any, Parser[_,_,_]), Nothing] = {
 						Complex(((key, input, parser)))
 					}
 					def init:(Key, Any, Parser[_,_,_]) =  ("","",null)

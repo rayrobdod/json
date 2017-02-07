@@ -27,7 +27,7 @@
 package com.rayrobdod.json.parser
 
 import com.rayrobdod.json.builder.Builder
-import com.rayrobdod.json.union.NonPrimitiveParserRetVal
+import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.union.ParserRetVal.Complex
 
 /**
@@ -44,8 +44,8 @@ final class PrimitiveSeqParser[V] extends Parser[Int,V,Seq[V]] {
 	 * @param vals the sequence containing values
 	 * @return the parsed object
 	 */
-	override def parse[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):NonPrimitiveParserRetVal[A] = {
-		vals.zipWithIndex.foldLeft[NonPrimitiveParserRetVal[A]](Complex(topBuilder.init)){(state:NonPrimitiveParserRetVal[A], valueKey:(V, Int)) => 
+	override def parse[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):ParserRetVal[A, Nothing] = {
+		vals.zipWithIndex.foldLeft[ParserRetVal[A, Nothing]](Complex(topBuilder.init)){(state:ParserRetVal[A, Nothing], valueKey:(V, Int)) => 
 			val (value, key) = valueKey;
 			state.complex.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[V])}
 		}
@@ -65,8 +65,8 @@ final class PrimitiveSeqParser[V] extends Parser[Int,V,Seq[V]] {
  * @param keyMapping a mapping from integer indexies to type K.
  */
 final class SeqParser[+K,+V,-Inner](recurse:Parser[K,V,Inner])(implicit keyMapping:Function1[Int, K]) extends Parser[K,V,Seq[Inner]] {
-	override def parse[A](topBuilder:Builder[K,V,A], vals:Seq[Inner]):NonPrimitiveParserRetVal[A] = {
-		vals.zipWithIndex.foldLeft[NonPrimitiveParserRetVal[A]](Complex(topBuilder.init)){(state:NonPrimitiveParserRetVal[A], valueKey:(Inner, Int)) => 
+	override def parse[A](topBuilder:Builder[K,V,A], vals:Seq[Inner]):ParserRetVal[A, Nothing] = {
+		vals.zipWithIndex.foldLeft[ParserRetVal[A, Nothing]](Complex(topBuilder.init)){(state:ParserRetVal[A, Nothing], valueKey:(Inner, Int)) => 
 			val (value, key2) = valueKey
 			val key = keyMapping(key2)
 			state.complex.flatMap{x => topBuilder.apply(x, key, value, recurse)}

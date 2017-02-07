@@ -30,7 +30,6 @@ import scala.collection.immutable.Map
 import com.rayrobdod.json.parser.Parser
 import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
-import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 
 /**
  * A Builder which can be built piecewise.
@@ -52,6 +51,7 @@ import com.rayrobdod.json.union.NonPrimitiveParserRetVal
  * }}}
  * 
  * @since 3.0
+ * @version 4.0
  * @see Inspired by [[https://github.com/scopt/scopt/]]
  * 
  * @tparam Key the key types
@@ -78,7 +78,7 @@ final class PiecewiseBuilder[Key, Value, Subject](
 	}
 	
 	
-	override def apply[Input](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, Input]):NonPrimitiveParserRetVal[Subject] = {
+	override def apply[Input](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, Input]):ParserRetVal[Subject, Nothing] = {
 		keyDefs.getOrElse(key, defaultKeyDef).apply(folding, input, parser)
 	}
 }
@@ -86,6 +86,7 @@ final class PiecewiseBuilder[Key, Value, Subject](
 /**
  * KeyDef and several implementations
  * @since 3.0
+ * @version 4.0
  */
 object PiecewiseBuilder{
 	private[this] val unexpectedValueErrorMessage:Function1[Any, Failure] = {x => Failure("Unexpected value: " + x, 0)}
@@ -93,16 +94,18 @@ object PiecewiseBuilder{
 	/**
 	 * A three-input function that accepts an object to build upon, and a input-parser pair that indicates a new value
 	 * @since 3.0
+	 * @version 4.0
 	 */
 	abstract class KeyDef[Key, Value, Subject] {
 		/** add a key-value pair to `s`; where `p.parse(someBuilder, i)` is the value, and the key is hard-coded. */
-		def apply[Input](s:Subject, i:Input, p:Parser[Key, Value, Input]):NonPrimitiveParserRetVal[Subject]
+		def apply[Input](s:Subject, i:Input, p:Parser[Key, Value, Input]):ParserRetVal[Subject, Nothing]
 	}
 	
 	/**
 	 * A KeyDef that is partitioned into a set of component functions
 	 * 
 	 * @since 3.0
+	 * @version 4.0
 	 * @param builder the builder that handles input.
 	 * @param convert convert a builder result into a value usable by fold. This is a partial function;
 	 *       anything not defined by this function is turned into an error value.
@@ -110,10 +113,10 @@ object PiecewiseBuilder{
 	 */
 	def partitionedKeyDef[Key, Value, Subject, BuilderResult, MiddleType](
 		builder:Builder[Key, Value, BuilderResult],
-		convert:PartialFunction[ParserRetVal[BuilderResult, Value], NonPrimitiveParserRetVal[MiddleType]],
+		convert:PartialFunction[ParserRetVal[BuilderResult, Value], ParserRetVal[MiddleType, Nothing]],
 		fold:Function2[Subject, MiddleType, Subject]
 	):KeyDef[Key, Value, Subject] = new KeyDef[Key, Value, Subject]{
-		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):NonPrimitiveParserRetVal[Subject] = {
+		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):ParserRetVal[Subject, Nothing] = {
 			val parserRetVal = parser.parse(builder, input)
 			if (convert.isDefinedAt(parserRetVal)) {
 				convert(parserRetVal).complex.map{x:MiddleType => fold(folding, x)}
@@ -127,14 +130,15 @@ object PiecewiseBuilder{
 	 * A KeyDef that is partitioned into a set of component functions with the expectation of complex values
 	 * 
 	 * @since 3.0
+	 * @version 4.0
 	 * @param builder the builder that handles input.
 	 * @param fold combine the previous subject and a successful convert into a new subject.
 	 */
 	def partitionedComplexKeyDef[Key, Value, Subject, BuilderResult](
 		builder:Builder[Key, Value, BuilderResult],
-		fold:Function2[Subject, BuilderResult, NonPrimitiveParserRetVal[Subject]]
+		fold:Function2[Subject, BuilderResult, ParserRetVal[Subject, Nothing]]
 	):KeyDef[Key, Value, Subject] = new KeyDef[Key, Value, Subject]{
-		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):NonPrimitiveParserRetVal[Subject] = {
+		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):ParserRetVal[Subject, Nothing] = {
 			parser.parse(builder, input)
 				.fold(
 					{x => Complex(x)},
@@ -149,15 +153,16 @@ object PiecewiseBuilder{
 	 * A KeyDef that is partitioned into a set of component functions with the expectation of primitive values
 	 * 
 	 * @since 3.0
+	 * @version 4.0
 	 * @param convert convert a builder result into a value usable by fold. This is a partial function;
 	 *       anything not defined by this function is turned into an error value.
 	 * @param fold combine the previous subject and a successful convert into a new subject.
 	 */
 	def partitionedPrimitiveKeyDef[Key, Value, Subject, MiddleType](
-		convert:PartialFunction[Value, NonPrimitiveParserRetVal[MiddleType]],
+		convert:PartialFunction[Value, ParserRetVal[MiddleType, Nothing]],
 		fold:Function2[Subject, MiddleType, Subject]
 	):KeyDef[Key, Value, Subject] = new KeyDef[Key, Value, Subject]{
-		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):NonPrimitiveParserRetVal[Subject] = {
+		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):ParserRetVal[Subject, Nothing] = {
 			parser.parsePrimitive(input)
 				.flip.mergeToComplex
 				.complex.flatMap{value:Value => (if (convert.isDefinedAt(value)) { convert.apply(value) } else { unexpectedValueErrorMessage(value) } )}
@@ -168,16 +173,18 @@ object PiecewiseBuilder{
 	/** 
 	 * A KeyDef that returns the folding value unchanged
 	 * @since 3.0
+	 * @version 4.0
 	 */
 	def ignoreKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
-		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):NonPrimitiveParserRetVal[A] = Complex(s)
+		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):ParserRetVal[A, Nothing] = Complex(s)
 	}
 	
 	/**
 	 * A KeyDef that returns an error message
 	 * @since 3.0
+	 * @version 4.0
 	 */
 	def throwKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
-		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):NonPrimitiveParserRetVal[A] = Failure("PiecewiseBuilder has no KeyDef for given key", 0)
+		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):ParserRetVal[A, Nothing] = Failure("PiecewiseBuilder has no KeyDef for given key", 0)
 	}
 }

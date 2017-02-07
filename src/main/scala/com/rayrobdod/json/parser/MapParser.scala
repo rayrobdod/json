@@ -27,12 +27,12 @@
 package com.rayrobdod.json.parser
 
 import com.rayrobdod.json.builder.Builder
+import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.union.ParserRetVal.Complex
-import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 
 /**
  * A parser that reads each key-value pair from a Map
- * @version 3.0
+ * @version 4.0
  * 
  * @tparam K the type of keys contained in the Map
  * @tparam V the type of values contained in the Map
@@ -45,8 +45,8 @@ final class MapParser[K,V] extends Parser[K,V,Map[K,V]] {
 	 * @param vals the sequence containing values
 	 * @return the parsed object
 	 */
-	def parse[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):NonPrimitiveParserRetVal[A] = {
-		vals.foldLeft[NonPrimitiveParserRetVal[A]](Complex(topBuilder.init)){(state:NonPrimitiveParserRetVal[A], keyValue:(K, V)) => 
+	def parse[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):ParserRetVal[A, Nothing] = {
+		vals.foldLeft[ParserRetVal[A, Nothing]](Complex(topBuilder.init)){(state:ParserRetVal[A, Nothing], keyValue:(K, V)) => 
 			val (key, value) = keyValue;
 			state.complex.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[V])}
 		}
@@ -55,6 +55,7 @@ final class MapParser[K,V] extends Parser[K,V,Map[K,V]] {
 
 /**
  * A parser that can parse the results of recursive MapBuilder builds
+ * @version 4.0
  * @tparam K the type of keys contained in the Map
  * @tparam V the primitive values contained in the Map
  * TODO make not-private in future version
@@ -68,8 +69,8 @@ private[parser] final class RecursiveMapParser[K,V] extends Parser[K, V, com.ray
 	 * @param vals the sequence containing values
 	 * @return the parsed object
 	 */
-	def parse[A](topBuilder:Builder[K,V,A], vals:MapBuilder.RecursiveSubjectType[K,V]):NonPrimitiveParserRetVal[A] = {
-		vals.foldLeft[NonPrimitiveParserRetVal[A]](Complex(topBuilder.init)){(state:NonPrimitiveParserRetVal[A], keyValue:RecursiveSubjectTupleType[K,V]) => 
+	def parse[A](topBuilder:Builder[K,V,A], vals:MapBuilder.RecursiveSubjectType[K,V]):ParserRetVal[A, Nothing] = {
+		vals.foldLeft[ParserRetVal[A, Nothing]](Complex(topBuilder.init)){(state:ParserRetVal[A, Nothing], keyValue:RecursiveSubjectTupleType[K,V]) => 
 			val (key, value) = keyValue;
 			state.complex.flatMap{folding =>
 				value.fold({complex:MapBuilder.RecursiveSubject[K,V] =>

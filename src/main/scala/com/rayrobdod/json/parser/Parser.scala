@@ -29,7 +29,6 @@ package com.rayrobdod.json.parser
 import scala.util.Either
 import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.union.ParserRetVal
-import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 
 /**
  * An object that parses an input into a sequence of key-value pairs for the
@@ -37,6 +36,7 @@ import com.rayrobdod.json.union.NonPrimitiveParserRetVal
  * 
  * @see [[com.rayrobdod.json.builder.Builder]]
  * @since 3.0
+ * @version 4.0
  * @tparam Key the key types
  * @tparam Value the primitive value types
  * @tparam Input the input to the parser
@@ -63,7 +63,7 @@ trait Parser[+Key, +Value, -Input] {
 	final def parsePrimitive(i:Input):ParserRetVal[Nothing, Value] = {
 		val ignoreAllBuilder = new Builder[Key, Value, Any] {
 			def init:Any = this
-			def apply[I](a:Any,k:Key,i:I,p:Parser[Key,Value,I]):NonPrimitiveParserRetVal[Any] = ParserRetVal.Complex(a)
+			def apply[I](a:Any,k:Key,i:I,p:Parser[Key,Value,I]):ParserRetVal.Complex[Any] = ParserRetVal.Complex(a)
 		}
 		
 		this.parse(ignoreAllBuilder, i).complex.flatMap{x => ParserRetVal.Failure("Expecting Primitive", 0)}
@@ -93,11 +93,14 @@ trait Parser[+Key, +Value, -Input] {
 		}
 	}
 	
-	/** Change the type of value that this builder requires, with the option of indicating an error condition */
+	/**
+	 * Change the type of value that this builder requires, with the option of indicating an error condition
+	 * @version 4.0
+	 */
 	final def flatMapValue[V2](fun:Function1[Value,Either[(String,Int),V2]]):Parser[Key,V2,Input] = new Parser[Key,V2,Input] {
 		override def parse[Output](builder:Builder[Key,V2,Output], i:Input):ParserRetVal[Output, V2] = {
 			Parser.this.parse[Output](builder.flatMapValue[Value](fun), i).primitive.flatMap{pe => 
-				ParserRetVal.eitherToPrimitive(fun(pe))
+				fun(pe).fold({(mi) => ParserRetVal.Failure(mi._1, mi._2)}, ParserRetVal.Primitive.apply)
 			}
 		}
 	}

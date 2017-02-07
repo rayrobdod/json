@@ -32,7 +32,6 @@ import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.union.ParserRetVal.{Failure, Complex}
-import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 
 class JsonParserTest_OtherBuilders extends FunSpec {
 	describe("JsonParser with other builders") {
@@ -53,7 +52,7 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 			
 			object SetBuilder extends Builder[StringOrInt, JsonValue, Set[String]] {
 				def init:Set[String] = Set.empty
-				def apply[Input](folding:Set[String], key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):NonPrimitiveParserRetVal[Set[String]] = {
+				def apply[Input](folding:Set[String], key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):ParserRetVal[Set[String], Nothing] = {
 					val inputVal = parser.parse(new ThrowBuilder, input)
 					val inputStr = inputVal match {case ParserRetVal.Primitive(JsonValue.JsonValueString(s)) => s; case _ => "????????"}
 					Complex(folding + inputStr)
@@ -62,7 +61,7 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 			
 			object NameBuilder extends Builder[StringOrInt, JsonValue, Name] {
 				override def init:Name = Name("", "", "")
-				override def apply[Input](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):NonPrimitiveParserRetVal[Name] = {
+				override def apply[Input](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):ParserRetVal[Name, Nothing] = {
 					// we only expect strings, so might as well parse the value at the beginning
 					parser.parsePrimitive(input).flatMap{value:JsonValue =>
 						((key, value)) match {
@@ -77,7 +76,7 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 			
 			object PersonBuilder extends Builder[StringOrInt, JsonValue, Person] {
 				def init:Person = Person(Name("", "", ""), "", false, Set.empty)
-				def apply[Input](folding:Person, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):NonPrimitiveParserRetVal[Person] = key match {
+				def apply[Input](folding:Person, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):ParserRetVal[Person, Nothing] = key match {
 					case StringOrInt.Left("name") => Complex(folding.copy(n = parser.parse(NameBuilder, input) match {case ParserRetVal.Complex(x) => x; case _ => new Name("","","")}))
 					case StringOrInt.Left("gender") => Complex(folding.copy(gender = parser.parse(new ThrowBuilder, input) match {case ParserRetVal.Primitive(JsonValue.JsonValueString(s)) => s; case _ => "????????"}))
 					case StringOrInt.Left("isDead") => Complex(folding.copy(isDead = parser.parse(new ThrowBuilder, input) match {case ParserRetVal.Primitive(JsonValue.JsonValueBoolean(s)) => s; case _ => false}))

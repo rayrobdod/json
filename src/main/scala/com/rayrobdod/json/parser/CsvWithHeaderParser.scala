@@ -30,7 +30,6 @@ import scala.collection.immutable.Seq
 import com.rayrobdod.json.builder.{Builder, PrimitiveSeqBuilder}
 import com.rayrobdod.json.union.{StringOrInt, ParserRetVal}
 import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
-import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 
 /**
  * A streaming decoder for csv data, where the first line of the csv data is a header row.
@@ -38,7 +37,7 @@ import com.rayrobdod.json.union.NonPrimitiveParserRetVal
  * This parser is lenient, in that it ignores trailing delimiters
  * 
  * A CSV file is always two levels deep, an array of key-value mappings.
- * @version next
+ * @version 4.0
  * 
  * @constructor
  * Creates a CsvParser instance.
@@ -72,13 +71,13 @@ final class CsvWithHeaderParser(
 	}
 	
 	def parse[A](builder:Builder[StringOrInt, String, A], chars:CountingReader):ParserRetVal[A,Nothing] = {
-		val keys:Seq[String] = lineParser.parse(new PrimitiveSeqBuilder[String], chars).fold({x => x}, {(s,i) => Nil})
+		val keys:Seq[String] = lineParser.parse(new PrimitiveSeqBuilder[String], chars).fold({x => x}, {x => x}, {(s,i) => Nil})
 		val myLineParser = lineParser.mapKey[StringOrInt]{i =>
 			if (keys.isDefinedAt(i)) {StringOrInt(keys(i))} else {StringOrInt(i)}
 		}
 		
 		@scala.annotation.tailrec
-		def dothing(rowIdx:Int, folding:A):NonPrimitiveParserRetVal[A] = {
+		def dothing(rowIdx:Int, folding:A):ParserRetVal[A, Nothing] = {
 			sealed trait ThingToDo
 			final case class Recurse(nextFolding:A) extends ThingToDo
 			object ReturnFolding extends ThingToDo
@@ -94,6 +93,7 @@ final class CsvWithHeaderParser(
 				builder.apply(folding, StringOrInt(rowIdx), chars, myLineParser).failure.map{(m,i) => ((m, i + rowStartCharIndex))} match {
 					case Complex(nextFolding) => Recurse(nextFolding)
 					case Failure(msg, idx) => ReturnFailure(msg, idx)
+					case ParserRetVal.Primitive(x) => x:Nothing
 				}
 			} catch {
 				// Readers don't have a hasNext

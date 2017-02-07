@@ -50,6 +50,32 @@ final class ParserRetValTest extends FunSpec {
 				""")
 			}
 		}
+		describe("flatMap") {
+			it ("is avaliable for Complex =:= Nothing") {
+				assertResult(Complex(6)){
+					(Primitive(3):ParserRetVal[Nothing, Int]).flatMap{x:Int => Complex(x * 2)}
+				}
+			}
+			it ("is avaliable for Primitive =:= Nothing") {
+				assertResult(Primitive(6)){
+					(Complex(3):ParserRetVal[Int, Nothing]).flatMap{x:Int => Primitive(x * 2)}
+				}
+			}
+			it ("is not avaliable if neither success param is Nothing") {
+				assertDoesNotCompile("""
+					val x:ParserRetVal[Int, Int] = Complex(3)
+					x.flatMap{x => x * 2}
+				""")
+			}
+		}
+		describe("flip") {
+			it ("Complex => Primitive") {
+				assertResult(Complex(6)){Primitive(6).flip}
+			}
+			it ("is avaliable for Primitive =:= Nothing") {
+				assertResult(Primitive(6)){Complex(6).flip}
+			}
+		}
 		
 	}
 	
@@ -63,11 +89,6 @@ final class ParserRetValTest extends FunSpec {
 			it("Complex") { assertResult(Primitive(12)){Complex(6).complex.flatMap{x:Int => Primitive(x * 2)}} }
 			it("Primitive") { assertResult(Primitive(3)){Primitive(3).complex.flatMap{x:Int => Primitive(x * 2)}} }
 			it("Failure") { assertResult(Failure("a", 23)){Failure("a", 23).complex.flatMap{x:Int => Primitive(x * 2)}} }
-		}
-		describe("toEither") {
-			it("Complex") { assertResult(Right(6)){Complex(6).complex.toEither} }
-			it("Primitive") { assertResult(Left(("Expected complex value", 0))){Primitive(3).complex.toEither} }
-			it("Failure") { assertResult(Left(("a", 23))){Failure("a", 23).complex.toEither} }
 		}
 	}
 }	

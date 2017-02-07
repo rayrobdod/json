@@ -27,8 +27,8 @@
 package com.rayrobdod.json.parser;
 
 import com.rayrobdod.json.builder.Builder
+import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
-import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 
 /**
  * A streaming decoder for csv data.
@@ -36,7 +36,7 @@ import com.rayrobdod.json.union.NonPrimitiveParserRetVal
  * This parser is lenient, in that it ignores trailing delimiters
  * 
  * A CSV file is always two levels deep - a two dimensional array.
- * @version next
+ * @version 4.0
  * 
  * @constructor
  * Creates a CsvParser instance.
@@ -54,7 +54,7 @@ final class CsvParser(
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse[A](builder:Builder[Int, String, A], chars:Iterable[Char]):NonPrimitiveParserRetVal[A] = {
+	def parse[A](builder:Builder[Int, String, A], chars:Iterable[Char]):ParserRetVal[A, Nothing] = {
 		this.parse(builder, new Iterator2Reader(chars.iterator))
 	}
 	
@@ -65,13 +65,13 @@ final class CsvParser(
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse[A](builder:Builder[Int, String, A], chars:java.io.Reader):NonPrimitiveParserRetVal[A] = {
+	def parse[A](builder:Builder[Int, String, A], chars:java.io.Reader):ParserRetVal[A, Nothing] = {
 		this.parse(builder, new CountingReader(chars))
 	}
 	
-	def parse[A](builder:Builder[Int, String, A], chars:CountingReader):NonPrimitiveParserRetVal[A] = {
+	def parse[A](builder:Builder[Int, String, A], chars:CountingReader):ParserRetVal[A, Nothing] = {
 		@scala.annotation.tailrec
-		def dothing(rowIdx:Int, folding:A):NonPrimitiveParserRetVal[A] = {
+		def dothing(rowIdx:Int, folding:A):ParserRetVal[A, Nothing] = {
 			sealed trait ThingToDo
 			final case class Recurse(nextFolding:A) extends ThingToDo
 			object ReturnFolding extends ThingToDo
@@ -87,6 +87,7 @@ final class CsvParser(
 				builder.apply(folding, rowIdx, chars, lineParser).failure.map{(m,i) => ((m, i + rowStartCharIndex))} match {
 					case Complex(nextFolding) => Recurse(nextFolding)
 					case Failure(msg, idx) => ReturnFailure(msg, idx)
+					case ParserRetVal.Primitive(x) => x:Nothing
 				}
 			} catch {
 				// Readers don't have a hasNext
@@ -169,7 +170,7 @@ object CsvParser {
 	 *		become true when an escape character is encountered and become false after encountering that literal character
 	 */
 	private[parser] final case class State[A] (
-		value:NonPrimitiveParserRetVal[A],
+		value:ParserRetVal[A, Nothing],
 		fieldStartIndex:Int,
 		innerIndex:Int,
 		innerInput:String,
@@ -183,7 +184,7 @@ object CsvParser {
 	
 	/** Splits a CSV record (i.e. one line) into fields */
 	private[parser] final class LineParser(meaningfulCharacters:CsvParser.CharacterMeanings) extends Parser[Int, String, CountingReader] {
-		def parse[A](builder:Builder[Int, String, A], chars:CountingReader):NonPrimitiveParserRetVal[A] = {
+		def parse[A](builder:Builder[Int, String, A], chars:CountingReader):ParserRetVal[A, Nothing] = {
 			val rowStartIndex = chars.index
 			var state = State(Complex(builder.init), rowStartIndex, 0, "", "", false, false)
 			try {

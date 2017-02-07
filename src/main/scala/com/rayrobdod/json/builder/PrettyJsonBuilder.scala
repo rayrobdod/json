@@ -30,8 +30,8 @@ import scala.collection.immutable.Seq;
 import java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.charset.Charset;
 import com.rayrobdod.json.union.{StringOrInt, JsonValue}
+import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
-import com.rayrobdod.json.union.NonPrimitiveParserRetVal
 import com.rayrobdod.json.parser.Parser
 
 
@@ -39,6 +39,7 @@ import com.rayrobdod.json.parser.Parser
  * A builder whose output is a json-formatted string.
  * 
  * @since 3.0
+ * @version 4.0
  * @see [[http://json.org/]]
  * @constructor
  * Construct a PrettyJsonBuilder
@@ -56,7 +57,7 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 	
 	val init:String = params.lbrace(level) + params.rbrace(level)
 	
-	def apply[Input](folding:String, key:StringOrInt, innerInput:Input, parser:Parser[StringOrInt, JsonValue, Input]):NonPrimitiveParserRetVal[String] = {
+	def apply[Input](folding:String, key:StringOrInt, innerInput:Input, parser:Parser[StringOrInt, JsonValue, Input]):ParserRetVal[String, Nothing] = {
 		parser.parse(nextLevel, innerInput).primitive.map{p => serialize(p, charset)}.mergeToComplex.complex.flatMap{encodedValue =>
 			if (init == folding) {
 				key match {
@@ -67,7 +68,7 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 			} else {
 				val bracket:Boolean = folding.take(params.lbracket(level).length) == params.lbracket(level)
 				val brace:Boolean = folding.take(params.lbrace(level).length) == params.lbrace(level)
-				val keptPartTry:NonPrimitiveParserRetVal[String] = {
+				val keptPartTry:ParserRetVal[String, Nothing] = {
 					if (bracket) {Complex(folding.dropRight(params.rbracket(level).length))}
 					else if (brace) {Complex(folding.dropRight(params.rbrace(level).length))}
 					else {Failure("folding is wrong", 0)}

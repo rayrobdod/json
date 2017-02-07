@@ -1,3 +1,8 @@
+## 4.0
+* Make easier to use `ParserRetVal` when one of the "success" values is `Nothing`
+* Make methods that used to return `Either[(String,Int),A]` return `ParserRetVal[A,Nothing]`
+
+
 ## 3.1
 * Remove deprecated builders and parsers
   - BeanBuilder, CaseClassBuilder, CborObjectBuilder, CborArrayBuilder,
