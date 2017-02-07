@@ -68,6 +68,7 @@ class JsonParserTest_Unhappy extends FunSpec {
 		, ("errors when number starts with a exponent indicator (object)", """{"":e5}""", mapBuilder, Some("Unexpected keyword: e5"), Option(4))
 		, ("errors when number starts with a plus sign (array)", """[+5]""", mapBuilder, Some("Expecting start of value; found +"), Option(1))
 		, ("errors when number starts with a plus sign (object)", """{"":+5}""", mapBuilder, Some("Expecting start of value; found +"), Option(4))
+		, ("number format (2)", """[51sfd]""", mapBuilder, Some("Not a number: 51sfd"), Option(1))
 		, ("number format", """{"":51sfd}""", mapBuilder, Some("Not a number: 51sfd"), Option(4))
 		, ("numbers cannot end with a dot", """{"":2.}""", mapBuilder, Some("Not a number: 2."), Option(4))
 		, ("numbers cannot end with an e", """{"":2e}""", mapBuilder, Some("Not a number: 2e"), Option(4))
@@ -79,6 +80,7 @@ class JsonParserTest_Unhappy extends FunSpec {
 		, ("'NaN' is not a keyword", """{"":NaN}""", mapBuilder, Some("Expecting start of value; found N"), Option(4))
 		
 		, ("errors on illegal escape character inside string", """["\a"]""", mapBuilder, None, Option(3))
+		, ("errors on illegal escape character inside string (obj)", """{"":"\a"}""", mapBuilder, None, Option(6))
 		, ("errors on illegal character in unicode escape", "[\"\\u1y34\"]", mapBuilder, None, Option(3))
 		, ("errors on illegal character in unicode escape 2", "[\"\\u1Y4\"]", mapBuilder, None, Option(3))
 		, ("errors on illegal character in unicode escape 3", "[\"\\u1 4\"]", mapBuilder, None, Option(3))

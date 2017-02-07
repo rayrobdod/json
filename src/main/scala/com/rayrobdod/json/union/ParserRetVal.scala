@@ -68,6 +68,12 @@ sealed trait ParserRetVal[+Complex, +Primitive] {
 	def mergeToComplex[A](implicit ev1:Primitive <:< A, ev2:Complex <:< A):NonPrimitiveParserRetVal[A] = {
 		this.fold({c => ParserRetVal.Complex(ev2(c))}, {p => ParserRetVal.Complex(ev1(p))}, {(s,i) => ParserRetVal.Failure(s,i)})
 	}
+	
+	def flip:ParserRetVal[Primitive, Complex] = this match {
+		case ParserRetVal.Complex(x) => ParserRetVal.Primitive(x)
+		case ParserRetVal.Primitive(x) => ParserRetVal.Complex(x)
+		case x:ParserRetVal.Failure => x
+	}
 }
 
 /**
