@@ -28,7 +28,6 @@ package com.rayrobdod.json.parser;
 
 import java.io.Reader
 import scala.util.{Either, Left, Right}
-import scala.math.BigDecimal
 import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue

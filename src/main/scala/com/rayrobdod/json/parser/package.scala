@@ -27,8 +27,7 @@
 package com.rayrobdod.json;
 
 import com.rayrobdod.json.builder.Builder
-import scala.collection.{Iterable, Iterator}
-// import scala.collection.{AbstractIterable, AbstractIterator}
+import scala.collection.Iterator
 import com.rayrobdod.json.union.ParserRetVal
 
 /**

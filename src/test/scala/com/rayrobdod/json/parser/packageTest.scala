@@ -27,22 +27,19 @@
 package com.rayrobdod.json.parser
 
 import org.scalatest.FunSpec
-import scala.collection.immutable.Seq
-import com.rayrobdod.json.builder.{SeqBuilder, PrettyJsonBuilder, ThrowBuilder, PrimitiveSeqBuilder}
-import com.rayrobdod.json.union.JsonValue
 
 class packageTest extends FunSpec {
 	describe("Iterator2Reader") {
 		it ("full read") {
 			val buf = new Array[Char](8)
 			val count = new Iterator2Reader("12345".iterator).read(buf)
-			assertResult(Array('1', '2', '3', '4', '5', '\0', '\0', '\0')){buf}
+			assertResult(Array('1', '2', '3', '4', '5', '\u0000', '\u0000', '\u0000')){buf}
 			assertResult(5){count}
 		}
 		it ("partial read") {
 			val buf = new Array[Char](8)
 			val count = new Iterator2Reader("12345".iterator).read(buf, 2, 3)
-			assertResult(Array('\0', '\0', '1', '2', '3', '\0', '\0', '\0')){buf}
+			assertResult(Array('\u0000', '\u0000', '1', '2', '3', '\u0000', '\u0000', '\u0000')){buf}
 			assertResult(3){count}
 		}
 		it ("close") {

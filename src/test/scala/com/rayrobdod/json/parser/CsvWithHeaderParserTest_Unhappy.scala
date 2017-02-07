@@ -27,7 +27,6 @@
 package com.rayrobdod.json.parser
 
 import org.scalatest.FunSpec
-import scala.collection.immutable.{Seq, Map}
 import com.rayrobdod.json.union.{StringOrInt, ParserRetVal}
 import com.rayrobdod.json.builder._
 

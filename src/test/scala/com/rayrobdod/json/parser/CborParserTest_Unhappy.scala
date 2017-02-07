@@ -27,7 +27,7 @@
 package com.rayrobdod.json.parser;
 
 import org.scalatest.FunSpec;
-import scala.collection.immutable.{Seq, Map};
+import scala.collection.immutable.Seq
 import com.rayrobdod.json.union.{CborValue, ParserRetVal}
 import com.rayrobdod.json.builder._
 import com.rayrobdod.json.testing.HexArrayStringConverter

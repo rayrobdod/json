@@ -2,9 +2,6 @@
 // Easiest way to run the interpreter with this library in the class path is probably to run "sbt console" in this project's root directory
 
 
-// other imports
-import scala.util.{Either, Left, Right}
-
 // imports from this library;
 import com.rayrobdod.json.parser.{Parser, PiecewiseParser, IdentityParser, PrimitiveSeqParser}
 import com.rayrobdod.json.builder.{Builder, PrettyJsonBuilder}

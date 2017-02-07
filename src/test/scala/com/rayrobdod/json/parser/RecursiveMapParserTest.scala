@@ -27,7 +27,6 @@
 package com.rayrobdod.json.parser
 
 import org.scalatest.FunSpec
-import scala.collection.immutable.Map
 import com.rayrobdod.json.builder.MapBuilder
 
 class RecursiveMapParserTest extends FunSpec {

@@ -366,12 +366,14 @@ class CborValueRationalTest extends FunSpec {
 			, (0x7C00.shortValue, Rational.PositiveInfinity)
 			, (0xFC00.shortValue, Rational.NegativeInfinity)
 		)
+		/*
 		val unhappy = Seq[Rational](
 			  new Rational(BigInt(2).pow(80), 1)
 			, new Rational(BigInt(10).pow(20), 1)
 			, new Rational(100000, 1)
 			, new Rational(1, 1 << 30)
 		)
+		*/
 		
 		describe("For value NaN") {
 			it ("To Rat") { assert{Rational.fromHalfFloat(0x7C20.shortValue).isNaN} }
