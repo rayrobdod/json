@@ -32,10 +32,11 @@ import com.rayrobdod.json.builder.MapBuilder;
 import com.rayrobdod.json.union.CborValue
 import com.rayrobdod.json.union.CborValue._
 import com.rayrobdod.json.testing.HexArrayStringConverter
+import com.rayrobdod.json.builder.MapBuilder.{RecursiveSubject => MBRS, RecursiveSubjectType => MBRST}
 
 final class CborParserTest_Happy extends FunSpec {
 	
-	private val testValues:Seq[(String, Array[Byte], CborParser.ParseReturnValue[Map[CborValue,Either[Nothing,CborValue]]], CborParser.TagMatcher)] = Seq(
+	private val testValues:Seq[(String, Array[Byte], CborParser.ParseReturnValue[MBRST[CborValue, CborValue]], CborParser.TagMatcher)] = Seq(
 		("false", Array[Byte](0xF4.byteValue), CborParser.ParseReturnValueSimple(CborValueBoolean(false)), CborParser.TagMatcher.empty),
 		("true", Array[Byte](0xF5.byteValue), CborParser.ParseReturnValueSimple(CborValueBoolean(true)), CborParser.TagMatcher.empty),
 		("null", Array[Byte](0xF6.byteValue), CborParser.ParseReturnValueSimple(CborValueNull), CborParser.TagMatcher.empty),
@@ -83,6 +84,11 @@ final class CborParserTest_Happy extends FunSpec {
 		, ("tag decimal frac (known)", hexArray"c4 820301", CborParser.ParseReturnValueSimple(CborValue(1000)), CborParser.TagMatcher.numbers)
 		, ("tag binary frac (known)", hexArray"c5 820301", CborParser.ParseReturnValueSimple(CborValue(8)), CborParser.TagMatcher.numbers)
 		, ("tag binary frac (known) (2)", hexArray"c5 822301", CborParser.ParseReturnValueSimple(CborValue(1.0 / 16)), CborParser.TagMatcher.numbers)
+		
+		, ("determinate array with complex values", hexArray"81 8100 FF", CborParser.ParseReturnValueComplex(Map(CborValue(0) -> Left(MBRS(Map(CborValue(0) -> Right(CborValue(0))))))), CborParser.TagMatcher.empty)
+		, ("indeterminate array with complex values", hexArray"9F 8100 FF", CborParser.ParseReturnValueComplex(Map(CborValue(0) -> Left(MBRS(Map(CborValue(0) -> Right(CborValue(0))))))), CborParser.TagMatcher.empty)
+		, ("determinate object with complex values", hexArray"A1 6161 8100 FF", CborParser.ParseReturnValueComplex(Map(CborValue("a") -> Left(MBRS(Map(CborValue(0) -> Right(CborValue(0))))))), CborParser.TagMatcher.empty)
+		, ("indeterminate object with complex values", hexArray"BF 0A 8100 FF", CborParser.ParseReturnValueComplex(Map(CborValue(10) -> Left(MBRS(Map(CborValue(0) -> Right(CborValue(0))))))), CborParser.TagMatcher.empty)
 	)
 	
 	
