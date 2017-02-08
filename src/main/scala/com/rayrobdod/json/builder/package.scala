@@ -27,7 +27,8 @@
 package com.rayrobdod.json
 
 import com.rayrobdod.json.parser.Parser
-import com.rayrobdod.json.union.ParserRetVal.Failure
+import com.rayrobdod.json.union.ParserRetVal.BuilderFailure
+import com.rayrobdod.json.union.Failures.EnforcedFailure
 
 /**
  * Contains the various built-in builders.
@@ -44,8 +45,8 @@ package builder {
 	 * A Builder that will always return a failure on call to apply
 	 * @since 3.0
 	 */
-	private[json] final class ThrowBuilder[K,V] extends Builder[K,V,Any] {
+	private[json] final class ThrowBuilder[K,V] extends Builder[K,V,EnforcedFailure.type,Any] {
 		override def init:Any = "using ThrowBuilder::init"
-		override def apply[I](a:Any,k:K,i:I,p:Parser[K,V,I]):Failure = Failure("using ThrowBuilder::apply", 0)
+		override def apply[I,BF](a:Any,k:K,i:I,p:Parser[K,V,BF,I]):BuilderFailure[EnforcedFailure.type] = BuilderFailure(EnforcedFailure)
 	}
 }

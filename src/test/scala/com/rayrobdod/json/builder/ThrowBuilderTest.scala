@@ -27,17 +27,15 @@
 package com.rayrobdod.json.builder;
 
 import org.scalatest.FunSpec;
-import com.rayrobdod.json.union.ParserRetVal.Failure
+import com.rayrobdod.json.union.ParserRetVal.BuilderFailure
+import com.rayrobdod.json.union.Failures.EnforcedFailure
 
 class ThrowBuilderTest extends FunSpec {
 	
 	describe("ThrowBuilder") {
 		it ("Returns a failure on apply regardless of inputs") {
-			new ThrowBuilder().apply("a", null, null, null) match {
-				case Failure(msg, idx) => {
-					// WOO!
-				}
-				case x => fail("Not a Failure: " + x)
+			assertResult(BuilderFailure(EnforcedFailure)){
+				new ThrowBuilder().apply("a", null, null, null)
 			}
 		}
 	}

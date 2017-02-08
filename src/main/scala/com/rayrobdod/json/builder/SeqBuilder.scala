@@ -29,7 +29,8 @@ package com.rayrobdod.json.builder;
 import scala.collection.immutable.Seq
 import com.rayrobdod.json.parser.Parser
 import com.rayrobdod.json.union.ParserRetVal
-import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
+import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure}
+import com.rayrobdod.json.union.Failures.{ExpectedPrimitive, ExpectedComplex}
 
 /** 
  * A Builder that will build a Vector of values, where each inner value is produced by the parameter builder.
@@ -46,13 +47,13 @@ import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
  * A builder that will create seqs of values built with the specified child builder
  * @param childBuilder a builder that this will use to produce child elements
  */
-final class SeqBuilder[-Key, -Value, Inner](childBuilder:Builder[Key, Value, Inner]) extends Builder[Key, Value, Seq[Inner]] {
+final class SeqBuilder[-Key, -Value, Failure, Inner](childBuilder:Builder[Key, Value, Failure, Inner]) extends Builder[Key, Value, Either[ExpectedComplex.type, Failure], Seq[Inner]] {
 	override def init:Seq[Inner] = Vector.empty[Inner]
-	override def apply[Input](folding:Seq[Inner], key:Key, innerInput:Input, parser:Parser[Key, Value, Input]):ParserRetVal[Seq[Inner], Nothing] = {
+	override def apply[Input, PF](folding:Seq[Inner], key:Key, innerInput:Input, parser:Parser[Key, Value, PF, Input]):ParserRetVal[Seq[Inner], Nothing, PF, Either[ExpectedComplex.type, Failure]] = {
 		parser.parse(childBuilder, innerInput)
 				.complex.map{x => folding :+ x}
-				.primitive.flatMap{x => Failure("Primitive value in Seqbuilder", 0)}
-				.fold({x => Complex(x)}, {x => x}, {(msg, idx) => Failure(msg, idx)})
+				.builderFailure.map{util.Right.apply _}
+				.primitive.flatMap{x => BuilderFailure(util.Left(ExpectedComplex))}
 	}
 }
 
@@ -67,9 +68,9 @@ final class SeqBuilder[-Key, -Value, Inner](childBuilder:Builder[Key, Value, Inn
  * @version 4.0
  * @tparam Value the type of primitive values encountered
  */
-final class PrimitiveSeqBuilder[Value] extends Builder[Any, Value, Seq[Value]] {
+final class PrimitiveSeqBuilder[Value] extends Builder[Any, Value, ExpectedPrimitive.type, Seq[Value]] {
 	override def init:Seq[Value] = Vector.empty[Value]
-	override def apply[Input](folding:Seq[Value], key:Any, innerInput:Input, parser:Parser[Any, Value, Input]):ParserRetVal[Seq[Value], Nothing] = {
+	override def apply[Input, PF](folding:Seq[Value], key:Any, innerInput:Input, parser:Parser[Any, Value, PF, Input]):ParserRetVal[Seq[Value], Nothing, PF, ExpectedPrimitive.type] = {
 		parser.parsePrimitive(innerInput).primitive.flatMap{x => Complex(folding :+ x)}.mergeToComplex
 	}
 }

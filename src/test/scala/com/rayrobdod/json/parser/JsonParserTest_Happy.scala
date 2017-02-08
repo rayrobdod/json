@@ -30,6 +30,7 @@ import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.StringOrInt
+import com.rayrobdod.json.union.ParserRetVal.Complex
 import com.rayrobdod.json.builder.MapBuilder;
 import com.rayrobdod.json.union.StringOrInt.{Left => SILeft, Right => SIRight}
 import com.rayrobdod.json.builder.MapBuilder.{RecursiveSubject => MBRS}
@@ -142,18 +143,18 @@ class JsonParserTest_Happy extends FunSpec {
 			
 			it (name) {
 				val source = source2
-				val result = new JsonParser().parse(parser, source).fold({x => x},{x => x},{(a,b) => a})
-				assertResult(expected){result}
+				val result = new JsonParser().parse(parser, source)
+				assertResult(Complex(expected)){result}
 			}
 			it (name + " (reader)") {
 				val source = new java.io.StringReader(source2)
-				val result = new JsonParser().parse(parser, source).fold({x => x},{x => x},{(a,b) => a})
-				assertResult(expected){result}
+				val result = new JsonParser().parse(parser, source)
+				assertResult(Complex(expected)){result}
 			}
 			it (name + " (iterable)") {
 				val source = source2.to[List]
-				val result = new JsonParser().parse(parser, source).fold({x => x},{x => x},{(a,b) => a})
-				assertResult(expected){result}
+				val result = new JsonParser().parse(parser, source)
+				assertResult(Complex(expected)){result}
 			}
 		}
 	}

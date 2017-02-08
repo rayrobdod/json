@@ -38,14 +38,14 @@ import com.rayrobdod.json.union.ParserRetVal.Complex
  * @constructor
  * Create a SeqParser
  */
-final class PrimitiveSeqParser[V] extends Parser[Int,V,Seq[V]] {
+final class PrimitiveSeqParser[V] extends Parser[Int,V,Nothing,Seq[V]] {
 	/**
 	 * Decodes the input values to an object.
 	 * @param vals the sequence containing values
 	 * @return the parsed object
 	 */
-	override def parse[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):ParserRetVal[A, Nothing] = {
-		vals.zipWithIndex.foldLeft[ParserRetVal[A, Nothing]](Complex(topBuilder.init)){(state:ParserRetVal[A, Nothing], valueKey:(V, Int)) => 
+	override def parse[A, BF](topBuilder:Builder[Int,V,BF,A], vals:Seq[V]):ParserRetVal[A, Nothing, Nothing, BF] = {
+		vals.zipWithIndex.foldLeft[ParserRetVal[A, Nothing, Nothing, BF]](Complex(topBuilder.init)){(state:ParserRetVal[A, Nothing, Nothing, BF], valueKey:(V, Int)) => 
 			val (value, key) = valueKey;
 			state.complex.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[V])}
 		}
@@ -64,9 +64,9 @@ final class PrimitiveSeqParser[V] extends Parser[Int,V,Seq[V]] {
  * @param recurse a parser for values contained in the sequence
  * @param keyMapping a mapping from integer indexies to type K.
  */
-final class SeqParser[+K,+V,-Inner](recurse:Parser[K,V,Inner])(implicit keyMapping:Function1[Int, K]) extends Parser[K,V,Seq[Inner]] {
-	override def parse[A](topBuilder:Builder[K,V,A], vals:Seq[Inner]):ParserRetVal[A, Nothing] = {
-		vals.zipWithIndex.foldLeft[ParserRetVal[A, Nothing]](Complex(topBuilder.init)){(state:ParserRetVal[A, Nothing], valueKey:(Inner, Int)) => 
+final class SeqParser[+K,+V,PF,-Inner](recurse:Parser[K,V,PF,Inner])(implicit keyMapping:Function1[Int, K]) extends Parser[K,V,PF,Seq[Inner]] {
+	override def parse[A,BF](topBuilder:Builder[K,V,BF,A], vals:Seq[Inner]):ParserRetVal[A, Nothing, PF, BF] = {
+		vals.zipWithIndex.foldLeft[ParserRetVal[A, Nothing, PF, BF]](Complex(topBuilder.init)){(state:ParserRetVal[A, Nothing, PF, BF], valueKey:(Inner, Int)) => 
 			val (value, key2) = valueKey
 			val key = keyMapping(key2)
 			state.complex.flatMap{x => topBuilder.apply(x, key, value, recurse)}

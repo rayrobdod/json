@@ -31,6 +31,7 @@ import org.scalatest.FunSpec
 import com.rayrobdod.json.builder.SeqBuilder
 import com.rayrobdod.json.builder.MapBuilder
 import com.rayrobdod.json.union.StringOrInt
+import com.rayrobdod.json.union.ParserRetVal.Complex
 
 final class CsvWithHeaderParserTest_Happy extends FunSpec {
 	private[this] def Map(es:(String, String)*):IMap[StringOrInt, Either[Nothing, String]] = {
@@ -72,13 +73,13 @@ final class CsvWithHeaderParserTest_Happy extends FunSpec {
 			
 			it (name) {
 				val source = source2
-				val result = new CsvWithHeaderParser(charMeans).parse(new SeqBuilder(MapBuilder.apply[StringOrInt, String]), source).fold({x => x},{x => x},{(a,b) => a})
-				assertResult(expected){result}
+				val result = new CsvWithHeaderParser(charMeans).parse(new SeqBuilder(MapBuilder.apply[StringOrInt, String]), source)
+				assertResult(Complex(expected)){result}
 			}
 			it (name + " (reader)") {
 				val source = new java.io.StringReader(source2)
-				val result = new CsvWithHeaderParser(charMeans).parse(new SeqBuilder(MapBuilder.apply[StringOrInt, String]), source).fold({x => x},{x => x},{(a,b) => a})
-				assertResult(expected){result}
+				val result = new CsvWithHeaderParser(charMeans).parse(new SeqBuilder(MapBuilder.apply[StringOrInt, String]), source)
+				assertResult(Complex(expected)){result}
 			}
 		}
 	}

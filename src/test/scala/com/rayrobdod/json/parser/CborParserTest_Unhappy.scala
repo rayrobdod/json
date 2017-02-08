@@ -31,6 +31,7 @@ import scala.collection.immutable.Seq
 import com.rayrobdod.json.union.{CborValue, ParserRetVal}
 import com.rayrobdod.json.builder._
 import com.rayrobdod.json.testing.HexArrayStringConverter
+import com.rayrobdod.json.parser.CborParser.Failures._
 
 class CborParserTest_Unhappy extends FunSpec {
 	
@@ -38,11 +39,11 @@ class CborParserTest_Unhappy extends FunSpec {
 	 * This is a wrapper required to put builders with different subjects in the same array.
 	 * The only reason erasing the subject is remotely acceptable is because the tests assume a failure (and thus fail on a successful parse) 
 	 */
-	final class SubjectAsAnyBuilder[K,V,S](backing:Builder[K,V,S]) extends Builder[K,V,Any] {
+	final class SubjectAsAnyBuilder[K,V,BF,S](backing:Builder[K,V,BF,S]) extends Builder[K,V,BF,Any] {
 		override def init:Any = backing.init
-		override def apply[Input](folding:Any, key:K, input:Input, parser:Parser[K, V, Input]):ParserRetVal[Any, Nothing] = {
+		override def apply[Input,PF](folding:Any, key:K, input:Input, parser:Parser[K, V, PF, Input]):ParserRetVal[Any, Nothing, PF, BF] = {
 			val folding2:S = folding.asInstanceOf[S]
-			backing.apply[Input](folding2, key, input, parser)
+			backing.apply[Input,PF](folding2, key, input, parser)
 		}
 	}
 	
@@ -52,41 +53,37 @@ class CborParserTest_Unhappy extends FunSpec {
 	private val seq2Builder = new SubjectAsAnyBuilder(new SeqBuilder(new PrimitiveSeqBuilder[CborValue]))
 	private val throwBuilder = new SubjectAsAnyBuilder(new ThrowBuilder[CborValue, CborValue])
 	
-	private val failureCases:Seq[(String, Array[Byte], Builder[CborValue, CborValue, Any], Option[String], Option[Int])] = Seq(
-		  ("errors when array is incomplete", Array[Byte](0x58, 30) ++ (1 to 10).map{_.byteValue}, seq1Builder, None, None)
-		, ("illegal additional info field", Array[Byte](28) ++ (1 to 50).map{_.byteValue}, seq1Builder, None, None)
-		, ("errors when INDET byte string contains non-string values", hexArray"5F44AABBCCDD21FF", mapBuilder, None, None)
-		, ("errors when INDET utf-8 string contains non-string values", hexArray"7F00FF", seq1Builder, None, None)
-		, ("errors when an integer has an indeterminate length", hexArray"1F", mapBuilder, None, None)
-		, ("errors when an integer has an 1E-type length", hexArray"1E", mapBuilder, None, None)
-		, ("errors when an integer has an 1D-type length", hexArray"1E", mapBuilder, None, None)
-		, ("errors when an integer has an 1C-type length", hexArray"1E", mapBuilder, None, None)
-		, ("errors when a byte array has an 1C-type length", hexArray"5C", mapBuilder, None, None)
-		, ("errors when a string array has an 1E-type length", hexArray"7E", mapBuilder, None, None)
-		, ("errors when a simple value has an 1C-type length", hexArray"FC", mapBuilder, None, None)
-		, ("errors when a negative integer has an indeterminate length", hexArray"3F", mapBuilder, None, None)
-		, ("errors when a tag has an indeterminate length", hexArray"DF", mapBuilder, None, None)
-		, ("errors upon finding a standalone END_OF_INDETERMINATE_OBJECT", hexArray"FF", mapBuilder, None, None)
+	private val failureCases:Seq[(String, Array[Byte], Builder[CborValue, CborValue, Any, Any], CborParser.Failures)] = Seq(
+		  ("errors when array is incomplete", Array[Byte](0x58, 30) ++ (1 to 10).map{_.byteValue}, seq1Builder, IOException(null))
+		, ("illegal additional info field", Array[Byte](28) ++ (1 to 50).map{_.byteValue}, seq1Builder, IllegalAdditionalInfoField(28))
+		, ("errors when INDET byte string contains non-string values", hexArray"5F44AABBCCDD21FF", mapBuilder, IndeterminateStringSubstringsNotStrings)
+		, ("errors when INDET utf-8 string contains non-string values", hexArray"7F00FF", seq1Builder, IndeterminateStringSubstringsNotStrings)
+		, ("errors when an integer has an indeterminate length", hexArray"1F", mapBuilder, IndeterminateIntegerValue)
+		, ("errors when an integer has an 1E-type length", hexArray"1E", mapBuilder, IllegalAdditionalInfoField(30))
+		, ("errors when an integer has an 1D-type length", hexArray"1D", mapBuilder, IllegalAdditionalInfoField(29))
+		, ("errors when an integer has an 1C-type length", hexArray"1C", mapBuilder, IllegalAdditionalInfoField(28))
+		, ("errors when a byte array has an 1C-type length", hexArray"5C", mapBuilder, IllegalAdditionalInfoField(28))
+		, ("errors when a string array has an 1E-type length", hexArray"7E", mapBuilder, IllegalAdditionalInfoField(30))
+		, ("errors when a simple value has an 1C-type length", hexArray"FC", mapBuilder, IllegalAdditionalInfoField(28))
+		, ("errors when a negative integer has an indeterminate length", hexArray"3F", mapBuilder, IndeterminateIntegerValue)
+		, ("errors when a tag has an indeterminate length", hexArray"DF", mapBuilder, IndeterminateTagValue)
+		, ("errors upon finding a standalone END_OF_INDETERMINATE_OBJECT", hexArray"FF", mapBuilder, NonPublicValue)
 		
-		, ("IDENT Object with non-primitive key fails", hexArray"A1 80 00", seq1Builder, None, None)
-		, ("Object with non-primitive key fails", hexArray"BF 80 00 FF", seq1Builder, None, None)
-		, ("cannot handle an indeterminate object with complex keys", hexArray"BF 8100 0A FF", mapBuilder, None, None)
+		, ("IDENT Object with non-primitive key fails", hexArray"A1 80 00", seq1Builder, NonSimpleMapKey)
+		, ("Object with non-primitive key fails", hexArray"BF 80 00 FF", seq1Builder, NonSimpleMapKey)
+		, ("cannot handle an indeterminate object with complex keys", hexArray"BF 8100 0A FF", mapBuilder, NonSimpleMapKey)
 		
-		, ("IDENT Array of unknown tag fails", hexArray"9F d9d9f6 00 FF", mapBuilder, None, None) // or d9d9f7 with CborParser.TagMatcher.empty
+		, ("IDENT Array of unknown tag fails", hexArray"9F d9d9f6 00 FF", mapBuilder, NonPublicValue) // or d9d9f7 with CborParser.TagMatcher.empty
 	)
 	
 	
 	describe("CborParser") {
 		failureCases.foreach{abcde =>
-			val (name, source, builder, expectedMsg, expectedIdx) = abcde
+			val (name, source, builder, expectedFailures) = abcde
 			
 			it (name) {
-				parser.parse(builder, byteArray2DataInput(source)) match {
-					case ParserRetVal.Failure(msg, idx) => {
-						expectedMsg.foreach{x => assertResult(x){msg}}
-						expectedIdx.foreach{x => assertResult(x){idx}}
-					}
-					case x => fail(s"Not a failure: $x")
+				assertResult(ParserRetVal.ParserFailure(expectedFailures)){
+					parser.parse(builder, byteArray2DataInput(source))
 				}
 			}
 		}

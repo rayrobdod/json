@@ -28,7 +28,6 @@ package com.rayrobdod.json.builder;
 
 import com.rayrobdod.json.parser.Parser
 import com.rayrobdod.json.union.ParserRetVal
-import com.rayrobdod.json.union.ParserRetVal.Failure
 
 /**
  * An object which takes a series of key-value pairs and combines them into an object using
@@ -38,9 +37,10 @@ import com.rayrobdod.json.union.ParserRetVal.Failure
  * @see [[com.rayrobdod.json.parser.Parser]]
  * @tparam Key the type of keys used by the Parser that this Builder will be used by
  * @tparam Value the type of primitive value types used by the Parser that this Builder will be used by
+ * @tparam Failure possible ways this builder can fail
  * @tparam Subject the type of object built by this Builder
  */
-trait Builder[-Key, -Value, Subject] {
+trait Builder[-Key, -Value, +Failure, Subject] {
 	/**
 	 * An 'empty' object. Can be thought of as either the value used at the
 	 * start of a fold-left operation, or as an object filled with default values.
@@ -61,7 +61,7 @@ trait Builder[-Key, -Value, Subject] {
 	 *   - A [[scala.util.Right]] containing the built value, or
 	 *   - A [[scala.util.Left]] indicating an error message and error index
 	 */
-	def apply[Input](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, Input]):ParserRetVal[Subject, Nothing]
+	def apply[Input, ParserFailure](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, ParserFailure, Input]):ParserRetVal[Subject, Nothing, ParserFailure, Failure]
 	
 	
 	/**
@@ -69,9 +69,9 @@ trait Builder[-Key, -Value, Subject] {
 	 * @param fun a conversion function from the new key to this's key
 	 * @since 3.0
 	 */
-	final def mapKey[K2](implicit fun:Function1[K2,Key]):Builder[K2,Value,Subject] = new Builder[K2,Value,Subject] {
+	final def mapKey[K2](implicit fun:Function1[K2,Key]):Builder[K2,Value,Failure,Subject] = new Builder[K2,Value,Failure,Subject] {
 		override def init:Subject = Builder.this.init
-		override def apply[Input](a:Subject, key:K2, b:Input, c:Parser[K2, Value, Input]):ParserRetVal[Subject, Nothing] = {
+		override def apply[Input, PF](a:Subject, key:K2, b:Input, c:Parser[K2, Value, PF, Input]):ParserRetVal[Subject, Nothing, PF, Failure] = {
 			Builder.this.apply(a, fun(key), b, c.mapKey(fun))
 		}
 	}
@@ -81,12 +81,18 @@ trait Builder[-Key, -Value, Subject] {
 	 * @param fun a conversion function from the new key to this's key
 	 * @since 3.1
 	 */
-	final def flatMapKey[K2](fun:Function1[K2,Either[(String,Int),Key]]):Builder[K2,Value,Subject] = new Builder[K2,Value,Subject] {
+	final def flatMapKey[K2, Err](fun:Function1[K2,Either[Err,Key]]):Builder[K2,Value,util.Either[Err,Failure],Subject] = new Builder[K2,Value,util.Either[Err,Failure],Subject] {
 		override def init:Subject = Builder.this.init
-		override def apply[Input](a:Subject, key:K2, b:Input, c:Parser[K2, Value, Input]):ParserRetVal[Subject, Nothing] = {
+		override def apply[Input, PF](a:Subject, key:K2, b:Input, c:Parser[K2, Value, PF, Input]):ParserRetVal[Subject, Nothing, PF, util.Either[Err,Failure]] = {
 			fun(key).fold(
-				{f => Failure(f._1, f._2)},
-				{k2 => Builder.this.apply(a, k2, b, c.flatMapKey(fun))}
+				{f => ParserRetVal.BuilderFailure(util.Left(f))},
+				{k2:Key => Builder.this.apply(a, k2, b, c.flatMapKey(fun))
+					.builderFailure.map{util.Right.apply}
+					.parserFailure.flatMap{_.fold(
+						{x => ParserRetVal.BuilderFailure(util.Left(x))},
+						ParserRetVal.ParserFailure.apply _
+					)}
+				}
 			)
 		}
 	}
@@ -96,9 +102,9 @@ trait Builder[-Key, -Value, Subject] {
 	 * @param fun a conversion function from the new value to this's value
 	 * @since 3.0
 	 */
-	final def mapValue[V2](implicit fun:Function1[V2,Value]):Builder[Key,V2,Subject] = new Builder[Key,V2,Subject] {
+	final def mapValue[V2](implicit fun:Function1[V2,Value]):Builder[Key,V2,Failure,Subject] = new Builder[Key,V2,Failure,Subject] {
 		override def init:Subject = Builder.this.init
-		override def apply[Input](a:Subject, key:Key, b:Input, c:Parser[Key, V2, Input]):ParserRetVal[Subject, Nothing] = {
+		override def apply[Input, PF](a:Subject, key:Key, b:Input, c:Parser[Key, V2, PF, Input]):ParserRetVal[Subject, Nothing, PF, Failure] = {
 			Builder.this.apply(a, key, b, c.mapValue(fun))
 		}
 	}
@@ -107,10 +113,15 @@ trait Builder[-Key, -Value, Subject] {
 	 * Change the type of value that this builder requires, with the option of indicating an error condition
 	 * @since 3.0
 	 */
-	final def flatMapValue[V2](fun:Function1[V2,Either[(String,Int),Value]]):Builder[Key,V2,Subject] = new Builder[Key,V2,Subject] {
+	final def flatMapValue[V2,Err](fun:Function1[V2,Either[Err,Value]]):Builder[Key,V2,util.Either[Err,Failure],Subject] = new Builder[Key,V2,util.Either[Err,Failure],Subject] {
 		override def init:Subject = Builder.this.init
-		override def apply[Input](a:Subject, key:Key, b:Input, c:Parser[Key, V2, Input]):ParserRetVal[Subject, Nothing] = {
+		override def apply[Input, PF](a:Subject, key:Key, b:Input, c:Parser[Key, V2, PF, Input]):ParserRetVal[Subject, Nothing, PF, util.Either[Err,Failure]] = {
 			Builder.this.apply(a, key, b, c.flatMapValue(fun))
+				.builderFailure.map(util.Right.apply _)
+				.parserFailure.flatMap{_.fold(
+					{x => ParserRetVal.BuilderFailure(util.Left(x))},
+					ParserRetVal.ParserFailure.apply _
+				)}
 		}
 	}
 	

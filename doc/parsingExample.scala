@@ -6,7 +6,9 @@
 import com.rayrobdod.json.parser.{Parser, JsonParser}
 import com.rayrobdod.json.builder.{Builder, PiecewiseBuilder, PrimitiveSeqBuilder}
 import com.rayrobdod.json.union.{StringOrInt, JsonValue, ParserRetVal}
-import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
+import com.rayrobdod.json.union.ParserRetVal.{Complex, Primitive, ParserFailure, BuilderFailure}
+import com.rayrobdod.json.union.PiecewiseBuilderFailures
+import com.rayrobdod.json.union.Failures.{UnsuccessfulTypeCoersion, UnknownKey}
 
 // the data classes
 case class Name(given:String, middle:String, family:String)
@@ -25,18 +27,18 @@ val json = """{
 }"""
 
 // Example directly subclassing Builder
-object NameBuilder extends Builder[StringOrInt, JsonValue, Name] {
+object NameBuilder extends Builder[StringOrInt, JsonValue, PiecewiseBuilderFailures, Name] {
   override def init:Name = Name("", "", "")
-  override def apply[Input](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):ParserRetVal[Name, Nothing] = {
+  override def apply[Input, PF](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, PF, Input]):ParserRetVal[Name, Nothing, PF, PiecewiseBuilderFailures] = {
     // we only expect strings, so might as well parse the value at the beginning
     parser.parsePrimitive(input).flatMap{value:JsonValue => value.stringToEither{strValue:String =>
       key match {
         case StringOrInt.Left("given") => Right(folding.copy(given = strValue))
         case StringOrInt.Left("middle") => Right(folding.copy(middle = strValue))
         case StringOrInt.Left("family") => Right(folding.copy(family = strValue))
-        case x => Left("NameBuilder: Unexpected key/value: " + x, 0)
+        case x => Left(("", 0))
       }
-    }.fold({si => Failure(si._1, si._2)}, {x => Complex(x)})}.mergeToComplex
+    }.fold({err => BuilderFailure(UnknownKey)}, {x => Complex(x)})}
   }
 }
 
@@ -55,33 +57,32 @@ val PersonBuilder = {
     ))
     // raw private key def
     .addDef("isAlive", new PiecewiseBuilder.KeyDef[StringOrInt, JsonValue, Person]{
-      override def apply[Input](folding:Person, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):ParserRetVal[Person, Nothing] = {
+      override def apply[Input, PF](folding:Person, input:Input, parser:Parser[StringOrInt, JsonValue, PF, Input]):ParserRetVal[Person, Nothing, PF, PiecewiseBuilderFailures] = {
         parser.parsePrimitive(input)
         	.flatMap{x:JsonValue => x.booleanToEither{b => Right(folding.copy(isDead = !b))}
-        		.fold({x => Failure(x._1, x._2)}, {x => Complex(x)})
+        		.fold({x => BuilderFailure(UnsuccessfulTypeCoersion("","",""))}, {x => Complex(x)})
         	}
-        	.mergeToComplex
       }
     })
     // raw complex key def
     .addDef("interests", new PiecewiseBuilder.KeyDef[StringOrInt, JsonValue, Person]{
-      override def apply[Input](folding:Person, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):ParserRetVal[Person, Nothing] = {
+      override def apply[Input, PF](folding:Person, input:Input, parser:Parser[StringOrInt, JsonValue, PF, Input]):ParserRetVal[Person, Nothing, PF, PiecewiseBuilderFailures] = {
         parser.parse(new PrimitiveSeqBuilder, input) match {
           case ParserRetVal.Complex(seq) => {
-            seq.foldLeft[ParserRetVal[Vector[String], Nothing]](Complex(Vector.empty)){(folding:ParserRetVal[Vector[String], Nothing], value:JsonValue) => folding.complex.flatMap(sequence => value match {
+            seq.foldLeft[ParserRetVal[Vector[String], Nothing, PF, PiecewiseBuilderFailures]](Complex(Vector.empty)){(folding:ParserRetVal[Vector[String], Nothing, PF, PiecewiseBuilderFailures], value:JsonValue) => folding.complex.flatMap(sequence => value match {
               case JsonValue.JsonValueString(s) => Complex(sequence :+ s)
-              case _ => Failure("interests is seq, but contained non-strings", 0)
+              case x => BuilderFailure(UnsuccessfulTypeCoersion(x, "JsonValue", "String"))
             })}.complex.map{x => folding.copy(interests = x)}
           }
           // allow a single interest to be represented as a string not in an array
           case ParserRetVal.Primitive(JsonValue.JsonValueString(interest)) => Complex(folding.copy(interests = Seq(interest)))
-          case unknown => Failure("interests not Seq: " + unknown, 0)
+          case unknown => BuilderFailure(UnsuccessfulTypeCoersion(unknown, "Any", "Seq[String]"))
         }
     }})
 }
 
 // parse the json file
-val result:ParserRetVal[Person, JsonValue] = new JsonParser().parse(PersonBuilder, json)
+val result:ParserRetVal[Person, JsonValue, JsonParser.Failures, PiecewiseBuilderFailures] = new JsonParser().parse(PersonBuilder, json)
 
 // at this point, do something with `result`
 result.fold({person =>
@@ -89,6 +90,8 @@ result.fold({person =>
   System.out.println(person)
 },{x =>
   System.out.println("Parsed primitive: " + x)
-},{(msg, idx) =>
-  System.out.println(s"Parse error at char $idx: $msg")
+},{x =>
+  System.out.println(s"Json formatted incorrectly: $x")
+},{x =>
+  System.out.println(s"Json contents doesn't match expected model: $x")
 })

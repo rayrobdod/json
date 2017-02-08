@@ -29,6 +29,7 @@ package com.rayrobdod.json.parser;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.PrimitiveSeqBuilder;
 import com.rayrobdod.json.builder.SeqBuilder;
+import com.rayrobdod.json.union.ParserRetVal.Complex
 
 final class CsvParserTest_Happy extends FunSpec {
 	
@@ -73,13 +74,13 @@ final class CsvParserTest_Happy extends FunSpec {
 			
 			it (name) {
 				val source = source2
-				val result = new CsvParser(charMeans).parse(new SeqBuilder(new PrimitiveSeqBuilder[String]), source).fold({x => x},{x => x},{(a,b) => a})
-				assertResult(expected){result}
+				val result = new CsvParser(charMeans).parse(new SeqBuilder(new PrimitiveSeqBuilder[String]), source)
+				assertResult(Complex(expected)){result}
 			}
 			it (name + " (reader)") {
 				val source = new java.io.StringReader(source2)
-				val result = new CsvParser(charMeans).parse(new SeqBuilder(new PrimitiveSeqBuilder[String]), source).fold({x => x},{x => x},{(a,b) => a})
-				assertResult(expected){result}
+				val result = new CsvParser(charMeans).parse(new SeqBuilder(new PrimitiveSeqBuilder[String]), source)
+				assertResult(Complex(expected)){result}
 			}
 		}
 	}

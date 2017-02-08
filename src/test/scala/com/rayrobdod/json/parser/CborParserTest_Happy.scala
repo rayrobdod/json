@@ -36,7 +36,7 @@ import com.rayrobdod.json.builder.MapBuilder.{RecursiveSubject => MBRS, Recursiv
 
 final class CborParserTest_Happy extends FunSpec {
 	
-	private val testValues:Seq[(String, Array[Byte], CborParser.ParseReturnValue[MBRST[CborValue, CborValue]], CborParser.TagMatcher)] = Seq(
+	private val testValues:Seq[(String, Array[Byte], CborParser.ParseReturnValue[MBRST[CborValue, CborValue], Nothing], CborParser.TagMatcher)] = Seq(
 		("false", Array[Byte](0xF4.byteValue), CborParser.ParseReturnValueSimple(CborValueBoolean(false)), CborParser.TagMatcher.empty),
 		("true", Array[Byte](0xF5.byteValue), CborParser.ParseReturnValueSimple(CborValueBoolean(true)), CborParser.TagMatcher.empty),
 		("null", Array[Byte](0xF6.byteValue), CborParser.ParseReturnValueSimple(CborValueNull), CborParser.TagMatcher.empty),

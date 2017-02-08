@@ -15,8 +15,8 @@ case class Person(n:Name, gender:String, isDead:Boolean, interests:Seq[String])
 val data = Person(Name("Anon", Seq("N", "Y"), "Mouse"), "Undecided", false, Seq("Cheese", "Chess"))
 
 // Example directly subclassing Parser
-object NameParser extends Parser[StringOrInt, JsonValue, Name] {
-  override def parse[A](builder:Builder[StringOrInt, JsonValue, A], input:Name):ParserRetVal[A, Nothing] = {
+object NameParser extends Parser[StringOrInt, JsonValue, Nothing, Name] {
+  override def parse[A, BF](builder:Builder[StringOrInt, JsonValue, BF, A], input:Name):ParserRetVal[A, Nothing, Nothing, BF] = {
     val a = builder.init
 //    for (
 //      b <- builder.apply(a, "first", input.given, new IdentityParser[String].mapValue[JsonValue]).complex;
@@ -51,6 +51,8 @@ result.fold({json =>
   System.out.println(json)
 },{x =>
   System.out.println("Parsed primitive: " + x)
-},{(msg, idx) =>
-  System.out.println(s"Parse error at char $idx: $msg")
+},{x =>
+  System.out.println(s"Error $x")
+},{x =>
+  System.out.println(s"Error $x")
 })

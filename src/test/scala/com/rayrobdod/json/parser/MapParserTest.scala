@@ -30,38 +30,42 @@ import org.scalatest.FunSpec
 import scala.collection.immutable.Map
 import com.rayrobdod.json.builder.{MapBuilder, PrettyJsonBuilder, ThrowBuilder}
 import com.rayrobdod.json.union.{StringOrInt, JsonValue}
+import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure}
 
 class MapParserTest extends FunSpec {
 	describe("MapParser") {
 		it ("""recreates an arbitrary map""") {
 			val src = Map[String, Any]("a" -> 32, "b" -> Some(false), "c" -> MapBuilder.apply)
-			val res = new MapParser().parse(MapBuilder[String,Any], src).fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
+			val res = new MapParser().parse(MapBuilder[String,Any], src)
 			
-			assertResult(src.mapValues{Right.apply}){res}
+			assertResult(Complex(src.mapValues{Right.apply})){res}
 		}
 		it ("""recreates an arbitrary map with nesting""") {
-			val exp = Map("a" -> Right(Map.empty), "b" -> Right(Map("x" -> true, "y" -> false)))
+			val exp = Complex(Map("a" -> Right(Map.empty), "b" -> Right(Map("x" -> true, "y" -> false))))
 			val src = Map("a" -> Map.empty, "b" -> Map("x" -> true, "y" -> false))
-			val res = new MapParser().parse(MapBuilder[String,Any], src).fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
+			val res = new MapParser().parse(MapBuilder[String,Any], src)
 			
 			assertResult(exp){res}
 		}
 		it ("""builder failure""") {
-			val exp = ("using ThrowBuilder::apply", 0)
+			val exp = BuilderFailure(com.rayrobdod.json.union.Failures.EnforcedFailure)
 			val src = Map("a" -> Map.empty, "b" -> Map("x" -> true, "y" -> false))
-			val res = new MapParser().parse(new ThrowBuilder[String, Map[_ <: String, Boolean]], src).fold({x => throw new IllegalArgumentException()}, {x => throw new IllegalArgumentException()}, {(a,b) => (a,b)})
+			val res = new MapParser().parse(new ThrowBuilder[String, Map[_ <: String, Boolean]], src)
 			
 			assertResult(exp){res}
 		}
 	}
 	
 	describe("MapParser + Json") {
+		val throwUnexpected = {x:Any => throw new NoSuchElementException(x.toString)}
+		
 		it ("""can be used with the json stuff to serialze and deserialize a map""") {
 			val src = Map(StringOrInt("a") -> JsonValue(32L), StringOrInt("b") -> JsonValue(false), StringOrInt("c") -> JsonValue("1.5"))
-			val json = new MapParser().parse(new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams), src).fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
-			val res = new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], json).fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
+			val json = new MapParser().parse(new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams), src)
+					.fold({x => x}, throwUnexpected, throwUnexpected, throwUnexpected)
+			val res = new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], json)
 			
-			assertResult(src.mapValues{Right.apply}){res}
+			assertResult(Complex(src.mapValues{Right.apply})){res}
 		}
 	}
 }

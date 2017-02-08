@@ -28,33 +28,25 @@ package com.rayrobdod.json.parser
 
 import org.scalatest.FunSpec
 import com.rayrobdod.json.union.ParserRetVal
+import com.rayrobdod.json.union.Failures.EnforcedFailure
 import com.rayrobdod.json.builder._
 
 class CsvParserTest_Unhappy extends FunSpec {
 	describe("CsvParser") {
 		it ("""Throw builder immediate""") {
 			val source = "a,b,c\nd,e,f\n"
-			assertFailureParse("",0){
+			assertResult(ParserRetVal.BuilderFailure(EnforcedFailure)){  // idx == 0
 				new CsvParser().parse(new ThrowBuilder[Int, String], source)
 			}
 		}
 		it ("""Throw builder indirect""") {
 			val source = "a,b,c\nd,e,f\n"
-			assertFailureParse("",6){
-				new CsvParser().parse(MapBuilder.apply2[Int, String, Any]({x:Int => x match {
-					case 1 => new MapBuilder.MapChildBuilder[Int, String, Any, Any](new ThrowBuilder[Int, String].mapValue[String], {x:Any => x})
-					case _ => new MapBuilder.MapChildBuilder[Int, String, MapBuilder.RecursiveSubjectType[Int,String], Any](MapBuilder[Int, String], {x:Any => x})
+			assertResult(ParserRetVal.BuilderFailure(EnforcedFailure)){   //idx == 6
+				new CsvParser().parse(MapBuilder.apply[Int, String, EnforcedFailure.type, Any]({x:Int => x match {
+					case 1 => new MapBuilder.MapChildBuilder[Int, String, EnforcedFailure.type, Any, Any](new ThrowBuilder[Int, String].mapValue[String], {x:Any => x})
+					case _ => new MapBuilder.MapChildBuilder[Int, String, EnforcedFailure.type, MapBuilder.RecursiveSubjectType[Int,String], Any](MapBuilder[Int, String], {x:Any => x})
 				}}), source)
 			}
 		}
-	}
-	
-	
-	def assertFailureParse(msg:String, idx:Int)(result:ParserRetVal[_,_]):Unit = result match {
-		case ParserRetVal.Failure(msg2, idx2) => {
-	//		assertResult(msg){msg2}
-			assertResult(idx){idx2}
-		}
-		case x => fail("Not a Failure: " + x)
 	}
 }

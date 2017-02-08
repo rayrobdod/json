@@ -28,7 +28,8 @@ package com.rayrobdod.json.parser;
 
 import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.union.ParserRetVal
-import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
+import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure, ParserFailure}
+import com.rayrobdod.json.union.Failures.Indexed
 
 /**
  * A streaming decoder for csv data.
@@ -42,9 +43,10 @@ import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
  * Creates a CsvParser instance.
  * @param meaningfulCharacters indicates which characters have special meanings
  */
+// TODO: location annotation
 final class CsvParser(
 		meaningfulCharacters:CsvParser.CharacterMeanings = CsvParser.csvCharacterMeanings
-) extends Parser[Int, String, CountingReader] {
+) extends Parser[Int, String, Nothing, CountingReader] {
 	private[this] val lineParser = new CsvParser.LineParser(meaningfulCharacters)
 	
 	/**
@@ -54,7 +56,7 @@ final class CsvParser(
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse[A](builder:Builder[Int, String, A], chars:Iterable[Char]):ParserRetVal[A, Nothing] = {
+	def parse[A, BF](builder:Builder[Int, String, BF, A], chars:Iterable[Char]):ParserRetVal[A, Nothing, Nothing, BF] = {
 		this.parse(builder, new Iterator2Reader(chars.iterator))
 	}
 	
@@ -65,17 +67,17 @@ final class CsvParser(
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse[A](builder:Builder[Int, String, A], chars:java.io.Reader):ParserRetVal[A, Nothing] = {
+	def parse[A, BF](builder:Builder[Int, String, BF, A], chars:java.io.Reader):ParserRetVal[A, Nothing, Nothing, BF] = {
 		this.parse(builder, new CountingReader(chars))
 	}
 	
-	def parse[A](builder:Builder[Int, String, A], chars:CountingReader):ParserRetVal[A, Nothing] = {
+	def parse[A,BF](builder:Builder[Int, String, BF, A], chars:CountingReader):ParserRetVal[A, Nothing, Nothing, BF] = {
 		@scala.annotation.tailrec
-		def dothing(rowIdx:Int, folding:A):ParserRetVal[A, Nothing] = {
+		def dothing(rowIdx:Int, folding:A):ParserRetVal[A, Nothing, Nothing, BF] = {
 			sealed trait ThingToDo
 			final case class Recurse(nextFolding:A) extends ThingToDo
 			object ReturnFolding extends ThingToDo
-			final case class ReturnFailure(msg:String, idx:Int) extends ThingToDo
+			final case class ReturnFailure(err:BF) extends ThingToDo
 			
 			val thingToDo = try {
 				// check that there are more characters to read; throw if no such characters
@@ -84,9 +86,10 @@ final class CsvParser(
 				chars.goBackOne()
 				val rowStartCharIndex = chars.index + 1
 				
-				builder.apply(folding, rowIdx, chars, lineParser).failure.map{(m,i) => ((m, i + rowStartCharIndex))} match {
+				builder.apply(folding, rowIdx, chars, lineParser) match {
 					case Complex(nextFolding) => Recurse(nextFolding)
-					case Failure(msg, idx) => ReturnFailure(msg, idx)
+					case BuilderFailure(bf) => ReturnFailure(bf)
+					case ParserRetVal.ParserFailure(pf) => pf:Nothing
 					case ParserRetVal.Primitive(x) => x:Nothing
 				}
 			} catch {
@@ -97,7 +100,7 @@ final class CsvParser(
 			thingToDo match {
 				case Recurse(nextFolding) => dothing(rowIdx + 1, nextFolding)
 				case ReturnFolding => Complex(folding)
-				case ReturnFailure(msg, idx) => Failure(msg, idx)
+				case ReturnFailure(x) => BuilderFailure(x)
 			}
 		}
 		
@@ -169,8 +172,8 @@ object CsvParser {
 	 * 		is treated literally, so if this is true then characters should be treated literally,
 	 *		become true when an escape character is encountered and become false after encountering that literal character
 	 */
-	private[parser] final case class State[A] (
-		value:ParserRetVal[A, Nothing],
+	private[parser] final case class State[A, BF] (
+		value:ParserRetVal[A, Nothing, Nothing, Indexed[BF]],
 		fieldStartIndex:Int,
 		innerIndex:Int,
 		innerInput:String,
@@ -178,15 +181,15 @@ object CsvParser {
 		quoted:Boolean,
 		escaped:Boolean
 	) {
-		def appendChar(c:Char):State[A] = this.copy(endingWhitespace = "", innerInput = innerInput + endingWhitespace + c)
+		def appendChar(c:Char):State[A,BF] = this.copy(endingWhitespace = "", innerInput = innerInput + endingWhitespace + c)
 	}
 	
 	
 	/** Splits a CSV record (i.e. one line) into fields */
-	private[parser] final class LineParser(meaningfulCharacters:CsvParser.CharacterMeanings) extends Parser[Int, String, CountingReader] {
-		def parse[A](builder:Builder[Int, String, A], chars:CountingReader):ParserRetVal[A, Nothing] = {
+	private[parser] final class LineParser(meaningfulCharacters:CsvParser.CharacterMeanings) extends Parser[Int, String, Nothing, CountingReader] {
+		def parse[A, BF](builder:Builder[Int, String, BF, A], chars:CountingReader):ParserRetVal[A, Nothing, Nothing, BF] = {
 			val rowStartIndex = chars.index
-			var state = State(Complex(builder.init), rowStartIndex, 0, "", "", false, false)
+			var state = State[A, BF](Complex(builder.init), rowStartIndex, 0, "", "", false, false)
 			try {
 				var char = chars.read()
 				
@@ -211,7 +214,7 @@ object CsvParser {
 						new State(
 							value = state.value
 									.complex.flatMap{x => builder.apply(x, state.innerIndex, state.innerInput, new IdentityParser[String])
-										.failure.map{(msg, idx) => ((msg, idx - rowStartIndex + state.fieldStartIndex))}
+										.builderFailure.map{msg => Indexed(msg, rowStartIndex + state.fieldStartIndex)}
 									},
 							fieldStartIndex = chars.index,
 							innerIndex = state.innerIndex + 1,
@@ -232,14 +235,18 @@ object CsvParser {
 				}
 			}
 			
+			(
 			if (state.innerInput.isEmpty) {
 				state.value
 			} else {
 				state.value.complex.flatMap{x =>
 					builder.apply(x, state.innerIndex, state.innerInput, new IdentityParser[String])
-						.failure.map{(msg,idx) => ((msg, idx - rowStartIndex + state.fieldStartIndex))}
+							.builderFailure.map{msg => Indexed(msg, rowStartIndex + state.fieldStartIndex)}
 				}
 			}
+			)
+			// TODO: annotations
+			.builderFailure.map{_.cause}
 		}
 	}
 }

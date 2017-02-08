@@ -31,7 +31,8 @@ import com.rayrobdod.json.builder.{Builder, ThrowBuilder}
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.ParserRetVal
-import com.rayrobdod.json.union.ParserRetVal.{Failure, Complex}
+import com.rayrobdod.json.union.ParserRetVal.{BuilderFailure, Complex}
+import com.rayrobdod.json.union.Failures.{ExpectedPrimitive, UnknownKey}
 
 class JsonParserTest_OtherBuilders extends FunSpec {
 	describe("JsonParser with other builders") {
@@ -50,42 +51,42 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 					"interests":["bowling", "tennis", "programming", "twitch plays pokémon"]
 			}"""
 			
-			object SetBuilder extends Builder[StringOrInt, JsonValue, Set[String]] {
+			object SetBuilder extends Builder[StringOrInt, JsonValue, ExpectedPrimitive.type, Set[String]] {
 				def init:Set[String] = Set.empty
-				def apply[Input](folding:Set[String], key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):ParserRetVal[Set[String], Nothing] = {
-					val inputVal = parser.parse(new ThrowBuilder, input)
+				def apply[Input, PF](folding:Set[String], key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, PF, Input]):ParserRetVal[Set[String], Nothing, PF, ExpectedPrimitive.type] = {
+					val inputVal = parser.parsePrimitive(input)
 					val inputStr = inputVal match {case ParserRetVal.Primitive(JsonValue.JsonValueString(s)) => s; case _ => "????????"}
 					Complex(folding + inputStr)
 				}
 			}
 			
-			object NameBuilder extends Builder[StringOrInt, JsonValue, Name] {
+			object NameBuilder extends Builder[StringOrInt, JsonValue, util.Either[ExpectedPrimitive.type, UnknownKey.type], Name] {
 				override def init:Name = Name("", "", "")
-				override def apply[Input](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):ParserRetVal[Name, Nothing] = {
+				override def apply[Input, PF](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, PF, Input]):ParserRetVal[Name, Nothing, PF, util.Either[ExpectedPrimitive.type, UnknownKey.type]] = {
 					// we only expect strings, so might as well parse the value at the beginning
-					parser.parsePrimitive(input).flatMap{value:JsonValue =>
+					parser.parsePrimitive(input).builderFailure.map(util.Left.apply _).flatMap{value:JsonValue =>
 						((key, value)) match {
 							case ((StringOrInt.Left("given"), JsonValue.JsonValueString(x))) => Complex(folding.copy(given = x))
 							case ((StringOrInt.Left("middle"), JsonValue.JsonValueString(x))) => Complex(folding.copy(middle = x))
 							case ((StringOrInt.Left("family"), JsonValue.JsonValueString(x))) => Complex(folding.copy(family = x))
-							case x => Failure("NameBuilder: Unexpected key/value: " + x, 0)
+							case x => BuilderFailure(util.Right(UnknownKey))
 						}
 					}.mergeToComplex
 				}
 			}
 			
-			object PersonBuilder extends Builder[StringOrInt, JsonValue, Person] {
+			object PersonBuilder extends Builder[StringOrInt, JsonValue, UnknownKey.type, Person] {
 				def init:Person = Person(Name("", "", ""), "", false, Set.empty)
-				def apply[Input](folding:Person, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, Input]):ParserRetVal[Person, Nothing] = key match {
+				def apply[Input, PF](folding:Person, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, PF, Input]):ParserRetVal[Person, Nothing, PF, UnknownKey.type] = key match {
 					case StringOrInt.Left("name") => Complex(folding.copy(n = parser.parse(NameBuilder, input) match {case ParserRetVal.Complex(x) => x; case _ => new Name("","","")}))
 					case StringOrInt.Left("gender") => Complex(folding.copy(gender = parser.parse(new ThrowBuilder, input) match {case ParserRetVal.Primitive(JsonValue.JsonValueString(s)) => s; case _ => "????????"}))
 					case StringOrInt.Left("isDead") => Complex(folding.copy(isDead = parser.parse(new ThrowBuilder, input) match {case ParserRetVal.Primitive(JsonValue.JsonValueBoolean(s)) => s; case _ => false}))
-					case StringOrInt.Left("interests") => Complex(folding.copy(interests = parser.parse(SetBuilder, input).fold({x => x}, {x => Set.empty}, {(a,b) => Set.empty})))
-					case _ => Failure("Unexpected key: " + key, 0)
+					case StringOrInt.Left("interests") => Complex(folding.copy(interests = parser.parse(SetBuilder, input).fold({x => x}, {x => Set.empty}, {x => Set.empty}, {x => Set.empty})))
+					case _ => BuilderFailure(UnknownKey)
 				}
 			}
 			
-			val result:Person = new JsonParser().parse(PersonBuilder, json).fold({x => x}, {x => x}, {(s,i) => Person(Name("", "", ""), "", false, Set.empty)})
+			val result:Person = new JsonParser().parse(PersonBuilder, json).fold({x => x}, {x => x}, {x => Person(Name("", "", ""), "", false, Set.empty)}, {x => Person(Name("", "", ""), "", false, Set.empty)})
 			val expected = Person(
 				Name( "Raymond", "Robert", "Dodge"),
 				"male",

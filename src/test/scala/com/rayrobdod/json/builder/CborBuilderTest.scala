@@ -32,7 +32,7 @@ import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.CborValue
 import com.rayrobdod.json.union.CborValue._
-import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
+import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure, ParserFailure}
 import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.parser.FailureParser
 import com.rayrobdod.json.testing.HexArrayStringConverter
@@ -216,20 +216,20 @@ class CborBuilderTest extends FunSpec {
 				new CborBuilder().apply(hexSeq"""B903e8 B7A8B7A8B7A8 """, "", CborValue(""), new IdentityParser[CborValue])
 			}
 		}
-		it ("Fails to convert an array to an object when unexpected key and illegal folding object") {
-			assertResult(Failure("Not a public value", 0)){
+		it ("Fails to convert an array to an object when non-array-key and illegal folding object") {
+			assertResult(BuilderFailure(com.rayrobdod.json.union.Failures.IllegalFoldingInBuilder)){
 				new CborBuilder().apply(hexSeq"81FF", 6, CborValueNull, new IdentityParser[CborValue])
 			}
 		}
 		
 		
 		it ("Refuses to fold a non-array or non-object") {
-			assertResult(Failure("Invalid folding parameter", 0)){
+			assertResult(BuilderFailure(com.rayrobdod.json.union.Failures.IllegalFoldingInBuilder)){
 				new CborBuilder().apply(hexSeq"""00""", "", CborValue(""), new IdentityParser[CborValue])
 			}
 		}
-		it ("When parser reports a failure, the failure is forwarded") {
-			assertResult( Failure("FailureParser", 0) ){
+		it ("When parser repcorts a failure, the failure is forwarded") {
+			assertResult( ParserFailure(com.rayrobdod.json.union.Failures.EnforcedFailure) ){
 				new CborBuilder().apply(hexSeq"80 THEREST", "", "", new FailureParser)
 			}
 		}
@@ -239,85 +239,85 @@ class CborBuilderTest extends FunSpec {
 		import com.rayrobdod.json.parser.{JsonParser, CborParser, byteArray2DataInput}
 		
 		it ("CborBuilder + JsonParser + primitive (array)") {
-			assertResult(hexSeq"83 183D 183E 183F"){
+			assertResult(Complex(hexSeq"83 183D 183E 183F")){
 				new JsonParser().parse(
 					new CborBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""[61, 62, 63]"""
-				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
+				)
 			}
 		}
 		it ("CborBuilder + JsonParser + nested objects (array)") {
-			assertResult(hexSeq"81 A2 616100 616201"){
+			assertResult(Complex(hexSeq"81 A2 616100 616201")){
 				new JsonParser().parse(
 					new CborBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""[{"a":0,"b":1}]"""
-				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
+				)
 			}
 		}
 		it ("CborBuilder + JsonParser + nested arrays (array)") {
-			assertResult(hexSeq"81 82 00 01"){
+			assertResult(Complex(hexSeq"81 82 00 01")){
 				new JsonParser().parse(
 					new CborBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""[[0,1]]"""
-				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
+				)
 			}
 		}
 		it ("CborBuilder + CborParser + primitives (array)") {
-			assertResult(hexSeq"8262202005"){
+			assertResult(Complex(hexSeq"8262202005")){
 				new CborParser().parse(
 					new CborBuilder(),
 					byteArray2DataInput(
 							hexArray"8262202005"
 					)
-				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
+				)
 			}
 		}
 		
 		
 		it ("CborBuilder + JsonParser + primitive (object)") {
-			assertResult(hexSeq"A3 6161 183D 6162 183E 6163 183F"){
+			assertResult(Complex(hexSeq"A3 6161 183D 6162 183E 6163 183F")){
 				new JsonParser().parse(
 					new CborBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""{"a":61,"b":62,"c":63}"""
-				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
+				)
 			}
 		}
 		it ("CborBuilder + JsonParser + nested objects (object)") {
-			assertResult(hexSeq"A1 60 A2 616100 616201"){
+			assertResult(Complex(hexSeq"A1 60 A2 616100 616201")){
 				new JsonParser().parse(
 					new CborBuilder().mapKey[StringOrInt].mapValue[JsonValue],
 					"""{"":{"a":0,"b":1}}"""
-				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
+				)
 			}
 		}
 		it ("CborBuilder + CborParser + primitive key (object)") {
-			assertResult(hexSeq"A10405"){
+			assertResult(Complex(hexSeq"A10405")){
 				new CborParser().parse(
 					new CborBuilder().mapValue[CborValue],
 					byteArray2DataInput(
 							hexArray"A10405"
 					)
-				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
+				)
 			}
 		}
 		it ("CborBuilder + CborParser + primitives (object)") {
-			assertResult(hexSeq"A162202005"){
+			assertResult(Complex(hexSeq"A162202005")){
 				new CborParser().parse(
 					new CborBuilder().mapValue[CborValue],
 					byteArray2DataInput(
 							hexArray"A162202005"
 					)
-				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
+				)
 			}
 		}
 		it ("CborBuilder + CaseClassParser (object)") {
-			assertResult(hexSeq"A3 6161 05 6162 f4 6163 63737472"){
+			assertResult(Complex(hexSeq"A3 6161 05 6162 f4 6163 63737472")){
 				val builder = new CborBuilder().mapKey[String]
 				builder.apply(builder.init, "a", CborValue(5), new IdentityParser[CborValue]).complex.flatMap{a:Seq[Byte] =>
 					builder.apply(a, "b", CborValue(false), new IdentityParser[CborValue]).complex.flatMap{b:Seq[Byte] =>
 						builder.apply(b, "c", CborValue("str"), new IdentityParser[CborValue])
 					}
-				}.fold({x => x}, {x => x}, {(s,i) => ((s,i))})
+				}
 			}
 		}
 	}

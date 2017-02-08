@@ -27,8 +27,9 @@
 package com.rayrobdod.json.parser;
 
 import org.scalatest.FunSpec;
-import com.rayrobdod.json.union.ParserRetVal
+import com.rayrobdod.json.union.ParserRetVal.ParserFailure
 import com.rayrobdod.json.builder.MapBuilder;
+import com.rayrobdod.json.parser.BsonParser.Failures._
 
 class BsonParserTest_UnHappy extends FunSpec {
 	describe("BsonParser (Unhappy)") {
@@ -39,7 +40,7 @@ class BsonParserTest_UnHappy extends FunSpec {
 					0)
 			);
 			
-			assertFailureParse("Incorrect string length", 0){
+			assertResult(ParserFailure(IllegalStringLength(2,98))){
 				new BsonParser().parse(MapBuilder.apply, src)
 			}
 		}
@@ -51,7 +52,7 @@ class BsonParserTest_UnHappy extends FunSpec {
 					0)
 			);
 			
-			assertFailureParse("Incorrect string length", 0){
+			assertResult(ParserFailure(IllegalStringLength(2,2))){
 				new BsonParser().parse(MapBuilder.apply, src)
 			}
 		}
@@ -61,7 +62,7 @@ class BsonParserTest_UnHappy extends FunSpec {
 						0x02,0,  2,0)
 			);
 			
-			assertFailureParse("", 0){
+			assertResult(ParserFailure(ReachedEof)){
 				new BsonParser().parse(MapBuilder.apply, src)
 			}
 		}
@@ -72,17 +73,9 @@ class BsonParserTest_UnHappy extends FunSpec {
 					0)
 			);
 			
-			assertFailureParse("Unknown data type", 0){
+			assertResult(ParserFailure(UnknownDataType(0x50))){
 				new BsonParser().parse(MapBuilder.apply, src)
 			}
 		}
-	}
-	
-	def assertFailureParse(msg:String, idx:Int)(result:ParserRetVal[_,_]):Unit = result match {
-		case ParserRetVal.Failure(msg2, idx2) => {
-	//		assertResult(msg){msg2}
-			assertResult(idx){idx2}
-		}
-		case x => fail("Not a Failure: " + x)
 	}
 }

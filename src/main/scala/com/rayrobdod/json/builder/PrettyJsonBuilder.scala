@@ -31,7 +31,7 @@ import java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.charset.Charset;
 import com.rayrobdod.json.union.{StringOrInt, JsonValue}
 import com.rayrobdod.json.union.ParserRetVal
-import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
+import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure}
 import com.rayrobdod.json.parser.Parser
 
 
@@ -49,29 +49,30 @@ import com.rayrobdod.json.parser.Parser
  *           Any characters outside the charset will be u-escaped. Default is to keep all characters that are allowed by Json.
  *           There may be problems if the charset does not include at least ASCII characters.
  */
-final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Charset = UTF_8, level:Int = 0) extends Builder[StringOrInt, JsonValue, String] {
+final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Charset = UTF_8, level:Int = 0) extends Builder[StringOrInt, JsonValue, PrettyJsonBuilder.Failures, String] {
 	import PrettyJsonBuilder.serialize
+	import PrettyJsonBuilder.Failures._
 
 	/** A builder to be used when serializing any 'complex' children of the values this builder is dealing with */
 	private[this] lazy val nextLevel = new PrettyJsonBuilder(params, charset, level + 1)
 	
 	val init:String = params.lbrace(level) + params.rbrace(level)
 	
-	def apply[Input](folding:String, key:StringOrInt, innerInput:Input, parser:Parser[StringOrInt, JsonValue, Input]):ParserRetVal[String, Nothing] = {
+	def apply[Input, PF](folding:String, key:StringOrInt, innerInput:Input, parser:Parser[StringOrInt, JsonValue, PF, Input]):ParserRetVal[String, Nothing, PF, PrettyJsonBuilder.Failures] = {
 		parser.parse(nextLevel, innerInput).primitive.map{p => serialize(p, charset)}.mergeToComplex.complex.flatMap{encodedValue =>
 			if (init == folding) {
 				key match {
 					case StringOrInt.Right(0) => Complex(params.lbrace(level) + encodedValue + params.rbrace(level))
-					case StringOrInt.Right(int) => Failure(s"Key: $int", 0) // params.lbracket(level) + serialze(int.toString, charset) + params.colon(level) + encodedValue + params.rbrace(level)
+					case StringOrInt.Right(int) => BuilderFailure(ArrayKeyNotIncrementing(int, 0))
 					case StringOrInt.Left(str) => Complex(params.lbracket(level) + serialize(str, charset) + params.colon(level) + encodedValue + params.rbracket(level))
 				}
 			} else {
 				val bracket:Boolean = folding.take(params.lbracket(level).length) == params.lbracket(level)
 				val brace:Boolean = folding.take(params.lbrace(level).length) == params.lbrace(level)
-				val keptPartTry:ParserRetVal[String, Nothing] = {
+				val keptPartTry:ParserRetVal[String, Nothing, Nothing, IllegalFoldingInBuilder.type] = {
 					if (bracket) {Complex(folding.dropRight(params.rbracket(level).length))}
 					else if (brace) {Complex(folding.dropRight(params.rbrace(level).length))}
-					else {Failure("folding is wrong", 0)}
+					else {BuilderFailure(IllegalFoldingInBuilder)}
 				}
 				
 				keptPartTry.complex.flatMap{keptPart:String =>
@@ -82,7 +83,7 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 						case StringOrInt.Left(str) if bracket => {
 							Complex(keptPart + params.comma(level) + serialize(str, charset) + params.colon(level) + encodedValue + params.rbracket(level))
 						}
-						case _ => Failure("Key type changed mid-object", 0)
+						case _ => BuilderFailure(KeyTypeChangedMidObject(key, if (brace) {KeyTypeChangedMidObject.ExpectingInt} else {KeyTypeChangedMidObject.ExpectingString}))
 					}
 				}
 			}
@@ -123,6 +124,20 @@ object PrettyJsonBuilder {
 	@inline
 	private[this] def toUnicodeEscape(c:Char) = {
 		"\\u" + ("0000" + c.intValue.toHexString).takeRight(4)
+	}
+	
+	
+	/** Possible failures that can occur in a PrettyJsonBuilder */
+	sealed trait Failures
+	object Failures {
+		final case class KeyTypeChangedMidObject(recieved:StringOrInt, expecting:KeyTypeChangedMidObject.ExpectingType) extends Failures
+		object KeyTypeChangedMidObject {
+			sealed trait ExpectingType
+			object ExpectingInt extends ExpectingType
+			object ExpectingString extends ExpectingType
+		}
+		final case class ArrayKeyNotIncrementing(recieved:Int, expecting:Int) extends Failures
+		object IllegalFoldingInBuilder extends Failures
 	}
 	
 	

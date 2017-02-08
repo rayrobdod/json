@@ -33,4 +33,22 @@ package object union {
 }
 
 package union {
+	sealed trait PiecewiseBuilderFailures
+	
+	package Failures {
+		/** When a Builder wanted a value of one type but was given a value of a different type */
+		final case class UnsuccessfulTypeCoersion(value:Any, fromType:String, toType:String) extends PiecewiseBuilderFailures
+		/** When a Builder wanted a Primtive value, but was given a Complex one */
+		object ExpectedPrimitive extends PiecewiseBuilderFailures
+		/** When a Builder wanted a Complex value, but was given a Primitive one */
+		object ExpectedComplex extends PiecewiseBuilderFailures
+		/** Raised when Builder::apply's folding parameter is unusable; when it detectably violates the contract of (returned from Builder::init or Builder::apply) */
+		object IllegalFoldingInBuilder extends PiecewiseBuilderFailures
+		object UnknownKey extends PiecewiseBuilderFailures
+		/** Rised by parsers or builders that always throw exceptions - i.e. test cases */
+		private[json] object EnforcedFailure
+		/** A Failure with additional location information */
+		final case class Indexed[A](cause:A, charIndex:Int)
+	}
+	
 }

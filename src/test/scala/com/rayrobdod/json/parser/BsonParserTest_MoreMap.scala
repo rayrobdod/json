@@ -29,6 +29,7 @@ package com.rayrobdod.json.parser;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.MapBuilder;
 import com.rayrobdod.json.union.CborValue;
+import com.rayrobdod.json.union.ParserRetVal.Complex
 
 class BsonParserTest_Happy2 extends FunSpec {
 	describe("BsonParser + MapBuilder can decode") {
@@ -45,8 +46,8 @@ class BsonParserTest_Happy2 extends FunSpec {
 			val source = byteArray2DataInput(
 					Array[Byte](len.byteValue, 0x00, 0x00, 0x00) ++: elementsArray :+ 0x00.byteValue
 			)
-			val expected = (0 until 20).map{i => i.toString -> Right(CborValue(i))}.toMap
-			val result = new BsonParser().parse(MapBuilder.apply, source).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
+			val expected = Complex((0 until 20).map{i => i.toString -> Right(CborValue(i))}.toMap)
+			val result = new BsonParser().parse(MapBuilder.apply, source)
 			
 			assertResult(expected){result}
 		}

@@ -28,7 +28,7 @@ package com.rayrobdod.json.builder;
 
 import com.rayrobdod.json.parser.Parser
 import com.rayrobdod.json.union.ParserRetVal
-import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
+import com.rayrobdod.json.union.ParserRetVal.{Complex}
 import scala.collection.immutable.Map
 
 /**
@@ -39,9 +39,9 @@ import scala.collection.immutable.Map
  * Creates a MapBuilder which uses the specified key-to-MapChildBuilder function to create children
  * @param childBuilders A function that indicates which MapChildBuilder to use for a given key
  */
-final class MapBuilder[K, V, Inner](childBuilders:Function1[K, MapBuilder.MapChildBuilder[K, V, _, Inner]]) extends Builder[K, V, Map[K, Either[Inner, V]]] {
+final class MapBuilder[K, V, F, Inner](childBuilders:Function1[K, MapBuilder.MapChildBuilder[K, V, F, _, Inner]]) extends Builder[K, V, F, Map[K, Either[Inner, V]]] {
 	override val init:Map[K, Either[Inner, V]] = Map.empty
-	override def apply[Input](folding:Map[K, Either[Inner, V]], key:K, innerInput:Input, parser:Parser[K, V, Input]):ParserRetVal[Map[K, Either[Inner, V]], Nothing] = {
+	override def apply[Input, BF](folding:Map[K, Either[Inner, V]], key:K, innerInput:Input, parser:Parser[K, V, BF, Input]):ParserRetVal[Map[K, Either[Inner, V]], Nothing, BF, F] = {
 		val childBuilder = childBuilders(key)
 		childBuilder.apply(innerInput, parser).complex.map{eitherRes =>
 			folding + (key -> eitherRes)
@@ -71,25 +71,39 @@ object MapBuilder {
 	 * Pairs a builder and a function into a function to create a value from a parser and input.
 	 * @version 4.0
 	 */
-	final class MapChildBuilder[K, V, A, Inner](builder:Builder[K, V, A], result:Function1[A, Inner]) {
-		def apply[Input](innerInput:Input, parser:Parser[K, V, Input]):ParserRetVal[Either[Inner, V], Nothing] = {
-			parser.parse(builder, innerInput).fold({s => Complex(Left(result(s)))}, {p => Complex(Right(p))}, {(s,i) => Failure(s,i)})
+	final class MapChildBuilder[K, V, F, A, Inner](builder:Builder[K, V, F, A], result:Function1[A, Inner]) {
+		def apply[Input, PF](innerInput:Input, parser:Parser[K, V, PF, Input]):ParserRetVal[Either[Inner, V], Nothing, PF, F] = {
+			parser.parse(builder, innerInput)
+					.complex.map{s => Left(result(s))}
+					.primitive.map{p => Right(p)}
+					.mergeToComplex
 		}
 	}
 	
-	/** Creates a MapBuilder whose child builders are recursively map builders. */
-	def apply[K,V]:MapBuilder[K,V,RecursiveSubject[K,V]] = new MapBuilder({x => new MapChildBuilder(MapBuilder.apply[K,V], {x:Map[K,Either[RecursiveSubject[K,V],V]] => new RecursiveSubject(x)})})
+	/** Creates a MapBuilder whose child builders are recursively map builders.
+	 * @version 4.0
+	 */
+	def apply[K,V]:MapBuilder[K,V,Nothing,RecursiveSubject[K,V]] = new MapBuilder[K, V, Nothing, RecursiveSubject[K,V]]({x =>
+		new MapChildBuilder[K, V, Nothing, Map[K,Either[RecursiveSubject[K,V],V]], RecursiveSubject[K,V]](MapBuilder.apply[K,V], {x:Map[K,Either[RecursiveSubject[K,V],V]] => new RecursiveSubject(x)})
+	})
 	
-	/** Creates a MapBuilder which uses the specified Builder and an identity function to create children for all keys */
-	def apply[K,V,Inner](cb:Builder[K,V,Inner]):MapBuilder[K,V,Inner] = MapBuilder(new MapChildBuilder(cb, {x:Inner => x}))
+	/** Creates a MapBuilder which uses the specified Builder and an identity function to create children for all keys
+	 * @version 4.0
+	 */
+	def apply[K,V,F,Inner](cb:Builder[K,V,F,Inner]):MapBuilder[K,V,F,Inner] = MapBuilder(new MapChildBuilder(cb, {x:Inner => x}))
 	
-	/** Creates a MapBuilder which uses the specified MapChildBuilder to create children for all keys */
-	def apply[K,V,Inner](cb:MapChildBuilder[K,V,_,Inner]):MapBuilder[K,V,Inner] = new MapBuilder({x => cb})
+	/** Creates a MapBuilder which uses the specified MapChildBuilder to create children for all keys
+	 * @version 4.0
+	 */
+	def apply[K,V,F,Inner](cb:MapChildBuilder[K,V,F,_,Inner]):MapBuilder[K,V,F,Inner] = new MapBuilder({x => cb})
 	
-	/** Creates a MapBuilder which uses the key-to-builder function and an identity function to create children */
-	def apply[K,V,Inner](cbs:Function1[K, Builder[K,V,Inner]]):MapBuilder[K,V,Inner] = new MapBuilder({x => new MapChildBuilder(cbs(x), {x:Inner => x})}) 
+	/** Creates a MapBuilder which uses the key-to-builder function and an identity function to create children
+	 * @version 4.0
+	 */
+	def apply[K,V,F,Inner](cbs:Function1[K, Builder[K,V,F,Inner]]):MapBuilder[K,V,F,Inner] = new MapBuilder({x => new MapChildBuilder(cbs(x), {x:Inner => x})}) 
 	
-	/** Creates a MapBuilder which uses the specified key-to-MapChildBuilder function to create children */
-	/* different name because type erasure */
-	def apply2[K,V,Inner](cbs:Function1[K, MapChildBuilder[K,V,_,Inner]]):MapBuilder[K,V,Inner] = new MapBuilder(cbs) 
+	/** Creates a MapBuilder which uses the specified key-to-MapChildBuilder function to create children
+	 * @version 4.0
+	 */
+	def apply[K,V,F,Inner](cbs:Function1[K, MapChildBuilder[K,V,F,_,Inner]])(implicit ev: Int =:= Int):MapBuilder[K,V,F,Inner] = new MapBuilder(cbs) 
 }

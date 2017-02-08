@@ -29,6 +29,7 @@ package com.rayrobdod.json.parser
 import scala.util.Either
 import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.union.ParserRetVal
+import com.rayrobdod.json.union.Failures.{ExpectedPrimitive}
 
 /**
  * An object that parses an input into a sequence of key-value pairs for the
@@ -39,9 +40,11 @@ import com.rayrobdod.json.union.ParserRetVal
  * @version 4.0
  * @tparam Key the key types
  * @tparam Value the primitive value types
+ * @tparam Failure possible ways this parser can fail
+ * @tparam Annotation annotations that this adds to builder failures
  * @tparam Input the input to the parser
  */
-trait Parser[+Key, +Value, -Input] {
+trait Parser[+Key, +Value, +Failure, -Input] {
 	
 	/**
 	 * Convert the input into a series of key-value pairs, insert those key-value pairs into `builder`, return the value output by `builder`
@@ -54,25 +57,25 @@ trait Parser[+Key, +Value, -Input] {
 		- A complex value produced by feeding key-value pairs to the builder
 	 * @tparam ComplexOutput the type of object the Builder produces
 	 */
-	def parse[ComplexOutput](builder:Builder[Key, Value, ComplexOutput], i:Input):ParserRetVal[ComplexOutput, Value]
+	def parse[ComplexOutput, BuilderFailure](builder:Builder[Key, Value, BuilderFailure, ComplexOutput], i:Input):ParserRetVal[ComplexOutput, Value, Failure, BuilderFailure]
 	
 	/**
 	 * Parse the input into a Value. Return a Right if [[Parser.parse]] would have
 	 * returned a [[com.rayrobdod.json.union.ParserRetVal.Primitive Primitive]], else return a Left.
 	 */
-	final def parsePrimitive(i:Input):ParserRetVal[Nothing, Value] = {
-		val ignoreAllBuilder = new Builder[Key, Value, Any] {
+	final def parsePrimitive(i:Input):ParserRetVal[Nothing, Value, Failure, ExpectedPrimitive.type] = {
+		val ignoreAllBuilder = new Builder[Key, Value, Nothing, Any] {
 			def init:Any = this
-			def apply[I](a:Any,k:Key,i:I,p:Parser[Key,Value,I]):ParserRetVal.Complex[Any] = ParserRetVal.Complex(a)
+			def apply[I,BF](a:Any,k:Key,i:I,p:Parser[Key,Value,BF,I]):ParserRetVal.Complex[Any] = ParserRetVal.Complex(a)
 		}
 		
-		this.parse(ignoreAllBuilder, i).complex.flatMap{x => ParserRetVal.Failure("Expecting Primitive", 0)}
+		this.parse(ignoreAllBuilder, i).complex.flatMap{x => (ParserRetVal.BuilderFailure(ExpectedPrimitive))}
 	}
 	
 	
 	/** Change the type of key that this builder requires */
-	final def mapKey[K2](implicit fun:Function1[Key,K2]):Parser[K2,Value,Input] = new Parser[K2,Value,Input] {
-		override def parse[Output](builder:Builder[K2,Value,Output], i:Input):ParserRetVal[Output, Value] = {
+	final def mapKey[K2](implicit fun:Function1[Key,K2]):Parser[K2,Value,Failure,Input] = new Parser[K2,Value,Failure,Input] {
+		override def parse[Output, BF](builder:Builder[K2,Value,BF,Output], i:Input):ParserRetVal[Output, Value, Failure, BF] = {
 			Parser.this.parse(builder.mapKey[Key](fun), i)
 		}
 	}
@@ -80,16 +83,21 @@ trait Parser[+Key, +Value, -Input] {
 	/** Change the type of key that this builder requires, with the option of indicating an error condition
 	 * @since 3.1
 	 */
-	final def flatMapKey[K2](fun:Function1[Key,Either[(String,Int),K2]]):Parser[K2,Value,Input] = new Parser[K2,Value,Input] {
-		override def parse[Output](builder:Builder[K2,Value,Output], i:Input):ParserRetVal[Output, Value] = {
-			Parser.this.parse(builder.flatMapKey[Key](fun), i)
+	final def flatMapKey[K2,Err](fun:Function1[Key,Either[Err,K2]]):Parser[K2,Value,util.Either[Err,Failure],Input] = new Parser[K2,Value,util.Either[Err,Failure],Input] {
+		override def parse[Output, BF](builder:Builder[K2,Value,BF,Output], i:Input):ParserRetVal[Output, Value, util.Either[Err,Failure], BF] = {
+			Parser.this.parse(builder.flatMapKey[Key, Err](fun), i)
+				.parserFailure.map(util.Right.apply _)
+				.builderFailure.flatMap{_.fold(
+					{x:Err => ParserRetVal.ParserFailure(util.Left(x))},
+					{x:BF => ParserRetVal.BuilderFailure(x)}
+				)}
 		}
 	}
 	
 	/** Change the type of value that this builder requires */
-	final def mapValue[V2](implicit fun:Function1[Value,V2]):Parser[Key,V2,Input] = new Parser[Key,V2,Input] {
-		override def parse[Output](builder:Builder[Key,V2,Output], i:Input):ParserRetVal[Output, V2] = {
-			Parser.this.parse[Output](builder.mapValue[Value](fun), i).primitive.map(fun)
+	final def mapValue[V2](implicit fun:Function1[Value,V2]):Parser[Key,V2,Failure,Input] = new Parser[Key,V2,Failure,Input] {
+		override def parse[Output, BF](builder:Builder[Key,V2,BF,Output], i:Input):ParserRetVal[Output, V2, Failure, BF] = {
+			Parser.this.parse[Output, BF](builder.mapValue[Value](fun), i).primitive.map(fun)
 		}
 	}
 	
@@ -97,11 +105,18 @@ trait Parser[+Key, +Value, -Input] {
 	 * Change the type of value that this builder requires, with the option of indicating an error condition
 	 * @version 4.0
 	 */
-	final def flatMapValue[V2](fun:Function1[Value,Either[(String,Int),V2]]):Parser[Key,V2,Input] = new Parser[Key,V2,Input] {
-		override def parse[Output](builder:Builder[Key,V2,Output], i:Input):ParserRetVal[Output, V2] = {
-			Parser.this.parse[Output](builder.flatMapValue[Value](fun), i).primitive.flatMap{pe => 
-				fun(pe).fold({(mi) => ParserRetVal.Failure(mi._1, mi._2)}, ParserRetVal.Primitive.apply)
-			}
+	final def flatMapValue[V2,Err](fun:Function1[Value,Either[Err,V2]]):Parser[Key,V2,util.Either[Err,Failure],Input] = new Parser[Key,V2,util.Either[Err,Failure],Input] {
+		override def parse[Output, BF](builder:Builder[Key,V2,BF,Output], i:Input):ParserRetVal[Output, V2, util.Either[Err,Failure], BF] = {
+			Parser.this.parse(builder.flatMapValue[Value, Err](fun), i)
+				.parserFailure.map{util.Right.apply}
+				.primitive.flatMap{pe => fun(pe).fold(
+					{x:Err => ParserRetVal.ParserFailure(util.Left(x))},
+					{x:V2 => ParserRetVal.Primitive(x)}
+				)}
+				.builderFailure.flatMap{_.fold(
+					{x:Err => ParserRetVal.ParserFailure(util.Left(x))},
+					{x:BF => ParserRetVal.BuilderFailure(x)}
+				)}
 		}
 	}
 	

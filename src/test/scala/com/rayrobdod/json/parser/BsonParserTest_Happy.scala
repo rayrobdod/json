@@ -30,6 +30,7 @@ import scala.collection.immutable.Map;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.MapBuilder;
 import com.rayrobdod.json.union.CborValue;
+import com.rayrobdod.json.union.ParserRetVal.Complex
 
 class BsonParserTest_Happy extends FunSpec {
 
@@ -118,8 +119,8 @@ class BsonParserTest_Happy extends FunSpec {
 							source2
 						)
 					)
-					val result = new BsonParser().parse(builder, source).fold({x => x},{x => x},{(a,b) => a})
-					assertResult(expected){result}
+					val result = new BsonParser().parse(builder, source)
+					assertResult(Complex(expected)){result}
 				}
 			} else {
 				val builder = MapBuilder.apply[String, CborValue]
@@ -130,8 +131,8 @@ class BsonParserTest_Happy extends FunSpec {
 							source2
 						)
 					)
-					val result = new BsonParser().parse(builder, source).fold({x => x},{x => x},{(a,b) => a})
-					assertResult(expected){result}
+					val result = new BsonParser().parse(builder, source)
+					assertResult(Complex(expected)){result}
 				}
 			}
 		}

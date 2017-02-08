@@ -29,14 +29,16 @@ package com.rayrobdod.json.builder;
 import org.scalatest.FunSpec;
 import java.nio.charset.StandardCharsets.US_ASCII;
 import java.nio.charset.StandardCharsets.UTF_8
+import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.JsonValue._
 import com.rayrobdod.json.union.ParserRetVal
-import com.rayrobdod.json.union.ParserRetVal.{Complex, Failure}
+import com.rayrobdod.json.union.ParserRetVal.{Complex, ParserFailure, BuilderFailure}
 import com.rayrobdod.json.parser.{IdentityParser, FailureParser}
 
 class PrettyJsonBuilderTest extends FunSpec {
 	import PrettyJsonBuilder._
+	import PrettyJsonBuilder.Failures._
 	
 	/** replaces characters that are special to both json and scalatest with characters not important to either */
 	def assertResultStr(e:String)(a:String):Unit = {
@@ -44,7 +46,7 @@ class PrettyJsonBuilderTest extends FunSpec {
 		assertResult(doReplace(e))(doReplace(a))
 	}
 	/** replaces characters that are special to both json and scalatest with characters not important to either */
-	def assertResultComplexStr(e:Complex[String])(a:ParserRetVal[String, _]):Unit = {
+	def assertResultComplexStr(e:Complex[String])(a:ParserRetVal[String, _, _, _]):Unit = {
 		val e2 = e.x
 		a match {
 			case Complex(a2) => assertResultStr(e2){a2}
@@ -100,25 +102,25 @@ class PrettyJsonBuilderTest extends FunSpec {
 		}
 		it ("will throw if the folding string is not a valid json object or array (for certain easily detectable invalid values)") {
 			val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-			assertResult(Failure("folding is wrong", 0)){
+			assertResult(BuilderFailure(IllegalFoldingInBuilder)){
 				dut.apply("a", "", JsonValue(42), new IdentityParser[JsonValue])
 			}
 		}
 		it ("will throw if the folding is an object and the key is a number") {
 			val dut = new PrettyJsonBuilder(MinifiedPrettyParams)
-			assertResult(Failure("Key type changed mid-object", 0)){
+			assertResult(BuilderFailure(KeyTypeChangedMidObject(StringOrInt.Right(1), KeyTypeChangedMidObject.ExpectingString))){
 				dut.apply("{\"a\":\"b\"}", 1,JsonValue(42), new IdentityParser[JsonValue])
 			}
 		}
 		it ("will throw if the folding is an array and the key is a string") {
 			val dut = new PrettyJsonBuilder(MinifiedPrettyParams)
-			assertResult(Failure("Key type changed mid-object", 0)){
+			assertResult(BuilderFailure(KeyTypeChangedMidObject(StringOrInt.Left("b"), KeyTypeChangedMidObject.ExpectingInt))){
 				dut.apply("[413]", "b",JsonValue(42), new IdentityParser[JsonValue])
 			}
 		}
 		it ("will throw the first items key is a non-zero integer") {
 			val dut = new PrettyJsonBuilder(MinifiedPrettyParams)
-			assertResult(Failure("Key: 42", 0)){
+			assertResult(BuilderFailure(ArrayKeyNotIncrementing(42,0))){
 				dut.apply("[]", 42,JsonValue(42), new IdentityParser[JsonValue])
 			}
 		}
@@ -135,7 +137,7 @@ class PrettyJsonBuilderTest extends FunSpec {
 			}
 		}
 		it ("When parser reports a failure, the failure is forwarded") {
-			assertResult( Failure("FailureParser", 0) ){
+			assertResult( ParserFailure(com.rayrobdod.json.union.Failures.EnforcedFailure) ){
 				new PrettyJsonBuilder(MinifiedPrettyParams, UTF_8)
 						.apply("{rest}", "", "", new FailureParser)
 			}
@@ -150,40 +152,33 @@ class PrettyJsonBuilderTest extends FunSpec {
 			it ("will echo a properly formatted string") {
 				val exp = "[\n\t61,\n\t62,\n\t63\n]"
 				val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n")).mapValue[JsonValue]
-				assertResult(exp){new JsonParser().parse(dut, exp).fold({x => x}, {x => x}, {(s,i) => ((s,i))})}
+				assertResult(Complex(exp)){new JsonParser().parse(dut, exp)}
 			}
 			it ("will pretty-print a compacted string") {
 				val exp = "[\n\t61,\n\t62,\n\t63\n]"
 				val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n")).mapValue[JsonValue]
-				assertResult(exp){new JsonParser().parse(dut, "[61,62,63]").fold({x => x}, {x => x}, {(s,i) => ((s,i))})}
+				assertResult(Complex(exp)){new JsonParser().parse(dut, "[61,62,63]")}
 			}
 			it ("will minify with the MinifiedPrettyParams") {
 				val exp = "[61,62,63]"
 				val dut = new PrettyJsonBuilder(MinifiedPrettyParams).mapValue[JsonValue]
-				assertResult(exp){new JsonParser().parse(dut, "[\n\t61,\n\t62,\n\t63\n]").fold({x => x}, {x => x}, {(s,i) => ((s,i))})}
+				assertResult(Complex(exp)){new JsonParser().parse(dut, "[\n\t61,\n\t62,\n\t63\n]")}
 			}
 			it ("will minify an object using MinifiedPrettyParams") {
 				val exp = """{" a ":65}"""
 				val dut = new PrettyJsonBuilder(MinifiedPrettyParams).mapValue[JsonValue]
-				assertResult(exp){new JsonParser().parse(dut, " { \" a \" : 65 } ").fold({x => x}, {x => x}, {(s,i) => ((s,i))})}
+				assertResult(Complex(exp)){new JsonParser().parse(dut, " { \" a \" : 65 } ")}
 			}
 			it ("nested arrays") {
 				val exp = "[\n\t[\n\t\t0\n\t]\n]"
 				val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n")).mapValue[JsonValue]
-				assertResult(exp){new JsonParser().parse(dut, "[[0]]").fold({x => x}, {x => x}, {(s,i) => ((s,i))})}
+				assertResult(Complex(exp)){new JsonParser().parse(dut, "[[0]]")}
 			}
 			it ("object inside array") {
 				val exp = "[\n\t{\n\t\t\"value\" : 10\n\t},\n\t{\n\t\t\"value\" : 20\n\t}\n]"
 				val dut = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n")).mapValue[JsonValue]
-				assertResult(exp){new JsonParser().parse(dut, """[{"value":10},{"value":20}]""").fold({x => x}, {x => x}, {(s,i) => ((s,i))})}
+				assertResult(Complex(exp)){new JsonParser().parse(dut, """[{"value":10},{"value":20}]""")}
 			}
 		}
-	}
-	
-	
-	
-	def assertFailure[T](msg:String, idx:Int)(result:Either[_,_]):Unit = result match {
-		case scala.util.Left(x) => {}
-		case x => fail("Not a Failure: " + x)
 	}
 }

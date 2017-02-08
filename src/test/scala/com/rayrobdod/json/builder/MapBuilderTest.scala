@@ -27,7 +27,7 @@
 package com.rayrobdod.json.builder;
 
 import scala.collection.immutable.Map;
-import scala.util.{Right, Left}
+import scala.util.Right
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.union.StringOrInt
@@ -62,11 +62,11 @@ class MapBuilderTest extends FunSpec {
 		import com.rayrobdod.json.parser.JsonParser
 		
 		it ("MapBuilder + JsonParser + primitive") {
-			assertResult(Map("a" -> 61, "b" -> 62, "c" -> 63).map{x => ((StringOrInt(x._1), Right(JsonValue(x._2))))}){
+			assertResult(Complex(Map("a" -> 61, "b" -> 62, "c" -> 63).map{x => ((StringOrInt(x._1), Right(JsonValue(x._2))))})){
 				new JsonParser().parse(
 					MapBuilder[StringOrInt, JsonValue],
 					"""{"a":61, "b":62, "c":63}"""
-				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
+				)
 			}
 		}
 	}

@@ -30,27 +30,30 @@ import org.scalatest.FunSpec
 import scala.collection.immutable.Seq
 import com.rayrobdod.json.builder.{SeqBuilder, PrettyJsonBuilder, ThrowBuilder, PrimitiveSeqBuilder}
 import com.rayrobdod.json.union.JsonValue
+import com.rayrobdod.json.union.ParserRetVal.BuilderFailure
 
 class SeqParserTest extends FunSpec {
 	describe("SeqParser") {
 		it ("""builder failure""") {
-			val exp = ("using ThrowBuilder::apply", 0)
+			val exp = BuilderFailure(com.rayrobdod.json.union.Failures.EnforcedFailure)
 			val src = Seq(Seq.empty, Seq(true, false))
-			val res = new SeqParser(new PrimitiveSeqParser[Boolean]).parse(new ThrowBuilder[Int, Boolean], src).fold({x => throw new IllegalArgumentException()}, {x => throw new IllegalArgumentException()}, {(a,b) => (a,b)})
+			val res = new SeqParser(new PrimitiveSeqParser[Boolean]).parse(new ThrowBuilder[Int, Boolean], src)
 			
 			assertResult(exp){res}
 		}
 	}
 	
 	describe("SeqParser + Json") {
+		val throwUnexpected = {x:Any => throw new NoSuchElementException(x.toString)}
+		
 		it ("""can be used with the json stuff to serialze and deserialize a Seq""") {
 			val src = Seq(Seq.empty, Seq(JsonValue(true), JsonValue(12.5)))
 			val json = new SeqParser(new PrimitiveSeqParser[JsonValue])
 					.parse(new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams).mapKey[Int], src)
-					.fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
+					.fold({x => x}, throwUnexpected, throwUnexpected, throwUnexpected)
 			val res = new JsonParser()
 					.parse(new SeqBuilder(new PrimitiveSeqBuilder[JsonValue]), json)
-					.fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
+					.fold({x => x}, throwUnexpected, throwUnexpected, throwUnexpected)
 			
 			assertResult(src){res}
 		}

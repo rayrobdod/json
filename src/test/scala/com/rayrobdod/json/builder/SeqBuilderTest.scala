@@ -33,6 +33,8 @@ import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.parser.SeqParser
 import com.rayrobdod.json.parser.PrimitiveSeqParser
 import com.rayrobdod.json.union.ParserRetVal
+import com.rayrobdod.json.union.ParserRetVal.Complex
+import com.rayrobdod.json.union.Failures.{ExpectedPrimitive, ExpectedComplex, EnforcedFailure}
 
 class SeqBuilderTest extends FunSpec {
 	
@@ -56,7 +58,7 @@ class SeqBuilderTest extends FunSpec {
 			}
 		}
 		it ("throws when builder gives it a complex value") {
-			assertFailure("", 0){
+			assertResult(ParserRetVal.BuilderFailure(ExpectedPrimitive)){
 				new PrimitiveSeqBuilder[String].apply(Nil, 5, Seq("a","b","c"), new PrimitiveSeqParser[String])
 			}
 		}
@@ -65,14 +67,21 @@ class SeqBuilderTest extends FunSpec {
 		it ("fails when builder gives it a primitive value") {
 			val myValue2 = new Object
 			
-			assertFailure("",0){
+			assertResult(ParserRetVal.BuilderFailure(util.Left(ExpectedComplex))){
 				new SeqBuilder(new PrimitiveSeqBuilder[Object]).apply(Nil, "sdfa", myValue2, new IdentityParser[Object])
 			}
 		}
 		it ("fails when builder gives it a failure") {
 			val myValue2 = new Object
 			
-			assertFailure("",0){
+			assertResult(ParserRetVal.BuilderFailure(util.Right(EnforcedFailure))){
+				new SeqBuilder(new ThrowBuilder[Int, Object]).apply(Nil, 12, Seq(myValue2), new SeqParser(new IdentityParser[Object]))
+			}
+		}
+		it ("fails when parser gives it a failure") {
+			val myValue2 = new Object
+			
+			assertResult(ParserRetVal.ParserFailure(EnforcedFailure)){
 				new SeqBuilder(new PrimitiveSeqBuilder[Object]).apply(Nil, "sdfa", myValue2, new FailureParser)
 			}
 		}
@@ -83,31 +92,25 @@ class SeqBuilderTest extends FunSpec {
 		import com.rayrobdod.json.parser.JsonParser
 		
 		it ("PrimitiveSeqBuilder + JsonParser + primitive") {
-			assertResult(Seq("a", "b", "c").map{JsonValue(_)}){
+			assertResult(Complex(Seq("a", "b", "c").map{JsonValue(_)})){
 				new JsonParser().parse(
 					new PrimitiveSeqBuilder[JsonValue].mapKey[StringOrInt]{StringOrInt.unwrapToString},
 					"""["a", "b", "c"]"""
-				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
+				)
 			}
 		}
 		it ("PrimitiveSeqBuilder + PrimitiveSeqParser") {
 			val exp = Seq(15, -4, 2)
-			val res = new PrimitiveSeqParser[Int]().parse(new PrimitiveSeqBuilder[Int], exp).fold({x => x}, {x => throw new IllegalArgumentException()}, {(m,i) => throw new IllegalArgumentException()}) 
-			assertResult(exp){res}
+			val res = new PrimitiveSeqParser[Int]().parse(new PrimitiveSeqBuilder[Int], exp) 
+			assertResult(Complex(exp)){res}
 		}
 		it ("SeqBuilder + SeqParser") {
 			val exp = Seq(Seq("a", "b", "c"), Seq("d", "e", "f"), Seq("g", "h", "i"))
-			val builder = new SeqBuilder[Int, String, Seq[String]](new PrimitiveSeqBuilder[String])
-			val parser = new SeqParser[Int, String, Seq[String]](new PrimitiveSeqParser[String])
+			val builder = new SeqBuilder[Int, String, ExpectedPrimitive.type, Seq[String]](new PrimitiveSeqBuilder[String])
+			val parser = new SeqParser[Int, String, Nothing, Seq[String]](new PrimitiveSeqParser[String])
 			
-			assertResult(exp){parser.parse(builder, exp).fold({x => x}, {x => x}, {(s,i) => ((s,i))})}
+			assertResult(Complex(exp)){parser.parse(builder, exp)}
 		}
-	}
-	
-	
-	def assertFailure[T](msg:String, idx:Int)(result:ParserRetVal[_,_]):Unit = result match {
-		case ParserRetVal.Failure(mymsg, myidx) => {}
-		case x => fail("Not a Failure: " + x)
 	}
 }
 
