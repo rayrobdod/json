@@ -38,7 +38,7 @@ class CborValueTest extends FunSpec {
 			CborValueNumber(1.5), CborValueNumber(42L),
 			CborValueBoolean(true), CborValueNull
 		)
-		val ToEitherFuns = Seq[CborValue => Either[(String, Int),Any]](
+		val ToEitherFuns = Seq[CborValue => Either[Failures.UnsuccessfulTypeCoersion,Any]](
 			{x => x.stringToEither{s => Right(s)}},
 			{x => x.byteArrayToEither{s => Right(s)}},
 			{x => x.numberToEither{s => Right(s)}},

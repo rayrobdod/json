@@ -95,18 +95,16 @@ class PiecewiseBuilderTest extends FunSpec {
 			val builder = new PiecewiseBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
 				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{
 					def apply[I, PF](s:Person, i:I, p:Parser[StringOrInt, JsonValue, PF, I]) = {
-						p.parsePrimitive(i).flatMap{x:JsonValue => x match {
-							case JsonValueString(i) => Complex(s.copy(name = i))
-							case ex => BuilderFailure(UnsuccessfulTypeCoersion(ex, "JsonValue", "string"))}
+						p.parsePrimitive(i).flatMap{x:JsonValue =>
+							x.stringToEither{x:String => Right(s.copy(name = x))}.fold({BuilderFailure(_)}, {Complex(_)})
 						}
 					}
 				})
 				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{
 					def apply[I, PF](s:Person, i:I, p:Parser[StringOrInt, JsonValue, PF, I]) = {
-						p.parsePrimitive(i).flatMap{x:JsonValue => x match {
-							case JsonValueNumber(i) => Complex(s.copy(age = i.intValue))
-							case ex => BuilderFailure(UnsuccessfulTypeCoersion(ex, "JsonValue", "number"))
-						}}
+						p.parsePrimitive(i).flatMap{x:JsonValue =>
+							x.integerToEither{x:Int => Right(s.copy(age = x))}.fold({BuilderFailure(_)}, {Complex(_)})
+						}
 					}
 				})
 			
@@ -122,18 +120,16 @@ class PiecewiseBuilderTest extends FunSpec {
 			val personBuilder = new PiecewiseBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
 				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{
 					def apply[I, PF](s:Person, i:I, p:Parser[StringOrInt, JsonValue, PF, I]) = {
-						p.parsePrimitive(i).flatMap{x:JsonValue => x match {
-							case JsonValueString(i) => Complex(s.copy(name = i))
-							case ex => BuilderFailure(UnsuccessfulTypeCoersion(ex, "JsonValue", "string"))
-						}}
+						p.parsePrimitive(i).flatMap{x:JsonValue =>
+							x.stringToEither{x:String => Right(s.copy(name = x))}.fold({BuilderFailure(_)}, {Complex(_)})
+						}
 					}
 				})
 				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{
 					def apply[I, PF](s:Person, i:I, p:Parser[StringOrInt, JsonValue, PF, I]) = {
-						p.parsePrimitive(i).flatMap{x:JsonValue => x match {
-							case JsonValueNumber(x) if x.isValidInt => Complex(s.copy(age = x.intValue))
-							case ex => BuilderFailure(UnsuccessfulTypeCoersion(ex, "JsonValue", "number"))
-						}}
+						p.parsePrimitive(i).flatMap{x:JsonValue =>
+							x.integerToEither{x:Int => Right(s.copy(age = x))}.fold({BuilderFailure(_)}, {Complex(_)})
+						}
 					}
 				})
 			

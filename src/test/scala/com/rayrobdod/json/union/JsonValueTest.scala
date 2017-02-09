@@ -39,7 +39,7 @@ class JsonValueTest extends FunSpec {
 			JsonValueNumber(42),
 			JsonValueBoolean(true), JsonValueNull
 		)
-		val ToEitherFuns = Seq[JsonValue => Either[(String, Int),Any]](
+		val ToEitherFuns = Seq[JsonValue => Either[Failures.UnsuccessfulTypeCoersion,Any]](
 			{x => x.stringToEither{s => Right(s)}},
 			{x => x.numberToEither{s => Right(s)}},
 			{x => x.integerToEither{s => Right(s)}},

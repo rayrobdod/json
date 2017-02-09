@@ -1,6 +1,11 @@
 ## 4.0
+* Represent failures within the type system
+  * Add a type parameter to Parser to represent ways that the Parser can fail
+  * Add a type parameter to Builder to represent ways that the Builder can fail
+  * Replace `Failure` with `ParserFailure` and `BuilderFailure`
+  * Add two type parameters to ParserRetVal (one for ParserFailure and one for BuilderFailure)
+  * Make methods that used to return `Either[(String,Int),A]` return `ParserRetVal[A,Nothing,PF,BF]`
 * Make easier to use `ParserRetVal` when one of the "success" values is `Nothing`
-* Make methods that used to return `Either[(String,Int),A]` return `ParserRetVal[A,Nothing]`
 
 
 ## 3.1

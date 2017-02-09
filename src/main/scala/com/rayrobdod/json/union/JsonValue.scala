@@ -27,6 +27,8 @@
 package com.rayrobdod.json.union
 
 import scala.language.implicitConversions
+import com.rayrobdod.json.union.Failures.UnsuccessfulTypeCoersion
+import com.rayrobdod.json.union.ParserRetVal.BuilderFailure
 
 /**
  * A union type representing primitive types in Json objects
@@ -54,39 +56,39 @@ sealed trait JsonValue {
 	/**
 	 * Executes and returns `fs(this.s)` if this is a JsonValueString, else return a Left with an error message
 	 */
-	final def stringToEither[A](fs:String => Either[(String, Int),A]):Either[(String, Int),A] = {
-		val unexpected = new ReturnLeft("Expected string")
+	final def stringToEither[E >: UnsuccessfulTypeCoersion, A](fs:String => Either[E, A]):Either[E, A] = {
+		val unexpected = new ReturnLeft("String")
 		this.fold(fs, unexpected, unexpected, unexpected)
 	}
 	
 	/**
 	 * Executes and returns `fi(this.i)` if this is a JsonValueNumber which holds an number convertible to integer, else return a Left with an error message.
 	 */
-	final def integerToEither[A](fi:Int => Either[(String, Int),A]):Either[(String, Int),A] = {
+	final def integerToEither[E >: UnsuccessfulTypeCoersion, A](fi:Int => Either[E, A]):Either[E, A] = {
+		val unexpected = new ReturnLeft("Int")
 		val number = {n:BigDecimal =>
 			if (n.isValidInt) {
 				fi(n.intValue)
 			} else {
-				Left(("Expected Int: " + n, 0))
+				unexpected(n)
 			}
 		}
-		val unexpected = new ReturnLeft("Expected integral number")
 		this.fold(unexpected, number, unexpected, unexpected)
 	}
 	
 	/**
 	 * Executes and returns `fn(this.i)` if this is a JsonValueNumber, else return a Left with an error message.
 	 */
-	final def numberToEither[A](fn:BigDecimal => Either[(String, Int),A]):Either[(String, Int),A] = {
-		val unexpected = new ReturnLeft("Expected number")
+	final def numberToEither[E >: UnsuccessfulTypeCoersion, A](fn:BigDecimal => Either[E, A]):Either[E, A] = {
+		val unexpected = new ReturnLeft("BigDecimal")
 		this.fold(unexpected, fn, unexpected, unexpected)
 	}
 	
 	/**
 	 * Executes and returns `fb(this.b)` if this is a JsonValueBoolean, else return a Left with an error message
 	 */
-	final def booleanToEither[A](fb:Boolean => Either[(String, Int),A]):Either[(String, Int),A] = {
-		val unexpected = new ReturnLeft("Expected boolean")
+	final def booleanToEither[E >: UnsuccessfulTypeCoersion, A](fb:Boolean => Either[E, A]):Either[E, A] = {
+		val unexpected = new ReturnLeft("Boolean")
 		this.fold(unexpected, unexpected, fb, unexpected)
 	}
 }
@@ -134,8 +136,8 @@ object JsonValue {
 		case CborValue.CborValueNull => JsonValueNull
 	}
 	
-	private class ReturnLeft(msg:String) extends Function1[Any, Either[(String, Int), Nothing]] with Function0[Either[(String, Int), Nothing]] {
-		def apply():Either[(String, Int), Nothing] = Left(msg, 0)
-		def apply(x:Any):Either[(String, Int), Nothing] = Left(msg, 0)
+	private class ReturnLeft(toType:String) extends Function1[Any, Either[UnsuccessfulTypeCoersion, Nothing]] with Function0[Either[UnsuccessfulTypeCoersion, Nothing]] {
+		def apply():Either[UnsuccessfulTypeCoersion, Nothing] = Left(UnsuccessfulTypeCoersion(JsonValueNull, "JsonValue", toType))
+		def apply(x:Any):Either[UnsuccessfulTypeCoersion, Nothing] = Left(UnsuccessfulTypeCoersion(x, "JsonValue", toType))
 	}
 }

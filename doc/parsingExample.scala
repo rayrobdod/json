@@ -36,9 +36,9 @@ object NameBuilder extends Builder[StringOrInt, JsonValue, PiecewiseBuilderFailu
         case StringOrInt.Left("given") => Right(folding.copy(given = strValue))
         case StringOrInt.Left("middle") => Right(folding.copy(middle = strValue))
         case StringOrInt.Left("family") => Right(folding.copy(family = strValue))
-        case x => Left(("", 0))
+        case x => Left(UnknownKey)
       }
-    }.fold({err => BuilderFailure(UnknownKey)}, {x => Complex(x)})}
+    }.fold({err => BuilderFailure(err)}, {x => Complex(x)})}
   }
 }
 
@@ -52,7 +52,7 @@ val PersonBuilder = {
     ))
     // paritioned private key def
     .addDef("gender", PiecewiseBuilder.partitionedPrimitiveKeyDef[StringOrInt, JsonValue, Person, String](
-      {case JsonValue.JsonValueString(g) => Complex(g)},
+      {case x => x.stringToEither{x:String => Right(x)}.fold({err => BuilderFailure(err)}, {x => Complex(x)})},
       {(folding,x) => folding.copy(gender = x)}
     ))
     // raw private key def
