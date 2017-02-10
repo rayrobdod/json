@@ -29,6 +29,7 @@ package com.rayrobdod.json.union
 import org.scalatest.FunSpec
 import com.rayrobdod.json.union.JsonValue._
 
+@deprecated("shut up compiler; I will cover deprecated methods", "")
 class JsonValueTest extends FunSpec {
 	
 	describe("JsonValue") {
@@ -92,6 +93,19 @@ class JsonValueTest extends FunSpec {
 			it ("null") {assertResult(JsonValueNull){cborValueHexencodeByteStr(CborValue.CborValueNull)}}
 			it ("bytestr") {assertResult(JsonValue("112345")){cborValueHexencodeByteStr(Array[Byte](17, 35, 69))}}
 			it ("bytestr (with zeros)") {assertResult(JsonValue("01000010")){cborValueHexencodeByteStr(Array[Byte](1, 0, 0, 16))}}
+		}
+		describe("cborValue2jsonValue") {
+			it ("String") {assertResult(Right(JsonValue("abc"))){cborValue2JsonValueEither(CborValue("abc"))}}
+			it ("Number (rat)") {assertResult(Right(JsonValue(123))){cborValue2JsonValueEither(CborValue(123))}}
+			it ("Number (unrat)") {assertResult(Left(Right(CborValue.Rational.NaN))){cborValue2JsonValueEither(CborValue(Double.NaN))}}
+			it ("Boolean") {assertResult(Right(JsonValue(true))){cborValue2JsonValueEither(CborValue(true))}}
+			it ("null") {assertResult(Right(JsonValueNull)){cborValue2JsonValueEither(CborValue.CborValueNull)}}
+			it ("bytestr") {
+				val src = Array[Byte](17, 35, 69)
+				val res = cborValue2JsonValueEither(src)
+				val res2 = res.left.get.left.get
+				assert(src.sameElements(res2))
+			}
 		}
 	}
 }

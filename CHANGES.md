@@ -7,6 +7,8 @@
 * Add ComplexProjection::flatMap
 * Change JsonValue.Number from containing a "Number" to containing a "BigDecimal"
 * Change CborValue.Number from containing a "Number" to containing a "Rational"
+  * Deprecate JsonValue::cborValueHexencodeByteStr
+  * Add JsonValue::cborValue2JsonValueEither
 * Add number tags and HalfFloat support to CborParser
 * Add number tags support to CborBuilder
 * CborBuilder reads int32 values larger than Integer.MaxValue (2 ** 31 - 1) correctly
