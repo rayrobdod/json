@@ -33,11 +33,12 @@ object NameParser extends Parser[StringOrInt, JsonValue, Name] {
 }
 
 // Example with PiecewiseParser
+import PiecewiseParser.KeyDefSyntax
 val PersonParser = new PiecewiseParser[StringOrInt, JsonValue, Person](
-    PiecewiseParser.complexKeyDef("name", {x:Person => x.n}, NameParser)
-  , PiecewiseParser.primitiveKeyDef("gender", {x:Person => x.gender})
-  , PiecewiseParser.primitiveKeyDef("isAlive", {x:Person => ! x.isDead})
-  , PiecewiseParser.complexKeyDef("interests", {x:Person => x.interests}, new PrimitiveSeqParser[String].mapValue[JsonValue].mapKey[StringOrInt])
+    "name" valueIs ({x:Person => x.n}, NameParser)
+  , "gender" valueIs {x => x.gender}
+  , "isAlive" valueIs {x => ! x.isDead}
+  , "interests" valueIs ({x => x.interests}, new PrimitiveSeqParser[String].mapValue[JsonValue].mapKey[StringOrInt])
 )
 
 val builder = new PrettyJsonBuilder(new PrettyJsonBuilder.IndentPrettyParams("  ", "\n"))

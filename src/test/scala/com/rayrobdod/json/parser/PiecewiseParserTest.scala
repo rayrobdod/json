@@ -133,6 +133,58 @@ class PiecewiseParserTest extends FunSpec {
 		}
 		
 	}
+	
+	describe ("KeyDef syntax") {
+		describe ("valueIs primitive") {
+			it ("asdf") {
+				val key = "key"
+				val value = "value"
+				
+				val exp = Map(key -> Right(value))
+				val dut:KeyDef[String, String, String] = key valueIs {x => value}
+				val res = dut.apply[MapBuilder.RecursiveSubjectType[String, String]](MapBuilder.apply, "input", Map.empty)
+				assertResult(Right(exp)){res}
+			}
+		}
+		describe("valueIs complex") {
+			it ("asdf") {
+				type Key = String
+				type Value = String
+				type Input = String
+				val key = "key"
+				val value = "value"
+				val child = new Parser[Key, Value, Input] { def parse[ComplexOutput](builder:Builder[Key, Value, ComplexOutput], i:Input):ParserRetVal[ComplexOutput, Value] = ParserRetVal.Failure("",0)}
+				
+				object EchoBuilder extends Builder[Key, Value, (Key, Any, Parser[_,_,_])] {
+					def apply[Input](folding:(Key, Any, Parser[_,_,_]), key:Key, input:Input, parser:Parser[Key,Value,Input]):Either[(String, Int),(Key, Any, Parser[_,_,_])] = {
+						Right(((key, input, parser)))
+					}
+					def init:(Key, Any, Parser[_,_,_]) =  ("","",null)
+				}
+				
+				val dut:KeyDef[Key, Value, Input] = key valueIs ({x:String => value}, child)
+				val res = dut.apply(EchoBuilder, "input", ("","",null))
+				assertResult(key){res.right.get._1}
+				assertResult(value){res.right.get._2}
+				assertResult(child){res.right.get._3}
+			}
+		}
+		describe ("valueIsOpt primitive") {
+			it ("passes filter") {
+				val exp = Map("key" -> Right("value"))
+				val dut:KeyDef[String, String, Int] = "key" valueIsOpt {case x if x > 0 => "value"}
+				val res = dut.apply[MapBuilder.RecursiveSubjectType[String, String]](MapBuilder.apply, 10, Map.empty)
+				assertResult(Right(exp)){res}
+			}
+			it ("fails filter") {
+				val exp = Map()
+				val dut:KeyDef[String, String, Int] = "key" valueIsOpt {case x if x > 0 => "value"}
+				val res = dut.apply[MapBuilder.RecursiveSubjectType[String, String]](MapBuilder.apply, -10, Map.empty)
+				assertResult(Right(exp)){res}
+			}
+		}
+	}
+	
 	describe ("PiecewiseParser + JsonParser") {
 		it ("documented example") {
 			case class Foo(a:String, b:Seq[String], c:String)
