@@ -83,7 +83,7 @@ class JsonParserTest_Unhappy extends FunSpec {
 		, ("errors on illegal character in unicode escape 2", "[\"\\u1Y4\"]", mapBuilder, None, Option(3))
 		, ("errors on illegal character in unicode escape 3", "[\"\\u1 4\"]", mapBuilder, None, Option(3))
 		, ("errors on illegal character in unicode escape 4", "[\"\\u1=4\"]", mapBuilder, None, Option(3))
-		, ("errors on infinitely nested arrays", Seq.fill(1000)('[') ++ Seq.fill(1000)(']'), mapBuilder, Option("too-deeply nested object"), None)
+		, ("errors on infinitely nested arrays", new Iterable[Char]{def iterator = Iterator.continually('[')}, mapBuilder, Option("too-deeply nested object"), None)
 		
 		, ("errors on trailing comma (array)", """[1,2,3,]""", mapBuilder, None, Option(7))
 		, ("errors on empty value (array)", """[1,,3]""", mapBuilder, None, Option(3))
