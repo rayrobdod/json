@@ -39,6 +39,7 @@ class ShapelessBuilderTest extends FunSpec {
 	case class Name(given:String, middle:String, family:String)
 	case class IceCream(flavor:String, scoops:Int, waffleCone:Boolean)
 	case class Record(holder:Name, description:String)
+	case class StringList(vals:Seq[String])
 	val emptyName:Name = Name("", "", "")
 	val emptyIceCream:IceCream = IceCream("", 0, false)
 	val emptyRecord:Record = Record(emptyName, "")
@@ -157,6 +158,15 @@ class ShapelessBuilderTest extends FunSpec {
 			it ("accepts the key \"Holder\"") {
 				assertResult(Right(emptyRecord.copy(holder = Name("First", "", "Last"))))
 					{builder.apply(emptyRecord, "holder", Map("given" -> "First", "family" -> "Last"), new MapParser[String, String])}
+			}
+		}
+		describe("of StringList from String") {
+			implicit val seqBuilder = new PrimitiveSeqBuilder[String]
+			val builder = new ShapelessBuilder[String, StringList](new StringList(Nil))
+			
+			it ("accepts the key \"vals\"") {
+				assertResult(Right(new StringList(Seq("a", "b", "c"))))
+					{builder.apply(new StringList(Nil), "vals", Map("0" -> "a", "1" -> "b", "2" -> "c"), new MapParser[String, String])}
 			}
 		}
 	}
