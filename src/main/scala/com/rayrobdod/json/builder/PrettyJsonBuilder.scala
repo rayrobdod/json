@@ -124,6 +124,10 @@ object PrettyJsonBuilder {
 	}
 	
 	
+	def minified(charset:Charset = UTF_8):Builder[StringOrInt, JsonValue, String] = new PrettyJsonBuilder(MinifiedPrettyParams, charset)
+	def space2(charset:Charset = UTF_8):Builder[StringOrInt, JsonValue, String] = new PrettyJsonBuilder(new IndentPrettyParams("  "), charset)
+	def space4(charset:Charset = UTF_8):Builder[StringOrInt, JsonValue, String] = new PrettyJsonBuilder(new IndentPrettyParams("    "), charset)
+	def tabbed(charset:Charset = UTF_8):Builder[StringOrInt, JsonValue, String] = new PrettyJsonBuilder(new IndentPrettyParams(), charset)
 	
 	/**
 	 * The whitespace strings that will appear between significant portions of a serialized json file

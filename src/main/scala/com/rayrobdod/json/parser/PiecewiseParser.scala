@@ -77,6 +77,25 @@ final class PiecewiseParser[+Key, +Value, -Input] (
  */
 object PiecewiseParser {
 	
+	//// a `(K, I => V) => KeyDef` implicit method cannot find implicit conversions for K or V,
+	//// even if the implicit method has those conversions as implicit parameters
+	import scala.language.implicitConversions
+	/**
+	 * @since syntax
+	 */
+	implicit class KeyDefSyntax[K](k:K) {
+		// ???: Better names
+		def valueIs[K2,V,I](v:I => V)(implicit kev:K => K2):KeyDef[K2,V,I] = primitiveKeyDef[K2,V,I](kev(k), v)
+		def valueIs[K2,P,V,I](v:I => V, p:Parser[K2,P,V])(implicit kev:K => K2):KeyDef[K2,P,I] = complexKeyDef[K2,P,V,I](kev(k), v, p)
+		
+		def valueIsOpt[K2,V,I](v:PartialFunction[I, V])(implicit kev:K => K2):KeyDef[K2,V,I] = {
+			optionalKeyDef(primitiveKeyDef[K2,V,I](kev(k), v.apply _), v.isDefinedAt _)
+		}
+		def valueIsOpt[K2,P,V,I](v:PartialFunction[I, V], p:Parser[K2,P,V])(implicit kev:K => K2):KeyDef[K2,P,I] = {
+			optionalKeyDef(complexKeyDef[K2,P,V,I](kev(k), v.apply _, p), v.isDefinedAt _)
+		}
+	}
+	
 	/**
 	 * A function which extracts a key-value pair form the input then, using
 	 * [[com.rayrobdod.json.builder.Builder#apply]] inserts that key-value pair into the output.
