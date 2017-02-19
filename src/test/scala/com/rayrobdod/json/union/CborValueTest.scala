@@ -147,6 +147,31 @@ class CborValueTest extends FunSpec {
 				val res:CborValue = JsonValue.JsonValueNull
 				assertResult(CborValueNull){res}
 			}
+			it ("""String to CborValue""") {
+				val res:CborValue = "abc"
+				assertResult(CborValueString("abc")){res}
+			}
+			it ("""Boolean to CborValue""") {
+				val res:CborValue = true
+				assertResult(CborValueBoolean(true)){res}
+			}
+			it ("""Int to CborValue""") {
+				val res:CborValue = (23:Int)
+				assertResult(CborValue(Rational(23,1))){res}
+			}
+			it ("""Long to CborValue""") {
+				val res:CborValue = 42L
+				assertResult(CborValue(Rational(42,1))){res}
+			}
+			it ("""Float to CborValue""") {
+				val res:CborValue = 1.5F
+				assertResult(CborValue(Rational(3,2))){res}
+			}
+			it ("""Double to CborValue""") {
+				val res:CborValue = 1.25D
+				assertResult(CborValue(Rational(5,4))){res}
+			}
+			
 		}
 		describe("CborValueNumber$.apply can accept") {
 			val exp = CborValueNumber(new Rational(0, 1))

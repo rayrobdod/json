@@ -108,9 +108,11 @@ object JsonValue {
 	implicit def apply(b:Boolean):JsonValue = JsonValueBoolean(b)
 	implicit def apply(i:BigDecimal):JsonValue = JsonValueNumber(i)
 	
-	
-	implicit def int2JsonValue(i:Int):JsonValue = JsonValueNumber(i)
-	implicit def long2JsonValue(i:Long):JsonValue = JsonValueNumber(i)
+	/**
+	 * Allows implicit conversions from Int or Double directly to JsonValue
+	 * @since 3.1
+	 */
+	implicit def implicitlyBigDecimal2JsonValue[A](a:A)(implicit ev:A => BigDecimal):JsonValue = JsonValueNumber(ev(a))
 	
 	
 	/** Convert a StringOrInt value into a JsonValue */

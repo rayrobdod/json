@@ -129,33 +129,12 @@ object CborValue {
 	implicit def apply(s:Array[Byte]):CborValue = CborValueByteStr(s)
 	implicit def apply(i:Rational):CborValue = CborValueNumber(i)
 	
-	/** @since 3.1 */
-	def apply(i:Int):CborValue = CborValueNumber(Rational(i))
-	/** @since 3.1 */
-	def apply(i:Long):CborValue = CborValueNumber(Rational(i))
-	/** @since 3.1 */
-	def apply(i:BigInt):CborValue = CborValueNumber(Rational(i))
-	/** @since 3.1 */
-	def apply(i:Float):CborValue = CborValueNumber(Rational(i))
-	/** @since 3.1 */
-	def apply(i:Double):CborValue = CborValueNumber(Rational(i))
-	/** @since 3.1 */
-	def apply(i:BigDecimal):CborValue = CborValueNumber(Rational(i))
+	/**
+	 * Allows implicit conversions from Int or Double directly to CborValue
+	 * @since 3.1
+	 */
+	implicit def implicitlyRational2CborValue[A](a:A)(implicit ev:A => Rational):CborValue = CborValueNumber(ev(a))
 	
-	object CborValueNumber {
-		/** @since 3.1 */
-		def apply(i:Int):CborValue = CborValueNumber(Rational(i))
-		/** @since 3.1 */
-		def apply(i:Long):CborValue = CborValueNumber(Rational(i))
-		/** @since 3.1 */
-		def apply(i:BigInt):CborValue = CborValueNumber(Rational(i))
-		/** @since 3.1 */
-		def apply(i:Float):CborValue = CborValueNumber(Rational(i))
-		/** @since 3.1 */
-		def apply(i:Double):CborValue = CborValueNumber(Rational(i))
-		/** @since 3.1 */
-		def apply(i:BigDecimal):CborValue = CborValueNumber(Rational(i))
-	}
 	
 	/** Convert a StringOrInt value into a CborValue */
 	// Can't be called 'apply' as otherwise `CborValue(x:Int)` confuses the compiler
@@ -220,7 +199,7 @@ object CborValue {
 			this.tryToBigInt.collect{case a if (Int.MinValue <= a && a <= Int.MaxValue) => a.intValue}
 		}
 		
-		/** Returns a double that might kinda resemble the value of this double  */
+		/** Returns a double that might kinda resemble the value of this Rational */
 		def toDouble:Double = {
 			     if (this.isPosInfinity) {Double.PositiveInfinity}
 			else if (this.isNegInfinity) {Double.NegativeInfinity}
@@ -288,6 +267,7 @@ object CborValue {
 		implicit def apply(i:Int):Rational = new Rational(i, 1)
 		implicit def apply(i:Long):Rational = new Rational(i, 1)
 		implicit def apply(i:BigInt):Rational = new Rational(i, 1)
+		implicit def apply(i:java.math.BigInteger):Rational = new Rational(i, 1)
 		
 		implicit def apply(a:BigDecimal):Rational = {
 			val ulp = a.ulp
