@@ -79,12 +79,12 @@ object PiecewiseParser {
 	
 	//// a `(K, I => V) => KeyDef` implicit method cannot find implicit conversions for K or V,
 	//// even if the implicit method has those conversions as implicit parameters
-	import scala.language.implicitConversions
+	//// hence the need for something else
 	/**
-	 * @since syntax
+	 * An implicit that allows one to write keydefs with a syntax similar to `key valueIs {x => x.value}`
+	 * @since 3.1
 	 */
 	implicit class KeyDefSyntax[K](k:K) {
-		// ???: Better names
 		def valueIs[K2,V,I](v:I => V)(implicit kev:K => K2):KeyDef[K2,V,I] = primitiveKeyDef[K2,V,I](kev(k), v)
 		def valueIs[K2,P,V,I](v:I => V, p:Parser[K2,P,V])(implicit kev:K => K2):KeyDef[K2,P,I] = complexKeyDef[K2,P,V,I](kev(k), v, p)
 		

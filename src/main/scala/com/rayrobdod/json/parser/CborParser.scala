@@ -41,7 +41,7 @@ import com.rayrobdod.json.union.CborValue.Rational
  * 
  * tags are handled via the `tagMatcher` constructor parameter. By default, it can handle tags (2,3,4,5,30,55799).
  * 
- * @version next
+ * @version 3.1
  * @see [[http://tools.ietf.org/html/rfc7049]]
  * 
  * @constructor
@@ -285,7 +285,7 @@ object CborParser {
 	
 	/**
 	 * A function that is parameterized at the function level instead of the class level
-	 * @since next
+	 * @since 3.1
 	 */
 	trait TagFunction {
 		def apply[A](b:Builder[CborValue, CborValue, A], i:DataInput):ParseReturnValue[A] 
@@ -293,7 +293,7 @@ object CborParser {
 	
 	/**
 	 * A partial function that takes a Cbor tag number and returns a function that builds the value described by the tags
-	 * @since next
+	 * @since 3.1
 	 */
 	trait TagMatcher {
 		def unapply(tag:Long):Option[TagFunction]
@@ -310,7 +310,7 @@ object CborParser {
 	
 	/**
 	 * Built-in TagMatchers
-	 * @since next
+	 * @since 3.1
 	 */
 	object TagMatcher {
 		
@@ -430,6 +430,10 @@ object CborParser {
 		final val END_OF_LIST:Byte = 31
 	}
 	
+	/**
+	 * Known tag codes.
+	 * Because magic numbers are bad.
+	 */
 	private[json] object TagCodes {
 		final val POS_BIG_INT:Byte = 2
 		final val NEG_BIG_INT:Byte = 3

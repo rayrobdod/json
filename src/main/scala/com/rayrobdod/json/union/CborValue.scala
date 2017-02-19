@@ -32,7 +32,7 @@ import scala.language.implicitConversions
 /**
  * A union type representing primitive types in Cbor objects
  * @since 3.0
- * @version next
+ * @version 3.1
  */
 sealed trait CborValue {
 	import CborValue._
@@ -100,7 +100,7 @@ sealed trait CborValue {
 /**
  * The cases of CborValue and methods to convert other things into CborValues.
  * @since 3.0
- * @version next
+ * @version 3.1
  */
 object CborValue {
 	final case class CborValueString(s:String) extends CborValue
@@ -129,23 +129,35 @@ object CborValue {
 	implicit def apply(s:Array[Byte]):CborValue = CborValueByteStr(s)
 	implicit def apply(i:Rational):CborValue = CborValueNumber(i)
 	
+	/** @since 3.1 */
 	def apply(i:Int):CborValue = CborValueNumber(Rational(i))
+	/** @since 3.1 */
 	def apply(i:Long):CborValue = CborValueNumber(Rational(i))
+	/** @since 3.1 */
 	def apply(i:BigInt):CborValue = CborValueNumber(Rational(i))
+	/** @since 3.1 */
 	def apply(i:Float):CborValue = CborValueNumber(Rational(i))
+	/** @since 3.1 */
 	def apply(i:Double):CborValue = CborValueNumber(Rational(i))
+	/** @since 3.1 */
 	def apply(i:BigDecimal):CborValue = CborValueNumber(Rational(i))
 	
 	object CborValueNumber {
+		/** @since 3.1 */
 		def apply(i:Int):CborValue = CborValueNumber(Rational(i))
+		/** @since 3.1 */
 		def apply(i:Long):CborValue = CborValueNumber(Rational(i))
+		/** @since 3.1 */
 		def apply(i:BigInt):CborValue = CborValueNumber(Rational(i))
+		/** @since 3.1 */
 		def apply(i:Float):CborValue = CborValueNumber(Rational(i))
+		/** @since 3.1 */
 		def apply(i:Double):CborValue = CborValueNumber(Rational(i))
+		/** @since 3.1 */
 		def apply(i:BigDecimal):CborValue = CborValueNumber(Rational(i))
 	}
 	
-	/** Convert a StringOrInt value intoa CborValue */
+	/** Convert a StringOrInt value into a CborValue */
 	// Can't be called 'apply' as otherwise `CborValue(x:Int)` confuses the compiler
 	implicit def stringOrInt2CborValue(s:StringOrInt):CborValue = s match {
 		case StringOrInt.Left(s) => CborValueString(s)
@@ -169,7 +181,7 @@ object CborValue {
 	
 	/**
 	 * A value represeting a whole number divided by another whole number
-	 * @since next
+	 * @since 3.1
 	 */
 	final case class Rational(val num:BigInt, val denom:BigInt) {
 		def isNaN:Boolean = denom == 0 && num == 0
@@ -266,7 +278,7 @@ object CborValue {
 	
 	/**
 	 * Factory methods for Rational
-	 * @since next
+	 * @since 3.1
 	 */
 	object Rational {
 		val NaN:Rational = new Rational(0, 0)

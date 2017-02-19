@@ -39,7 +39,7 @@ import com.rayrobdod.json.union.ParserRetVal
  * This parser is intended to be relatively strict.
  * 
  * @see [[http://json.org/]]
- * @version next
+ * @version 3.1
  *
  * @constructor
  * Creates a JsonParser instance.
@@ -165,7 +165,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, CountingReader] {
 	/** Read an array value. Do not include the first `'['` in `r` */
 	@scala.annotation.tailrec
 	private[this] def parseArrayValue[A](soFar:A, builder:Builder[StringOrInt, JsonValue, A], arrayIndex:Int = 0)(r:CountingReader):Either[(String, Int), A] = {
-		/** true iff the next character is allowed to end the array - i.e. be a ']' */
+		/* true iff the next character is allowed to end the array - i.e. be a ']' */
 		val endObjectAllowed:Boolean = (arrayIndex == 0);
 		
 		var c = r.read()

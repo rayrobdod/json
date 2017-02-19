@@ -36,7 +36,7 @@ import com.rayrobdod.json.union.{StringOrInt, ParserRetVal}
  * This parser is lenient, in that it ignores trailing delimiters
  * 
  * A CSV file is always two levels deep, an array of key-value mappings.
- * @version next
+ * @version 3.1
  * 
  * @constructor
  * Creates a CsvParser instance.
@@ -65,7 +65,7 @@ final class CsvWithHeaderParser(
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	 def parse[A](builder:Builder[StringOrInt, String, A], chars:java.io.Reader):ParserRetVal[A,Nothing] = {
+	def parse[A](builder:Builder[StringOrInt, String, A], chars:java.io.Reader):ParserRetVal[A,Nothing] = {
 		this.parse(builder, new CountingReader(chars))
 	}
 	

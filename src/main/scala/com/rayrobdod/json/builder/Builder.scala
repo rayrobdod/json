@@ -118,7 +118,7 @@ trait Builder[-Key, -Value, Subject] {
 	 * Most useful if the Parser input is neither stable nor resendable - say a network stream.
 	 * 
 	 * @param that the other builder
-	 * @since next
+	 * @since 3.1
 	 */
 	final def zip[K2, V2, S2](that:Builder[K2, V2, S2])(implicit evk: K2 <:< Key, evv: V2 <:< Value):Builder[K2,V2,(Subject, S2)] = new Builder[K2,V2,(Subject, S2)] {
 		private[this] val astBuilder = MapBuilder.apply[K2, V2]

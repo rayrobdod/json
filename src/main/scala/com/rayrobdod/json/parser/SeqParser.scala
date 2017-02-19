@@ -57,6 +57,7 @@ object PrimitiveSeqParser {
 	 * A PrimitiveSeqParser that parses `Seq[SeqValue]`, but with mappings to convert the native values into 
 	 * 
 	 * `new PrimitiveSeqParser[SeqValue].mapKey(keyMapping).mapValue(valueMapping)`
+	 * @since 3.1
 	 */
 	def apply[BuilderKey, BuilderValue, SeqValue](
 		implicit keyMapping : Int => BuilderKey, valueMapping : SeqValue => BuilderValue

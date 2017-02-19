@@ -31,7 +31,7 @@ import scala.language.implicitConversions
 /**
  * A union type representing primitive types in Json objects
  * @since 3.0
- * @version next
+ * @version 3.1
  */
 sealed trait JsonValue {
 	import JsonValue._
@@ -137,6 +137,7 @@ object JsonValue {
 	
 	/** 
 	 * Convert a CborValue into a JsonValue if there is an equivalent JsonValue; else return a UnsuccessfulTypeCoersion.
+	 * @since 3.1
 	 */
 	def cborValue2JsonValueEither(x:CborValue):Either[Either[Array[Byte], CborValue.Rational], JsonValue] = x match {
 		case CborValue.CborValueString(s) => Right(JsonValueString(s))
