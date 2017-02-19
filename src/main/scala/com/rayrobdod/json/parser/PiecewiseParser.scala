@@ -82,6 +82,7 @@ object PiecewiseParser {
 	 * 
 	 * This has to be extracted from PiecewiseParser to maintain type safety
 	 * while maintaining the possibility of extracting a complex value.
+	 * @version 4.0
 	 */
 	abstract class KeyDef[+Key, +Value, -Input] {
 		def apply[Output,BF](builder:Builder[Key,Value,BF,Output], input:Input, currentOutput:Output):ParserRetVal[Output, Nothing, PiecewiseBuilderFailures, BF]

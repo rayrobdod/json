@@ -192,7 +192,7 @@ object ParserRetVal {
 	}
 	
 	/** A projection as if the ParserRetVal were a Complex */
-	sealed class ComplexProjection[+C,+P,+F,+B](backing:ParserRetVal[C,P,F,B]) {
+	final class ComplexProjection[+C,+P,+F,+B](backing:ParserRetVal[C,P,F,B]) {
 		
 		/** Map the backing value if the backing value is a Complex, else return the backing value */
 		def map[X](fun:C => X):ParserRetVal[X,P,F,B] = backing match {
@@ -213,10 +213,10 @@ object ParserRetVal {
 		}
 	}
 	
-	/** A projection as if the ParserRetVal were a Failure
-	 * @since next
+	/** A projection as if the ParserRetVal were a ParserFailure
+	 * @since 4.0
 	 */
-	sealed class ParserFailureProjection[+C,+P,+F,+B](backing:ParserRetVal[C,P,F,B]) {
+	final class ParserFailureProjection[+C,+P,+F,+B](backing:ParserRetVal[C,P,F,B]) {
 		
 		/** Map the backing value if the backing value is a Failure, else return the backing value */
 		def map[X](fun:F => X):ParserRetVal[C,P,X,B] = backing match {
@@ -235,10 +235,10 @@ object ParserRetVal {
 		}
 	}
 	
-	/** A projection as if the ParserRetVal were a Failure
-	 * @since next
+	/** A projection as if the ParserRetVal were a BuilderFailure
+	 * @since 4.0
 	 */
-	sealed class BuilderFailureProjection[+C,+P,+F,+B](backing:ParserRetVal[C,P,F,B]) {
+	final class BuilderFailureProjection[+C,+P,+F,+B](backing:ParserRetVal[C,P,F,B]) {
 		
 		/** Map the backing value if the backing value is a Failure, else return the backing value */
 		def map[X](fun:B => X):ParserRetVal[C,P,F,X] = backing match {

@@ -127,8 +127,15 @@ object PrettyJsonBuilder {
 	}
 	
 	
-	/** Possible failures that can occur in a PrettyJsonBuilder */
+	/**
+	 * Possible failures that can occur in a PrettyJsonBuilder
+	 * @since 4.0
+	 */
 	sealed trait Failures
+	/**
+	 * Possible failures that can occur in a PrettyJsonBuilder
+	 * @since 4.0
+	 */
 	object Failures {
 		final case class KeyTypeChangedMidObject(recieved:StringOrInt, expecting:KeyTypeChangedMidObject.ExpectingType) extends Failures
 		object KeyTypeChangedMidObject {

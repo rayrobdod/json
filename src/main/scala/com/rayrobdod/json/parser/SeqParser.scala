@@ -32,7 +32,7 @@ import com.rayrobdod.json.union.ParserRetVal.Complex
 
 /**
  * A parser that reads each Value and its index from a Seq
- * @version 3.0
+ * @version 4.0
  * 
  * @tparam V the type of values contained in the Seq
  * @constructor
@@ -54,7 +54,7 @@ final class PrimitiveSeqParser[V] extends Parser[Int,V,Nothing,Seq[V]] {
 
 /**
  * A parser that reads and parses each Value and its index from a Seq
- * @version 3.0
+ * @version 4.0
  * 
  * @tparam K the type of key used by recurse
  * @tparam V the type of primitiveValue used by recurse

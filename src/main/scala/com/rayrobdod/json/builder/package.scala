@@ -43,7 +43,6 @@ package object builder {
 package builder {
 	/**
 	 * A Builder that will always return a failure on call to apply
-	 * @since 3.0
 	 */
 	private[json] final class ThrowBuilder[K,V] extends Builder[K,V,EnforcedFailure.type,Any] {
 		override def init:Any = "using ThrowBuilder::init"

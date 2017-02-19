@@ -371,10 +371,17 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failure
 
 object JsonParser {
 	
-	/** Possible failures that can occur in a PrettyJsonBuilder */
+	/**
+	 * Possible failures that can occur in a JsonParser
+	 * @since 4.0
+	 */
 	sealed trait Failures {
 		def increaseIndex(amount:Int):Failures
 	}
+	/**
+	 * Possible failures that can occur in a JsonParser
+	 * @since 4.0
+	 */
 	object Failures {
 		final case class NotAUnicodeEscape(hexPart:String, charIdx:Int) extends Failures {
 			def increaseIndex(amount:Int):Failures = this.copy(charIdx = this.charIdx + amount)

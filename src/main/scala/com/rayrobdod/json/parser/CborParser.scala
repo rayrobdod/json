@@ -304,8 +304,15 @@ object CborParser {
 	final case class ParseReturnValueBuilderFailure[BF](err:BF) extends ParseReturnValue[Nothing, BF]
 	
 	
-	/** Possible failures that can occur in a PrettyJsonBuilder */
+	/**
+	 * Possible failures that can occur in a CborParser
+	 * @since 4.0
+	 */
 	sealed trait Failures
+	/**
+	 * Possible failures that can occur in a CborParser
+	 * @since 4.0
+	 */
 	object Failures {
 		/** The value parsed is not a value that is suposed to be public */
 		final object NonPublicValue extends Failures

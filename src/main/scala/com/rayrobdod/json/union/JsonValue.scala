@@ -33,7 +33,7 @@ import com.rayrobdod.json.union.ParserRetVal.BuilderFailure
 /**
  * A union type representing primitive types in Json objects
  * @since 3.0
- * @version next
+ * @version 4.0
  */
 sealed trait JsonValue {
 	import JsonValue._

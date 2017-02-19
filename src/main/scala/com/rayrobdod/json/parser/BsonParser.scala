@@ -116,8 +116,15 @@ final class BsonParser extends Parser[String, CborValue, BsonParser.Failures, Da
 
 object BsonParser {
 	
-	/** Possible failures that can occur in a PrettyJsonBuilder */
+	/**
+	 * Possible failures that can occur in a BsonParser
+	 * @since 4.0
+	 */
 	sealed trait Failures
+	/**
+	 * Possible failures that can occur in a PrettyJsonBuilder
+	 * @since 4.0
+	 */
 	object Failures {
 		object ReachedEof extends Failures
 		final case class UnknownDataType(code:Byte) extends Failures

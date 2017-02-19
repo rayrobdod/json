@@ -33,8 +33,16 @@ package object union {
 }
 
 package union {
+	/**
+	 * Common failures while stuffing values into a data object
+	 * @since 4.0
+	 */
 	sealed trait PiecewiseBuilderFailures
 	
+	/**
+	 * Common failures while stuffing values into a data object
+	 * @since 4.0
+	 */
 	package Failures {
 		/** When a Builder wanted a value of one type but was given a value of a different type */
 		final case class UnsuccessfulTypeCoersion(value:Any, fromType:String, toType:String) extends PiecewiseBuilderFailures

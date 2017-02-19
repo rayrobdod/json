@@ -106,7 +106,7 @@ package parser {
 	 * A 'parser' that echos the value provided in its parse method
 	 * 
 	 * Somewhat useful to be the 'recursed' parser in cases where the 'root' parser has already decoded a value.
-	 * @version 3.0
+	 * @version 4.0
 	 */
 	final class IdentityParser[V] extends Parser[Nothing,V,Nothing,V] {
 		/** Returns `v` wrapped in a [[com.rayrobdod.json.union.ParserRetVal.Primitive]] */
@@ -115,7 +115,6 @@ package parser {
 	
 	/**
 	 * A 'parser' that always returns a Failure
-	 * @version 3.0
 	 */
 	private[json] final class FailureParser extends Parser[Nothing, Nothing, EnforcedFailure.type, Any] {
 		def parse[A,BF](b:Builder[Nothing,Nothing,BF,A], v:Any):ParserRetVal.ParserFailure[EnforcedFailure.type] = ParserRetVal.ParserFailure(EnforcedFailure)
