@@ -14,13 +14,26 @@
     MinifiedJsonOjectBuilder, MinifiedJsonArrayBuilder, CaseClassParser
 * Add Builder and Parser transforms
   - flatMapKey
+  - zip (on Builder)
 * Add ComplexProjection::flatMap
+
 * Change JsonValue.Number from containing a "Number" to containing a "BigDecimal"
 * Change CborValue.Number from containing a "Number" to containing a "Rational"
+  * Deprecate JsonValue::cborValueHexencodeByteStr
+  * Add JsonValue::cborValue2JsonValueEither
+
 * Add number tags and HalfFloat support to CborParser
 * Add number tags support to CborBuilder
+
+* Rename MapBuilder::apply2 to another overload of MapBuilder::apply
+* Add RecursiveMapParser
+* Change JsonParser and CsvParser's input type for better performance
+* Increase strictness of number parsing in JsonParser
+* Catch stack overflows inside a JsonParser
 * CborBuilder reads int32 values larger than Integer.MaxValue (2 ** 31 - 1) correctly
   - int64 values larger than Long.MaxValue (2 ** 63 - 1) are still not read correctly
+* Add PiecewiseParser::KeyDefSyntax
+* Add shorhand factory methods for PrimitiveSeqParser, PrettyJsonBuilder and IdentityParser
 
 ## 3.0.1
 * Various optimizations

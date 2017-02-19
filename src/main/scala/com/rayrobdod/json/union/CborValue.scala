@@ -33,7 +33,7 @@ import com.rayrobdod.json.union.Failures.UnsuccessfulTypeCoersion
 /**
  * A union type representing primitive types in Cbor objects
  * @since 3.0
- * @version next
+ * @version 3.1
  */
 sealed trait CborValue {
 	import CborValue._
@@ -101,7 +101,7 @@ sealed trait CborValue {
 /**
  * The cases of CborValue and methods to convert other things into CborValues.
  * @since 3.0
- * @version next
+ * @version 3.1
  */
 object CborValue {
 	final case class CborValueString(s:String) extends CborValue
@@ -130,23 +130,14 @@ object CborValue {
 	implicit def apply(s:Array[Byte]):CborValue = CborValueByteStr(s)
 	implicit def apply(i:Rational):CborValue = CborValueNumber(i)
 	
-	def apply(i:Int):CborValue = CborValueNumber(Rational(i))
-	def apply(i:Long):CborValue = CborValueNumber(Rational(i))
-	def apply(i:BigInt):CborValue = CborValueNumber(Rational(i))
-	def apply(i:Float):CborValue = CborValueNumber(Rational(i))
-	def apply(i:Double):CborValue = CborValueNumber(Rational(i))
-	def apply(i:BigDecimal):CborValue = CborValueNumber(Rational(i))
+	/**
+	 * Allows implicit conversions from Int or Double directly to CborValue
+	 * @since 3.1
+	 */
+	implicit def implicitlyRational2CborValue[A](a:A)(implicit ev:A => Rational):CborValue = CborValueNumber(ev(a))
 	
-	object CborValueNumber {
-		def apply(i:Int):CborValue = CborValueNumber(Rational(i))
-		def apply(i:Long):CborValue = CborValueNumber(Rational(i))
-		def apply(i:BigInt):CborValue = CborValueNumber(Rational(i))
-		def apply(i:Float):CborValue = CborValueNumber(Rational(i))
-		def apply(i:Double):CborValue = CborValueNumber(Rational(i))
-		def apply(i:BigDecimal):CborValue = CborValueNumber(Rational(i))
-	}
 	
-	/** Convert a StringOrInt value intoa CborValue */
+	/** Convert a StringOrInt value into a CborValue */
 	// Can't be called 'apply' as otherwise `CborValue(x:Int)` confuses the compiler
 	implicit def stringOrInt2CborValue(s:StringOrInt):CborValue = s match {
 		case StringOrInt.Left(s) => CborValueString(s)
@@ -170,7 +161,7 @@ object CborValue {
 	
 	/**
 	 * A value represeting a whole number divided by another whole number
-	 * @since next
+	 * @since 3.1
 	 */
 	final case class Rational(val num:BigInt, val denom:BigInt) {
 		def isNaN:Boolean = denom == 0 && num == 0
@@ -209,7 +200,7 @@ object CborValue {
 			this.tryToBigInt.collect{case a if (Int.MinValue <= a && a <= Int.MaxValue) => a.intValue}
 		}
 		
-		/** Returns a double that might kinda resemble the value of this double  */
+		/** Returns a double that might kinda resemble the value of this Rational */
 		def toDouble:Double = {
 			     if (this.isPosInfinity) {Double.PositiveInfinity}
 			else if (this.isNegInfinity) {Double.NegativeInfinity}
@@ -267,7 +258,7 @@ object CborValue {
 	
 	/**
 	 * Factory methods for Rational
-	 * @since next
+	 * @since 3.1
 	 */
 	object Rational {
 		val NaN:Rational = new Rational(0, 0)
@@ -277,6 +268,7 @@ object CborValue {
 		implicit def apply(i:Int):Rational = new Rational(i, 1)
 		implicit def apply(i:Long):Rational = new Rational(i, 1)
 		implicit def apply(i:BigInt):Rational = new Rational(i, 1)
+		implicit def apply(i:java.math.BigInteger):Rational = new Rational(i, 1)
 		
 		implicit def apply(a:BigDecimal):Rational = {
 			val ulp = a.ulp

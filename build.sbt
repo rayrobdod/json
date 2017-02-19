@@ -18,9 +18,14 @@ compileOrder := CompileOrder.JavaThenScala
 
 javacOptions in Compile ++= Seq("-Xlint:deprecation", "-Xlint:unchecked", "-source", "1.7", "-target", "1.7")
 
-scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-target:jvm-1.7")
+scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 
-scalacOptions ++= (if (scalaVersion.value.split("\\.").apply(1).toInt <= 10) {Nil} else {Seq("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint:_", "-Xlint:-adapted-args")})
+scalacOptions ++= (scalaBinaryVersion.value match {
+	case "2.10" => Seq("-target:jvm-1.7")
+	case "2.11" => Seq("-target:jvm-1.7", "-Ywarn-unused-import", "-Ywarn-unused", "-Xlint:_", "-Xlint:-adapted-args")
+	case "2.12" => Seq("-target:jvm-1.8", "-Ywarn-unused-import", "-Ywarn-unused", "-Xlint:_", "-Xlint:-adapted-args")
+	case _ => Nil
+})
 
 scalacOptions in doc in Compile ++= Seq(
 		"-doc-title", name.value,

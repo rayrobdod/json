@@ -53,7 +53,7 @@ package parser {
 	
 	/**
 	 * A reader who takes charaters from the specified iterator
-	 * @since next
+	 * @since 3.1
 	 */
 	private[parser] final class Iterator2Reader(iterator:Iterator[Char]) extends java.io.Reader {
 		override def read():Int = if (!iterator.hasNext) {-1} else {iterator.next().toInt}
@@ -72,7 +72,9 @@ package parser {
 	}
 	
 	/**
-	 * @since next
+	 * A class that wraps a Reader and provides both a single-char buffer
+	 * and a count of how many characters have been read
+	 * @since 3.1
 	 */
 	final class CountingReader(back:java.io.Reader) {
 		private[this] var _idx : Int = -1
@@ -111,6 +113,16 @@ package parser {
 	final class IdentityParser[V] extends Parser[Nothing,V,Nothing,V] {
 		/** Returns `v` wrapped in a [[com.rayrobdod.json.union.ParserRetVal.Primitive]] */
 		def parse[A,BF](b:Builder[Nothing,V,BF,A], v:V):ParserRetVal.Primitive[V] = ParserRetVal.Primitive(v)
+	}
+	
+	/**
+	 * IdentityParser factory methods
+	 * @since 3.1
+	 */
+	object IdentityParser {
+		def apply[V] = new IdentityParser[V]
+		/** Equivalent to `new IdentityParser[V].mapValue[PV]` */
+		def apply[PV,V](implicit valueMapping:V => PV) = new IdentityParser[V].mapValue[PV]
 	}
 	
 	/**

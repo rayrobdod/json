@@ -110,9 +110,11 @@ object JsonValue {
 	implicit def apply(b:Boolean):JsonValue = JsonValueBoolean(b)
 	implicit def apply(i:BigDecimal):JsonValue = JsonValueNumber(i)
 	
-	
-	implicit def int2JsonValue(i:Int):JsonValue = JsonValueNumber(i)
-	implicit def long2JsonValue(i:Long):JsonValue = JsonValueNumber(i)
+	/**
+	 * Allows implicit conversions from Int or Double directly to JsonValue
+	 * @since 3.1
+	 */
+	implicit def implicitlyBigDecimal2JsonValue[A](a:A)(implicit ev:A => BigDecimal):JsonValue = JsonValueNumber(ev(a))
 	
 	
 	/** Convert a StringOrInt value into a JsonValue */
@@ -126,6 +128,7 @@ object JsonValue {
 	 * Convert a CborValue into a JsonValue, where ByteStrs are instead converted into
 	 * hexencoded strings.
 	 */
+	@deprecated("doesn't handle incompatible numbers; use cborValue2JsonValueEither then fold that method's return value", "3.1")
 	def cborValueHexencodeByteStr(x:CborValue):JsonValue = x match {
 		case CborValue.CborValueString(s) => JsonValueString(s)
 		case CborValue.CborValueBoolean(b) => JsonValueBoolean(b)
@@ -136,8 +139,19 @@ object JsonValue {
 		case CborValue.CborValueNull => JsonValueNull
 	}
 	
+	/** 
+	 * Convert a CborValue into a JsonValue if there is an equivalent JsonValue; else return a UnsuccessfulTypeCoersion.
+	 * @since 3.1
+	 */
+	def cborValue2JsonValueEither(x:CborValue):Either[Either[Array[Byte], CborValue.Rational], JsonValue] = x match {
+		case CborValue.CborValueString(s) => Right(JsonValueString(s))
+		case CborValue.CborValueBoolean(b) => Right(JsonValueBoolean(b))
+		case CborValue.CborValueNumber(r) => r.tryToBigDecimal.fold[Either[Either[Array[Byte], CborValue.Rational], JsonValue]](Left(Right(r))){x => Right(JsonValueNumber(x))}
+		case CborValue.CborValueByteStr(s) => Left(Left(s))
+		case CborValue.CborValueNull => Right(JsonValueNull)
+	}
+	
 	private class ReturnLeft(toType:String) extends Function1[Any, Either[UnsuccessfulTypeCoersion, Nothing]] with Function0[Either[UnsuccessfulTypeCoersion, Nothing]] {
 		def apply():Either[UnsuccessfulTypeCoersion, Nothing] = Left(UnsuccessfulTypeCoersion(JsonValueNull, "JsonValue", toType))
 		def apply(x:Any):Either[UnsuccessfulTypeCoersion, Nothing] = Left(UnsuccessfulTypeCoersion(x, "JsonValue", toType))
-	}
-}
+	}}

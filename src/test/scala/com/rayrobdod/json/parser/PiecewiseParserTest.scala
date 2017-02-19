@@ -135,6 +135,60 @@ class PiecewiseParserTest extends FunSpec {
 		}
 		
 	}
+	
+	describe ("KeyDef syntax") {
+		describe ("valueIs primitive") {
+			it ("asdf") {
+				val key = "key"
+				val value = "value"
+				
+				val exp = Map(key -> Right(value))
+				val dut:KeyDef[String, String, String] = key valueIs {x => value}
+				val res = dut.apply[MapBuilder.RecursiveSubjectType[String, String], Nothing](MapBuilder.apply, "input", Map.empty)
+				assertResult(Complex(exp)){res}
+			}
+		}
+		describe("valueIs complex") {
+			it ("asdf") {
+				type Key = String
+				type Value = String
+				type Input = String
+				val key = "key"
+				val value = "value"
+				val child = new Parser[Key, Value, PiecewiseBuilderFailures, Input] {
+					def parse[ComplexOutput, BF](builder:Builder[Key, Value, BF, ComplexOutput], i:Input):ParserRetVal[ComplexOutput, Value, PiecewiseBuilderFailures, BF] = {
+						ParserFailure(UnknownKey)
+					}
+				}
+				
+				object EchoBuilder extends Builder[Key, Value, Nothing, (Key, Any, Parser[_,_,_,_])] {
+					def apply[Input, PF](folding:(Key, Any, Parser[_,_,_,_]), key:Key, input:Input, parser:Parser[Key,Value,PF,Input]):ParserRetVal[(Key, Any, Parser[_,_,_,_]), Nothing, PF, Nothing] = {
+						Complex(((key, input, parser)))
+					}
+					def init:(Key, Any, Parser[_,_,_,_]) =  ("","",null)
+				}
+				
+				val dut:KeyDef[Key, Value, Input] = key valueIs ({x:String => value}, child)
+				val res = dut.apply(EchoBuilder, "input", ("","",null))
+				assertResult(Complex( ((key, value, child)) )){res}
+			}
+		}
+		describe ("valueIsOpt primitive") {
+			it ("passes filter") {
+				val exp = Map("key" -> Right("value"))
+				val dut:KeyDef[String, String, Int] = "key" valueIsOpt {case x if x > 0 => "value"}
+				val res = dut.apply[MapBuilder.RecursiveSubjectType[String, String], Nothing](MapBuilder.apply, 10, Map.empty)
+				assertResult(Complex(exp)){res}
+			}
+			it ("fails filter") {
+				val exp = Map()
+				val dut:KeyDef[String, String, Int] = "key" valueIsOpt {case x if x > 0 => "value"}
+				val res = dut.apply[MapBuilder.RecursiveSubjectType[String, String], Nothing](MapBuilder.apply, -10, Map.empty)
+				assertResult(Complex(exp)){res}
+			}
+		}
+	}
+	
 	describe ("PiecewiseParser + JsonParser") {
 		it ("documented example") {
 			case class Foo(a:String, b:Seq[String], c:String)

@@ -19,29 +19,31 @@ object NameParser extends Parser[StringOrInt, JsonValue, Nothing, Name] {
   override def parse[A, BF](builder:Builder[StringOrInt, JsonValue, BF, A], input:Name):ParserRetVal[A, Nothing, Nothing, BF] = {
     val a = builder.init
 //    for (
-//      b <- builder.apply(a, "first", input.given, new IdentityParser[String].mapValue[JsonValue]).complex;
-//      c <- builder.apply(b, "middles", input.middles, new PrimitiveSeqParser[String].mapValue[JsonValue].mapKey[StringOrInt]).complex;
-//      d <- builder.apply(c, "last", input.family, new IdentityParser[String].mapValue[JsonValue]).complex
+//      b <- builder.apply(a, "first", input.given, IdentityParser[JsonValue, String]).complex;
+//      c <- builder.apply(b, "middles", input.middles, PrimitiveSeqParser[StringOrInt, JsonValue, String]).complex;
+//      d <- builder.apply(c, "last", input.family, IdentityParser[JsonValue, String]).complex
 //    ) yield {
 //      d
 //    }
-    builder.apply(a, "first", input.given, new IdentityParser[String].mapValue[JsonValue]).complex.flatMap{b:A =>
-      builder.apply(b, "middles", input.middles, new PrimitiveSeqParser[String].mapValue[JsonValue].mapKey[StringOrInt]).complex.flatMap{c:A =>
-        builder.apply(c, "last", input.family, new IdentityParser[String].mapValue[JsonValue])
+    builder.apply(a, "first", input.given, IdentityParser[JsonValue, String]).complex.flatMap{b:A =>
+      builder.apply(b, "middles", input.middles, PrimitiveSeqParser[StringOrInt, JsonValue, String]).complex.flatMap{c:A =>
+        builder.apply(c, "last", input.family, IdentityParser[JsonValue, String])
       }
     }
   }
 }
 
 // Example with PiecewiseParser
+import PiecewiseParser.KeyDefSyntax
 val PersonParser = new PiecewiseParser[StringOrInt, JsonValue, Person](
-    PiecewiseParser.complexKeyDef("name", {x:Person => x.n}, NameParser)
-  , PiecewiseParser.primitiveKeyDef("gender", {x:Person => x.gender})
-  , PiecewiseParser.primitiveKeyDef("isAlive", {x:Person => ! x.isDead})
-  , PiecewiseParser.complexKeyDef("interests", {x:Person => x.interests}, new PrimitiveSeqParser[String].mapValue[JsonValue].mapKey[StringOrInt])
+    "name" valueIs ({x:Person => x.n}, NameParser)
+  , "gender" valueIs {x => x.gender}
+  , "isAlive" valueIs {x => ! x.isDead}
+  , "interests" valueIs ({x => x.interests}, PrimitiveSeqParser[StringOrInt, JsonValue, String])
 )
 
-val builder = new PrettyJsonBuilder(new PrettyJsonBuilder.IndentPrettyParams("  ", "\n"))
+// val builder = new PrettyJsonBuilder(new PrettyJsonBuilder.IndentPrettyParams("  ", "\n"))
+val builder = PrettyJsonBuilder.space2()
 
 val result = PersonParser.parse(builder, data)
 

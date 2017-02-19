@@ -104,6 +104,7 @@ object MapBuilder {
 	
 	/** Creates a MapBuilder which uses the specified key-to-MapChildBuilder function to create children
 	 * @version 4.0
+	 * @param ev trivially true evidence because otherwise type erasure prevents this and other #apply(Function[_,_]):MapBuilder[_,_,_] from having the same name
 	 */
 	def apply[K,V,F,Inner](cbs:Function1[K, MapChildBuilder[K,V,F,_,Inner]])(implicit ev: Int =:= Int):MapBuilder[K,V,F,Inner] = new MapBuilder(cbs) 
 }

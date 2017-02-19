@@ -34,6 +34,7 @@ import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.union.ParserRetVal.{BuilderFailure, Complex, ParserFailure}
 import com.rayrobdod.json.union.Failures.{ExpectedPrimitive, EnforcedFailure, UnsuccessfulTypeCoersion}
+import com.rayrobdod.json.testing.HexArrayStringConverter
 
 class BuilderTest extends FunSpec {
 	
@@ -178,6 +179,30 @@ class BuilderTest extends FunSpec {
 					.apply(Seq.empty, 0, new com.rayrobdod.json.parser.CountingReader(new java.io.StringReader("[1,2]")), new com.rayrobdod.json.parser.JsonParser)
 			}
 		}
+	}
+	describe("Builder.zip") {
+		it ("when a success, continue being a success (primitive)") {
+			val exp = Complex((("key", "value"), ("key", "value")))
+			val builder = new ReportKeyValueBuilder[String, String]
+					.zip(new ReportKeyValueBuilder[String, String])
+			
+			assertResult(exp){
+				builder.apply((null, null), "key", "value", new IdentityParser[String])
+			}
+		}
+	/*
+		it ("when a success, continue being a success (complex)") {
+			import com.rayrobdod.json.parser._
+			import com.rayrobdod.json.union._
+			val failureMapping = {x:Failures.IllegalFoldingInBuilder.type => com.rayrobdod.json.builder.PrettyJsonBuilder.Failures.IllegalFoldingInBuilder}
+			val exp = ParserRetVal.Complex( ((hexSeq"818163616263" ,"""[["abc"]]""")) )
+			val builder = new CborBuilder().mapKey[StringOrInt].mapValue[JsonValue].mapFailure(failureMapping)
+				.zip(new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams))
+			
+			val res = new JsonParser().parse(builder, """[ [ "abc" ] ]""")
+			assertResult(exp){res}
+		}
+	*/
 	}
 	
 }

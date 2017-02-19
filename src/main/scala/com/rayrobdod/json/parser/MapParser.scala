@@ -58,9 +58,9 @@ final class MapParser[K,V] extends Parser[K,V,Nothing,Map[K,V]] {
  * @version 4.0
  * @tparam K the type of keys contained in the Map
  * @tparam V the primitive values contained in the Map
- * TODO make not-private in future version
+ * @since 3.1
  */
-private[parser] final class RecursiveMapParser[K,V] extends Parser[K, V, Nothing, com.rayrobdod.json.builder.MapBuilder.RecursiveSubjectType[K,V]] {
+final class RecursiveMapParser[K,V] extends Parser[K, V, Nothing, com.rayrobdod.json.builder.MapBuilder.RecursiveSubjectType[K,V]] {
 	import com.rayrobdod.json.builder.MapBuilder
 	type RecursiveSubjectTupleType[K,V] = Tuple2[K, Either[MapBuilder.RecursiveSubject[K, V], V]]
 	

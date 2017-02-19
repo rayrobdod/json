@@ -29,6 +29,7 @@ package com.rayrobdod.json.union
 import org.scalatest.FunSpec
 import com.rayrobdod.json.union.JsonValue._
 
+@deprecated("shut up compiler; I will cover deprecated methods", "")
 class JsonValueTest extends FunSpec {
 	
 	describe("JsonValue") {
@@ -76,14 +77,40 @@ class JsonValueTest extends FunSpec {
 				val res:JsonValue = StringOrInt(234)
 				assertResult(JsonValue(234)){res}
 			}
+			it ("""String to JsonValue""") {
+				val res:JsonValue = "abc"
+				assertResult(JsonValueString("abc")){res}
+			}
+			it ("""Boolean to JsonValue""") {
+				val res:JsonValue = true
+				assertResult(JsonValueBoolean(true)){res}
+			}
 			it ("""Int to JsonValue""") {
 				val res:JsonValue = 234
-				assertResult(JsonValue(234)){res}
+				assertResult(JsonValueNumber(234)){res}
 			}
 			it ("""Long to JsonValue""") {
 				val res:JsonValue = 234L
-				assertResult(JsonValue(234)){res}
+				assertResult(JsonValueNumber(234)){res}
 			}
+		}
+		describe("JsonValueNumber$.apply can accept") {
+			val exp = JsonValueNumber(scala.math.BigDecimal("0"))
+			
+			it ("Int") {assertResult(exp){JsonValueNumber(0)}}
+			it ("Long") {assertResult(exp){JsonValueNumber(0L)}}
+			it ("Float") {assertResult(exp){JsonValueNumber(0F)}}
+			it ("Double") {assertResult(exp){JsonValueNumber(0D)}}
+			it ("BigDecimal") {assertResult(exp){JsonValueNumber(scala.math.BigDecimal("0"))}}
+		}
+		describe("JsonValue$.apply can accept") {
+			val exp = JsonValueNumber(scala.math.BigDecimal("0"))
+			
+			it ("Int") {assertResult(exp){JsonValue(0)}}
+			it ("Long") {assertResult(exp){JsonValue(0L)}}
+			it ("Float") {assertResult(exp){JsonValue(0F)}}
+			it ("Double") {assertResult(exp){JsonValue(0D)}}
+			it ("BigDecimal") {assertResult(exp){JsonValue(scala.math.BigDecimal("0"))}}
 		}
 		describe("cborValueHexencodeByteStr") {
 			it ("String") {assertResult(JsonValue("abc")){cborValueHexencodeByteStr(CborValue("abc"))}}
@@ -92,6 +119,19 @@ class JsonValueTest extends FunSpec {
 			it ("null") {assertResult(JsonValueNull){cborValueHexencodeByteStr(CborValue.CborValueNull)}}
 			it ("bytestr") {assertResult(JsonValue("112345")){cborValueHexencodeByteStr(Array[Byte](17, 35, 69))}}
 			it ("bytestr (with zeros)") {assertResult(JsonValue("01000010")){cborValueHexencodeByteStr(Array[Byte](1, 0, 0, 16))}}
+		}
+		describe("cborValue2jsonValue") {
+			it ("String") {assertResult(Right(JsonValue("abc"))){cborValue2JsonValueEither(CborValue("abc"))}}
+			it ("Number (rat)") {assertResult(Right(JsonValue(123))){cborValue2JsonValueEither(CborValue(123))}}
+			it ("Number (unrat)") {assertResult(Left(Right(CborValue.Rational.NaN))){cborValue2JsonValueEither(CborValue(Double.NaN))}}
+			it ("Boolean") {assertResult(Right(JsonValue(true))){cborValue2JsonValueEither(CborValue(true))}}
+			it ("null") {assertResult(Right(JsonValueNull)){cborValue2JsonValueEither(CborValue.CborValueNull)}}
+			it ("bytestr") {
+				val src = Array[Byte](17, 35, 69)
+				val res = cborValue2JsonValueEither(src)
+				val res2 = res.left.get.left.get
+				assert(src.sameElements(res2))
+			}
 		}
 	}
 }

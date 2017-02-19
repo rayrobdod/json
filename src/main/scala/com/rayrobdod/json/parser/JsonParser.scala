@@ -194,7 +194,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failure
 	/** Read an array value. Do not include the first `'['` in `r` */
 	@scala.annotation.tailrec
 	private[this] def parseArrayValue[A, BF](soFar:A, builder:Builder[StringOrInt, JsonValue, BF, A], arrayIndex:Int = 0)(r:CountingReader):ParserRetVal[A, Nothing, JsonParser.Failures, BF] = {
-		/** true iff the next character is allowed to end the array - i.e. be a ']' */
+		/* true iff the next character is allowed to end the array - i.e. be a ']' */
 		val endObjectAllowed:Boolean = (arrayIndex == 0);
 		
 		var c = r.read()
