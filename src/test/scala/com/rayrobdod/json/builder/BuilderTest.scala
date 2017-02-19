@@ -190,7 +190,6 @@ class BuilderTest extends FunSpec {
 				builder.apply((null, null), "key", "value", new IdentityParser[String])
 			}
 		}
-	/*
 		it ("when a success, continue being a success (complex)") {
 			import com.rayrobdod.json.parser._
 			import com.rayrobdod.json.union._
@@ -202,7 +201,6 @@ class BuilderTest extends FunSpec {
 			val res = new JsonParser().parse(builder, """[ [ "abc" ] ]""")
 			assertResult(exp){res}
 		}
-	*/
 	}
 	
 }

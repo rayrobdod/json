@@ -120,4 +120,15 @@ trait Parser[+Key, +Value, +Failure, -Input] {
 		}
 	}
 	
+	/**
+	 * Change the type of failure that this parser produces
+	 * @since 4.0
+	 */
+	final def mapFailure[F2](fun:Function1[Failure, F2]):Parser[Key,Value,F2,Input] = new Parser[Key,Value,F2,Input] {
+		override def parse[Output, BF](builder:Builder[Key,Value,BF,Output], i:Input):ParserRetVal[Output, Value, F2, BF] = {
+			Parser.this.parse(builder, i)
+				.parserFailure.map(fun)
+		}
+	}
+	
 }

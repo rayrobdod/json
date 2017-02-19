@@ -126,6 +126,18 @@ trait Builder[-Key, -Value, +Failure, Subject] {
 	}
 	
 	/**
+	 * Change the type of failure produced by this builder
+	 * @since 4.0
+	 */
+	final def mapFailure[F2](fun:Function1[Failure,F2]):Builder[Key,Value,F2,Subject] = new Builder[Key,Value,F2,Subject] {
+		override def init:Subject = Builder.this.init
+		override def apply[Input, PF](a:Subject, key:Key, b:Input, c:Parser[Key, Value, PF, Input]):ParserRetVal[Subject, Nothing, PF, F2] = {
+			Builder.this.apply(a, key, b, c)
+				.builderFailure.map(fun)
+		}
+	}
+	
+	/**
 	 * Create a Builder which builds two items from the same input. The first
 	 * item built being the one that `this` would build, and the second item
 	 * built being the one that `that` would build.
