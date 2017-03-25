@@ -81,21 +81,21 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failure
 			var c = chars.read()
 			while (c.isWhitespace || c == '\ufeff') {c = chars.read()}
 			c match {
-				case '{' => parseObjectValue(builder.init, builder, true)(chars)
-				case '[' => parseArrayValue(builder.init, builder)(chars)
+				case '{' => parseObjectValue(builder)(builder.init, true)(chars)
+				case '[' => parseArrayValue(builder)(builder.init, 0)(chars)
 				case c => ParserRetVal.ParserFailure(UnexpectedChar(c, "'{' or '['", chars.index))
 			}
 		} catch {
 			case ex:java.util.NoSuchElementException => ParserRetVal.ParserFailure(IncompleteObject)
 			case ex:java.lang.StackOverflowError => ParserRetVal.ParserFailure(TooDeeplyNested)
 		}
-		retVal.parserFailure.map{_.increaseIndex(-startIndex)}
+		retVal.parserFailure.map{_.increaseIndex(-startIndex)}.complex.flatMap{builder.finalize _}
 		
 	}
 	
 	/** Read an object value. Do not include the first `'{'` in `r` */
 	@scala.annotation.tailrec
-	private[this] def parseObjectValue[A, BF](soFar:A, builder:Builder[StringOrInt, JsonValue, BF, A], endObjectAllowed:Boolean)(r:CountingReader):ParserRetVal[A, Nothing, JsonParser.Failures, BF] = {
+	private[this] def parseObjectValue[BF](builder:Builder[StringOrInt, JsonValue, BF, _])(soFar:builder.Middle, endObjectAllowed:Boolean)(r:CountingReader):ParserRetVal[builder.Middle, Nothing, JsonParser.Failures, BF] = {
 		var c = r.read()
 		while (c.isWhitespace) {c = r.read()}
 		val keyOpt : JsonParser.MidObjectParseValue[String, Nothing] = c match {
@@ -110,7 +110,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failure
 			}
 		}
 		
-		val newSoFarOpt : JsonParser.MidObjectParseValue[A, BF] = keyOpt.flatMap{any =>
+		val newSoFarOpt : JsonParser.MidObjectParseValue[builder.Middle, BF] = keyOpt.flatMap{any =>
 			var c = r.read()
 			while (c.isWhitespace) {c = r.read()}
 			c match {
@@ -183,7 +183,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failure
 				c = r.read()
 				while (c.isWhitespace) {c = r.read()}
 				c match {
-					case ',' => parseObjectValue(newSoFar, builder, false)(r)
+					case ',' => parseObjectValue(builder)(newSoFar, false)(r)
 					case '}' => ParserRetVal.Complex(newSoFar)
 					case c   => ParserRetVal.ParserFailure(UnexpectedChar(c, "',' or '}'", r.index))
 				}
@@ -193,14 +193,14 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failure
 	
 	/** Read an array value. Do not include the first `'['` in `r` */
 	@scala.annotation.tailrec
-	private[this] def parseArrayValue[A, BF](soFar:A, builder:Builder[StringOrInt, JsonValue, BF, A], arrayIndex:Int = 0)(r:CountingReader):ParserRetVal[A, Nothing, JsonParser.Failures, BF] = {
+	private[this] def parseArrayValue[BF](builder:Builder[StringOrInt, JsonValue, BF, _])(soFar:builder.Middle, arrayIndex:Int)(r:CountingReader):ParserRetVal[builder.Middle, Nothing, JsonParser.Failures, BF] = {
 		/* true iff the next character is allowed to end the array - i.e. be a ']' */
 		val endObjectAllowed:Boolean = (arrayIndex == 0);
 		
 		var c = r.read()
 		while (c.isWhitespace) {c = r.read()}
 		val startCharIndex = r.index
-		val value : JsonParser.MidObjectParseValue[A, BF] = c match {
+		val value : JsonParser.MidObjectParseValue[builder.Middle, BF] = c match {
 			case ']'  if endObjectAllowed => {
 				JsonParser.ReturnSuccess
 			}
@@ -264,7 +264,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failure
 				c = r.read()
 				while (c.isWhitespace) {c = r.read()}
 				c match {
-					case ',' => parseArrayValue(newSoFar, builder, arrayIndex + 1)(r)
+					case ',' => parseArrayValue(builder)(newSoFar, arrayIndex + 1)(r)
 					case ']' => ParserRetVal.Complex(newSoFar)
 					case c   => ParserRetVal.ParserFailure(UnexpectedChar(c, "',' or ']'", r.index))
 				}

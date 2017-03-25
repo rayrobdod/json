@@ -25,11 +25,11 @@ object NameParser extends Parser[StringOrInt, JsonValue, Nothing, Name] {
 //    ) yield {
 //      d
 //    }
-    builder.apply(a, "first", input.given, IdentityParser[JsonValue, String]).complex.flatMap{b:A =>
-      builder.apply(b, "middles", input.middles, PrimitiveSeqParser[StringOrInt, JsonValue, String]).complex.flatMap{c:A =>
+    builder.apply(a, "first", input.given, IdentityParser[JsonValue, String]).complex.flatMap{b:builder.Middle =>
+      builder.apply(b, "middles", input.middles, PrimitiveSeqParser[StringOrInt, JsonValue, String]).complex.flatMap{c:builder.Middle =>
         builder.apply(c, "last", input.family, IdentityParser[JsonValue, String])
       }
-    }
+    }.complex.flatMap{builder.finalize _}
   }
 }
 

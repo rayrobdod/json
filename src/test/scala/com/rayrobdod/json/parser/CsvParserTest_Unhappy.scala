@@ -43,7 +43,7 @@ class CsvParserTest_Unhappy extends FunSpec {
 			val source = "a,b,c\nd,e,f\n"
 			assertResult(ParserRetVal.BuilderFailure(EnforcedFailure)){   //idx == 6
 				new CsvParser().parse(MapBuilder.apply[Int, String, EnforcedFailure.type, Any]({x:Int => x match {
-					case 1 => new MapBuilder.MapChildBuilder[Int, String, EnforcedFailure.type, Any, Any](new ThrowBuilder[Int, String].mapValue[String], {x:Any => x})
+					case 1 => new MapBuilder.MapChildBuilder[Int, String, EnforcedFailure.type, Nothing, Any](new ThrowBuilder[Int, String].mapValue[String], {x:Any => x})
 					case _ => new MapBuilder.MapChildBuilder[Int, String, EnforcedFailure.type, MapBuilder.RecursiveSubjectType[Int,String], Any](MapBuilder[Int, String], {x:Any => x})
 				}}), source)
 			}

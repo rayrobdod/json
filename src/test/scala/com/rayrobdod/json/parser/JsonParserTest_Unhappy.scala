@@ -33,22 +33,10 @@ import com.rayrobdod.json.parser.JsonParser.Failures._
 
 class JsonParserTest_Unhappy extends FunSpec {
 	
-	/**
-	 * This is a wrapper required to put builders with different subjects in the same array.
-	 * The only reason erasing the subject is remotely acceptable is because the tests assume a failure (and thus fail on a successful parse) 
-	 */
-	final class SubjectAsAnyBuilder[K,V,BF,S](backing:Builder[K,V,BF,S]) extends Builder[K,V,BF,Any] {
-		override def init:Any = backing.init
-		override def apply[Input, PF](folding:Any, key:K, input:Input, parser:Parser[K, V, PF, Input]):ParserRetVal[Any, Nothing, PF, BF] = {
-			val folding2:S = folding.asInstanceOf[S]
-			backing.apply[Input, PF](folding2, key, input, parser)
-		}
-	}
-	
 	private val parser = new JsonParser()
-	private val mapBuilder = new SubjectAsAnyBuilder(MapBuilder[StringOrInt, JsonValue])
-	private val seq2Builder = new SubjectAsAnyBuilder(new SeqBuilder(new PrimitiveSeqBuilder[JsonValue]))
-	private val throwBuilder = new SubjectAsAnyBuilder(new ThrowBuilder[StringOrInt, JsonValue])
+	private val mapBuilder = MapBuilder[StringOrInt, JsonValue].mapResult{x => x:Any}
+	private val seq2Builder = new SeqBuilder(new PrimitiveSeqBuilder[JsonValue]).mapResult{x => x:Any}
+	private val throwBuilder = new ThrowBuilder[StringOrInt, JsonValue].mapResult{x => x:Any}
 	
 	private val failureCases:Seq[(String, Iterable[Char], Builder[StringOrInt, JsonValue, Any, Any], JsonParser.Failures)] = Seq(
 		  ("errors when object is incomplete", """{""", mapBuilder, IncompleteObject)

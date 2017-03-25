@@ -47,6 +47,8 @@ import com.rayrobdod.json.union.Failures.IllegalFoldingInBuilder
 final class CborBuilder(forceObject:Boolean = false) extends Builder[CborValue, CborValue, IllegalFoldingInBuilder.type, Seq[Byte]] {
 	import CborBuilder._
 	
+	override type Middle = Seq[Byte]
+	
 	/** The bytes to encode a zero-length array or object  */
 	override val init:Seq[Byte] = encodeLength((if (forceObject) {MajorTypeCodes.OBJECT} else {MajorTypeCodes.ARRAY}), 0)
 	
@@ -93,6 +95,8 @@ final class CborBuilder(forceObject:Boolean = false) extends Builder[CborValue, 
 			}
 		}
 	}
+	
+	override def finalize(folding:Seq[Byte]):ParserRetVal.Complex[Seq[Byte]] = ParserRetVal.Complex(folding)
 }
 
 private object CborBuilder {

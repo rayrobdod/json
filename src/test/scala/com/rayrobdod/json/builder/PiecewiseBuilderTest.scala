@@ -252,7 +252,9 @@ object PiecewiseBuilderTest {
 	case class Person(val name:String, val age:Int)
 	
 	def throwBuilder2[K,V] = new Builder[K,V,PiecewiseBuilderFailures,Any] {
+		type Middle = Any
 		override def init:Any = "using ThrowBuilder::init"
 		override def apply[I,BF](a:Any,k:K,i:I,p:Parser[K,V,BF,I]):BuilderFailure[PiecewiseBuilderFailures] = BuilderFailure(IllegalFoldingInBuilder)
+		override def finalize(a:Any):BuilderFailure[PiecewiseBuilderFailures] = BuilderFailure(IllegalFoldingInBuilder)
 	}
 }

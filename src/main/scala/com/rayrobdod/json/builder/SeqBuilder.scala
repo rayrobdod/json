@@ -48,6 +48,7 @@ import com.rayrobdod.json.union.Failures.{ExpectedPrimitive, ExpectedComplex}
  * @param childBuilder a builder that this will use to produce child elements
  */
 final class SeqBuilder[-Key, -Value, Failure, Inner](childBuilder:Builder[Key, Value, Failure, Inner]) extends Builder[Key, Value, Either[ExpectedComplex.type, Failure], Seq[Inner]] {
+	override type Middle = Seq[Inner]
 	override def init:Seq[Inner] = Vector.empty[Inner]
 	override def apply[Input, PF](folding:Seq[Inner], key:Key, innerInput:Input, parser:Parser[Key, Value, PF, Input]):ParserRetVal[Seq[Inner], Nothing, PF, Either[ExpectedComplex.type, Failure]] = {
 		parser.parse(childBuilder, innerInput)
@@ -55,6 +56,7 @@ final class SeqBuilder[-Key, -Value, Failure, Inner](childBuilder:Builder[Key, V
 				.builderFailure.map{util.Right.apply _}
 				.primitive.flatMap{x => BuilderFailure(util.Left(ExpectedComplex))}
 	}
+	override def finalize(folding:Seq[Inner]):ParserRetVal.Complex[Seq[Inner]] = ParserRetVal.Complex(folding)
 }
 
 /**
@@ -69,8 +71,10 @@ final class SeqBuilder[-Key, -Value, Failure, Inner](childBuilder:Builder[Key, V
  * @tparam Value the type of primitive values encountered
  */
 final class PrimitiveSeqBuilder[Value] extends Builder[Any, Value, ExpectedPrimitive.type, Seq[Value]] {
+	override type Middle = Seq[Value]
 	override def init:Seq[Value] = Vector.empty[Value]
 	override def apply[Input, PF](folding:Seq[Value], key:Any, innerInput:Input, parser:Parser[Any, Value, PF, Input]):ParserRetVal[Seq[Value], Nothing, PF, ExpectedPrimitive.type] = {
 		parser.parsePrimitive(innerInput).primitive.flatMap{x => Complex(folding :+ x)}.mergeToComplex
 	}
+	override def finalize(folding:Seq[Value]):ParserRetVal.Complex[Seq[Value]] = ParserRetVal.Complex(folding)
 }

@@ -46,10 +46,10 @@ final class MapParser[K,V] extends Parser[K,V,Nothing,Map[K,V]] {
 	 * @return the parsed object
 	 */
 	def parse[A,BF](topBuilder:Builder[K,V,BF,A], vals:Map[K, V]):ParserRetVal[A, Nothing, Nothing, BF] = {
-		vals.foldLeft[ParserRetVal[A, Nothing, Nothing, BF]](Complex(topBuilder.init)){(state:ParserRetVal[A, Nothing, Nothing, BF], keyValue:(K, V)) => 
+		vals.foldLeft[ParserRetVal[topBuilder.Middle, Nothing, Nothing, BF]](Complex(topBuilder.init)){(state, keyValue:(K, V)) => 
 			val (key, value) = keyValue;
 			state.complex.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[V])}
-		}
+		}.complex.flatMap{topBuilder.finalize _}
 	}
 }
 
@@ -70,7 +70,7 @@ final class RecursiveMapParser[K,V] extends Parser[K, V, Nothing, com.rayrobdod.
 	 * @return the parsed object
 	 */
 	def parse[A,BF](topBuilder:Builder[K,V,BF,A], vals:MapBuilder.RecursiveSubjectType[K,V]):ParserRetVal[A, Nothing, Nothing, BF] = {
-		vals.foldLeft[ParserRetVal[A, Nothing, Nothing, BF]](Complex(topBuilder.init)){(state:ParserRetVal[A, Nothing, Nothing, BF], keyValue:RecursiveSubjectTupleType[K,V]) => 
+		vals.foldLeft[ParserRetVal[topBuilder.Middle, Nothing, Nothing, BF]](Complex(topBuilder.init)){(state, keyValue:RecursiveSubjectTupleType[K,V]) => 
 			val (key, value) = keyValue;
 			state.complex.flatMap{folding =>
 				value.fold({complex:MapBuilder.RecursiveSubject[K,V] =>
@@ -79,6 +79,6 @@ final class RecursiveMapParser[K,V] extends Parser[K, V, Nothing, com.rayrobdod.
 					topBuilder.apply(folding, key, simple, new IdentityParser[V])
 				})
 			}
-		}
+		}.complex.flatMap{topBuilder.finalize _}
 	}
 }

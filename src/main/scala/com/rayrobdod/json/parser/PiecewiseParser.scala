@@ -64,9 +64,9 @@ final class PiecewiseParser[+Key, +Value, -Input] (
 ) extends Parser[Key,Value,PiecewiseBuilderFailures,Input] {
 	
 	override def parse[Output,BF](builder:Builder[Key,Value,BF,Output], i:Input):ParserRetVal[Output, Nothing, PiecewiseBuilderFailures, BF] = {
-		parts.foldLeft[ParserRetVal[Output, Nothing, PiecewiseBuilderFailures, BF]](ParserRetVal.Complex(builder.init)){(state:ParserRetVal[Output, Nothing, PiecewiseBuilderFailures, BF], part:KeyDef[Key,Value,Input]) =>
-			state.complex.flatMap{x => part.apply(builder, i, x)}
-		}
+		parts.foldLeft[ParserRetVal[builder.Middle, Nothing, PiecewiseBuilderFailures, BF]](ParserRetVal.Complex(builder.init)){(state, part:KeyDef[Key,Value,Input]) =>
+			state.complex.flatMap{x => part.apply(builder)(i, x)}
+		}.complex.flatMap{builder.finalize _}
 	}
 }
 
@@ -104,13 +104,13 @@ object PiecewiseParser {
 	 * @version 4.0
 	 */
 	abstract class KeyDef[+Key, +Value, -Input] {
-		def apply[Output,BF](builder:Builder[Key,Value,BF,Output], input:Input, currentOutput:Output):ParserRetVal[Output, Nothing, PiecewiseBuilderFailures, BF]
+		def apply[BF](builder:Builder[Key,Value,BF,_])(input:Input, currentOutput:builder.Middle):ParserRetVal[builder.Middle, Nothing, PiecewiseBuilderFailures, BF]
 	}
 	
 	def optionalKeyDef[Key, Value, Input](backing:KeyDef[Key, Value, Input], filter:Input => Boolean):KeyDef[Key, Value, Input] = new KeyDef[Key, Value, Input]{
-		def apply[Output,BF](builder:Builder[Key,Value,BF,Output], input:Input, currentOutput:Output):ParserRetVal[Output, Nothing, PiecewiseBuilderFailures, BF] = {
+		def apply[BF](builder:Builder[Key,Value,BF,_])(input:Input, currentOutput:builder.Middle):ParserRetVal[builder.Middle, Nothing, PiecewiseBuilderFailures, BF] = {
 			if (filter(input)) {
-				backing.apply(builder, input, currentOutput)
+				backing.apply(builder)(input, currentOutput)
 			} else {
 				ParserRetVal.Complex(currentOutput)
 			}
@@ -122,7 +122,7 @@ object PiecewiseParser {
 	}
 	
 	def complexKeyDef[Key, Primitive, Value, Input](key:Key, backing:Function1[Input,Value], parser:Parser[Key,Primitive,PiecewiseBuilderFailures,Value]):KeyDef[Key, Primitive, Input] = new KeyDef[Key,Primitive,Input]{
-		def apply[Output, BF](builder:Builder[Key,Primitive,BF,Output], input:Input, currentOutput:Output):ParserRetVal[Output, Nothing, PiecewiseBuilderFailures, BF] = {
+		def apply[BF](builder:Builder[Key,Primitive,BF,_])(input:Input, currentOutput:builder.Middle):ParserRetVal[builder.Middle, Nothing, PiecewiseBuilderFailures, BF] = {
 			val value = backing.apply(input)
 			builder.apply(currentOutput, key, value, parser)
 		}

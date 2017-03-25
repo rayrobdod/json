@@ -313,8 +313,8 @@ class CborBuilderTest extends FunSpec {
 		it ("CborBuilder + CaseClassParser (object)") {
 			assertResult(Complex(hexSeq"A3 6161 05 6162 f4 6163 63737472")){
 				val builder = new CborBuilder().mapKey[String]
-				builder.apply(builder.init, "a", CborValue(5), new IdentityParser[CborValue]).complex.flatMap{a:Seq[Byte] =>
-					builder.apply(a, "b", CborValue(false), new IdentityParser[CborValue]).complex.flatMap{b:Seq[Byte] =>
+				builder.apply(builder.init, "a", CborValue(5), new IdentityParser[CborValue]).complex.flatMap{a:builder.Middle =>
+					builder.apply(a, "b", CborValue(false), new IdentityParser[CborValue]).complex.flatMap{b:builder.Middle =>
 						builder.apply(b, "c", CborValue("str"), new IdentityParser[CborValue])
 					}
 				}

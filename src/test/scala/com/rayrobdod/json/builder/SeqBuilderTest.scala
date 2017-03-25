@@ -75,7 +75,7 @@ class SeqBuilderTest extends FunSpec {
 			val myValue2 = new Object
 			
 			assertResult(ParserRetVal.BuilderFailure(util.Right(EnforcedFailure))){
-				new SeqBuilder(new ThrowBuilder[Int, Object]).apply(Nil, 12, Seq(myValue2), new SeqParser(new IdentityParser[Object]))
+				new SeqBuilder[Int, Object, EnforcedFailure.type, Nothing](new ThrowBuilder[Int, Object]).apply(Nil, 12, Seq(myValue2), new SeqParser(new IdentityParser[Object]))
 			}
 		}
 		it ("fails when parser gives it a failure") {

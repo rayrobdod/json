@@ -53,6 +53,8 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 	import PrettyJsonBuilder.serialize
 	import PrettyJsonBuilder.Failures._
 
+	override type Middle = String
+
 	/** A builder to be used when serializing any 'complex' children of the values this builder is dealing with */
 	private[this] lazy val nextLevel = new PrettyJsonBuilder(params, charset, level + 1)
 	
@@ -90,6 +92,7 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 		}
 	}
 	
+	override def finalize(folding:String):ParserRetVal.Complex[String] = ParserRetVal.Complex(folding)
 }
 
 /**

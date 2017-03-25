@@ -28,8 +28,9 @@ package com.rayrobdod.json.parser
 
 import scala.util.Either
 import com.rayrobdod.json.builder.Builder
+import com.rayrobdod.json.builder.ThrowBuilder
 import com.rayrobdod.json.union.ParserRetVal
-import com.rayrobdod.json.union.Failures.{ExpectedPrimitive}
+import com.rayrobdod.json.union.Failures.{EnforcedFailure, ExpectedPrimitive}
 
 /**
  * An object that parses an input into a sequence of key-value pairs for the
@@ -64,12 +65,7 @@ trait Parser[+Key, +Value, +Failure, -Input] {
 	 * returned a [[com.rayrobdod.json.union.ParserRetVal.Primitive Primitive]], else return a Left.
 	 */
 	final def parsePrimitive(i:Input):ParserRetVal[Nothing, Value, Failure, ExpectedPrimitive.type] = {
-		val ignoreAllBuilder = new Builder[Key, Value, Nothing, Any] {
-			def init:Any = this
-			def apply[I,BF](a:Any,k:Key,i:I,p:Parser[Key,Value,BF,I]):ParserRetVal.Complex[Any] = ParserRetVal.Complex(a)
-		}
-		
-		this.parse(ignoreAllBuilder, i).complex.flatMap{x => (ParserRetVal.BuilderFailure(ExpectedPrimitive))}
+		this.parse(new ThrowBuilder[Key,Value], i).builderFailure.map{x:EnforcedFailure.type => ExpectedPrimitive}
 	}
 	
 	

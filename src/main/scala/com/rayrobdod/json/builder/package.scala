@@ -42,10 +42,15 @@ package object builder {
 
 package builder {
 	/**
-	 * A Builder that will always return a failure on call to apply
+	 * A Builder that will always return a failure on call to apply or finalize
+	 * 
+	 * Mostly useful when a function wants a builder even though you 'know' the result must be primitive
+	 * @since 4.0
 	 */
-	private[json] final class ThrowBuilder[K,V] extends Builder[K,V,EnforcedFailure.type,Any] {
-		override def init:Any = "using ThrowBuilder::init"
-		override def apply[I,BF](a:Any,k:K,i:I,p:Parser[K,V,BF,I]):BuilderFailure[EnforcedFailure.type] = BuilderFailure(EnforcedFailure)
+	final class ThrowBuilder[K,V] extends Builder[K, V, EnforcedFailure.type, Nothing] {
+		type Middle = Any
+		override def init:Middle = "using ThrowBuilder::init"
+		override def apply[I,BF](a:Middle,k:K,i:I,p:Parser[K,V,BF,I]):BuilderFailure[EnforcedFailure.type] = BuilderFailure(EnforcedFailure)
+		override def finalize(a:Middle):BuilderFailure[EnforcedFailure.type] = BuilderFailure(EnforcedFailure)
 	}
 }

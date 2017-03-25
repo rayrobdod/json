@@ -79,10 +79,13 @@ final class PiecewiseBuilder[Key, Value, Subject](
 		new PiecewiseBuilder(init, PiecewiseBuilder.ignoreKeyDef[Key, Value, Subject], keyDefs)
 	}
 	
+	override type Middle = Subject
 	
 	override def apply[Input, PF](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, PF, Input]):ParserRetVal[Subject, Nothing, PF, PiecewiseBuilderFailures] = {
 		keyDefs.getOrElse(key, defaultKeyDef).apply(folding, input, parser)
 	}
+	
+	override def finalize(folding:Subject):ParserRetVal.Complex[Subject] = ParserRetVal.Complex(folding)
 }
 
 /**

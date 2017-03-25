@@ -94,7 +94,7 @@ class PiecewiseParserTest extends FunSpec {
 				
 				val exp = Map(key -> Right(value))
 				val dut = primitiveKeyDef(key = key, inputToValue = {x:String => value})
-				val res = dut.apply[MapBuilder.RecursiveSubjectType[String, String], Nothing](MapBuilder.apply, "input", Map.empty)
+				val res = dut.apply[Nothing](MapBuilder.apply)("input", Map.empty)
 				assertResult(Complex(exp)){res}
 			}
 		}
@@ -110,26 +110,28 @@ class PiecewiseParserTest extends FunSpec {
 				}
 				
 				object EchoBuilder extends Builder[Key, Value, Nothing, (Key, Any, Parser[_,_,_,_])] {
+					override type Middle = (Key, Any, Parser[_,_,_,_])
 					def apply[Input,PF](folding:(Key, Any, Parser[_,_,_,_]), key:Key, input:Input, parser:Parser[Key,Value,PF,Input]):ParserRetVal[(Key, Any, Parser[_,_,_,_]), Nothing, PF, Nothing] = {
 						Complex(((key, input, parser)))
 					}
 					def init:(Key, Any, Parser[_,_,_,_]) =  ("","",null)
+					override def finalize(x:Middle) = ParserRetVal.Complex(x)
 				}
 				
 				val dut = complexKeyDef(key = key, backing = {x:String => value}, child)
-				val res = dut.apply(EchoBuilder, "input", ("","",null))
+				val res = dut.apply(EchoBuilder)("input", ("","",null))
 				assertResult(Complex(key, value, child)){res}
 			}
 		}
 		describe("optionalKeyDef") {
 			it ("forwards to inner when filter is true") {
 				val dut = optionalKeyDef(primitiveKeyDef(1, {x:Any => 1}), {x:Any => true})
-				val res = dut.apply[Map[Int, Either[MapBuilder.RecursiveSubject[Int, Int], Int]], Any](MapBuilder.apply, "input", Map.empty)
+				val res = dut.apply[Any](MapBuilder.apply)("input", Map.empty)
 				assertResult(Complex(Map(1 -> Right(1)))){res}
 			}
 			it ("returns folding when filter is false") {
 				val dut = optionalKeyDef(primitiveKeyDef(1, {x:Any => (1)}), {x:Any => false})
-				val res = dut.apply[Map[Int, Either[MapBuilder.RecursiveSubject[Int, Int], Int]], Any](MapBuilder.apply, "input", Map.empty)
+				val res = dut.apply[Any](MapBuilder.apply)("input", Map.empty)
 				assertResult(Complex(Map())){res}
 			}
 		}
@@ -144,7 +146,7 @@ class PiecewiseParserTest extends FunSpec {
 				
 				val exp = Map(key -> Right(value))
 				val dut:KeyDef[String, String, String] = key valueIs {x => value}
-				val res = dut.apply[MapBuilder.RecursiveSubjectType[String, String], Nothing](MapBuilder.apply, "input", Map.empty)
+				val res = dut.apply[Nothing](MapBuilder.apply)("input", Map.empty)
 				assertResult(Complex(exp)){res}
 			}
 		}
@@ -162,14 +164,16 @@ class PiecewiseParserTest extends FunSpec {
 				}
 				
 				object EchoBuilder extends Builder[Key, Value, Nothing, (Key, Any, Parser[_,_,_,_])] {
+					type Middle = (Key, Any, Parser[_,_,_,_])
 					def apply[Input, PF](folding:(Key, Any, Parser[_,_,_,_]), key:Key, input:Input, parser:Parser[Key,Value,PF,Input]):ParserRetVal[(Key, Any, Parser[_,_,_,_]), Nothing, PF, Nothing] = {
 						Complex(((key, input, parser)))
 					}
 					def init:(Key, Any, Parser[_,_,_,_]) =  ("","",null)
+					override def finalize(x:Middle) = ParserRetVal.Complex(x)
 				}
 				
 				val dut:KeyDef[Key, Value, Input] = key valueIs ({x:String => value}, child)
-				val res = dut.apply(EchoBuilder, "input", ("","",null))
+				val res = dut.apply(EchoBuilder)("input", ("","",null))
 				assertResult(Complex( ((key, value, child)) )){res}
 			}
 		}
@@ -177,13 +181,13 @@ class PiecewiseParserTest extends FunSpec {
 			it ("passes filter") {
 				val exp = Map("key" -> Right("value"))
 				val dut:KeyDef[String, String, Int] = "key" valueIsOpt {case x if x > 0 => "value"}
-				val res = dut.apply[MapBuilder.RecursiveSubjectType[String, String], Nothing](MapBuilder.apply, 10, Map.empty)
+				val res = dut.apply[Nothing](MapBuilder.apply)(10, Map.empty)
 				assertResult(Complex(exp)){res}
 			}
 			it ("fails filter") {
 				val exp = Map()
 				val dut:KeyDef[String, String, Int] = "key" valueIsOpt {case x if x > 0 => "value"}
-				val res = dut.apply[MapBuilder.RecursiveSubjectType[String, String], Nothing](MapBuilder.apply, -10, Map.empty)
+				val res = dut.apply[Nothing](MapBuilder.apply)(-10, Map.empty)
 				assertResult(Complex(exp)){res}
 			}
 		}

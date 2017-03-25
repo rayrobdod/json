@@ -73,7 +73,7 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 	/**
 	 * Decodes the input values to an object.
 	 */
-	def parseDetailed[A, BF](topBuilder:Builder[CborValue, CborValue, BF, A], input:DataInput):ParseReturnValue[A, BF] = {
+	def parseDetailed[ComplexOutput, BF](topBuilder:Builder[CborValue, CborValue, BF, ComplexOutput], input:DataInput):ParseReturnValue[ComplexOutput, BF] = {
 		val headerByte:Byte = input.readByte();
 		val majorType = (headerByte >> 5) & 0x07
 		val additionalInfo = headerByte & 0x1F
@@ -200,7 +200,7 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 	}
 	
 	private[this] def parseArray[A,BF](topBuilder:Builder[CborValue, CborValue, BF, A], input:DataInput, aid:AdditionalInfoData):ParserRetVal[A, Nothing, CborParser.Failures, BF] = {
-		var retVal:ParserRetVal[A, Nothing, CborParser.Failures, BF] = Complex(topBuilder.init)
+		var retVal:ParserRetVal[topBuilder.Middle, Nothing, CborParser.Failures, BF] = Complex(topBuilder.init)
 		
 		aid match {
 			case AdditionalInfoDeterminate(len:Long) => {
@@ -235,10 +235,11 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 			}
 		}
 		retVal
+			.complex.flatMap{topBuilder.finalize _}
 	}
 	
 	private[this] def parseObject[A,BF](topBuilder:Builder[CborValue, CborValue, BF, A], input:DataInput, aid:AdditionalInfoData):ParserRetVal[A, Nothing, CborParser.Failures, BF] = {
-		var retVal:ParserRetVal[A, Nothing, CborParser.Failures, BF] = Complex(topBuilder.init)
+		var retVal:ParserRetVal[topBuilder.Middle, Nothing, CborParser.Failures, BF] = Complex(topBuilder.init)
 		
 		aid match {
 			case AdditionalInfoDeterminate(len:Long) => {
@@ -273,6 +274,7 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 			}
 		}
 		retVal
+			.complex.flatMap{topBuilder.finalize _}
 	}
 }
 
@@ -442,9 +444,10 @@ object CborParser {
 			}
 		}
 		
-		private[this] class PairBigIntBuilder(tagNumber:String) extends Builder[CborValue, CborValue, CborParser.Failures, (BigInt, BigInt)] {
+		private[this] final class PairBigIntBuilder(tagNumber:String) extends Builder[CborValue, CborValue, CborParser.Failures, (BigInt, BigInt)] {
+			override type Middle = Tuple2[BigInt, BigInt]
 			override def init:(BigInt, BigInt) = ((BigInt(1), BigInt(1)))
-			final def apply[Input, PF](folding:(BigInt, BigInt), key:CborValue, input:Input, parser:Parser[CborValue, CborValue, PF, Input]):ParserRetVal[(BigInt, BigInt), Nothing, PF, CborParser.Failures] = {
+			override def apply[Input, PF](folding:(BigInt, BigInt), key:CborValue, input:Input, parser:Parser[CborValue, CborValue, PF, Input]):ParserRetVal[(BigInt, BigInt), Nothing, PF, CborParser.Failures] = {
 				parser.parsePrimitive(input)
 					.builderFailure.map[CborParser.Failures]{x:ExpectedPrimitive.type => BigIntPairTagHadComplexValue(tagNumber)}
 					.primitive.flatMap[BigInt, Nothing, PF, CborParser.Failures]{_ match {
@@ -466,6 +469,7 @@ object CborParser {
 						}
 					}
 			}
+			override def finalize(folding:Tuple2[BigInt, BigInt]):ParserRetVal.Complex[Tuple2[BigInt, BigInt]] = ParserRetVal.Complex(folding)
 		}
 		
 		/** Combines the other tag matchers  */

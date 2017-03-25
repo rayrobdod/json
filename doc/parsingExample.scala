@@ -28,6 +28,7 @@ val json = """{
 
 // Example directly subclassing Builder
 object NameBuilder extends Builder[StringOrInt, JsonValue, PiecewiseBuilderFailures, Name] {
+  override type Middle = Name
   override def init:Name = Name("", "", "")
   override def apply[Input, PF](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, PF, Input]):ParserRetVal[Name, Nothing, PF, PiecewiseBuilderFailures] = {
     // we only expect strings, so might as well parse the value at the beginning
@@ -40,6 +41,7 @@ object NameBuilder extends Builder[StringOrInt, JsonValue, PiecewiseBuilderFailu
       }
     }.fold({err => BuilderFailure(err)}, {x => Complex(x)})}
   }
+  override def finalize(x:Middle) = ParserRetVal.Complex(x)
 }
 
 // example using PiecewiseBuilder
