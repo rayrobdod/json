@@ -79,9 +79,9 @@ trait Builder[-Key, -Value, +Failure, Result] {
 	 * If there is no need to take advantage of this, the implementation of this
 	 * method can be
 	 * 
-	 * ```
-	 * override def finalize(x:Middle) = [[com.rayrobdod.json.union.ParserRetVal.Complex ParserRetVal.Complex]](x)
-	 * ```
+	 * {{{
+	 * override def finalize(x:Middle) = ParserRetVal.Complex(x)
+	 * }}}
 	 * 
 	 * @since 4.0
 	 * @param folding the object to be converted. Must be either the return value of [[init]] or the return value of [[apply]]
