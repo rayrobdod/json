@@ -28,7 +28,6 @@ package com.rayrobdod.json.builder;
 
 import com.rayrobdod.json.parser.Parser
 import com.rayrobdod.json.union.ParserRetVal
-import com.rayrobdod.json.union.ParserRetVal.{Complex}
 import scala.collection.immutable.Map
 
 /**

@@ -74,12 +74,12 @@ final class CsvParserTest_Happy extends FunSpec {
 			
 			it (name) {
 				val source = source2
-				val result = new CsvParser(charMeans).parse(new SeqBuilder(new PrimitiveSeqBuilder[String]), source)
+				val result = new CsvParser(charMeans).parse(SeqBuilder(PrimitiveSeqBuilder[String]), source)
 				assertResult(Complex(expected)){result}
 			}
 			it (name + " (reader)") {
 				val source = new java.io.StringReader(source2)
-				val result = new CsvParser(charMeans).parse(new SeqBuilder(new PrimitiveSeqBuilder[String]), source)
+				val result = new CsvParser(charMeans).parse(SeqBuilder(PrimitiveSeqBuilder[String]), source)
 				assertResult(Complex(expected)){result}
 			}
 		}

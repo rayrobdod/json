@@ -32,7 +32,7 @@ import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.union.ParserRetVal.{BuilderFailure, Complex}
-import com.rayrobdod.json.union.Failures.{ExpectedPrimitive, UnknownKey}
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures.{ExpectedPrimitive, UnknownKey}
 
 class JsonParserTest_OtherBuilders extends FunSpec {
 	describe("JsonParser with other builders") {

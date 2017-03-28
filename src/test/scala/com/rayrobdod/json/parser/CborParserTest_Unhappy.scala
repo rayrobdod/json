@@ -32,14 +32,13 @@ import com.rayrobdod.json.union.{CborValue, ParserRetVal}
 import com.rayrobdod.json.builder._
 import com.rayrobdod.json.testing.HexArrayStringConverter
 import com.rayrobdod.json.parser.CborParser.Failures._
-import com.rayrobdod.json.union.Failures.EnforcedFailure
 
 class CborParserTest_Unhappy extends FunSpec {
 	
 	private val parser = new CborParser()
 	private val mapBuilder = MapBuilder[CborValue, CborValue].mapResult{x => x:Any}
-	private val seq1Builder = new PrimitiveSeqBuilder[CborValue].mapResult{x => x:Any}
-	private val seq2Builder = new SeqBuilder(new PrimitiveSeqBuilder[CborValue]).mapResult{x => x:Any}
+	private val seq1Builder = PrimitiveSeqBuilder[CborValue].mapResult{x => x:Any}
+	private val seq2Builder = SeqBuilder(PrimitiveSeqBuilder[CborValue]).mapResult{x => x:Any}
 	
 	private val failureCases:Seq[(String, Array[Byte], Builder[CborValue, CborValue, Any, Any], CborParser.Failures)] = Seq(
 		  ("errors when array is incomplete", Array[Byte](0x58, 30) ++ (1 to 10).map{_.byteValue}, seq1Builder, IOException(null))

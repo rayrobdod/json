@@ -29,7 +29,7 @@ package com.rayrobdod.json.parser;
 import scala.collection.immutable.Seq
 import com.rayrobdod.json.builder.{Builder, PrimitiveSeqBuilder}
 import com.rayrobdod.json.union.{StringOrInt, ParserRetVal}
-import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure, ParserFailure}
+import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure}
 
 /**
  * A streaming decoder for csv data, where the first line of the csv data is a header row.
@@ -72,7 +72,7 @@ final class CsvWithHeaderParser(
 	}
 	
 	def parse[Result, BF](builder:Builder[StringOrInt, String, BF, Result], chars:CountingReader):ParserRetVal[Result,Nothing, Nothing, BF] = {
-		val keys:Seq[String] = lineParser.parse(new PrimitiveSeqBuilder[String], chars).fold({x => x}, {x => x:Nothing}, {x => x:Nothing}, {x => Nil})
+		val keys:Seq[String] = lineParser.parse(new PrimitiveSeqBuilder[String, Any](123), chars).fold({x => x}, {x => x:Nothing}, {x => x:Nothing}, {x => Nil})
 		val myLineParser = lineParser.mapKey[StringOrInt]{i =>
 			if (keys.isDefinedAt(i)) {StringOrInt(keys(i))} else {StringOrInt(i)}
 		}

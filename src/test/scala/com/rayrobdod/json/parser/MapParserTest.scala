@@ -31,6 +31,7 @@ import scala.collection.immutable.Map
 import com.rayrobdod.json.builder.{MapBuilder, PrettyJsonBuilder, ThrowBuilder}
 import com.rayrobdod.json.union.{StringOrInt, JsonValue}
 import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure}
+import com.rayrobdod.json.builder.BuilderTest.EnforcedFailure
 
 class MapParserTest extends FunSpec {
 	describe("MapParser") {
@@ -48,9 +49,9 @@ class MapParserTest extends FunSpec {
 			assertResult(exp){res}
 		}
 		it ("""builder failure""") {
-			val exp = BuilderFailure(com.rayrobdod.json.union.Failures.EnforcedFailure)
+			val exp = BuilderFailure(EnforcedFailure)
 			val src = Map("a" -> Map.empty, "b" -> Map("x" -> true, "y" -> false))
-			val res = new MapParser().parse(new ThrowBuilder[String, Map[_ <: String, Boolean]], src)
+			val res = new MapParser().parse(new ThrowBuilder(EnforcedFailure), src)
 			
 			assertResult(exp){res}
 		}

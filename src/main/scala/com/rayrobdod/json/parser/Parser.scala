@@ -30,7 +30,7 @@ import scala.util.Either
 import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.builder.ThrowBuilder
 import com.rayrobdod.json.union.ParserRetVal
-import com.rayrobdod.json.union.Failures.{EnforcedFailure, ExpectedPrimitive}
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures.ExpectedPrimitive
 
 /**
  * An object that parses an input into a sequence of key-value pairs for the
@@ -64,8 +64,18 @@ trait Parser[+Key, +Value, +Failure, -Input] {
 	 * Parse the input into a Value. Return a Right if [[Parser.parse]] would have
 	 * returned a [[com.rayrobdod.json.union.ParserRetVal.Primitive Primitive]], else return a Left.
 	 */
+	@deprecated("This version doesn't allow specifying what the error is; use the two-arg version instead", "4.0")
 	final def parsePrimitive(i:Input):ParserRetVal[Nothing, Value, Failure, ExpectedPrimitive.type] = {
-		this.parse(new ThrowBuilder[Key,Value], i).builderFailure.map{x:EnforcedFailure.type => ExpectedPrimitive}
+		this.parsePrimitive(i, ExpectedPrimitive)
+	}
+	
+	/**
+	 * Parse the input into a Value. Return a Right if [[Parser.parse]] would have
+	 * returned a [[com.rayrobdod.json.union.ParserRetVal.Primitive Primitive]], else return a Left.
+	 * @since 4.0
+	 */
+	final def parsePrimitive[BF](i:Input, bf:BF):ParserRetVal[Nothing, Value, Failure, BF] = {
+		this.parse(new ThrowBuilder(bf), i)
 	}
 	
 	

@@ -28,7 +28,6 @@ package com.rayrobdod.json
 
 import com.rayrobdod.json.parser.Parser
 import com.rayrobdod.json.union.ParserRetVal.BuilderFailure
-import com.rayrobdod.json.union.Failures.EnforcedFailure
 
 /**
  * Contains the various built-in builders.
@@ -47,10 +46,16 @@ package builder {
 	 * Mostly useful when a function wants a builder even though you 'know' the result must be primitive
 	 * @since 4.0
 	 */
-	final class ThrowBuilder[K,V] extends Builder[K, V, EnforcedFailure.type, Nothing] {
+	final class ThrowBuilder[Failure](failure:Failure) extends Builder[Any, Any, Failure, Nothing] {
 		type Middle = Any
 		override def init:Middle = "using ThrowBuilder::init"
-		override def apply[I,BF](a:Middle,k:K,i:I,p:Parser[K,V,BF,I]):BuilderFailure[EnforcedFailure.type] = BuilderFailure(EnforcedFailure)
-		override def finalize(a:Middle):BuilderFailure[EnforcedFailure.type] = BuilderFailure(EnforcedFailure)
+		override def apply[I,BF](a:Middle,k:Any,i:I,p:Parser[Any,Any,BF,I]):BuilderFailure[Failure] = BuilderFailure(failure)
+		override def finalize(a:Middle):BuilderFailure[Failure] = BuilderFailure(failure)
 	}
+	
+	/**
+	 * Raised when Builder::apply's folding parameter is unusable; when it detectably violates the contract of (returned from Builder::init or Builder::apply)
+	 * @since 4.0
+	 */
+	object IllegalFoldingFailure
 }

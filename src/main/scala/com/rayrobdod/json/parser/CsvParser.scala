@@ -28,8 +28,7 @@ package com.rayrobdod.json.parser;
 
 import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.union.ParserRetVal
-import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure, ParserFailure}
-import com.rayrobdod.json.union.Failures.Indexed
+import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure}
 
 /**
  * A streaming decoder for csv data.

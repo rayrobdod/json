@@ -28,11 +28,12 @@ package com.rayrobdod.json.parser;
 
 import java.io.DataInput
 import java.nio.charset.StandardCharsets.UTF_8;
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures.ExpectedPrimitive
+import com.rayrobdod.json.builder.IllegalFoldingFailure
 import com.rayrobdod.json.builder.{Builder, PrimitiveSeqBuilder, CborBuilder, ThrowBuilder}
 import com.rayrobdod.json.union.{CborValue, ParserRetVal}
 import com.rayrobdod.json.union.ParserRetVal.{Complex, Primitive, ParserFailure, BuilderFailure}
 import com.rayrobdod.json.union.CborValue.Rational
-import com.rayrobdod.json.union.Failures.ExpectedPrimitive
 
 /**
  * A parser that will decode cbor data.
@@ -171,7 +172,7 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 				case AdditionalInfoIndeterminate() => {
 					val stream = new java.io.ByteArrayOutputStream
 					
-					var next:Any = this.parseDetailed(new PrimitiveSeqBuilder, input)
+					var next:Any = this.parseDetailed(PrimitiveSeqBuilder[CborValue], input)
 					while (next != ParseReturnValueEndOfIndeterminateObject()) {
 						val nextBytes:Array[Byte] = next match {
 							case ParseReturnValueSimple(CborValue.CborValueString(s:String)) => s.getBytes(UTF_8)
@@ -179,7 +180,7 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 							case _ => throw new WrongStringTypeException
 						}
 						stream.write(nextBytes)
-						next = this.parseDetailed(new PrimitiveSeqBuilder, input)
+						next = this.parseDetailed(PrimitiveSeqBuilder[CborValue], input)
 					}
 					Right(stream.toByteArray())
 				}
@@ -210,7 +211,7 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 			}
 			case AdditionalInfoIndeterminate() => {
 				var index:Int = 0
-				var childObject:ParseReturnValue[Seq[Byte], com.rayrobdod.json.union.Failures.IllegalFoldingInBuilder.type] = ParseReturnValueUnknownSimple(0)
+				var childObject:ParseReturnValue[Seq[Byte], IllegalFoldingFailure.type] = ParseReturnValueUnknownSimple(0)
 				while (childObject != ParseReturnValueEndOfIndeterminateObject()) {
 					childObject = this.parseDetailed(new CborBuilder(true), input)
 					
@@ -244,7 +245,7 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 		aid match {
 			case AdditionalInfoDeterminate(len:Long) => {
 				(0L until len).foreach{index =>
-					val keyTry:ParserRetVal[CborValue, Nothing, CborParser.Failures, Nothing] = this.parseDetailed(new ThrowBuilder, input) match {
+					val keyTry:ParserRetVal[CborValue, Nothing, CborParser.Failures, Nothing] = this.parseDetailed(new ThrowBuilder(NonSimpleMapKey), input) match {
 						case ParseReturnValueSimple(x) => Complex(x)
 						case ParseReturnValueParserFailure(x) => ParserFailure(x)
 						case ParseReturnValueBuilderFailure(x) => ParserFailure(NonSimpleMapKey)
@@ -260,7 +261,7 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 			case AdditionalInfoIndeterminate() => {
 				var keyObject:ParseReturnValue[_, _] = ParseReturnValueUnknownSimple(0)
 				while (keyObject != ParseReturnValueEndOfIndeterminateObject()) {
-					keyObject = this.parseDetailed(new ThrowBuilder, input)
+					keyObject = this.parseDetailed(new ThrowBuilder(NonSimpleMapKey), input)
 					keyObject match {
 						case ParseReturnValueEndOfIndeterminateObject() => {}
 						case ParseReturnValueSimple(x) => {
@@ -393,7 +394,7 @@ object CborParser {
 		val numbers:TagMatcher = new TagMatcher {
 			def unapply(tag:Long):Option[TagFunction] = tag match {
 				case TagCodes.POS_BIG_INT => Some(new TagFunction{override def apply[A, BF](b:Builder[CborValue, CborValue, BF, A], i:DataInput) = {
-					val bsOpt = new CborParser().parsePrimitive(i)
+					val bsOpt = new CborParser().parsePrimitive(i, ExpectedPrimitive)
 					bsOpt.primitive.flatMap{_ match {
 						case CborValueByteStr(bs)=> Complex(CborValueNumber(Rational(bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))})))
 						case x => ParserFailure(BigIntTagContainedNonByteStringValue("Tag 2", x))
@@ -405,7 +406,7 @@ object CborParser {
 					)
 				}})
 				case TagCodes.NEG_BIG_INT => Some(new TagFunction{override def apply[A, BF](b:Builder[CborValue, CborValue, BF, A], i:DataInput) = {
-					val bsOpt = new CborParser().parsePrimitive(i)
+					val bsOpt = new CborParser().parsePrimitive(i, ExpectedPrimitive)
 					bsOpt.primitive.flatMap{_ match {
 						case CborValueByteStr(bs)=> Complex(CborValueNumber(Rational((-1:BigInt) - bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))})))
 						case x => ParserFailure(BigIntTagContainedNonByteStringValue("Tag 3", x))
@@ -448,7 +449,7 @@ object CborParser {
 			override type Middle = Tuple2[BigInt, BigInt]
 			override def init:(BigInt, BigInt) = ((BigInt(1), BigInt(1)))
 			override def apply[Input, PF](folding:(BigInt, BigInt), key:CborValue, input:Input, parser:Parser[CborValue, CborValue, PF, Input]):ParserRetVal[(BigInt, BigInt), Nothing, PF, CborParser.Failures] = {
-				parser.parsePrimitive(input)
+				parser.parsePrimitive(input, ExpectedPrimitive)
 					.builderFailure.map[CborParser.Failures]{x:ExpectedPrimitive.type => BigIntPairTagHadComplexValue(tagNumber)}
 					.primitive.flatMap[BigInt, Nothing, PF, CborParser.Failures]{_ match {
 						case CborValueNumber(x) => (

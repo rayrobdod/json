@@ -28,7 +28,9 @@ package com.rayrobdod.json.union
 
 import java.math.MathContext.UNLIMITED
 import scala.language.implicitConversions
-import com.rayrobdod.json.union.Failures.UnsuccessfulTypeCoersion
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures.UnsuccessfulTypeCoercion
+
 
 /**
  * A union type representing primitive types in Cbor objects
@@ -58,7 +60,7 @@ sealed trait CborValue {
 	/**
 	 * Executes and returns `fs(this.s)` if this is a CborValueString, else return a Left with an error message
 	 */
-	final def stringToEither[E >: UnsuccessfulTypeCoersion, A](fs:String => Either[E, A]):Either[E, A] = {
+	final def stringToEither[A](fs:String => Either[Failures, A]):Either[Failures, A] = {
 		val unexpected = new ReturnLeft("String")
 		this.fold(fs, unexpected, unexpected, unexpected, unexpected)
 	}
@@ -66,7 +68,7 @@ sealed trait CborValue {
 	/**
 	 * Executes and returns `fs(this.s)` if this is a CborValueByteStr, else return a Left with an error message
 	 */
-	final def byteArrayToEither[E >: UnsuccessfulTypeCoersion, A](fs:Array[Byte] => Either[E, A]):Either[E, A] = {
+	final def byteArrayToEither[A](fs:Array[Byte] => Either[Failures, A]):Either[Failures, A] = {
 		val unexpected = new ReturnLeft("Byte String")
 		this.fold(unexpected, fs, unexpected, unexpected, unexpected)
 	}
@@ -74,16 +76,16 @@ sealed trait CborValue {
 	/**
 	 * Executes and returns `fi(this.i)` if this is a CborValueNumber which holds an number convertible to integer, else return a Left with an error message.
 	 */
-	final def integerToEither[E >: UnsuccessfulTypeCoersion, A](fi:Int => Either[E, A]):Either[E, A] = {
+	final def integerToEither[A](fi:Int => Either[Failures, A]):Either[Failures, A] = {
 		val unexpected = new ReturnLeft("Int")
-		val number = {n:Rational => n.tryToInt.fold[Either[E, A]](unexpected(n)){fi}}
+		val number = {n:Rational => n.tryToInt.fold[Either[Failures, A]](unexpected(n)){fi}}
 		this.fold(unexpected, unexpected, number, unexpected, unexpected)
 	}
 	
 	/**
 	 * Executes and returns `fn(this.i)` if this is a CborValueNumber, else return a Left with an error message.
 	 */
-	final def numberToEither[E >: UnsuccessfulTypeCoersion, A](fn:Rational => Either[E, A]):Either[E, A] = {
+	final def numberToEither[A](fn:Rational => Either[Failures, A]):Either[Failures, A] = {
 		val unexpected = new ReturnLeft("Rational")
 		this.fold(unexpected, unexpected, fn, unexpected, unexpected)
 	}
@@ -91,7 +93,7 @@ sealed trait CborValue {
 	/**
 	 * Executes and returns `fb(this.b)` if this is a CborValueBoolean, else return a Left with an error message
 	 */
-	final def booleanToEither[E >: UnsuccessfulTypeCoersion, A](fb:Boolean => Either[E,A]):Either[E,A] = {
+	final def booleanToEither[A](fb:Boolean => Either[Failures,A]):Either[Failures,A] = {
 		val unexpected = new ReturnLeft("Boolean")
 		this.fold(unexpected, unexpected, unexpected, fb, unexpected)
 	}
@@ -153,9 +155,9 @@ object CborValue {
 		case JsonValue.JsonValueNull => CborValue.CborValueNull
 	}
 	
-	private class ReturnLeft(toType:String) extends Function1[Any, Either[UnsuccessfulTypeCoersion, Nothing]] with Function0[Either[UnsuccessfulTypeCoersion, Nothing]] {
-		def apply():Either[UnsuccessfulTypeCoersion, Nothing] = Left(UnsuccessfulTypeCoersion(CborValueNull, "CborValue", toType))
-		def apply(x:Any):Either[UnsuccessfulTypeCoersion, Nothing] = Left(UnsuccessfulTypeCoersion(x, "CborValue", toType))
+	private class ReturnLeft(toType:String) extends Function1[Any, Either[UnsuccessfulTypeCoercion.type, Nothing]] with Function0[Either[UnsuccessfulTypeCoercion.type, Nothing]] {
+		def apply():Either[UnsuccessfulTypeCoercion.type, Nothing] = Left(UnsuccessfulTypeCoercion)
+		def apply(x:Any):Either[UnsuccessfulTypeCoercion.type, Nothing] = Left(UnsuccessfulTypeCoercion)
 	}
 	
 	

@@ -30,13 +30,14 @@ import org.scalatest.FunSpec;
 import com.rayrobdod.json.union.{JsonValue, StringOrInt, ParserRetVal}
 import com.rayrobdod.json.builder._
 import com.rayrobdod.json.parser.JsonParser.Failures._
+import com.rayrobdod.json.builder.BuilderTest.EnforcedFailure
 
 class JsonParserTest_Unhappy extends FunSpec {
 	
 	private val parser = new JsonParser()
 	private val mapBuilder = MapBuilder[StringOrInt, JsonValue].mapResult{x => x:Any}
-	private val seq2Builder = new SeqBuilder(new PrimitiveSeqBuilder[JsonValue]).mapResult{x => x:Any}
-	private val throwBuilder = new ThrowBuilder[StringOrInt, JsonValue].mapResult{x => x:Any}
+	private val seq2Builder = SeqBuilder(PrimitiveSeqBuilder[JsonValue]).mapResult{x => x:Any}
+	private val throwBuilder = new ThrowBuilder(EnforcedFailure).mapResult{x => x:Any}
 	
 	private val failureCases:Seq[(String, Iterable[Char], Builder[StringOrInt, JsonValue, Any, Any], JsonParser.Failures)] = Seq(
 		  ("errors when object is incomplete", """{""", mapBuilder, IncompleteObject)

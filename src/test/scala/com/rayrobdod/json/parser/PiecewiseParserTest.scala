@@ -33,8 +33,8 @@ import com.rayrobdod.json.builder.MapBuilder.{RecursiveSubject => MBRS}
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.union.ParserRetVal.{ParserFailure, Complex}
-import com.rayrobdod.json.union.PiecewiseBuilderFailures
-import com.rayrobdod.json.union.Failures._
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures.{ExpectedPrimitive, UnknownKey}
 
 class PiecewiseParserTest extends FunSpec {
 	private class Foo(val hello:Long, val world:String, val bazz:Boolean)
@@ -105,8 +105,8 @@ class PiecewiseParserTest extends FunSpec {
 				type Input = String
 				val key = "key"
 				val value = "value"
-				val child:Parser[Key, Value, PiecewiseBuilderFailures, Input] = new Parser[Key, Value, PiecewiseBuilderFailures, Input] {
-					def parse[ComplexOutput, BF](builder:Builder[Key, Value, BF, ComplexOutput], i:Input):ParserRetVal[ComplexOutput, Value, PiecewiseBuilderFailures, BF] = ParserFailure(ExpectedPrimitive)
+				val child:Parser[Key, Value, Failures, Input] = new Parser[Key, Value, Failures, Input] {
+					def parse[ComplexOutput, BF](builder:Builder[Key, Value, BF, ComplexOutput], i:Input):ParserRetVal[ComplexOutput, Value, Failures, BF] = ParserFailure(ExpectedPrimitive)
 				}
 				
 				object EchoBuilder extends Builder[Key, Value, Nothing, (Key, Any, Parser[_,_,_,_])] {
@@ -157,8 +157,8 @@ class PiecewiseParserTest extends FunSpec {
 				type Input = String
 				val key = "key"
 				val value = "value"
-				val child = new Parser[Key, Value, PiecewiseBuilderFailures, Input] {
-					def parse[ComplexOutput, BF](builder:Builder[Key, Value, BF, ComplexOutput], i:Input):ParserRetVal[ComplexOutput, Value, PiecewiseBuilderFailures, BF] = {
+				val child = new Parser[Key, Value, Failures, Input] {
+					def parse[ComplexOutput, BF](builder:Builder[Key, Value, BF, ComplexOutput], i:Input):ParserRetVal[ComplexOutput, Value, Failures, BF] = {
 						ParserFailure(UnknownKey)
 					}
 				}

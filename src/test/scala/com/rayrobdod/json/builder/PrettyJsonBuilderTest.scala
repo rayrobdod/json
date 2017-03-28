@@ -29,6 +29,7 @@ package com.rayrobdod.json.builder;
 import org.scalatest.FunSpec;
 import java.nio.charset.StandardCharsets.US_ASCII;
 import java.nio.charset.StandardCharsets.UTF_8
+import com.rayrobdod.json.builder.BuilderTest.EnforcedFailure
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.JsonValue._
@@ -137,9 +138,9 @@ class PrettyJsonBuilderTest extends FunSpec {
 			}
 		}
 		it ("When parser reports a failure, the failure is forwarded") {
-			assertResult( ParserFailure(com.rayrobdod.json.union.Failures.EnforcedFailure) ){
+			assertResult( ParserFailure(EnforcedFailure) ){
 				new PrettyJsonBuilder(MinifiedPrettyParams, UTF_8)
-						.apply("{rest}", "", "", new FailureParser)
+						.apply("{rest}", "", "", new FailureParser(EnforcedFailure))
 			}
 		}
 	}
