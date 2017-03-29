@@ -29,7 +29,7 @@ object NameParser extends Parser[StringOrInt, JsonValue, Nothing, Name] {
       builder.apply(b, "middles", input.middles, PrimitiveSeqParser[StringOrInt, JsonValue, String]).complex.flatMap{c:builder.Middle =>
         builder.apply(c, "last", input.family, IdentityParser[JsonValue, String])
       }
-    }.complex.flatMap{builder.finalize _}
+    }.complex.flatMap{builder.finish _}
   }
 }
 

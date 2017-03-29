@@ -107,7 +107,7 @@ final class BsonParser extends Parser[String, CborValue, BsonParser.Failures, Da
 			}
 			
 			result
-				.complex.flatMap{builder.finalize _}
+				.complex.flatMap{builder.finish _}
 		} catch {
 			case ex:java.io.EOFException => ParserFailure(ReachedEof)
 		}

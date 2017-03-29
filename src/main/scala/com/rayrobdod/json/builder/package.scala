@@ -41,7 +41,7 @@ package object builder {
 
 package builder {
 	/**
-	 * A Builder that will always return a failure on call to apply or finalize
+	 * A Builder that will always return a failure on call to apply or finish
 	 * 
 	 * Mostly useful when a function wants a builder even though you 'know' the result must be primitive
 	 * @since 4.0
@@ -50,7 +50,7 @@ package builder {
 		type Middle = Any
 		override def init:Middle = "using ThrowBuilder::init"
 		override def apply[I,BF](a:Middle,k:Any,i:I,p:Parser[Any,Any,BF,I]):BuilderFailure[Failure] = BuilderFailure(failure)
-		override def finalize(a:Middle):BuilderFailure[Failure] = BuilderFailure(failure)
+		override def finish(a:Middle):BuilderFailure[Failure] = BuilderFailure(failure)
 	}
 	
 	/**

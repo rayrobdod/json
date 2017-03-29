@@ -92,7 +92,7 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 		}
 	}
 	
-	override def finalize(folding:String):ParserRetVal.Complex[String] = ParserRetVal.Complex(folding)
+	override def finish(folding:String):ParserRetVal.Complex[String] = ParserRetVal.Complex(folding)
 }
 
 /**

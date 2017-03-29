@@ -49,7 +49,7 @@ final class MapParser[K,V] extends Parser[K,V,Nothing,Map[K,V]] {
 		vals.foldLeft[ParserRetVal[topBuilder.Middle, Nothing, Nothing, BF]](Complex(topBuilder.init)){(state, keyValue:(K, V)) => 
 			val (key, value) = keyValue;
 			state.complex.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[V])}
-		}.complex.flatMap{topBuilder.finalize _}
+		}.complex.flatMap{topBuilder.finish _}
 	}
 }
 
@@ -79,6 +79,6 @@ final class RecursiveMapParser[K,V] extends Parser[K, V, Nothing, com.rayrobdod.
 					topBuilder.apply(folding, key, simple, new IdentityParser[V])
 				})
 			}
-		}.complex.flatMap{topBuilder.finalize _}
+		}.complex.flatMap{topBuilder.finish _}
 	}
 }

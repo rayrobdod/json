@@ -95,7 +95,7 @@ final class CborBuilder(forceObject:Boolean = false) extends Builder[CborValue, 
 		}
 	}
 	
-	override def finalize(folding:Seq[Byte]):ParserRetVal.Complex[Seq[Byte]] = ParserRetVal.Complex(folding)
+	override def finish(folding:Seq[Byte]):ParserRetVal.Complex[Seq[Byte]] = ParserRetVal.Complex(folding)
 }
 
 private object CborBuilder {

@@ -104,7 +104,7 @@ final class CsvParser(
 		}
 		
 		dothing(0, builder.init)
-			.complex.flatMap{builder.finalize _}
+			.complex.flatMap{builder.finish _}
 	}
 }
 
@@ -247,7 +247,7 @@ object CsvParser {
 			)
 			// TODO: annotations
 			.builderFailure.map{_.cause}
-			.complex.flatMap{builder.finalize _}
+			.complex.flatMap{builder.finish _}
 		}
 	}
 }

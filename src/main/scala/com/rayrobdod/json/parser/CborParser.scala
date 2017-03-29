@@ -236,7 +236,7 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 			}
 		}
 		retVal
-			.complex.flatMap{topBuilder.finalize _}
+			.complex.flatMap{topBuilder.finish _}
 	}
 	
 	private[this] def parseObject[A,BF](topBuilder:Builder[CborValue, CborValue, BF, A], input:DataInput, aid:AdditionalInfoData):ParserRetVal[A, Nothing, CborParser.Failures, BF] = {
@@ -275,7 +275,7 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 			}
 		}
 		retVal
-			.complex.flatMap{topBuilder.finalize _}
+			.complex.flatMap{topBuilder.finish _}
 	}
 }
 
@@ -470,7 +470,7 @@ object CborParser {
 						}
 					}
 			}
-			override def finalize(folding:Tuple2[BigInt, BigInt]):ParserRetVal.Complex[Tuple2[BigInt, BigInt]] = ParserRetVal.Complex(folding)
+			override def finish(folding:Tuple2[BigInt, BigInt]):ParserRetVal.Complex[Tuple2[BigInt, BigInt]] = ParserRetVal.Complex(folding)
 		}
 		
 		/** Combines the other tag matchers  */

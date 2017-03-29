@@ -48,7 +48,7 @@ final class PrimitiveSeqParser[V] extends Parser[Int,V,Nothing,Seq[V]] {
 		vals.zipWithIndex.foldLeft[ParserRetVal[topBuilder.Middle, Nothing, Nothing, BF]](Complex(topBuilder.init)){(state, valueKey:(V, Int)) => 
 			val (value, key) = valueKey;
 			state.complex.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[V])}
-		}.complex.flatMap{topBuilder.finalize _}
+		}.complex.flatMap{topBuilder.finish _}
 	}
 }
 
@@ -84,6 +84,6 @@ final class SeqParser[+K,+V,PF,-Inner](recurse:Parser[K,V,PF,Inner])(implicit ke
 			val (value, key2) = valueKey
 			val key = keyMapping(key2)
 			state.complex.flatMap{x => topBuilder.apply(x, key, value, recurse)}
-		}.complex.flatMap{topBuilder.finalize _}
+		}.complex.flatMap{topBuilder.finish _}
 	}
 }

@@ -47,7 +47,7 @@ final class MapBuilder[K, V, F, Inner](childBuilders:Function1[K, MapBuilder.Map
 			folding + (key -> eitherRes)
 		}
 	}
-	override def finalize(folding:Map[K, Either[Inner, V]]):ParserRetVal.Complex[Map[K, Either[Inner, V]]] = ParserRetVal.Complex(folding)
+	override def finish(folding:Map[K, Either[Inner, V]]):ParserRetVal.Complex[Map[K, Either[Inner, V]]] = ParserRetVal.Complex(folding)
 }
 
 /**

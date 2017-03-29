@@ -115,7 +115,7 @@ class PiecewiseParserTest extends FunSpec {
 						Complex(((key, input, parser)))
 					}
 					def init:(Key, Any, Parser[_,_,_,_]) =  ("","",null)
-					override def finalize(x:Middle) = ParserRetVal.Complex(x)
+					override def finish(x:Middle) = ParserRetVal.Complex(x)
 				}
 				
 				val dut = complexKeyDef(key = key, backing = {x:String => value}, child)
@@ -169,7 +169,7 @@ class PiecewiseParserTest extends FunSpec {
 						Complex(((key, input, parser)))
 					}
 					def init:(Key, Any, Parser[_,_,_,_]) =  ("","",null)
-					override def finalize(x:Middle) = ParserRetVal.Complex(x)
+					override def finish(x:Middle) = ParserRetVal.Complex(x)
 				}
 				
 				val dut:KeyDef[Key, Value, Input] = key valueIs ({x:String => value}, child)

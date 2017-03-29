@@ -66,7 +66,7 @@ final class PiecewiseParser[+Key, +Value, -Input] (
 	override def parse[Output,BF](builder:Builder[Key,Value,BF,Output], i:Input):ParserRetVal[Output, Nothing, Failures, BF] = {
 		parts.foldLeft[ParserRetVal[builder.Middle, Nothing, Failures, BF]](ParserRetVal.Complex(builder.init)){(state, part:KeyDef[Key,Value,Input]) =>
 			state.complex.flatMap{x => part.apply(builder)(i, x)}
-		}.complex.flatMap{builder.finalize _}
+		}.complex.flatMap{builder.finish _}
 	}
 }
 

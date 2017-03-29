@@ -59,7 +59,7 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 					val inputStr = inputVal match {case ParserRetVal.Primitive(JsonValue.JsonValueString(s)) => s; case _ => "????????"}
 					Complex(folding + inputStr)
 				}
-				def finalize(x:Middle) = ParserRetVal.Complex(x)
+				def finish(x:Middle) = ParserRetVal.Complex(x)
 			}
 			
 			object NameBuilder extends Builder[StringOrInt, JsonValue, util.Either[ExpectedPrimitive.type, UnknownKey.type], Name] {
@@ -76,7 +76,7 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 						}
 					}.mergeToComplex
 				}
-				override def finalize(x:Middle) = ParserRetVal.Complex(x)
+				override def finish(x:Middle) = ParserRetVal.Complex(x)
 			}
 			
 			object PersonBuilder extends Builder[StringOrInt, JsonValue, UnknownKey.type, Person] {
@@ -89,7 +89,7 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 					case StringOrInt.Left("interests") => Complex(folding.copy(interests = parser.parse(SetBuilder, input).fold({x => x}, {x => Set.empty}, {x => Set.empty}, {x => Set.empty})))
 					case _ => BuilderFailure(UnknownKey)
 				}
-				override def finalize(x:Middle) = ParserRetVal.Complex(x)
+				override def finish(x:Middle) = ParserRetVal.Complex(x)
 			}
 			
 			val result:Person = new JsonParser().parse(PersonBuilder, json).fold({x => x}, {x => x}, {x => Person(Name("", "", ""), "", false, Set.empty)}, {x => Person(Name("", "", ""), "", false, Set.empty)})

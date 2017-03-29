@@ -89,7 +89,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failure
 			case ex:java.util.NoSuchElementException => ParserRetVal.ParserFailure(IncompleteObject)
 			case ex:java.lang.StackOverflowError => ParserRetVal.ParserFailure(TooDeeplyNested)
 		}
-		retVal.parserFailure.map{_.increaseIndex(-startIndex)}.complex.flatMap{builder.finalize _}
+		retVal.parserFailure.map{_.increaseIndex(-startIndex)}.complex.flatMap{builder.finish _}
 		
 	}
 	

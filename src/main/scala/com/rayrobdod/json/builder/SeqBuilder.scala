@@ -57,7 +57,7 @@ final class SeqBuilder[-Key, -Value, +Failure, Inner](childBuilder:Builder[Key, 
 				.complex.map{x => folding :+ x}
 				.primitive.flatMap{x => BuilderFailure(onPrimitive)}
 	}
-	override def finalize(folding:Seq[Inner]):ParserRetVal.Complex[Seq[Inner]] = ParserRetVal.Complex(folding)
+	override def finish(folding:Seq[Inner]):ParserRetVal.Complex[Seq[Inner]] = ParserRetVal.Complex(folding)
 }
 
 /** @since 4.0 */
@@ -94,7 +94,7 @@ final class PrimitiveSeqBuilder[Value, Failure](onComplex:Failure) extends Build
 	override def apply[Input, PF](folding:Seq[Value], key:Any, innerInput:Input, parser:Parser[Any, Value, PF, Input]):ParserRetVal[Seq[Value], Nothing, PF, Failure] = {
 		parser.parsePrimitive(innerInput, onComplex).primitive.flatMap{x => Complex(folding :+ x)}.mergeToComplex
 	}
-	override def finalize(folding:Seq[Value]):ParserRetVal.Complex[Seq[Value]] = ParserRetVal.Complex(folding)
+	override def finish(folding:Seq[Value]):ParserRetVal.Complex[Seq[Value]] = ParserRetVal.Complex(folding)
 }
 
 /** @since 4.0 */

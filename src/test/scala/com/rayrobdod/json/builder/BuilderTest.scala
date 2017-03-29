@@ -45,7 +45,7 @@ class BuilderTest extends FunSpec {
 		def apply[Input,BF](folding:(A,B), key:A, input:Input, parser:Parser[A, B, BF, Input]):ParserRetVal[(A,B), Nothing, BF, ExpectedPrimitive.type] = {
 			parser.parsePrimitive(input).primitive.flatMap{p => Complex( (key, p) )}
 		}
-		def finalize(x:Middle) = ParserRetVal.Complex(x)
+		def finish(x:Middle) = ParserRetVal.Complex(x)
 	}
 	
 	
@@ -192,14 +192,14 @@ class BuilderTest extends FunSpec {
 			assertResult(Complex("result")){
 				val builder = new ReportKeyValueBuilder[String, Int]
 						.mapResult[String]{x => "result"}
-				builder.finalize(builder.init)
+				builder.finish(builder.init)
 			}
 		}
 		it ("passes through a builder's failure") {
 			assertResult(BuilderFailure(EnforcedFailure)){
 				val builder = new ThrowBuilder(EnforcedFailure)
 						.mapResult[String]{x => "result"}
-				builder.finalize(builder.init)
+				builder.finish(builder.init)
 			}
 		}
 	}
@@ -212,21 +212,21 @@ class BuilderTest extends FunSpec {
 			assertResult(Complex("result")){
 				val builder = new ReportKeyValueBuilder[String, Int]
 						.flatMapResult[String, EnforcedFailure.type]{case x => Right("result")}
-				builder.finalize(builder.init)
+				builder.finish(builder.init)
 			}
 		}
 		it ("passes through a builder's failure") {
 			assertResult(BuilderFailure(Right(EnforcedFailure))){
 				val builder = new ThrowBuilder(EnforcedFailure)
 						.flatMapResult[String, EnforcedFailure.type]{case x => Right("result")}
-				builder.finalize(builder.init)
+				builder.finish(builder.init)
 			}
 		}
 		it ("passes through a fun's failure") {
 			assertResult(BuilderFailure(Left(EnforcedFailure))){
 				val builder = new ReportKeyValueBuilder[String, Int]
 						.flatMapResult[String, EnforcedFailure.type]{case x => Left(EnforcedFailure)}
-				builder.finalize(builder.init)
+				builder.finish(builder.init)
 			}
 		}
 	}

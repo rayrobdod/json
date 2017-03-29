@@ -110,6 +110,6 @@ final class CsvWithHeaderParser(
 		}
 		
 		dothing(0, builder.init)
-			.complex.flatMap{builder.finalize _}
+			.complex.flatMap{builder.finish _}
 	}
 }

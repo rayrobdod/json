@@ -40,7 +40,7 @@ object NameBuilder extends Builder[StringOrInt, JsonValue, PiecewiseBuilder.Fail
       }
     }.fold({err => BuilderFailure(err)}, {x => Complex(x)})}
   }
-  override def finalize(x:Middle) = ParserRetVal.Complex(x)
+  override def finish(x:Middle) = ParserRetVal.Complex(x)
 }
 
 // example using PiecewiseBuilder
