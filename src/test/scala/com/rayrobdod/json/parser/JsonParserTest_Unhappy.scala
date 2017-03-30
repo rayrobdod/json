@@ -75,7 +75,6 @@ class JsonParserTest_Unhappy extends FunSpec {
 		, ("errors on illegal character in unicode escape 2", "[\"\\u1Y34\"]", mapBuilder, NotAUnicodeEscape("1Y34", 3))
 		, ("errors on illegal character in unicode escape 3", "[\"\\u1 34\"]", mapBuilder, NotAUnicodeEscape("1 34", 3))
 		, ("errors on illegal character in unicode escape 4", "[\"\\u1=34\"]", mapBuilder, NotAUnicodeEscape("1=34", 3))
-		, ("errors on infinitely nested arrays", Seq.fill(1000)('[') ++ Seq.fill(1000)(']'), mapBuilder, TooDeeplyNested)
 		
 		, ("errors on trailing comma (array)", """[1,2,3,]""", mapBuilder, UnexpectedChar(']', "start of value", 7))
 		, ("errors on empty value (array)", """[1,,3]""", mapBuilder, UnexpectedChar(',', "start of value", 3))
@@ -117,6 +116,20 @@ class JsonParserTest_Unhappy extends FunSpec {
 					parser.parse(mapBuilder, source)
 				}
 			}
+		}
+		it ("errors on infinitely nested arrays") {
+			val source = new java.io.Reader {
+				override def close():Unit = {}
+				override def read():Int = '['
+				override def read(chars:Array[Char], offset:Int, length:Int):Int = {
+					(offset until (offset + length)).foreach{idx =>
+						chars(idx) = '['
+					}
+					length
+				}
+			}
+			
+			assertResult(ParserRetVal.ParserFailure(TooDeeplyNested)){parser.parse(mapBuilder, source)}
 		}
 	}
 }
