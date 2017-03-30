@@ -53,46 +53,43 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 	import PrettyJsonBuilder.serialize
 	import PrettyJsonBuilder.Failures._
 
-	override type Middle = String
+	override type Middle = PrettyJsonBuilder.Middle
 
 	/** A builder to be used when serializing any 'complex' children of the values this builder is dealing with */
 	private[this] lazy val nextLevel = new PrettyJsonBuilder(params, charset, level + 1)
 	
-	val init:String = params.lbrace(level) + params.rbrace(level)
+	val init:Middle = new Middle(false, 0, Nil)
 	
-	def apply[Input, PF](folding:String, key:StringOrInt, innerInput:Input, parser:Parser[StringOrInt, JsonValue, PF, Input]):ParserRetVal[String, Nothing, PF, PrettyJsonBuilder.Failures] = {
+	def apply[Input, PF](folding:Middle, key:StringOrInt, innerInput:Input, parser:Parser[StringOrInt, JsonValue, PF, Input]):ParserRetVal[Middle, Nothing, PF, PrettyJsonBuilder.Failures] = {
 		parser.parse(nextLevel, innerInput).primitive.map{p => serialize(p, charset)}.mergeToComplex.complex.flatMap{encodedValue =>
 			if (init == folding) {
 				key match {
-					case StringOrInt.Right(0) => Complex(params.lbrace(level) + encodedValue + params.rbrace(level))
+					case StringOrInt.Right(0) => Complex(new Middle(false, 1, encodedValue :: Nil))
 					case StringOrInt.Right(int) => BuilderFailure(ArrayKeyNotIncrementing(int, 0))
-					case StringOrInt.Left(str) => Complex(params.lbracket(level) + serialize(str, charset) + params.colon(level) + encodedValue + params.rbracket(level))
+					case StringOrInt.Left(str) => Complex(new Middle(true, 1, (serialize(str, charset) + params.colon(level) + encodedValue) :: Nil))
 				}
 			} else {
-				val bracket:Boolean = folding.take(params.lbracket(level).length) == params.lbracket(level)
-				val brace:Boolean = folding.take(params.lbrace(level).length) == params.lbrace(level)
-				val keptPartTry:ParserRetVal[String, Nothing, Nothing, IllegalFoldingInBuilder.type] = {
-					if (bracket) {Complex(folding.dropRight(params.rbracket(level).length))}
-					else if (brace) {Complex(folding.dropRight(params.rbrace(level).length))}
-					else {BuilderFailure(IllegalFoldingInBuilder)}
-				}
-				
-				keptPartTry.complex.flatMap{keptPart:String =>
-					key match {
-						case StringOrInt.Right(int) if brace => {
-							Complex(keptPart + params.comma(level) + encodedValue + params.rbrace(level))
+				key match {
+					case StringOrInt.Left(str) => {
+						if (folding.isObject) {
+							Complex(folding.append(serialize(str, charset) + params.colon(level) + encodedValue))
+						} else {
+							BuilderFailure(KeyTypeChangedMidObject(key, KeyTypeChangedMidObject.ExpectingInt))
 						}
-						case StringOrInt.Left(str) if bracket => {
-							Complex(keptPart + params.comma(level) + serialize(str, charset) + params.colon(level) + encodedValue + params.rbracket(level))
+					}
+					case StringOrInt.Right(int) => {
+						if (folding.isObject) {
+							BuilderFailure(KeyTypeChangedMidObject(key, KeyTypeChangedMidObject.ExpectingString))
+						} else {
+							Complex(folding.append(encodedValue))
 						}
-						case _ => BuilderFailure(KeyTypeChangedMidObject(key, if (brace) {KeyTypeChangedMidObject.ExpectingInt} else {KeyTypeChangedMidObject.ExpectingString}))
 					}
 				}
 			}
 		}
 	}
 	
-	override def finish(folding:String):ParserRetVal.Complex[String] = ParserRetVal.Complex(folding)
+	override def finish(folding:Middle):ParserRetVal.Complex[String] = ParserRetVal.Complex(folding.finish(params, level))
 }
 
 /**
@@ -127,6 +124,30 @@ object PrettyJsonBuilder {
 	@inline
 	private[this] def toUnicodeEscape(c:Char) = {
 		"\\u" + ("0000" + c.intValue.toHexString).takeRight(4)
+	}
+	
+	/** PrettyJsonBuilder's Middle type */
+	final case class Middle(
+		  val isObject:Boolean
+		, val count:Int
+		, val parts:List[String]
+	) {
+		def append(x:String):Middle = new Middle(
+			  this.isObject
+			, this.count + 1
+			, x :: this.parts
+		)
+		
+		def finish(params:PrettyJsonBuilder.PrettyParams, level:Int):String = {
+			val builder = new java.lang.StringBuilder()
+			builder.append(if (isObject) {params.lbracket(level)} else {params.lbrace(level)})
+			if (this.count >= 1) {
+				parts.tail.reverse.foreach{x => builder.append(x).append(params.comma(level))}
+				builder.append(parts.head)
+			}
+			builder.append(if (isObject) {params.rbracket(level)} else {params.rbrace(level)})
+			builder.toString
+		}
 	}
 	
 	
@@ -169,7 +190,6 @@ object PrettyJsonBuilder {
 			object ExpectingString extends ExpectingType
 		}
 		final case class ArrayKeyNotIncrementing(recieved:Int, expecting:Int) extends Failures
-		object IllegalFoldingInBuilder extends Failures
 	}
 	
 	

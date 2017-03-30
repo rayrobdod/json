@@ -243,7 +243,7 @@ class BuilderTest extends FunSpec {
 		it ("when a success, continue being a success (complex)") {
 			import com.rayrobdod.json.parser._
 			import com.rayrobdod.json.union._
-			val failureMapping = {x:IllegalFoldingFailure.type => com.rayrobdod.json.builder.PrettyJsonBuilder.Failures.IllegalFoldingInBuilder}
+			val failureMapping = {x:IllegalFoldingFailure.type => com.rayrobdod.json.builder.PrettyJsonBuilder.Failures.ArrayKeyNotIncrementing(0, 0)}
 			val exp = ParserRetVal.Complex( ((hexSeq"818163616263" ,"""[["abc"]]""")) )
 			val builder = new CborBuilder().mapKey[StringOrInt].mapValue[JsonValue].mapFailure(failureMapping)
 				.zip(new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams))
