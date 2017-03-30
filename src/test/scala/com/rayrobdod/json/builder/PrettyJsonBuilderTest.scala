@@ -199,6 +199,37 @@ class PrettyJsonBuilderTest extends FunSpec {
 			}
 		}
 	}
+	describe("PrettyJsonBuilderTest$") {
+		val thingToParse = """[true, 23, {"a":"b"}]"""
+		it ("minified") {
+			val b1 = PrettyJsonBuilder.minified()
+			val b2 = new PrettyJsonBuilder(MinifiedPrettyParams)
+			val r1 = new JsonParser().parse(b1, thingToParse)
+			val r2 = new JsonParser().parse(b2, thingToParse)
+			assertResult(r2)(r1)
+		}
+		it ("space2") {
+			val b1 = PrettyJsonBuilder.space2()
+			val b2 = new PrettyJsonBuilder(new IndentPrettyParams("  "))
+			val r1 = new JsonParser().parse(b1, thingToParse)
+			val r2 = new JsonParser().parse(b2, thingToParse)
+			assertResult(r2)(r1)
+		}
+		it ("space4") {
+			val b1 = PrettyJsonBuilder.space4()
+			val b2 = new PrettyJsonBuilder(new IndentPrettyParams("    "))
+			val r1 = new JsonParser().parse(b1, thingToParse)
+			val r2 = new JsonParser().parse(b2, thingToParse)
+			assertResult(r2)(r1)
+		}
+		it ("tabbed") {
+			val b1 = PrettyJsonBuilder.tabbed()
+			val b2 = new PrettyJsonBuilder(new IndentPrettyParams("\t"))
+			val r1 = new JsonParser().parse(b1, thingToParse)
+			val r2 = new JsonParser().parse(b2, thingToParse)
+			assertResult(r2)(r1)
+		}
+	}
 	
 	
 	describe("PrettyJsonBuilderTest integration") {
