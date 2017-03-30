@@ -33,8 +33,8 @@ import com.rayrobdod.json.builder.MapBuilder.{RecursiveSubject => MBRS}
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.union.ParserRetVal.{ParserFailure, Complex}
-import com.rayrobdod.json.union.PiecewiseBuilderFailures
-import com.rayrobdod.json.union.Failures._
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures.{ExpectedPrimitive, UnknownKey}
 
 class PiecewiseParserTest extends FunSpec {
 	private class Foo(val hello:Long, val world:String, val bazz:Boolean)
@@ -94,7 +94,7 @@ class PiecewiseParserTest extends FunSpec {
 				
 				val exp = Map(key -> Right(value))
 				val dut = primitiveKeyDef(key = key, inputToValue = {x:String => value})
-				val res = dut.apply[MapBuilder.RecursiveSubjectType[String, String], Nothing](MapBuilder.apply, "input", Map.empty)
+				val res = dut.apply[Nothing](MapBuilder.apply)("input", Map.empty)
 				assertResult(Complex(exp)){res}
 			}
 		}
@@ -105,31 +105,33 @@ class PiecewiseParserTest extends FunSpec {
 				type Input = String
 				val key = "key"
 				val value = "value"
-				val child:Parser[Key, Value, PiecewiseBuilderFailures, Input] = new Parser[Key, Value, PiecewiseBuilderFailures, Input] {
-					def parse[ComplexOutput, BF](builder:Builder[Key, Value, BF, ComplexOutput], i:Input):ParserRetVal[ComplexOutput, Value, PiecewiseBuilderFailures, BF] = ParserFailure(ExpectedPrimitive)
+				val child:Parser[Key, Value, Failures, Input] = new Parser[Key, Value, Failures, Input] {
+					def parse[ComplexOutput, BF](builder:Builder[Key, Value, BF, ComplexOutput], i:Input):ParserRetVal[ComplexOutput, Value, Failures, BF] = ParserFailure(ExpectedPrimitive)
 				}
 				
 				object EchoBuilder extends Builder[Key, Value, Nothing, (Key, Any, Parser[_,_,_,_])] {
+					override type Middle = (Key, Any, Parser[_,_,_,_])
 					def apply[Input,PF](folding:(Key, Any, Parser[_,_,_,_]), key:Key, input:Input, parser:Parser[Key,Value,PF,Input]):ParserRetVal[(Key, Any, Parser[_,_,_,_]), Nothing, PF, Nothing] = {
 						Complex(((key, input, parser)))
 					}
 					def init:(Key, Any, Parser[_,_,_,_]) =  ("","",null)
+					override def finish(x:Middle) = ParserRetVal.Complex(x)
 				}
 				
 				val dut = complexKeyDef(key = key, backing = {x:String => value}, child)
-				val res = dut.apply(EchoBuilder, "input", ("","",null))
+				val res = dut.apply(EchoBuilder)("input", ("","",null))
 				assertResult(Complex(key, value, child)){res}
 			}
 		}
 		describe("optionalKeyDef") {
 			it ("forwards to inner when filter is true") {
 				val dut = optionalKeyDef(primitiveKeyDef(1, {x:Any => 1}), {x:Any => true})
-				val res = dut.apply[Map[Int, Either[MapBuilder.RecursiveSubject[Int, Int], Int]], Any](MapBuilder.apply, "input", Map.empty)
+				val res = dut.apply[Any](MapBuilder.apply)("input", Map.empty)
 				assertResult(Complex(Map(1 -> Right(1)))){res}
 			}
 			it ("returns folding when filter is false") {
 				val dut = optionalKeyDef(primitiveKeyDef(1, {x:Any => (1)}), {x:Any => false})
-				val res = dut.apply[Map[Int, Either[MapBuilder.RecursiveSubject[Int, Int], Int]], Any](MapBuilder.apply, "input", Map.empty)
+				val res = dut.apply[Any](MapBuilder.apply)("input", Map.empty)
 				assertResult(Complex(Map())){res}
 			}
 		}
@@ -144,7 +146,7 @@ class PiecewiseParserTest extends FunSpec {
 				
 				val exp = Map(key -> Right(value))
 				val dut:KeyDef[String, String, String] = key valueIs {x => value}
-				val res = dut.apply[MapBuilder.RecursiveSubjectType[String, String], Nothing](MapBuilder.apply, "input", Map.empty)
+				val res = dut.apply[Nothing](MapBuilder.apply)("input", Map.empty)
 				assertResult(Complex(exp)){res}
 			}
 		}
@@ -155,21 +157,23 @@ class PiecewiseParserTest extends FunSpec {
 				type Input = String
 				val key = "key"
 				val value = "value"
-				val child = new Parser[Key, Value, PiecewiseBuilderFailures, Input] {
-					def parse[ComplexOutput, BF](builder:Builder[Key, Value, BF, ComplexOutput], i:Input):ParserRetVal[ComplexOutput, Value, PiecewiseBuilderFailures, BF] = {
+				val child = new Parser[Key, Value, Failures, Input] {
+					def parse[ComplexOutput, BF](builder:Builder[Key, Value, BF, ComplexOutput], i:Input):ParserRetVal[ComplexOutput, Value, Failures, BF] = {
 						ParserFailure(UnknownKey)
 					}
 				}
 				
 				object EchoBuilder extends Builder[Key, Value, Nothing, (Key, Any, Parser[_,_,_,_])] {
+					type Middle = (Key, Any, Parser[_,_,_,_])
 					def apply[Input, PF](folding:(Key, Any, Parser[_,_,_,_]), key:Key, input:Input, parser:Parser[Key,Value,PF,Input]):ParserRetVal[(Key, Any, Parser[_,_,_,_]), Nothing, PF, Nothing] = {
 						Complex(((key, input, parser)))
 					}
 					def init:(Key, Any, Parser[_,_,_,_]) =  ("","",null)
+					override def finish(x:Middle) = ParserRetVal.Complex(x)
 				}
 				
 				val dut:KeyDef[Key, Value, Input] = key valueIs ({x:String => value}, child)
-				val res = dut.apply(EchoBuilder, "input", ("","",null))
+				val res = dut.apply(EchoBuilder)("input", ("","",null))
 				assertResult(Complex( ((key, value, child)) )){res}
 			}
 		}
@@ -177,13 +181,13 @@ class PiecewiseParserTest extends FunSpec {
 			it ("passes filter") {
 				val exp = Map("key" -> Right("value"))
 				val dut:KeyDef[String, String, Int] = "key" valueIsOpt {case x if x > 0 => "value"}
-				val res = dut.apply[MapBuilder.RecursiveSubjectType[String, String], Nothing](MapBuilder.apply, 10, Map.empty)
+				val res = dut.apply[Nothing](MapBuilder.apply)(10, Map.empty)
 				assertResult(Complex(exp)){res}
 			}
 			it ("fails filter") {
 				val exp = Map()
 				val dut:KeyDef[String, String, Int] = "key" valueIsOpt {case x if x > 0 => "value"}
-				val res = dut.apply[MapBuilder.RecursiveSubjectType[String, String], Nothing](MapBuilder.apply, -10, Map.empty)
+				val res = dut.apply[Nothing](MapBuilder.apply)(-10, Map.empty)
 				assertResult(Complex(exp)){res}
 			}
 		}

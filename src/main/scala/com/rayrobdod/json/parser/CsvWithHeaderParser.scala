@@ -29,7 +29,7 @@ package com.rayrobdod.json.parser;
 import scala.collection.immutable.Seq
 import com.rayrobdod.json.builder.{Builder, PrimitiveSeqBuilder}
 import com.rayrobdod.json.union.{StringOrInt, ParserRetVal}
-import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure, ParserFailure}
+import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure}
 
 /**
  * A streaming decoder for csv data, where the first line of the csv data is a header row.
@@ -51,36 +51,36 @@ final class CsvWithHeaderParser(
 	
 	/**
 	 * Decodes the input values to an object.
-	 * @tparam A the type of object to create
+	 * @tparam Result the type of object to create
 	 * @param builder the builder to use to construct the object
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse[A, BF](builder:Builder[StringOrInt, String, BF, A], chars:Iterable[Char]):ParserRetVal[A,Nothing, Nothing, BF] = {
+	def parse[Result, BF](builder:Builder[StringOrInt, String, BF, Result], chars:Iterable[Char]):ParserRetVal[Result,Nothing, Nothing, BF] = {
 		this.parse(builder, new Iterator2Reader(chars.iterator))
 	}
 	
 	/**
 	 * Decodes the input values to an object.
-	 * @tparam A the type of object to create
+	 * @tparam Result the type of object to create
 	 * @param builder the builder to use to construct the object
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	 def parse[A, BF](builder:Builder[StringOrInt, String, BF, A], chars:java.io.Reader):ParserRetVal[A,Nothing, Nothing, BF] = {
+	 def parse[Result, BF](builder:Builder[StringOrInt, String, BF, Result], chars:java.io.Reader):ParserRetVal[Result,Nothing, Nothing, BF] = {
 		this.parse(builder, new CountingReader(chars))
 	}
 	
-	def parse[A, BF](builder:Builder[StringOrInt, String, BF, A], chars:CountingReader):ParserRetVal[A,Nothing, Nothing, BF] = {
-		val keys:Seq[String] = lineParser.parse(new PrimitiveSeqBuilder[String], chars).fold({x => x}, {x => x:Nothing}, {x => x:Nothing}, {x => Nil})
+	def parse[Result, BF](builder:Builder[StringOrInt, String, BF, Result], chars:CountingReader):ParserRetVal[Result,Nothing, Nothing, BF] = {
+		val keys:Seq[String] = lineParser.parse(new PrimitiveSeqBuilder[String, Any](123), chars).fold({x => x}, {x => x:Nothing}, {x => x:Nothing}, {x => Nil})
 		val myLineParser = lineParser.mapKey[StringOrInt]{i =>
 			if (keys.isDefinedAt(i)) {StringOrInt(keys(i))} else {StringOrInt(i)}
 		}
 		
 		@scala.annotation.tailrec
-		def dothing(rowIdx:Int, folding:A):ParserRetVal[A, Nothing, Nothing, BF] = {
+		def dothing(rowIdx:Int, folding:builder.Middle):ParserRetVal[builder.Middle, Nothing, Nothing, BF] = {
 			sealed trait ThingToDo
-			final case class Recurse(nextFolding:A) extends ThingToDo
+			final case class Recurse(nextFolding:builder.Middle) extends ThingToDo
 			object ReturnFolding extends ThingToDo
 			final case class ReturnFailure(err:BF) extends ThingToDo
 			
@@ -110,5 +110,6 @@ final class CsvWithHeaderParser(
 		}
 		
 		dothing(0, builder.init)
+			.complex.flatMap{builder.finish _}
 	}
 }

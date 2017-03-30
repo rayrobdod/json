@@ -29,7 +29,6 @@ package com.rayrobdod.json;
 import com.rayrobdod.json.builder.Builder
 import scala.collection.Iterator
 import com.rayrobdod.json.union.ParserRetVal
-import com.rayrobdod.json.union.Failures.EnforcedFailure
 
 /**
  * Contains the various built-in parsers
@@ -105,6 +104,12 @@ package parser {
 	}
 	
 	/**
+	 * A Failure with additional location information
+	 * @since 4.0
+	 */
+	final case class Indexed[A](cause:A, charIndex:Int)
+	
+	/**
 	 * A 'parser' that echos the value provided in its parse method
 	 * 
 	 * Somewhat useful to be the 'recursed' parser in cases where the 'root' parser has already decoded a value.
@@ -128,7 +133,7 @@ package parser {
 	/**
 	 * A 'parser' that always returns a Failure
 	 */
-	private[json] final class FailureParser extends Parser[Nothing, Nothing, EnforcedFailure.type, Any] {
-		def parse[A,BF](b:Builder[Nothing,Nothing,BF,A], v:Any):ParserRetVal.ParserFailure[EnforcedFailure.type] = ParserRetVal.ParserFailure(EnforcedFailure)
+	private[json] final class FailureParser[Failure](failure:Failure) extends Parser[Nothing, Nothing, Failure, Any] {
+		def parse[A,BF](b:Builder[Nothing,Nothing,BF,A], v:Any):ParserRetVal.ParserFailure[Failure] = ParserRetVal.ParserFailure(failure)
 	}
 }

@@ -28,6 +28,7 @@ package com.rayrobdod.json.builder;
 
 import scala.collection.immutable.Seq
 import org.scalatest.FunSpec;
+import com.rayrobdod.json.builder.BuilderTest.EnforcedFailure
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.CborValue
@@ -217,20 +218,20 @@ class CborBuilderTest extends FunSpec {
 			}
 		}
 		it ("Fails to convert an array to an object when non-array-key and illegal folding object") {
-			assertResult(BuilderFailure(com.rayrobdod.json.union.Failures.IllegalFoldingInBuilder)){
+			assertResult(BuilderFailure(IllegalFoldingFailure)){
 				new CborBuilder().apply(hexSeq"81FF", 6, CborValueNull, new IdentityParser[CborValue])
 			}
 		}
 		
 		
 		it ("Refuses to fold a non-array or non-object") {
-			assertResult(BuilderFailure(com.rayrobdod.json.union.Failures.IllegalFoldingInBuilder)){
+			assertResult(BuilderFailure(IllegalFoldingFailure)){
 				new CborBuilder().apply(hexSeq"""00""", "", CborValue(""), new IdentityParser[CborValue])
 			}
 		}
 		it ("When parser repcorts a failure, the failure is forwarded") {
-			assertResult( ParserFailure(com.rayrobdod.json.union.Failures.EnforcedFailure) ){
-				new CborBuilder().apply(hexSeq"80 THEREST", "", "", new FailureParser)
+			assertResult( ParserFailure(EnforcedFailure) ){
+				new CborBuilder().apply(hexSeq"80 THEREST", "", "", new FailureParser(EnforcedFailure))
 			}
 		}
 	}
@@ -313,8 +314,8 @@ class CborBuilderTest extends FunSpec {
 		it ("CborBuilder + CaseClassParser (object)") {
 			assertResult(Complex(hexSeq"A3 6161 05 6162 f4 6163 63737472")){
 				val builder = new CborBuilder().mapKey[String]
-				builder.apply(builder.init, "a", CborValue(5), new IdentityParser[CborValue]).complex.flatMap{a:Seq[Byte] =>
-					builder.apply(a, "b", CborValue(false), new IdentityParser[CborValue]).complex.flatMap{b:Seq[Byte] =>
+				builder.apply(builder.init, "a", CborValue(5), new IdentityParser[CborValue]).complex.flatMap{a:builder.Middle =>
+					builder.apply(a, "b", CborValue(false), new IdentityParser[CborValue]).complex.flatMap{b:builder.Middle =>
 						builder.apply(b, "c", CborValue("str"), new IdentityParser[CborValue])
 					}
 				}

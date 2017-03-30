@@ -29,15 +29,17 @@ package com.rayrobdod.json.parser
 import org.scalatest.FunSpec
 import scala.collection.immutable.Seq
 import com.rayrobdod.json.builder.{SeqBuilder, PrettyJsonBuilder, ThrowBuilder, PrimitiveSeqBuilder}
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures.ExpectedComplex
+import com.rayrobdod.json.builder.BuilderTest.EnforcedFailure
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.ParserRetVal.BuilderFailure
 
 class SeqParserTest extends FunSpec {
 	describe("SeqParser") {
 		it ("""builder failure""") {
-			val exp = BuilderFailure(com.rayrobdod.json.union.Failures.EnforcedFailure)
+			val exp = BuilderFailure(EnforcedFailure)
 			val src = Seq(Seq.empty, Seq(true, false))
-			val res = new SeqParser(new PrimitiveSeqParser[Boolean]).parse(new ThrowBuilder[Int, Boolean], src)
+			val res = new SeqParser(new PrimitiveSeqParser[Boolean]).parse(new ThrowBuilder(EnforcedFailure), src)
 			
 			assertResult(exp){res}
 		}
@@ -52,7 +54,7 @@ class SeqParserTest extends FunSpec {
 					.parse(new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams).mapKey[Int], src)
 					.fold({x => x}, throwUnexpected, throwUnexpected, throwUnexpected)
 			val res = new JsonParser()
-					.parse(new SeqBuilder(new PrimitiveSeqBuilder[JsonValue]), json)
+					.parse(new SeqBuilder(PrimitiveSeqBuilder.apply[JsonValue], ExpectedComplex), json)
 					.fold({x => x}, throwUnexpected, throwUnexpected, throwUnexpected)
 			
 			assertResult(src){res}

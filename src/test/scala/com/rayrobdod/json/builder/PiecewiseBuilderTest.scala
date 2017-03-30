@@ -28,12 +28,13 @@ package com.rayrobdod.json.builder;
 
 import scala.collection.immutable.Seq
 import org.scalatest.FunSpec;
-import com.rayrobdod.json.union.JsonValue
-import com.rayrobdod.json.union.{StringOrInt, ParserRetVal}
+import com.rayrobdod.json.union.{StringOrInt, JsonValue, ParserRetVal}
 import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure}
-import com.rayrobdod.json.union.PiecewiseBuilderFailures
-import com.rayrobdod.json.union.Failures._
 import com.rayrobdod.json.parser.{Parser, IdentityParser, PrimitiveSeqParser}
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures.{
+		ExpectedPrimitive, ExpectedComplex, UnknownKey, UnsuccessfulTypeCoercion
+}
 import com.rayrobdod.json.builder.PiecewiseBuilder.KeyDef
 
 class PiecewiseBuilderTest extends FunSpec {
@@ -50,7 +51,10 @@ class PiecewiseBuilderTest extends FunSpec {
 			assertResult(Complex(new Person(name, 0))){
 				new PiecewiseBuilder(new Person("", 0))
 						.addDef("name", new KeyDef[String, String, Person]{
-							def apply[I, PF](s:Person, i:I, p:Parser[String, String, PF, I]) = p.parsePrimitive(i).flatMap{x:String => Complex(s.copy(name = x))}.mergeToComplex
+							def apply[I, PF](s:Person, i:I, p:Parser[String, String, PF, I]) = {
+								p.parsePrimitive(i, ExpectedPrimitive)
+									.flatMap{x:String => Complex(s.copy(name = x))}
+							}
 						})
 						.apply(new Person("", 0), "name", name, new IdentityParser[String])
 			}
@@ -60,7 +64,10 @@ class PiecewiseBuilderTest extends FunSpec {
 			assertResult(Complex(new Person("", age))){
 				new PiecewiseBuilder(new Person("", 0))
 						.addDef("age", new KeyDef[String, Int, Person]{
-							def apply[I, PF](s:Person, i:I, p:Parser[String, Int, PF, I]) = p.parsePrimitive(i).flatMap{x:Int => Complex(s.copy(age = x))}.mergeToComplex
+							def apply[I, PF](s:Person, i:I, p:Parser[String, Int, PF, I]) = {
+								p.parsePrimitive(i, ExpectedPrimitive)
+									.flatMap{x:Int => Complex(s.copy(age = x))}
+							}
 						})
 						.apply(new Person("", 0), "age", age, new IdentityParser[Int])
 			}
@@ -89,20 +96,19 @@ class PiecewiseBuilderTest extends FunSpec {
 	
 	describe("PiecewiseBuilder + JsonParser") {
 		import com.rayrobdod.json.parser.JsonParser
-		import com.rayrobdod.json.union.JsonValue._
 		
 		it ("works") {
 			val builder = new PiecewiseBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
 				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{
 					def apply[I, PF](s:Person, i:I, p:Parser[StringOrInt, JsonValue, PF, I]) = {
-						p.parsePrimitive(i).flatMap{x:JsonValue =>
+						p.parsePrimitive[Failures](i, ExpectedPrimitive).flatMap{x:JsonValue =>
 							x.stringToEither{x:String => Right(s.copy(name = x))}.fold({BuilderFailure(_)}, {Complex(_)})
 						}
 					}
 				})
 				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{
 					def apply[I, PF](s:Person, i:I, p:Parser[StringOrInt, JsonValue, PF, I]) = {
-						p.parsePrimitive(i).flatMap{x:JsonValue =>
+						p.parsePrimitive(i, ExpectedPrimitive).flatMap{x:JsonValue =>
 							x.integerToEither{x:Int => Right(s.copy(age = x))}.fold({BuilderFailure(_)}, {Complex(_)})
 						}
 					}
@@ -120,14 +126,14 @@ class PiecewiseBuilderTest extends FunSpec {
 			val personBuilder = new PiecewiseBuilder[StringOrInt, JsonValue, Person](new Person("", 0))
 				.addDef("name", new KeyDef[StringOrInt, JsonValue, Person]{
 					def apply[I, PF](s:Person, i:I, p:Parser[StringOrInt, JsonValue, PF, I]) = {
-						p.parsePrimitive(i).flatMap{x:JsonValue =>
+						p.parsePrimitive[Failures](i, ExpectedPrimitive).flatMap{x:JsonValue =>
 							x.stringToEither{x:String => Right(s.copy(name = x))}.fold({BuilderFailure(_)}, {Complex(_)})
 						}
 					}
 				})
 				.addDef("age", new KeyDef[StringOrInt, JsonValue, Person]{
 					def apply[I, PF](s:Person, i:I, p:Parser[StringOrInt, JsonValue, PF, I]) = {
-						p.parsePrimitive(i).flatMap{x:JsonValue =>
+						p.parsePrimitive(i, ExpectedPrimitive).flatMap{x:JsonValue =>
 							x.integerToEither{x:Int => Right(s.copy(age = x))}.fold({BuilderFailure(_)}, {Complex(_)})
 						}
 					}
@@ -173,13 +179,13 @@ class PiecewiseBuilderTest extends FunSpec {
 		}
 		it ("partitionedPrimitiveKeyDef (not isDefinedAt)") {
 			val builder = partitionedPrimitiveKeyDef[Any, String, Option[Int], Int]({case "abc" => Complex(3)}, {(a,b) => Some(b)})
-			assertResult(BuilderFailure(UnsuccessfulTypeCoersion("asdf","",""))){
+			assertResult(BuilderFailure(UnsuccessfulTypeCoercion)){
 				builder.apply(None, "asdf", new IdentityParser[String])
 			}
 		}
 		it ("partitionedKeyDef (isDefinedAt)") {
 			val builder = partitionedKeyDef[Int, Int, String, Seq[Int], Int](
-				new PrimitiveSeqBuilder[Int],
+				new PrimitiveSeqBuilder[Int, ExpectedPrimitive.type]( ExpectedPrimitive ),
 				{case ParserRetVal.Complex(x) => Complex(x.sum)},
 				{(a,b) => a + " " + b}
 			)
@@ -189,11 +195,11 @@ class PiecewiseBuilderTest extends FunSpec {
 		}
 		it ("partitionedKeyDef (not isDefinedAt)") {
 			val builder = partitionedKeyDef[Int, Int, String, Seq[Int], Int](
-				new PrimitiveSeqBuilder[Int],
+				new PrimitiveSeqBuilder[Int, ExpectedPrimitive.type]( ExpectedPrimitive ),
 				{case ParserRetVal.Primitive(x) => Complex(x)},
 				{(a,b) => a + " " + b}
 			)
-			assertResult(BuilderFailure(UnsuccessfulTypeCoersion(Vector(1, 2, 3),"",""))){
+			assertResult(BuilderFailure(UnsuccessfulTypeCoercion)){
 				builder.apply("z", Seq(1,2,3), new PrimitiveSeqParser[Int])
 			}
 		}
@@ -203,23 +209,23 @@ class PiecewiseBuilderTest extends FunSpec {
 				{case ParserRetVal.Primitive(x) => Complex(x)},
 				{(a,b) => a + " " + b}
 			)
-			assertResult(BuilderFailure(IllegalFoldingInBuilder)){
+			assertResult(BuilderFailure(UnknownKey)){
 				builder.apply("z", Seq(1,2,3), new PrimitiveSeqParser[Int])
 			}
 		}
 		it ("partitionedKeyDef (isDefinedAt; left)") {
 			val builder = partitionedKeyDef[Int, Int, String, Seq[Int], Int](
-				new PrimitiveSeqBuilder[Int],
-				{case ParserRetVal.Complex(x) => BuilderFailure(IllegalFoldingInBuilder)},
+				new PrimitiveSeqBuilder[Int, ExpectedPrimitive.type]( ExpectedPrimitive ),
+				{case ParserRetVal.Complex(x) => BuilderFailure(UnknownKey)},
 				{(a,b) => a + " " + b}
 			)
-			assertResult(BuilderFailure(IllegalFoldingInBuilder)){
+			assertResult(BuilderFailure(UnknownKey)){
 				builder.apply("z", Seq(1,2,3), new PrimitiveSeqParser[Int])
 			}
 		}
 		it ("partitionedComplexKeyDef (Complex)") {
 			val builder = partitionedComplexKeyDef[Int, Int, String, Seq[Int]](
-				new PrimitiveSeqBuilder[Int],
+				new PrimitiveSeqBuilder[Int, ExpectedPrimitive.type]( ExpectedPrimitive ),
 				{(a,b) => Complex(a + " " + b)}
 			)
 			assertResult(Complex("z Vector(1, 2, 3)")){
@@ -228,7 +234,7 @@ class PiecewiseBuilderTest extends FunSpec {
 		}
 		it ("partitionedComplexKeyDef (Primitive)") {
 			val builder = partitionedComplexKeyDef[Int, Int, String, Seq[Int]](
-				new PrimitiveSeqBuilder[Int],
+				new PrimitiveSeqBuilder[Int, ExpectedPrimitive.type]( ExpectedPrimitive ),
 				{(a,b) => Complex(a + " " + b)}
 			)
 			assertResult(BuilderFailure(ExpectedComplex)){
@@ -240,7 +246,7 @@ class PiecewiseBuilderTest extends FunSpec {
 				PiecewiseBuilderTest.throwBuilder2,
 				{(a,b) => Complex(a + " " + b)}
 			)
-			assertResult(BuilderFailure(IllegalFoldingInBuilder)){
+			assertResult(BuilderFailure(UnknownKey)){
 				builder.apply("z", Vector(1,2,3), new PrimitiveSeqParser[Int])
 			}
 		}
@@ -251,8 +257,5 @@ class PiecewiseBuilderTest extends FunSpec {
 object PiecewiseBuilderTest {
 	case class Person(val name:String, val age:Int)
 	
-	def throwBuilder2[K,V] = new Builder[K,V,PiecewiseBuilderFailures,Any] {
-		override def init:Any = "using ThrowBuilder::init"
-		override def apply[I,BF](a:Any,k:K,i:I,p:Parser[K,V,BF,I]):BuilderFailure[PiecewiseBuilderFailures] = BuilderFailure(IllegalFoldingInBuilder)
-	}
+	def throwBuilder2 = new ThrowBuilder[Failures](UnknownKey).mapResult[Any]{x => x}
 }

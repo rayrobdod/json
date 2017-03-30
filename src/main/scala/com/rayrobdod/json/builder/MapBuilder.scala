@@ -28,7 +28,6 @@ package com.rayrobdod.json.builder;
 
 import com.rayrobdod.json.parser.Parser
 import com.rayrobdod.json.union.ParserRetVal
-import com.rayrobdod.json.union.ParserRetVal.{Complex}
 import scala.collection.immutable.Map
 
 /**
@@ -40,6 +39,7 @@ import scala.collection.immutable.Map
  * @param childBuilders A function that indicates which MapChildBuilder to use for a given key
  */
 final class MapBuilder[K, V, F, Inner](childBuilders:Function1[K, MapBuilder.MapChildBuilder[K, V, F, _, Inner]]) extends Builder[K, V, F, Map[K, Either[Inner, V]]] {
+	override type Middle = Map[K, Either[Inner, V]]
 	override val init:Map[K, Either[Inner, V]] = Map.empty
 	override def apply[Input, BF](folding:Map[K, Either[Inner, V]], key:K, innerInput:Input, parser:Parser[K, V, BF, Input]):ParserRetVal[Map[K, Either[Inner, V]], Nothing, BF, F] = {
 		val childBuilder = childBuilders(key)
@@ -47,6 +47,7 @@ final class MapBuilder[K, V, F, Inner](childBuilders:Function1[K, MapBuilder.Map
 			folding + (key -> eitherRes)
 		}
 	}
+	override def finish(folding:Map[K, Either[Inner, V]]):ParserRetVal.Complex[Map[K, Either[Inner, V]]] = ParserRetVal.Complex(folding)
 }
 
 /**

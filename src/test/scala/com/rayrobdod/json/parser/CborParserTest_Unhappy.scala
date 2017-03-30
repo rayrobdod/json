@@ -35,23 +35,10 @@ import com.rayrobdod.json.parser.CborParser.Failures._
 
 class CborParserTest_Unhappy extends FunSpec {
 	
-	/**
-	 * This is a wrapper required to put builders with different subjects in the same array.
-	 * The only reason erasing the subject is remotely acceptable is because the tests assume a failure (and thus fail on a successful parse) 
-	 */
-	final class SubjectAsAnyBuilder[K,V,BF,S](backing:Builder[K,V,BF,S]) extends Builder[K,V,BF,Any] {
-		override def init:Any = backing.init
-		override def apply[Input,PF](folding:Any, key:K, input:Input, parser:Parser[K, V, PF, Input]):ParserRetVal[Any, Nothing, PF, BF] = {
-			val folding2:S = folding.asInstanceOf[S]
-			backing.apply[Input,PF](folding2, key, input, parser)
-		}
-	}
-	
 	private val parser = new CborParser()
-	private val mapBuilder = new SubjectAsAnyBuilder(MapBuilder[CborValue, CborValue])
-	private val seq1Builder = new SubjectAsAnyBuilder(new PrimitiveSeqBuilder[CborValue])
-	private val seq2Builder = new SubjectAsAnyBuilder(new SeqBuilder(new PrimitiveSeqBuilder[CborValue]))
-	private val throwBuilder = new SubjectAsAnyBuilder(new ThrowBuilder[CborValue, CborValue])
+	private val mapBuilder = MapBuilder[CborValue, CborValue].mapResult{x => x:Any}
+	private val seq1Builder = PrimitiveSeqBuilder[CborValue].mapResult{x => x:Any}
+	private val seq2Builder = SeqBuilder(PrimitiveSeqBuilder[CborValue]).mapResult{x => x:Any}
 	
 	private val failureCases:Seq[(String, Array[Byte], Builder[CborValue, CborValue, Any, Any], CborParser.Failures)] = Seq(
 		  ("errors when array is incomplete", Array[Byte](0x58, 30) ++ (1 to 10).map{_.byteValue}, seq1Builder, IOException(null))

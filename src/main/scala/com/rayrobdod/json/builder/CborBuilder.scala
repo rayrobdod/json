@@ -32,7 +32,6 @@ import com.rayrobdod.json.parser.CborParser.{MajorTypeCodes, SimpleValueCodes, T
 import com.rayrobdod.json.union.{CborValue, ParserRetVal}
 import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure}
 import com.rayrobdod.json.parser.{Parser, CborParser, byteArray2DataInput}
-import com.rayrobdod.json.union.Failures.IllegalFoldingInBuilder
 
 /**
  * A builder whose output is a cbor-formatted byte string.
@@ -44,14 +43,16 @@ import com.rayrobdod.json.union.Failures.IllegalFoldingInBuilder
  * A builder that will create cbor object format byte strings
  * @param forceObject true if the builder should create an object even if it is possible to create an array from the inputs
  */
-final class CborBuilder(forceObject:Boolean = false) extends Builder[CborValue, CborValue, IllegalFoldingInBuilder.type, Seq[Byte]] {
+final class CborBuilder(forceObject:Boolean = false) extends Builder[CborValue, CborValue, IllegalFoldingFailure.type, Seq[Byte]] {
 	import CborBuilder._
+	
+	override type Middle = Seq[Byte]
 	
 	/** The bytes to encode a zero-length array or object  */
 	override val init:Seq[Byte] = encodeLength((if (forceObject) {MajorTypeCodes.OBJECT} else {MajorTypeCodes.ARRAY}), 0)
 	
-	override def apply[Input, PF](folding:Seq[Byte], key:CborValue, input:Input, parser:Parser[CborValue, CborValue, PF, Input]):ParserRetVal[Seq[Byte], Nothing, PF, IllegalFoldingInBuilder.type] = {
-		val value = parser.parse[Seq[Byte], IllegalFoldingInBuilder.type](this, input)
+	override def apply[Input, PF](folding:Seq[Byte], key:CborValue, input:Input, parser:Parser[CborValue, CborValue, PF, Input]):ParserRetVal[Seq[Byte], Nothing, PF, IllegalFoldingFailure.type] = {
+		val value = parser.parse[Seq[Byte], IllegalFoldingFailure.type](this, input)
 		val encodedValueOpt = value.primitive.map{encodeValue}.mergeToComplex
 		encodedValueOpt.complex.flatMap{encodedValue =>
 		
@@ -77,8 +78,8 @@ final class CborBuilder(forceObject:Boolean = false) extends Builder[CborValue, 
 						// convert into object
 						val newBuilder = new CborBuilder(true)
 						new CborParser().parse(newBuilder, byteArray2DataInput(folding.toArray))
-								.primitive.flatMap{p => BuilderFailure(IllegalFoldingInBuilder)}
-								.parserFailure.flatMap{f => BuilderFailure(IllegalFoldingInBuilder)}
+								.primitive.flatMap{p => BuilderFailure(IllegalFoldingFailure)}
+								.parserFailure.flatMap{f => BuilderFailure(IllegalFoldingFailure)}
 								.complex.map{convertedBytes =>
 									encodeLength(MajorTypeCodes.OBJECT, objectLength + 1) ++ convertedBytes.drop(folding.length - passData.length) ++ encodeValue(key) ++ encodedValue
 								}
@@ -89,10 +90,12 @@ final class CborBuilder(forceObject:Boolean = false) extends Builder[CborValue, 
 				Complex(encodeLength(MajorTypeCodes.OBJECT, objectLength + 1) ++ passData ++ encodeValue(key) ++ encodedValue)
 			} else {
 				
-				BuilderFailure(IllegalFoldingInBuilder)
+				BuilderFailure(IllegalFoldingFailure)
 			}
 		}
 	}
+	
+	override def finish(folding:Seq[Byte]):ParserRetVal.Complex[Seq[Byte]] = ParserRetVal.Complex(folding)
 }
 
 private object CborBuilder {

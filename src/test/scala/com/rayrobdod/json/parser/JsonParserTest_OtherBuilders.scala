@@ -32,7 +32,7 @@ import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.union.ParserRetVal.{BuilderFailure, Complex}
-import com.rayrobdod.json.union.Failures.{ExpectedPrimitive, UnknownKey}
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures.{ExpectedPrimitive, UnknownKey}
 
 class JsonParserTest_OtherBuilders extends FunSpec {
 	describe("JsonParser with other builders") {
@@ -52,15 +52,18 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 			}"""
 			
 			object SetBuilder extends Builder[StringOrInt, JsonValue, ExpectedPrimitive.type, Set[String]] {
+				override type Middle = Set[String]
 				def init:Set[String] = Set.empty
 				def apply[Input, PF](folding:Set[String], key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, PF, Input]):ParserRetVal[Set[String], Nothing, PF, ExpectedPrimitive.type] = {
 					val inputVal = parser.parsePrimitive(input)
 					val inputStr = inputVal match {case ParserRetVal.Primitive(JsonValue.JsonValueString(s)) => s; case _ => "????????"}
 					Complex(folding + inputStr)
 				}
+				def finish(x:Middle) = ParserRetVal.Complex(x)
 			}
 			
 			object NameBuilder extends Builder[StringOrInt, JsonValue, util.Either[ExpectedPrimitive.type, UnknownKey.type], Name] {
+				override type Middle = Name
 				override def init:Name = Name("", "", "")
 				override def apply[Input, PF](folding:Name, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, PF, Input]):ParserRetVal[Name, Nothing, PF, util.Either[ExpectedPrimitive.type, UnknownKey.type]] = {
 					// we only expect strings, so might as well parse the value at the beginning
@@ -73,9 +76,11 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 						}
 					}.mergeToComplex
 				}
+				override def finish(x:Middle) = ParserRetVal.Complex(x)
 			}
 			
 			object PersonBuilder extends Builder[StringOrInt, JsonValue, UnknownKey.type, Person] {
+				override type Middle = Person
 				def init:Person = Person(Name("", "", ""), "", false, Set.empty)
 				def apply[Input, PF](folding:Person, key:StringOrInt, input:Input, parser:Parser[StringOrInt, JsonValue, PF, Input]):ParserRetVal[Person, Nothing, PF, UnknownKey.type] = key match {
 					case StringOrInt.Left("name") => Complex(folding.copy(n = parser.parse(NameBuilder, input) match {case ParserRetVal.Complex(x) => x; case _ => new Name("","","")}))
@@ -84,6 +89,7 @@ class JsonParserTest_OtherBuilders extends FunSpec {
 					case StringOrInt.Left("interests") => Complex(folding.copy(interests = parser.parse(SetBuilder, input).fold({x => x}, {x => Set.empty}, {x => Set.empty}, {x => Set.empty})))
 					case _ => BuilderFailure(UnknownKey)
 				}
+				override def finish(x:Middle) = ParserRetVal.Complex(x)
 			}
 			
 			val result:Person = new JsonParser().parse(PersonBuilder, json).fold({x => x}, {x => x}, {x => Person(Name("", "", ""), "", false, Set.empty)}, {x => Person(Name("", "", ""), "", false, Set.empty)})

@@ -55,7 +55,7 @@ final class BsonParser extends Parser[String, CborValue, BsonParser.Failures, Da
 			// We don't really care about the document length.
 			/* val length = */ Integer.reverseBytes( input.readInt() );
 			
-			var result:ParserRetVal[A, Nothing, BsonParser.Failures, BF] = Complex(builder.init)
+			var result:ParserRetVal[builder.Middle, Nothing, BsonParser.Failures, BF] = Complex(builder.init)
 			var valueType:Byte = input.readByte();
 			while (valueType != TypeCodes.END_OF_DOCUMENT && result.isInstanceOf[Complex[_]]) {
 				val key:String = readCString(input)
@@ -107,6 +107,7 @@ final class BsonParser extends Parser[String, CborValue, BsonParser.Failures, Da
 			}
 			
 			result
+				.complex.flatMap{builder.finish _}
 		} catch {
 			case ex:java.io.EOFException => ParserFailure(ReachedEof)
 		}

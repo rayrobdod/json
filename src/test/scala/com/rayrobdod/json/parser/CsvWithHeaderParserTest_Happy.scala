@@ -73,12 +73,12 @@ final class CsvWithHeaderParserTest_Happy extends FunSpec {
 			
 			it (name) {
 				val source = source2
-				val result = new CsvWithHeaderParser(charMeans).parse(new SeqBuilder(MapBuilder.apply[StringOrInt, String]), source)
+				val result = new CsvWithHeaderParser(charMeans).parse(SeqBuilder(MapBuilder.apply[StringOrInt, String]), source)
 				assertResult(Complex(expected)){result}
 			}
 			it (name + " (reader)") {
 				val source = new java.io.StringReader(source2)
-				val result = new CsvWithHeaderParser(charMeans).parse(new SeqBuilder(MapBuilder.apply[StringOrInt, String]), source)
+				val result = new CsvWithHeaderParser(charMeans).parse(SeqBuilder(MapBuilder.apply[StringOrInt, String]), source)
 				assertResult(Complex(expected)){result}
 			}
 		}

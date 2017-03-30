@@ -27,8 +27,8 @@
 package com.rayrobdod.json.union
 
 import scala.language.implicitConversions
-import com.rayrobdod.json.union.Failures.UnsuccessfulTypeCoersion
-import com.rayrobdod.json.union.ParserRetVal.BuilderFailure
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures.UnsuccessfulTypeCoercion
 
 /**
  * A union type representing primitive types in Json objects
@@ -54,42 +54,69 @@ sealed trait JsonValue {
 	}
 	
 	/**
+	 * @since 4.0
+	 */
+	final def ifIsString[A](`then`:String => A, `else`:JsonValue => A):A = this match {
+		case JsonValueString(s) => `then`(s)
+		case v => `else`(v)
+	}
+	
+	/**
 	 * Executes and returns `fs(this.s)` if this is a JsonValueString, else return a Left with an error message
 	 */
-	final def stringToEither[E >: UnsuccessfulTypeCoersion, A](fs:String => Either[E, A]):Either[E, A] = {
-		val unexpected = new ReturnLeft("String")
-		this.fold(fs, unexpected, unexpected, unexpected)
+	final def stringToEither[A](fs:String => Either[Failures, A]):Either[Failures, A] = {
+		this.ifIsString(fs, {x => Left(UnsuccessfulTypeCoercion)})
+	}
+	
+	/**
+	 * @since 4.0
+	 */
+	final def ifIsInteger[A](`then`:Int => A, `else`:JsonValue => A):A = this match {
+		case JsonValueNumber(n) => {
+			if (n.isValidInt) {
+				`then`(n.intValue)
+			} else {
+				`else`( JsonValueNumber(n) )
+			}
+		}
+		case v => `else`(v)
 	}
 	
 	/**
 	 * Executes and returns `fi(this.i)` if this is a JsonValueNumber which holds an number convertible to integer, else return a Left with an error message.
 	 */
-	final def integerToEither[E >: UnsuccessfulTypeCoersion, A](fi:Int => Either[E, A]):Either[E, A] = {
-		val unexpected = new ReturnLeft("Int")
-		val number = {n:BigDecimal =>
-			if (n.isValidInt) {
-				fi(n.intValue)
-			} else {
-				unexpected(n)
-			}
-		}
-		this.fold(unexpected, number, unexpected, unexpected)
+	final def integerToEither[A](fi:Int => Either[Failures, A]):Either[Failures, A] = {
+		this.ifIsInteger(fi, {x => Left(UnsuccessfulTypeCoercion)})
+	}
+	
+	/**
+	 * @since 4.0
+	 */
+	final def ifIsNumber[A](`then`:BigDecimal => A, `else`:JsonValue => A):A = this match {
+		case JsonValueNumber(n) => `then`(n)
+		case v => `else`(v)
 	}
 	
 	/**
 	 * Executes and returns `fn(this.i)` if this is a JsonValueNumber, else return a Left with an error message.
 	 */
-	final def numberToEither[E >: UnsuccessfulTypeCoersion, A](fn:BigDecimal => Either[E, A]):Either[E, A] = {
-		val unexpected = new ReturnLeft("BigDecimal")
-		this.fold(unexpected, fn, unexpected, unexpected)
+	final def numberToEither[A](fn:BigDecimal => Either[Failures, A]):Either[Failures, A] = {
+		this.ifIsNumber(fn, {x => Left(UnsuccessfulTypeCoercion)})
+	}
+	
+	/**
+	 * @since 4.0
+	 */
+	final def ifIsBoolean[A](`then`:Boolean => A, `else`:JsonValue => A):A = this match {
+		case JsonValueBoolean(b) => `then`(b)
+		case v => `else`(v)
 	}
 	
 	/**
 	 * Executes and returns `fb(this.b)` if this is a JsonValueBoolean, else return a Left with an error message
 	 */
-	final def booleanToEither[E >: UnsuccessfulTypeCoersion, A](fb:Boolean => Either[E, A]):Either[E, A] = {
-		val unexpected = new ReturnLeft("Boolean")
-		this.fold(unexpected, unexpected, fb, unexpected)
+	final def booleanToEither[A](fb:Boolean => Either[Failures, A]):Either[Failures, A] = {
+		this.ifIsBoolean(fb, {x => Left(UnsuccessfulTypeCoercion)})
 	}
 }
 
@@ -140,7 +167,7 @@ object JsonValue {
 	}
 	
 	/** 
-	 * Convert a CborValue into a JsonValue if there is an equivalent JsonValue; else return a UnsuccessfulTypeCoersion.
+	 * Convert a CborValue into a JsonValue if there is an equivalent JsonValue; else return a UnsuccessfulTypeCoercion.
 	 * @since 3.1
 	 */
 	def cborValue2JsonValueEither(x:CborValue):Either[Either[Array[Byte], CborValue.Rational], JsonValue] = x match {
@@ -151,7 +178,4 @@ object JsonValue {
 		case CborValue.CborValueNull => Right(JsonValueNull)
 	}
 	
-	private class ReturnLeft(toType:String) extends Function1[Any, Either[UnsuccessfulTypeCoersion, Nothing]] with Function0[Either[UnsuccessfulTypeCoersion, Nothing]] {
-		def apply():Either[UnsuccessfulTypeCoersion, Nothing] = Left(UnsuccessfulTypeCoersion(JsonValueNull, "JsonValue", toType))
-		def apply(x:Any):Either[UnsuccessfulTypeCoersion, Nothing] = Left(UnsuccessfulTypeCoersion(x, "JsonValue", toType))
-	}}
+}

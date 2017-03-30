@@ -27,9 +27,9 @@
 package com.rayrobdod.json.parser
 
 import com.rayrobdod.json.builder.Builder
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures
 import com.rayrobdod.json.union.ParserRetVal
 import PiecewiseParser.KeyDef
-import com.rayrobdod.json.union.PiecewiseBuilderFailures
 
 /**
  * A parser which can be built piecewise
@@ -61,12 +61,12 @@ import com.rayrobdod.json.union.PiecewiseBuilderFailures
 // PiecewiseParser?
 final class PiecewiseParser[+Key, +Value, -Input] (
 		parts:KeyDef[Key,Value,Input]*
-) extends Parser[Key,Value,PiecewiseBuilderFailures,Input] {
+) extends Parser[Key,Value,Failures,Input] {
 	
-	override def parse[Output,BF](builder:Builder[Key,Value,BF,Output], i:Input):ParserRetVal[Output, Nothing, PiecewiseBuilderFailures, BF] = {
-		parts.foldLeft[ParserRetVal[Output, Nothing, PiecewiseBuilderFailures, BF]](ParserRetVal.Complex(builder.init)){(state:ParserRetVal[Output, Nothing, PiecewiseBuilderFailures, BF], part:KeyDef[Key,Value,Input]) =>
-			state.complex.flatMap{x => part.apply(builder, i, x)}
-		}
+	override def parse[Output,BF](builder:Builder[Key,Value,BF,Output], i:Input):ParserRetVal[Output, Nothing, Failures, BF] = {
+		parts.foldLeft[ParserRetVal[builder.Middle, Nothing, Failures, BF]](ParserRetVal.Complex(builder.init)){(state, part:KeyDef[Key,Value,Input]) =>
+			state.complex.flatMap{x => part.apply(builder)(i, x)}
+		}.complex.flatMap{builder.finish _}
 	}
 }
 
@@ -85,12 +85,12 @@ object PiecewiseParser {
 	 */
 	implicit class KeyDefSyntax[K](k:K) {
 		def valueIs[K2,V,I](v:I => V)(implicit kev:K => K2):KeyDef[K2,V,I] = primitiveKeyDef[K2,V,I](kev(k), v)
-		def valueIs[K2,P,V,I](v:I => V, p:Parser[K2,P,PiecewiseBuilderFailures,V])(implicit kev:K => K2):KeyDef[K2,P,I] = complexKeyDef[K2,P,V,I](kev(k), v, p)
+		def valueIs[K2,P,V,I](v:I => V, p:Parser[K2,P,Failures,V])(implicit kev:K => K2):KeyDef[K2,P,I] = complexKeyDef[K2,P,V,I](kev(k), v, p)
 		
 		def valueIsOpt[K2,V,I](v:PartialFunction[I, V])(implicit kev:K => K2):KeyDef[K2,V,I] = {
 			optionalKeyDef(primitiveKeyDef[K2,V,I](kev(k), v.apply _), v.isDefinedAt _)
 		}
-		def valueIsOpt[K2,P,V,I](v:PartialFunction[I, V], p:Parser[K2,P,PiecewiseBuilderFailures,V])(implicit kev:K => K2):KeyDef[K2,P,I] = {
+		def valueIsOpt[K2,P,V,I](v:PartialFunction[I, V], p:Parser[K2,P,Failures,V])(implicit kev:K => K2):KeyDef[K2,P,I] = {
 			optionalKeyDef(complexKeyDef[K2,P,V,I](kev(k), v.apply _, p), v.isDefinedAt _)
 		}
 	}
@@ -104,13 +104,13 @@ object PiecewiseParser {
 	 * @version 4.0
 	 */
 	abstract class KeyDef[+Key, +Value, -Input] {
-		def apply[Output,BF](builder:Builder[Key,Value,BF,Output], input:Input, currentOutput:Output):ParserRetVal[Output, Nothing, PiecewiseBuilderFailures, BF]
+		def apply[BF](builder:Builder[Key,Value,BF,_])(input:Input, currentOutput:builder.Middle):ParserRetVal[builder.Middle, Nothing, Failures, BF]
 	}
 	
 	def optionalKeyDef[Key, Value, Input](backing:KeyDef[Key, Value, Input], filter:Input => Boolean):KeyDef[Key, Value, Input] = new KeyDef[Key, Value, Input]{
-		def apply[Output,BF](builder:Builder[Key,Value,BF,Output], input:Input, currentOutput:Output):ParserRetVal[Output, Nothing, PiecewiseBuilderFailures, BF] = {
+		def apply[BF](builder:Builder[Key,Value,BF,_])(input:Input, currentOutput:builder.Middle):ParserRetVal[builder.Middle, Nothing, Failures, BF] = {
 			if (filter(input)) {
-				backing.apply(builder, input, currentOutput)
+				backing.apply(builder)(input, currentOutput)
 			} else {
 				ParserRetVal.Complex(currentOutput)
 			}
@@ -121,8 +121,8 @@ object PiecewiseParser {
 		complexKeyDef(key, inputToValue, new IdentityParser[Value])
 	}
 	
-	def complexKeyDef[Key, Primitive, Value, Input](key:Key, backing:Function1[Input,Value], parser:Parser[Key,Primitive,PiecewiseBuilderFailures,Value]):KeyDef[Key, Primitive, Input] = new KeyDef[Key,Primitive,Input]{
-		def apply[Output, BF](builder:Builder[Key,Primitive,BF,Output], input:Input, currentOutput:Output):ParserRetVal[Output, Nothing, PiecewiseBuilderFailures, BF] = {
+	def complexKeyDef[Key, Primitive, Value, Input](key:Key, backing:Function1[Input,Value], parser:Parser[Key,Primitive,Failures,Value]):KeyDef[Key, Primitive, Input] = new KeyDef[Key,Primitive,Input]{
+		def apply[BF](builder:Builder[Key,Primitive,BF,_])(input:Input, currentOutput:builder.Middle):ParserRetVal[builder.Middle, Nothing, Failures, BF] = {
 			val value = backing.apply(input)
 			builder.apply(currentOutput, key, value, parser)
 		}

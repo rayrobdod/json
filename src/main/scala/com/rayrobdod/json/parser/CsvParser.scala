@@ -28,8 +28,7 @@ package com.rayrobdod.json.parser;
 
 import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.union.ParserRetVal
-import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure, ParserFailure}
-import com.rayrobdod.json.union.Failures.Indexed
+import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure}
 
 /**
  * A streaming decoder for csv data.
@@ -67,15 +66,15 @@ final class CsvParser(
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse[A, BF](builder:Builder[Int, String, BF, A], chars:java.io.Reader):ParserRetVal[A, Nothing, Nothing, BF] = {
+	def parse[Result, BF](builder:Builder[Int, String, BF, Result], chars:java.io.Reader):ParserRetVal[Result, Nothing, Nothing, BF] = {
 		this.parse(builder, new CountingReader(chars))
 	}
 	
-	def parse[A,BF](builder:Builder[Int, String, BF, A], chars:CountingReader):ParserRetVal[A, Nothing, Nothing, BF] = {
+	def parse[Result, BF](builder:Builder[Int, String, BF, Result], chars:CountingReader):ParserRetVal[Result, Nothing, Nothing, BF] = {
 		@scala.annotation.tailrec
-		def dothing(rowIdx:Int, folding:A):ParserRetVal[A, Nothing, Nothing, BF] = {
+		def dothing(rowIdx:Int, folding:builder.Middle):ParserRetVal[builder.Middle, Nothing, Nothing, BF] = {
 			sealed trait ThingToDo
-			final case class Recurse(nextFolding:A) extends ThingToDo
+			final case class Recurse(nextFolding:builder.Middle) extends ThingToDo
 			object ReturnFolding extends ThingToDo
 			final case class ReturnFailure(err:BF) extends ThingToDo
 			
@@ -105,6 +104,7 @@ final class CsvParser(
 		}
 		
 		dothing(0, builder.init)
+			.complex.flatMap{builder.finish _}
 	}
 }
 
@@ -187,9 +187,9 @@ object CsvParser {
 	
 	/** Splits a CSV record (i.e. one line) into fields */
 	private[parser] final class LineParser(meaningfulCharacters:CsvParser.CharacterMeanings) extends Parser[Int, String, Nothing, CountingReader] {
-		def parse[A, BF](builder:Builder[Int, String, BF, A], chars:CountingReader):ParserRetVal[A, Nothing, Nothing, BF] = {
+		def parse[Result, BF](builder:Builder[Int, String, BF, Result], chars:CountingReader):ParserRetVal[Result, Nothing, Nothing, BF] = {
 			val rowStartIndex = chars.index
-			var state = State[A, BF](Complex(builder.init), rowStartIndex, 0, "", "", false, false)
+			var state = State[builder.Middle, BF](Complex(builder.init), rowStartIndex, 0, "", "", false, false)
 			try {
 				var char = chars.read()
 				
@@ -236,17 +236,18 @@ object CsvParser {
 			}
 			
 			(
-			if (state.innerInput.isEmpty) {
-				state.value
-			} else {
-				state.value.complex.flatMap{x =>
-					builder.apply(x, state.innerIndex, state.innerInput, new IdentityParser[String])
-							.builderFailure.map{msg => Indexed(msg, rowStartIndex + state.fieldStartIndex)}
+				if (state.innerInput.isEmpty) {
+					state.value
+				} else {
+					state.value.complex.flatMap{x =>
+						builder.apply(x, state.innerIndex, state.innerInput, new IdentityParser[String])
+								.builderFailure.map{msg => Indexed(msg, rowStartIndex + state.fieldStartIndex)}
+					}
 				}
-			}
 			)
 			// TODO: annotations
 			.builderFailure.map{_.cause}
+			.complex.flatMap{builder.finish _}
 		}
 	}
 }

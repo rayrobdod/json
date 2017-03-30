@@ -27,6 +27,7 @@
 package com.rayrobdod.json.union
 
 import org.scalatest.FunSpec
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures
 import com.rayrobdod.json.union.JsonValue._
 
 @deprecated("shut up compiler; I will cover deprecated methods", "")
@@ -40,7 +41,7 @@ class JsonValueTest extends FunSpec {
 			JsonValueNumber(42),
 			JsonValueBoolean(true), JsonValueNull
 		)
-		val ToEitherFuns = Seq[JsonValue => Either[Failures.UnsuccessfulTypeCoersion,Any]](
+		val ToEitherFuns = Seq[JsonValue => Either[Failures,Any]](
 			{x => x.stringToEither{s => Right(s)}},
 			{x => x.numberToEither{s => Right(s)}},
 			{x => x.integerToEither{s => Right(s)}},

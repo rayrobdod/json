@@ -48,7 +48,7 @@ sealed trait ParserRetVal[+Complex, +Primitive, +ParserFailure, +BuilderFailure]
 	 * @param c the function to apply if `this` is a [[ParserRetVal$.Complex Complex]]
 	 * @param p the function to apply if `this` is a [[ParserRetVal$.Primitive Primitive]]
 	 * @param f the function to apply if `this` is a [[ParserRetVal$.ParserFailure ParserFailure]]
-	 * @param f the function to apply if `this` is a [[ParserRetVal$.BuilderFailure BuilderFailure]]
+	 * @param b the function to apply if `this` is a [[ParserRetVal$.BuilderFailure BuilderFailure]]
 	 * @return the results of applying the function
 	 */
 	def fold[Out](c:Function1[Complex,Out], p:Function1[Primitive,Out], f:Function1[ParserFailure,Out], b:Function1[BuilderFailure,Out]):Out

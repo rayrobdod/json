@@ -28,143 +28,146 @@ package com.rayrobdod.json.builder;
 
 import org.scalatest.FunSpec;
 import scala.collection.immutable.Seq;
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures.{ExpectedPrimitive, UnsuccessfulTypeCoercion}
+import com.rayrobdod.json.builder.BuilderTest.EnforcedFailure
 import com.rayrobdod.json.parser.Parser
 import com.rayrobdod.json.parser.FailureParser
 import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.union.ParserRetVal
 import com.rayrobdod.json.union.ParserRetVal.{BuilderFailure, Complex, ParserFailure}
-import com.rayrobdod.json.union.Failures.{ExpectedPrimitive, EnforcedFailure, UnsuccessfulTypeCoersion}
 import com.rayrobdod.json.testing.HexArrayStringConverter
 
 class BuilderTest extends FunSpec {
 	
 	private[this] final class ReportKeyValueBuilder[A,B] extends Builder[A,B,ExpectedPrimitive.type,(A,B)] {
+		override type Middle = (A,B)
 		def init = null
 		def apply[Input,BF](folding:(A,B), key:A, input:Input, parser:Parser[A, B, BF, Input]):ParserRetVal[(A,B), Nothing, BF, ExpectedPrimitive.type] = {
 			parser.parsePrimitive(input).primitive.flatMap{p => Complex( (key, p) )}
 		}
+		def finish(x:Middle) = ParserRetVal.Complex(x)
 	}
 	
 	
 	describe("Builder.mapKey") {
 		it ("The new builder's init is the same as the old builder's init") {
-			val builder = new ThrowBuilder[Int, String]
+			val builder = new ThrowBuilder(EnforcedFailure)
 			assertResult(builder.init){builder.mapKey[Int]{x => x}.init}
 		}
 		it ("when a success, continue being a success") {
 			assertResult(Complex("key", "value")){
-				new ReportKeyValueBuilder[String, String]
+				val builder = new ReportKeyValueBuilder[String, String]
 						.mapKey[Int]{case x => "key"}
-						.apply(null, 1, "value",  new IdentityParser[String])
+				builder.apply(builder.init, 1, "value",  new IdentityParser[String])
 			}
 		}
 		it ("passes through a parser's failure") {
 			assertResult(ParserFailure(EnforcedFailure)){
-				new ReportKeyValueBuilder[String, String]
+				val builder = new ReportKeyValueBuilder[String, String]
 						.mapKey[Int]{case x => "key"}
-						.apply(null, 1, "value",  new FailureParser)
+				builder.apply(builder.init, 1, "value",  new FailureParser(EnforcedFailure))
 			}
 		}
 		it ("passes through a builder's failure") {
 			assertResult(BuilderFailure(EnforcedFailure)){
-				new ThrowBuilder[String, String]
+				val builder = new ThrowBuilder(EnforcedFailure)
 						.mapKey[Int]{case x => "key"}
-						.apply(null, 1, "value",  new IdentityParser[String])
+				builder.apply(builder.init, 1, "value",  new IdentityParser[String])
 			}
 		}
 	}
 	describe("Builder.flatMapKey") {
 		it ("The new builder's init is the same as the old builder's init") {
-			val builder = new ThrowBuilder[Int, String]
+			val builder = new ThrowBuilder(EnforcedFailure)
 			assertResult(builder.init){builder.flatMapKey[Int, Nothing]{case x => Right(x)}.init}
 		}
 		it ("when a success, continue being a success") {
 			assertResult(Complex("key", "value")){
-				new ReportKeyValueBuilder[String, String]
+				val builder = new ReportKeyValueBuilder[String, String]
 						.flatMapKey[Int, Nothing]{case x => Right("key")}
-						.apply(null, 1, "value",  new IdentityParser[String])
+				builder.apply(builder.init, 1, "value",  new IdentityParser[String])
 			}
 		}
 		it ("passes through a parser's failure") {
 			assertResult(ParserFailure(EnforcedFailure)){
-				new ReportKeyValueBuilder[String, String]
+				val builder = new ReportKeyValueBuilder[String, String]
 						.flatMapKey[Int, Nothing]{case x => Right("key")}
-						.apply(null, 1, "value",  new FailureParser)
+				builder.apply(builder.init, 1, "value",  new FailureParser(EnforcedFailure))
 			}
 		}
 		it ("passes through a builder's failure") {
 			assertResult(BuilderFailure(Right(EnforcedFailure))){
-				new ThrowBuilder[String, String]
+				val builder = new ThrowBuilder(EnforcedFailure)
 						.flatMapKey[Int, Nothing]{case x => Right("key")}
-						.apply(null, 1, "value",  new IdentityParser[String])
+				builder.apply(builder.init, 1, "value",  new IdentityParser[String])
 			}
 		}
 		it ("passes through a fun's failure") {
 			assertResult(BuilderFailure(Left(EnforcedFailure))){
-				new ReportKeyValueBuilder[String, String]
+				val builder = new ReportKeyValueBuilder[String, String]
 						.flatMapKey[Int, EnforcedFailure.type]{case x => Left(EnforcedFailure)}
-						.apply(null, 1, "value",  new IdentityParser[String])
+				builder.apply(builder.init, 1, "value",  new IdentityParser[String])
 			}
 		}
 	}
 	describe("Builder.mapValue") {
 		it ("The new builder's init is the same as the old builder's init") {
-			val builder = new ThrowBuilder[Int, String]
+			val builder = new ThrowBuilder(EnforcedFailure)
 			assertResult(builder.init){builder.mapValue[String]{case x => x}.init}
 		}
 		it ("when a success, continue being a success") {
 			assertResult(Complex("key", "value")){
-				new ReportKeyValueBuilder[String, String]
+				val builder = new ReportKeyValueBuilder[String, String]
 						.mapValue[Int]{case x => "value"}
-						.apply(null, "key", 1,  new IdentityParser[Int])
+				builder.apply(builder.init, "key", 1,  new IdentityParser[Int])
 			}
 		}
 		it ("passes through a parser's failure") {
 			assertResult(ParserFailure(EnforcedFailure)){
-				new ReportKeyValueBuilder[String, String]
+				val builder = new ReportKeyValueBuilder[String, String]
 						.mapValue[Int]{case x => "value"}
-						.apply(null, "key", 1,  new FailureParser)
+				builder.apply(builder.init, "key", 1,  new FailureParser(EnforcedFailure))
 			}
 		}
 		it ("passes through a builder's failure") {
 			assertResult(BuilderFailure(EnforcedFailure)){
-				new ThrowBuilder[String, String]
+				val builder = new ThrowBuilder(EnforcedFailure)
 						.mapValue[Int]{case x => "value"}
-						.apply(null, "key", 1,  new IdentityParser[Int])
+				builder.apply(builder.init, "key", 1,  new IdentityParser[Int])
 			}
 		}
 	}
 	describe("Builder.flatMapValue") {
 		it ("The new builder's init is the same as the old builder's init") {
-			val builder = new ThrowBuilder[Int, String]
+			val builder = new ThrowBuilder(EnforcedFailure)
 			assertResult(builder.init){builder.flatMapValue[String, EnforcedFailure.type]{case x => Right(x)}.init}
 		}
 		it ("when a success, continue being a success") {
 			assertResult(Complex("key", "value")){
-				new ReportKeyValueBuilder[String, String]
+				val builder = new ReportKeyValueBuilder[String, String]
 						.flatMapValue[Int, EnforcedFailure.type]{case x => Right("value")}
-						.apply(null, "key", 1,  new IdentityParser[Int])
+				builder.apply(builder.init, "key", 1,  new IdentityParser[Int])
 			}
 		}
 		it ("passes through a parser's failure") {
 			assertResult(ParserFailure(EnforcedFailure)){
-				new ReportKeyValueBuilder[String, String]
+				val builder = new ReportKeyValueBuilder[String, String]
 						.flatMapValue[Int, EnforcedFailure.type]{case x => Right("value")}
-						.apply(null, "key", 1,  new FailureParser)
+				builder.apply(builder.init, "key", 1,  new FailureParser(EnforcedFailure))
 			}
 		}
 		it ("passes through a builder's failure") {
 			assertResult(BuilderFailure(Right(EnforcedFailure))){
-				new ThrowBuilder[String, String]
+				val builder = new ThrowBuilder(EnforcedFailure)
 						.flatMapValue[Int, EnforcedFailure.type]{case x => Right("value")}
-						.apply(null, "key", 1,  new IdentityParser[Int])
+				builder.apply(builder.init, "key", 1,  new IdentityParser[Int])
 			}
 		}
 		it ("passes through a fun's failure") {
 			assertResult(BuilderFailure(Left(EnforcedFailure))){
-				new ReportKeyValueBuilder[String, String]
+				val builder = new ReportKeyValueBuilder[String, String]
 						.flatMapValue[Int, EnforcedFailure.type]{case x => Left(EnforcedFailure)}
-						.apply(null, "key", 1,  new IdentityParser[Int])
+				builder.apply(builder.init, "key", 1,  new IdentityParser[Int])
 			}
 		}
 		
@@ -174,9 +177,56 @@ class BuilderTest extends FunSpec {
 			import com.rayrobdod.json.union.{StringOrInt, JsonValue}
 			
 			assertResult(Complex(Seq(Seq(1, 2)))){
-				new SeqBuilder[StringOrInt, Int, ExpectedPrimitive.type, Seq[Int]](new PrimitiveSeqBuilder[Int])
-					.flatMapValue[JsonValue, UnsuccessfulTypeCoersion]{_.integerToEither{x => Right(x)}.left.map{x => UnsuccessfulTypeCoersion(0,"","")}}
-					.apply(Seq.empty, 0, new com.rayrobdod.json.parser.CountingReader(new java.io.StringReader("[1,2]")), new com.rayrobdod.json.parser.JsonParser)
+				val builder = new SeqBuilder[StringOrInt, Int, ExpectedPrimitive.type, Seq[Int]](new PrimitiveSeqBuilder(ExpectedPrimitive), ExpectedPrimitive)
+					.flatMapValue[JsonValue, UnsuccessfulTypeCoercion.type]{_.integerToEither{x => Right(x)}.left.map{x => UnsuccessfulTypeCoercion}}
+				builder.apply(builder.init, 0, new com.rayrobdod.json.parser.CountingReader(new java.io.StringReader("[1,2]")), new com.rayrobdod.json.parser.JsonParser)
+			}
+		}
+	}
+	describe("Builder.mapResult") {
+		it ("The new builder's init is the same as the old builder's init") {
+			val builder = new ThrowBuilder(EnforcedFailure)
+			assertResult(builder.init){builder.flatMapResult[String, EnforcedFailure.type]{case x => Right(x)}.init}
+		}
+		it ("when a success, continue being a success") {
+			assertResult(Complex("result")){
+				val builder = new ReportKeyValueBuilder[String, Int]
+						.mapResult[String]{x => "result"}
+				builder.finish(builder.init)
+			}
+		}
+		it ("passes through a builder's failure") {
+			assertResult(BuilderFailure(EnforcedFailure)){
+				val builder = new ThrowBuilder(EnforcedFailure)
+						.mapResult[String]{x => "result"}
+				builder.finish(builder.init)
+			}
+		}
+	}
+	describe("Builder.flatMapResult") {
+		it ("The new builder's init is the same as the old builder's init") {
+			val builder = new ThrowBuilder(EnforcedFailure)
+			assertResult(builder.init){builder.flatMapResult[String, EnforcedFailure.type]{case x => Right(x)}.init}
+		}
+		it ("when a success, continue being a success") {
+			assertResult(Complex("result")){
+				val builder = new ReportKeyValueBuilder[String, Int]
+						.flatMapResult[String, EnforcedFailure.type]{case x => Right("result")}
+				builder.finish(builder.init)
+			}
+		}
+		it ("passes through a builder's failure") {
+			assertResult(BuilderFailure(Right(EnforcedFailure))){
+				val builder = new ThrowBuilder(EnforcedFailure)
+						.flatMapResult[String, EnforcedFailure.type]{case x => Right("result")}
+				builder.finish(builder.init)
+			}
+		}
+		it ("passes through a fun's failure") {
+			assertResult(BuilderFailure(Left(EnforcedFailure))){
+				val builder = new ReportKeyValueBuilder[String, Int]
+						.flatMapResult[String, EnforcedFailure.type]{case x => Left(EnforcedFailure)}
+				builder.finish(builder.init)
 			}
 		}
 	}
@@ -187,13 +237,13 @@ class BuilderTest extends FunSpec {
 					.zip(new ReportKeyValueBuilder[String, String])
 			
 			assertResult(exp){
-				builder.apply((null, null), "key", "value", new IdentityParser[String])
+				builder.apply(builder.init, "key", "value", new IdentityParser[String])
 			}
 		}
 		it ("when a success, continue being a success (complex)") {
 			import com.rayrobdod.json.parser._
 			import com.rayrobdod.json.union._
-			val failureMapping = {x:Failures.IllegalFoldingInBuilder.type => com.rayrobdod.json.builder.PrettyJsonBuilder.Failures.IllegalFoldingInBuilder}
+			val failureMapping = {x:IllegalFoldingFailure.type => com.rayrobdod.json.builder.PrettyJsonBuilder.Failures.ArrayKeyNotIncrementing(0, 0)}
 			val exp = ParserRetVal.Complex( ((hexSeq"818163616263" ,"""[["abc"]]""")) )
 			val builder = new CborBuilder().mapKey[StringOrInt].mapValue[JsonValue].mapFailure(failureMapping)
 				.zip(new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams))
@@ -203,4 +253,8 @@ class BuilderTest extends FunSpec {
 		}
 	}
 	
+}
+
+object BuilderTest {
+	object EnforcedFailure
 }

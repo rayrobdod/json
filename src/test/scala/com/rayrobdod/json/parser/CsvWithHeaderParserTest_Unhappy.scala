@@ -28,7 +28,7 @@ package com.rayrobdod.json.parser
 
 import org.scalatest.FunSpec
 import com.rayrobdod.json.union.{StringOrInt, ParserRetVal}
-import com.rayrobdod.json.union.Failures.EnforcedFailure
+import com.rayrobdod.json.builder.BuilderTest.EnforcedFailure
 import com.rayrobdod.json.builder._
 
 class CsvWithHeaderParserTest_Unhappy extends FunSpec {
@@ -36,14 +36,14 @@ class CsvWithHeaderParserTest_Unhappy extends FunSpec {
 		it ("""Throw builder immediate""") {
 			val source = "g,h,i\na,b,c\nd,e,f\n"
 			assertResult(ParserRetVal.BuilderFailure(EnforcedFailure)){  // idx == 6
-				new CsvWithHeaderParser().parse(new ThrowBuilder[StringOrInt, String], source)
+				new CsvWithHeaderParser().parse(new ThrowBuilder(EnforcedFailure), source)
 			}
 		}
 		it ("""Throw builder indirect""") {
 			val source = "g,h,i\na,b,c\nd,e,f\n"
 			assertResult(ParserRetVal.BuilderFailure(EnforcedFailure)){  // idx == 12
 				new CsvWithHeaderParser().parse(MapBuilder.apply[StringOrInt, String, EnforcedFailure.type, Any]({x:StringOrInt => x match {
-					case StringOrInt.Right(1) => new MapBuilder.MapChildBuilder[StringOrInt, String, EnforcedFailure.type, Any, Any](new ThrowBuilder[StringOrInt, String].mapValue[String], {x:Any => x})
+					case StringOrInt.Right(1) => new MapBuilder.MapChildBuilder[StringOrInt, String, EnforcedFailure.type, Nothing, Any](new ThrowBuilder(EnforcedFailure).mapValue[String], {x:Any => x})
 					case _ => new MapBuilder.MapChildBuilder[StringOrInt, String, EnforcedFailure.type, MapBuilder.RecursiveSubjectType[StringOrInt, String], Any](MapBuilder[StringOrInt, String], {x:Any => x})
 				}}), source)
 			}
