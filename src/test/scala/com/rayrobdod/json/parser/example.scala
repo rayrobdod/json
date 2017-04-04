@@ -24,41 +24,59 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json.parser
+package com.rayrobdod.json.doc
 
 import org.scalatest.FunSpec
-import scala.collection.immutable.Seq
-import com.rayrobdod.json.builder.{SeqBuilder, PrettyJsonBuilder, ThrowBuilder, PrimitiveSeqBuilder}
-import com.rayrobdod.json.builder.PiecewiseBuilder.Failures.ExpectedComplex
-import com.rayrobdod.json.union.JsonValue
-import com.rayrobdod.json.union.ParserRetVal.BuilderFailure
-import com.rayrobdod.json.testing.EnforcedFailure
+import com.rayrobdod.json.union.ParserRetVal
 
-class SeqParserTest extends FunSpec {
-	describe("SeqParser") {
-		it ("""builder failure""") {
-			val exp = BuilderFailure(EnforcedFailure, ())
-			val src = Seq(Seq.empty, Seq(true, false))
-			val res = new SeqParser(new PrimitiveSeqParser[Boolean]).parse(new ThrowBuilder(EnforcedFailure), src)
-			
-			assertResult(exp){res}
+final class Examples extends FunSpec {
+	describe ("serializeExample") {
+		import serializeExample._
+		
+		it ("result is ...") {
+			val expected = ParserRetVal.Complex(
+				"""{
+  "name" : {
+    "first" : "Anon",
+    "middles" : [
+      "N",
+      "Y"
+    ],
+    "last" : "Mouse"
+  },
+  "gender" : "Undecided",
+  "isAlive" : true,
+  "interests" : [
+    "Cheese",
+    "Chess"
+  ]
+}"""
+			)
+			assertResult(expected){result}
 		}
 	}
-	
-	describe("SeqParser + Json") {
-		val throwUnexpected = {x:Any => throw new NoSuchElementException(x.toString)}
-		val throwUnexpected2 = {(x:Any, y:Any) => throw new NoSuchElementException(x.toString + y.toString)}
+	describe ("parsingExample") {
+		import parsingExample._
 		
-		it ("""can be used with the json stuff to serialze and deserialize a Seq""") {
-			val src = Seq(Seq.empty, Seq(JsonValue(true), JsonValue(12.5)))
-			val json = new SeqParser(new PrimitiveSeqParser[JsonValue])
-					.parse(new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams).mapKey[Int], src)
-					.fold({x => x}, throwUnexpected, throwUnexpected, throwUnexpected2)
-			val res = new JsonParser()
-					.parse(new SeqBuilder(PrimitiveSeqBuilder.apply[JsonValue], ExpectedComplex), json)
-					.fold({x => x}, throwUnexpected, throwUnexpected, throwUnexpected2)
-			
-			assertResult(src){res}
+		it ("result is ...") {
+			val expected = ParserRetVal.Complex(
+				Person(
+					Name(
+						"Raymond",
+						"Robert",
+						"Dodge"
+					),
+					"male",
+					false,
+					Seq(
+						"bowling",
+						"tennis",
+						"programming",
+						"twitch plays pokémon"
+					)
+				)
+			)
+			assertResult(expected){result}
 		}
 	}
 }

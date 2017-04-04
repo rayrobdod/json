@@ -42,10 +42,9 @@ import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure}
  * Creates a CsvParser instance.
  * @param meaningfulCharacters indicates which characters have special meanings
  */
-// TODO: location annotation
 final class CsvParser(
 		meaningfulCharacters:CsvParser.CharacterMeanings = CsvParser.csvCharacterMeanings
-) extends Parser[Int, String, Nothing, CountingReader] {
+) extends Parser[Int, String, Nothing, CharacterIndex, CountingReader] {
 	private[this] val lineParser = new CsvParser.LineParser(meaningfulCharacters)
 	
 	/**
@@ -55,7 +54,7 @@ final class CsvParser(
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse[A, BF](builder:Builder[Int, String, BF, A], chars:Iterable[Char]):ParserRetVal[A, Nothing, Nothing, BF] = {
+	def parse[A, BF](builder:Builder[Int, String, BF, A], chars:Iterable[Char]):ParserRetVal[A, Nothing, Nothing, BF, CharacterIndex] = {
 		this.parse(builder, new Iterator2Reader(chars.iterator))
 	}
 	
@@ -66,17 +65,19 @@ final class CsvParser(
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse[Result, BF](builder:Builder[Int, String, BF, Result], chars:java.io.Reader):ParserRetVal[Result, Nothing, Nothing, BF] = {
+	def parse[Result, BF](builder:Builder[Int, String, BF, Result], chars:java.io.Reader):ParserRetVal[Result, Nothing, Nothing, BF, CharacterIndex] = {
 		this.parse(builder, new CountingReader(chars))
 	}
 	
-	def parse[Result, BF](builder:Builder[Int, String, BF, Result], chars:CountingReader):ParserRetVal[Result, Nothing, Nothing, BF] = {
+	def parse[Result, BF](builder:Builder[Int, String, BF, Result], chars:CountingReader):ParserRetVal[Result, Nothing, Nothing, BF, CharacterIndex] = {
+		val startIndex = chars.index + 1
+		
 		@scala.annotation.tailrec
-		def dothing(rowIdx:Int, folding:builder.Middle):ParserRetVal[builder.Middle, Nothing, Nothing, BF] = {
+		def dothing(rowIdx:Int, folding:builder.Middle):ParserRetVal[builder.Middle, Nothing, Nothing, BF, CharacterIndex] = {
 			sealed trait ThingToDo
 			final case class Recurse(nextFolding:builder.Middle) extends ThingToDo
 			object ReturnFolding extends ThingToDo
-			final case class ReturnFailure(err:BF) extends ThingToDo
+			final case class ReturnFailure(err:BF, extra:CharacterIndex) extends ThingToDo
 			
 			val thingToDo = try {
 				// check that there are more characters to read; throw if no such characters
@@ -85,9 +86,9 @@ final class CsvParser(
 				chars.goBackOne()
 				val rowStartCharIndex = chars.index + 1
 				
-				builder.apply(folding, rowIdx, chars, lineParser) match {
+				builder.apply(folding, rowIdx, chars, lineParser, CharacterIndex.zero) match {
 					case Complex(nextFolding) => Recurse(nextFolding)
-					case BuilderFailure(bf) => ReturnFailure(bf)
+					case BuilderFailure(bf, ex) => ReturnFailure(bf, ex + rowStartCharIndex)
 					case ParserRetVal.ParserFailure(pf) => pf:Nothing
 					case ParserRetVal.Primitive(x) => x:Nothing
 				}
@@ -99,12 +100,13 @@ final class CsvParser(
 			thingToDo match {
 				case Recurse(nextFolding) => dothing(rowIdx + 1, nextFolding)
 				case ReturnFolding => Complex(folding)
-				case ReturnFailure(x) => BuilderFailure(x)
+				case ReturnFailure(x, ex) => BuilderFailure(x, ex)
 			}
 		}
 		
 		dothing(0, builder.init)
-			.complex.flatMap{builder.finish _}
+			.builderFailure.map{(b,x) => ((b, x - startIndex))}
+			.complex.flatMap{builder.finish(chars.index - startIndex)}
 	}
 }
 
@@ -173,8 +175,8 @@ object CsvParser {
 	 *		become true when an escape character is encountered and become false after encountering that literal character
 	 */
 	private[parser] final case class State[A, BF] (
-		value:ParserRetVal[A, Nothing, Nothing, Indexed[BF]],
-		fieldStartIndex:Int,
+		value:ParserRetVal[A, Nothing, Nothing, BF, CharacterIndex],
+		fieldStartIndex:CharacterIndex,
 		innerIndex:Int,
 		innerInput:String,
 		endingWhitespace:String,
@@ -186,9 +188,9 @@ object CsvParser {
 	
 	
 	/** Splits a CSV record (i.e. one line) into fields */
-	private[parser] final class LineParser(meaningfulCharacters:CsvParser.CharacterMeanings) extends Parser[Int, String, Nothing, CountingReader] {
-		def parse[Result, BF](builder:Builder[Int, String, BF, Result], chars:CountingReader):ParserRetVal[Result, Nothing, Nothing, BF] = {
-			val rowStartIndex = chars.index
+	private[parser] final class LineParser(meaningfulCharacters:CsvParser.CharacterMeanings) extends Parser[Int, String, Nothing, CharacterIndex, CountingReader] {
+		def parse[Result, BF](builder:Builder[Int, String, BF, Result], chars:CountingReader):ParserRetVal[Result, Nothing, Nothing, BF, CharacterIndex] = {
+			val rowStartIndex = chars.index + 1
 			var state = State[builder.Middle, BF](Complex(builder.init), rowStartIndex, 0, "", "", false, false)
 			try {
 				var char = chars.read()
@@ -213,10 +215,10 @@ object CsvParser {
 					} else if (meaningfulCharacters.fieldDelimeter contains char) {
 						new State(
 							value = state.value
-									.complex.flatMap{x => builder.apply(x, state.innerIndex, state.innerInput, new IdentityParser[String])
-										.builderFailure.map{msg => Indexed(msg, rowStartIndex + state.fieldStartIndex)}
+									.complex.flatMap{x => builder.apply(x, state.innerIndex, state.innerInput, new IdentityParser[String], ())
+										.builderFailure.map{(msg, ex:Unit) => ((msg, state.fieldStartIndex))}
 									},
-							fieldStartIndex = chars.index,
+							fieldStartIndex = chars.index + 1,
 							innerIndex = state.innerIndex + 1,
 							innerInput = "",
 							endingWhitespace = "",
@@ -240,14 +242,13 @@ object CsvParser {
 					state.value
 				} else {
 					state.value.complex.flatMap{x =>
-						builder.apply(x, state.innerIndex, state.innerInput, new IdentityParser[String])
-								.builderFailure.map{msg => Indexed(msg, rowStartIndex + state.fieldStartIndex)}
+						builder.apply(x, state.innerIndex, state.innerInput, new IdentityParser[String], ())
+								.builderFailure.map{(msg, ex:Unit) => ((msg, state.fieldStartIndex))}
 					}
 				}
 			)
-			// TODO: annotations
-			.builderFailure.map{_.cause}
-			.complex.flatMap{builder.finish _}
+			.builderFailure.map{(b,x) => ((b, x - rowStartIndex))}
+			.complex.flatMap{builder.finish(CharacterIndex.zero)}
 		}
 	}
 }

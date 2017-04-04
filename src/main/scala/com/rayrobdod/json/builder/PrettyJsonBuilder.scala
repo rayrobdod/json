@@ -60,12 +60,12 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 	
 	val init:Middle = new Middle(false, 0, Nil)
 	
-	def apply[Input, PF](folding:Middle, key:StringOrInt, innerInput:Input, parser:Parser[StringOrInt, JsonValue, PF, Input]):ParserRetVal[Middle, Nothing, PF, PrettyJsonBuilder.Failures] = {
+	def apply[Input, PF, BE](folding:Middle, key:StringOrInt, innerInput:Input, parser:Parser[StringOrInt, JsonValue, PF, BE, Input], extra:BE):ParserRetVal[Middle, Nothing, PF, PrettyJsonBuilder.Failures, BE] = {
 		parser.parse(nextLevel, innerInput).primitive.map{p => serialize(p, charset)}.mergeToComplex.complex.flatMap{encodedValue =>
 			if (init == folding) {
 				key match {
 					case StringOrInt.Right(0) => Complex(new Middle(false, 1, encodedValue :: Nil))
-					case StringOrInt.Right(int) => BuilderFailure(ArrayKeyNotIncrementing(int, 0))
+					case StringOrInt.Right(int) => BuilderFailure(ArrayKeyNotIncrementing(int, 0), extra)
 					case StringOrInt.Left(str) => Complex(new Middle(true, 1, (serialize(str, charset) + params.colon(level) + encodedValue) :: Nil))
 				}
 			} else {
@@ -74,12 +74,12 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 						if (folding.isObject) {
 							Complex(folding.append(serialize(str, charset) + params.colon(level) + encodedValue))
 						} else {
-							BuilderFailure(KeyTypeChangedMidObject(key, KeyTypeChangedMidObject.ExpectingInt))
+							BuilderFailure(KeyTypeChangedMidObject(key, KeyTypeChangedMidObject.ExpectingInt), extra)
 						}
 					}
 					case StringOrInt.Right(int) => {
 						if (folding.isObject) {
-							BuilderFailure(KeyTypeChangedMidObject(key, KeyTypeChangedMidObject.ExpectingString))
+							BuilderFailure(KeyTypeChangedMidObject(key, KeyTypeChangedMidObject.ExpectingString), extra)
 						} else {
 							Complex(folding.append(encodedValue))
 						}
@@ -89,7 +89,7 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 		}
 	}
 	
-	override def finish(folding:Middle):ParserRetVal.Complex[String] = ParserRetVal.Complex(folding.finish(params, level))
+	override def finish[BE](extra:BE)(folding:Middle):ParserRetVal.Complex[String] = ParserRetVal.Complex(folding.finish(params, level))
 }
 
 /**

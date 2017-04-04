@@ -29,7 +29,7 @@ package com.rayrobdod.json.builder;
 import scala.collection.immutable.Map
 import com.rayrobdod.json.parser.Parser
 import com.rayrobdod.json.union.ParserRetVal
-import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure, ParserFailure}
+import com.rayrobdod.json.union.ParserRetVal.{Complex, Primitive, BuilderFailure, ParserFailure}
 
 /**
  * A Builder which can be built piecewise.
@@ -79,11 +79,11 @@ final class PiecewiseBuilder[Key, Value, Subject](
 	
 	override type Middle = Subject
 	
-	override def apply[Input, PF](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, PF, Input]):ParserRetVal[Subject, Nothing, PF, PiecewiseBuilder.Failures] = {
-		keyDefs.getOrElse(key, defaultKeyDef).apply(folding, input, parser)
+	override def apply[Input, PF, BE](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, PF, BE, Input], extra:BE):ParserRetVal[Subject, Nothing, PF, PiecewiseBuilder.Failures, BE] = {
+		keyDefs.getOrElse(key, defaultKeyDef).apply(folding, input, parser, extra)
 	}
 	
-	override def finish(folding:Subject):ParserRetVal.Complex[Subject] = ParserRetVal.Complex(folding)
+	override def finish[BE](extra:BE)(folding:Subject):ParserRetVal.Complex[Subject] = ParserRetVal.Complex(folding)
 }
 
 /**
@@ -118,7 +118,7 @@ object PiecewiseBuilder {
 	 */
 	abstract class KeyDef[Key, Value, Subject] {
 		/** add a key-value pair to `s`; where `p.parse(someBuilder, i)` is the value, and the key is hard-coded. */
-		def apply[Input, PF](s:Subject, i:Input, p:Parser[Key, Value, PF, Input]):ParserRetVal[Subject, Nothing, PF, PiecewiseBuilder.Failures]
+		def apply[Input, PF, BE](s:Subject, i:Input, p:Parser[Key, Value, PF, BE, Input], extra:BE):ParserRetVal[Subject, Nothing, PF, PiecewiseBuilder.Failures, BE]
 	}
 	
 	/**
@@ -133,20 +133,32 @@ object PiecewiseBuilder {
 	 */
 	def partitionedKeyDef[Key, Value, Subject, BuilderResult, MiddleType](
 		builder:Builder[Key, Value, PiecewiseBuilder.Failures, BuilderResult],
-		convert:PartialFunction[ParserRetVal[BuilderResult, Value, Any, PiecewiseBuilder.Failures], ParserRetVal[MiddleType, Nothing, Nothing, PiecewiseBuilder.Failures]],
+		convert:PartialFunction[ParserRetVal[BuilderResult, Value, Nothing, Nothing, Nothing], ParserRetVal[MiddleType, Nothing, Nothing, PiecewiseBuilder.Failures, Unit]],
 		fold:Function2[Subject, MiddleType, Subject]
 	):KeyDef[Key, Value, Subject] = new KeyDef[Key, Value, Subject]{
-		def apply[Input, PF](folding:Subject, input:Input, parser:Parser[Key, Value, PF, Input]):ParserRetVal[Subject, Nothing, PF, PiecewiseBuilder.Failures] = {
+		def apply[Input, PF, BE](folding:Subject, input:Input, parser:Parser[Key, Value, PF, BE, Input], extra:BE):ParserRetVal[Subject, Nothing, PF, PiecewiseBuilder.Failures, BE] = {
 			val parserRetVal = parser.parse(builder, input)
-			if (convert.isDefinedAt(parserRetVal)) {
-				convert(parserRetVal).complex.map{x:MiddleType => fold(folding, x)}
-			} else {
-				parserRetVal.fold(
-					{value => BuilderFailure(UnsuccessfulTypeCoercion)},
-					{value => BuilderFailure(UnsuccessfulTypeCoercion)},
-					{value => ParserFailure(value)},
-					{value => BuilderFailure(value)}
-				)
+			parserRetVal match {
+				case c:Complex[BuilderResult] => {
+					if (convert.isDefinedAt(c)) {
+						convert(c)
+							.complex.map{x:MiddleType => fold(folding, x)}
+							.builderFailure.attachExtra(extra)
+					} else {
+						BuilderFailure(UnsuccessfulTypeCoercion, extra)
+					}
+				}
+				case p:Primitive[Value] => {
+					if (convert.isDefinedAt(p)) {
+						convert(p)
+							.complex.map{x:MiddleType => fold(folding, x)}
+							.builderFailure.attachExtra(extra)
+					} else {
+						BuilderFailure(UnsuccessfulTypeCoercion, extra)
+					}
+				}
+				case p:ParserFailure[PF] => p
+				case b:BuilderFailure[PiecewiseBuilder.Failures, BE] => b
 			}
 		}
 	}
@@ -161,15 +173,15 @@ object PiecewiseBuilder {
 	 */
 	def partitionedComplexKeyDef[Key, Value, Subject, BuilderResult](
 		builder:Builder[Key, Value, PiecewiseBuilder.Failures, BuilderResult],
-		fold:Function2[Subject, BuilderResult, ParserRetVal[Subject, Nothing, Nothing, PiecewiseBuilder.Failures]]
+		fold:Function2[Subject, BuilderResult, ParserRetVal[Subject, Nothing, Nothing, PiecewiseBuilder.Failures, Unit]]
 	):KeyDef[Key, Value, Subject] = new KeyDef[Key, Value, Subject]{
-		def apply[Input, PF](folding:Subject, input:Input, parser:Parser[Key, Value, PF, Input]):ParserRetVal[Subject, Nothing, PF, PiecewiseBuilder.Failures] = {
+		def apply[Input, PF, BE](folding:Subject, input:Input, parser:Parser[Key, Value, PF, BE, Input], extra:BE):ParserRetVal[Subject, Nothing, PF, PiecewiseBuilder.Failures, BE] = {
 			parser.parse(builder, input)
 				.fold(
-					{c => fold(folding, c)},
-					{p => BuilderFailure(ExpectedComplex)},
+					{c => fold(folding, c).builderFailure.attachExtra(extra)},
+					{p => BuilderFailure(ExpectedComplex, extra)},
 					{f => ParserFailure(f)},
-					{b => BuilderFailure(b)}
+					{(b, e) => BuilderFailure(b, e)}
 				)
 		}
 	}
@@ -184,13 +196,17 @@ object PiecewiseBuilder {
 	 * @param fold combine the previous subject and a successful convert into a new subject.
 	 */
 	def partitionedPrimitiveKeyDef[Key, Value, Subject, MiddleType](
-		convert:PartialFunction[Value, ParserRetVal[MiddleType, Nothing, Nothing, PiecewiseBuilder.Failures]],
+		convert:PartialFunction[Value, ParserRetVal[MiddleType, Nothing, Nothing, PiecewiseBuilder.Failures, Unit]],
 		fold:Function2[Subject, MiddleType, Subject]
 	):KeyDef[Key, Value, Subject] = new KeyDef[Key, Value, Subject]{
-		def apply[Input, PF](folding:Subject, input:Input, parser:Parser[Key, Value, PF, Input]):ParserRetVal[Subject, Nothing, PF, PiecewiseBuilder.Failures] = {
-			val a:ParserRetVal[Nothing, Value, PF, ExpectedPrimitive.type] = parser.parsePrimitive(input, ExpectedPrimitive)
+		def apply[Input, PF, BE](folding:Subject, input:Input, parser:Parser[Key, Value, PF, BE, Input], extra:BE):ParserRetVal[Subject, Nothing, PF, PiecewiseBuilder.Failures, BE] = {
+			val a:ParserRetVal[Nothing, Value, PF, ExpectedPrimitive.type, BE] = parser.parsePrimitive(input, ExpectedPrimitive)
 			val b = a.primitive.flatMap{value:Value =>
-				if (convert.isDefinedAt(value)) { convert.apply(value) } else { BuilderFailure(UnsuccessfulTypeCoercion) }
+				if (convert.isDefinedAt(value)) {
+					convert.apply(value).builderFailure.attachExtra(extra)
+				} else {
+					BuilderFailure(UnsuccessfulTypeCoercion, extra)
+				}
 			}
 			b.complex.map{x:MiddleType => fold(folding, x)}
 		}
@@ -202,7 +218,7 @@ object PiecewiseBuilder {
 	 * @version 4.0
 	 */
 	def ignoreKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
-		def apply[Input, PF](s:A, i:Input, p:Parser[K,V,PF,Input]):ParserRetVal[A, Nothing, PF, PiecewiseBuilder.Failures] = Complex(s)
+		def apply[Input, PF, BE](s:A, i:Input, p:Parser[K,V,PF,BE,Input], extra:BE):ParserRetVal[A, Nothing, PF, PiecewiseBuilder.Failures,BE] = Complex(s)
 	}
 	
 	/**
@@ -211,6 +227,6 @@ object PiecewiseBuilder {
 	 * @version 4.0
 	 */
 	def throwKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
-		def apply[Input,PF](s:A, i:Input, p:Parser[K,V,PF,Input]):ParserRetVal[A, Nothing, PF, PiecewiseBuilder.Failures] = BuilderFailure(UnknownKey)
+		def apply[Input,PF,BE](s:A, i:Input, p:Parser[K,V,PF,BE,Input], extra:BE):ParserRetVal[A, Nothing, PF, PiecewiseBuilder.Failures, BE] = BuilderFailure(UnknownKey, extra)
 	}
 }

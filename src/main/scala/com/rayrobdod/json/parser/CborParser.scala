@@ -52,20 +52,20 @@ import com.rayrobdod.json.union.CborValue.Rational
  * @param tagMatcher tag support
  */
 // TODO: location annotation
-final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.allBuiltIn) extends Parser[CborValue, CborValue, CborParser.Failures, DataInput] {
+final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.allBuiltIn) extends Parser[CborValue, CborValue, CborParser.Failures, Unit, DataInput] {
 	import CborParser._
 	import CborParser.Failures._
 	
 	// used in a match statement; therefore identifier needs to be uppercase
 	private[this] val UpperCaseTagMatcher = tagMatcher
 	
-	override def parse[ComplexOutput, BF](builder:Builder[CborValue, CborValue, BF, ComplexOutput], i:DataInput):ParserRetVal[ComplexOutput, CborValue, CborParser.Failures, BF] = {
+	override def parse[ComplexOutput, BF](builder:Builder[CborValue, CborValue, BF, ComplexOutput], i:DataInput):ParserRetVal[ComplexOutput, CborValue, CborParser.Failures, BF, Unit] = {
 		val a = this.parseDetailed[ComplexOutput, BF](builder, i)
 		a match {
 			case ParseReturnValueSimple(x:CborValue) => Primitive(x)
 			case ParseReturnValueComplex(x) => Complex(x)
 			case ParseReturnValueParserFailure(x) => ParserFailure(x)
-			case ParseReturnValueBuilderFailure(x) => BuilderFailure(x)
+			case ParseReturnValueBuilderFailure(x) => BuilderFailure(x, ())
 			case _ => ParserFailure(NonPublicValue)
 		}
 	}
@@ -116,14 +116,14 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 				case MajorTypeCodes.ARRAY => parseArray(topBuilder, input, additionalInfoData) match {
 					case Complex(x) => ParseReturnValueComplex(x)
 					case ParserFailure(x) => ParseReturnValueParserFailure(x)
-					case BuilderFailure(x) => ParseReturnValueBuilderFailure(x)
+					case BuilderFailure(x, ()) => ParseReturnValueBuilderFailure(x)
 					case ParserRetVal.Primitive(x) => x:Nothing
 				}
 				// map
 				case MajorTypeCodes.OBJECT => parseObject(topBuilder, input, additionalInfoData) match {
 					case Complex(x) => ParseReturnValueComplex(x)
 					case ParserFailure(x) => ParseReturnValueParserFailure(x)
-					case BuilderFailure(x) => ParseReturnValueBuilderFailure(x)
+					case BuilderFailure(x, ()) => ParseReturnValueBuilderFailure(x)
 					case ParserRetVal.Primitive(x) => x:Nothing
 				}
 				// tags
@@ -200,13 +200,13 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 		}
 	}
 	
-	private[this] def parseArray[A,BF](topBuilder:Builder[CborValue, CborValue, BF, A], input:DataInput, aid:AdditionalInfoData):ParserRetVal[A, Nothing, CborParser.Failures, BF] = {
-		var retVal:ParserRetVal[topBuilder.Middle, Nothing, CborParser.Failures, BF] = Complex(topBuilder.init)
+	private[this] def parseArray[A,BF](topBuilder:Builder[CborValue, CborValue, BF, A], input:DataInput, aid:AdditionalInfoData):ParserRetVal[A, Nothing, CborParser.Failures, BF, Unit] = {
+		var retVal:ParserRetVal[topBuilder.Middle, Nothing, CborParser.Failures, BF, Unit] = Complex(topBuilder.init)
 		
 		aid match {
 			case AdditionalInfoDeterminate(len:Long) => {
 				(0L until len).foreach{index =>
-					retVal = retVal.complex.flatMap{x => topBuilder.apply[DataInput, CborParser.Failures](x, CborValue(index), input, this)}
+					retVal = retVal.complex.flatMap{x => topBuilder.apply[DataInput, CborParser.Failures, Unit](x, CborValue(index), input, this, ())}
 				}
 			}
 			case AdditionalInfoIndeterminate() => {
@@ -218,10 +218,10 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 					childObject match {
 						case ParseReturnValueEndOfIndeterminateObject() => {}
 						case ParseReturnValueSimple(x) => {
-							retVal = retVal.complex.flatMap{y => topBuilder.apply[CborValue, Nothing](y, CborValue(index), x, new IdentityParser())}
+							retVal = retVal.complex.flatMap{y => topBuilder.apply[CborValue, Nothing, Unit](y, CborValue(index), x, new IdentityParser(), ())}
 						}
 						case ParseReturnValueComplex(x) => {
-							retVal = retVal.complex.flatMap{y => topBuilder.apply[DataInput, CborParser.Failures](y, CborValue(index), byteArray2DataInput(x.toArray), this)}
+							retVal = retVal.complex.flatMap{y => topBuilder.apply[DataInput, CborParser.Failures, Unit](y, CborValue(index), byteArray2DataInput(x.toArray), this, ())}
 						}
 						case ParseReturnValueParserFailure(x) => {
 							retVal = ParserFailure(x)
@@ -236,16 +236,16 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 			}
 		}
 		retVal
-			.complex.flatMap{topBuilder.finish _}
+			.complex.flatMap{topBuilder.finish(())}
 	}
 	
-	private[this] def parseObject[A,BF](topBuilder:Builder[CborValue, CborValue, BF, A], input:DataInput, aid:AdditionalInfoData):ParserRetVal[A, Nothing, CborParser.Failures, BF] = {
-		var retVal:ParserRetVal[topBuilder.Middle, Nothing, CborParser.Failures, BF] = Complex(topBuilder.init)
+	private[this] def parseObject[A,BF](topBuilder:Builder[CborValue, CborValue, BF, A], input:DataInput, aid:AdditionalInfoData):ParserRetVal[A, Nothing, CborParser.Failures, BF, Unit] = {
+		var retVal:ParserRetVal[topBuilder.Middle, Nothing, CborParser.Failures, BF, Unit] = Complex(topBuilder.init)
 		
 		aid match {
 			case AdditionalInfoDeterminate(len:Long) => {
 				(0L until len).foreach{index =>
-					val keyTry:ParserRetVal[CborValue, Nothing, CborParser.Failures, Nothing] = this.parseDetailed(new ThrowBuilder(NonSimpleMapKey), input) match {
+					val keyTry:ParserRetVal[CborValue, Nothing, CborParser.Failures, Nothing, Nothing] = this.parseDetailed(new ThrowBuilder(NonSimpleMapKey), input) match {
 						case ParseReturnValueSimple(x) => Complex(x)
 						case ParseReturnValueParserFailure(x) => ParserFailure(x)
 						case ParseReturnValueBuilderFailure(x) => ParserFailure(NonSimpleMapKey)
@@ -254,7 +254,7 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 					retVal = for (
 						foldingObject <- retVal.complex;
 						keyObject <- keyTry.complex;
-						newRetVal <- topBuilder.apply[DataInput, CborParser.Failures](foldingObject, keyObject, input, this).complex
+						newRetVal <- topBuilder.apply(foldingObject, keyObject, input, this, ()).complex
 					) yield {newRetVal}
 				}
 			}
@@ -265,7 +265,7 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 					keyObject match {
 						case ParseReturnValueEndOfIndeterminateObject() => {}
 						case ParseReturnValueSimple(x) => {
-							retVal = retVal.complex.flatMap{y => topBuilder.apply[DataInput, CborParser.Failures](y, x, input, this)}
+							retVal = retVal.complex.flatMap{y => topBuilder.apply(y, x, input, this, ())}
 						}
 						case ParseReturnValueParserFailure(x) => retVal = ParserFailure(x)
 						case ParseReturnValueBuilderFailure(x) => retVal = ParserFailure(NonSimpleMapKey)
@@ -275,7 +275,7 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 			}
 		}
 		retVal
-			.complex.flatMap{topBuilder.finish _}
+			.complex.flatMap{topBuilder.finish(())}
 	}
 }
 
@@ -402,7 +402,7 @@ object CborParser {
 						{x => ParseReturnValueSimple(x)},
 						{x:Nothing => x},
 						{x => ParseReturnValueParserFailure(x)},
-						{x:ExpectedPrimitive.type => ParseReturnValueParserFailure(BigIntPairTagHadComplexValue("Tag 2"))}
+						{(x:ExpectedPrimitive.type, ex:Unit) => ParseReturnValueParserFailure(BigIntPairTagHadComplexValue("Tag 2"))}
 					)
 				}})
 				case TagCodes.NEG_BIG_INT => Some(new TagFunction{override def apply[A, BF](b:Builder[CborValue, CborValue, BF, A], i:DataInput) = {
@@ -414,7 +414,7 @@ object CborParser {
 						{x => ParseReturnValueSimple(x)},
 						{x:Nothing => x},
 						{x => ParseReturnValueParserFailure(x)},
-						{x:ExpectedPrimitive.type => ParseReturnValueParserFailure(BigIntPairTagHadComplexValue("Tag 2"))}
+						{(x:ExpectedPrimitive.type, ex:Unit) => ParseReturnValueParserFailure(BigIntPairTagHadComplexValue("Tag 3"))}
 					)
 				}})
 				case TagCodes.BIG_DECIMAL => Some(new TagFunction{override def apply[A, BF](b:Builder[CborValue, CborValue, BF, A], i:DataInput) = {
@@ -422,7 +422,7 @@ object CborParser {
 						{x => val (exp,mant) = x; ParseReturnValueSimple(CborValueNumber(Rational(BigDecimal(mant) * BigDecimal(10).pow(exp.intValue))))},
 						{x => ParseReturnValueParserFailure(BigIntPairTagHadPrimitiveValue("Tag 4", x))},
 						{x => ParseReturnValueParserFailure(x)},
-						{x => ParseReturnValueParserFailure(x)}
+						{(x, ex:Unit) => ParseReturnValueParserFailure(x)}
 					)
 				}})
 				case TagCodes.BIG_FLOAT => Some(new TagFunction{override def apply[A, BF](b:Builder[CborValue, CborValue, BF, A], i:DataInput) = {
@@ -430,7 +430,7 @@ object CborParser {
 						{x => val (exp,mant) = x; ParseReturnValueSimple(CborValueNumber(Rational(BigDecimal(mant) * BigDecimal(2).pow(exp.intValue))))},
 						{x => ParseReturnValueParserFailure(BigIntPairTagHadPrimitiveValue("Tag 5", x))},
 						{x => ParseReturnValueParserFailure(x)},
-						{x => ParseReturnValueParserFailure(x)}
+						{(x, ex:Unit) => ParseReturnValueParserFailure(x)}
 					)
 				}})
 				case TagCodes.RATIONAL => Some(new TagFunction{override def apply[A, BF](b:Builder[CborValue, CborValue, BF, A], i:DataInput) = {
@@ -438,7 +438,7 @@ object CborParser {
 						{x => val (a,b) = x; ParseReturnValueSimple(new Rational(a,b))},
 						{x => ParseReturnValueParserFailure(BigIntPairTagHadPrimitiveValue("Tag 30", x))},
 						{x => ParseReturnValueParserFailure(x)},
-						{x => ParseReturnValueParserFailure(x)}
+						{(x, ex:Unit) => ParseReturnValueParserFailure(x)}
 					)
 				}})
 				case _ => None
@@ -448,29 +448,28 @@ object CborParser {
 		private[this] final class PairBigIntBuilder(tagNumber:String) extends Builder[CborValue, CborValue, CborParser.Failures, (BigInt, BigInt)] {
 			override type Middle = Tuple2[BigInt, BigInt]
 			override def init:(BigInt, BigInt) = ((BigInt(1), BigInt(1)))
-			override def apply[Input, PF](folding:(BigInt, BigInt), key:CborValue, input:Input, parser:Parser[CborValue, CborValue, PF, Input]):ParserRetVal[(BigInt, BigInt), Nothing, PF, CborParser.Failures] = {
-				parser.parsePrimitive(input, ExpectedPrimitive)
-					.builderFailure.map[CborParser.Failures]{x:ExpectedPrimitive.type => BigIntPairTagHadComplexValue(tagNumber)}
-					.primitive.flatMap[BigInt, Nothing, PF, CborParser.Failures]{_ match {
+			override def apply[Input, PF, BE](folding:(BigInt, BigInt), key:CborValue, input:Input, parser:Parser[CborValue, CborValue, PF, BE, Input], extra:BE):ParserRetVal[(BigInt, BigInt), Nothing, PF, CborParser.Failures, BE] = {
+				parser.parsePrimitive(input, BigIntPairTagHadComplexValue(tagNumber))
+					.primitive.flatMap[BigInt, Nothing, PF, CborParser.Failures, BE]{_ match {
 						case CborValueNumber(x) => (
-							x.tryToBigInt.fold[ParserRetVal[BigInt, Nothing, PF, CborParser.Failures]]
-								(BuilderFailure(BigIntPairTagHadValuesOtherthanBigInts(tagNumber, x)))
+							x.tryToBigInt.fold[ParserRetVal[BigInt, Nothing, PF, CborParser.Failures, BE]]
+								(BuilderFailure(BigIntPairTagHadValuesOtherthanBigInts(tagNumber, x), extra))
 								{x => Complex(x)}
 						)
-						case x => BuilderFailure(BigIntPairTagHadValuesOtherthanBigInts(tagNumber, x))
+						case x => BuilderFailure(BigIntPairTagHadValuesOtherthanBigInts(tagNumber, x), extra)
 					}}
 					.complex.flatMap{value =>
 						key match {
 							case CborValueNumber(x) => x.tryToInt match {
 								case Some(0) => Complex(folding.copy(_1 = value))
 								case Some(1) => Complex(folding.copy(_2 = value))
-								case _ => BuilderFailure(BigIntPairTagHadKeysOtherThanZeroOrOne(tagNumber, x))
+								case _ => BuilderFailure(BigIntPairTagHadKeysOtherThanZeroOrOne(tagNumber, x), extra)
 							}
-							case x => BuilderFailure(BigIntPairTagHadKeysOtherThanZeroOrOne(tagNumber, x))
+							case x => BuilderFailure(BigIntPairTagHadKeysOtherThanZeroOrOne(tagNumber, x), extra)
 						}
 					}
 			}
-			override def finish(folding:Tuple2[BigInt, BigInt]):ParserRetVal.Complex[Tuple2[BigInt, BigInt]] = ParserRetVal.Complex(folding)
+			override def finish[BE](be:BE)(folding:Tuple2[BigInt, BigInt]):ParserRetVal.Complex[Tuple2[BigInt, BigInt]] = ParserRetVal.Complex(folding)
 		}
 		
 		/** Combines the other tag matchers  */

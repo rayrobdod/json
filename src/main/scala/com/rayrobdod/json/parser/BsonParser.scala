@@ -46,16 +46,16 @@ import com.rayrobdod.json.union.ParserRetVal.{Complex, ParserFailure}
  * Creates a BsonParser instance.
  */
 // TODO: location annotation
-final class BsonParser extends Parser[String, CborValue, BsonParser.Failures, DataInput] {
+final class BsonParser extends Parser[String, CborValue, BsonParser.Failures, Unit, DataInput] {
 	import BsonParser.{readCString, TypeCodes}
 	import BsonParser.Failures._
 	
-	def parse[A,BF](builder:Builder[String, CborValue, BF, A], input:DataInput):ParserRetVal[A, Nothing, BsonParser.Failures, BF] = {
+	def parse[A,BF](builder:Builder[String, CborValue, BF, A], input:DataInput):ParserRetVal[A, Nothing, BsonParser.Failures, BF, Unit] = {
 		try {
 			// We don't really care about the document length.
 			/* val length = */ Integer.reverseBytes( input.readInt() );
 			
-			var result:ParserRetVal[builder.Middle, Nothing, BsonParser.Failures, BF] = Complex(builder.init)
+			var result:ParserRetVal[builder.Middle, Nothing, BsonParser.Failures, BF, Unit] = Complex(builder.init)
 			var valueType:Byte = input.readByte();
 			while (valueType != TypeCodes.END_OF_DOCUMENT && result.isInstanceOf[Complex[_]]) {
 				val key:String = readCString(input)
@@ -64,8 +64,7 @@ final class BsonParser extends Parser[String, CborValue, BsonParser.Failures, Da
 						val value = java.lang.Double.longBitsToDouble(
 							java.lang.Long.reverseBytes( input.readLong() )
 						)
-						// CHEATING
-						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
+						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue], ())
 					}
 					case TypeCodes.STRING => {
 						val len = Integer.reverseBytes( input.readInt() );
@@ -75,30 +74,30 @@ final class BsonParser extends Parser[String, CborValue, BsonParser.Failures, Da
 							ParserFailure(IllegalStringLength(len, bytes(len - 1)))
 						} else {
 							val value = new String(bytes, 0, len - 1, UTF_8)
-							builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
+							builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue], ())
 						}
 					}
 					case TypeCodes.DOCUMENT => {
-						builder.apply(result2, key, input, this)
+						builder.apply(result2, key, input, this, ())
 					}
 					case TypeCodes.ARRAY => {
-						builder.apply(result2, key, input, this)
+						builder.apply(result2, key, input, this, ())
 					}
 					case TypeCodes.BOOLEAN => {
 						val readValue = input.readByte()
 						val value = (readValue != 0)
-						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
+						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue], ())
 					}
 					case TypeCodes.NULL => {
-						builder.apply(result2, key, CborValue.CborValueNull, new IdentityParser[CborValue])
+						builder.apply(result2, key, CborValue.CborValueNull, new IdentityParser[CborValue], ())
 					}
 					case TypeCodes.INTEGER => {
 						val value = Integer.reverseBytes( input.readInt() );
-						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
+						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue], ())
 					}
 					case TypeCodes.LONG => {
 						val value = java.lang.Long.reverseBytes( input.readLong() );
-						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
+						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue], ())
 					}
 					case _ => ParserFailure(UnknownDataType(valueType))
 				}}
@@ -107,7 +106,7 @@ final class BsonParser extends Parser[String, CborValue, BsonParser.Failures, Da
 			}
 			
 			result
-				.complex.flatMap{builder.finish _}
+				.complex.flatMap{builder.finish(())}
 		} catch {
 			case ex:java.io.EOFException => ParserFailure(ReachedEof)
 		}

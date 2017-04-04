@@ -44,8 +44,7 @@ import com.rayrobdod.json.union.ParserRetVal
  * @constructor
  * Creates a JsonParser instance.
  */
-// TODO: location annotation
-final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failures, CountingReader] {
+final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failures, CharacterIndex, CountingReader] {
 	private[this] val identityParser = new IdentityParser[JsonValue]()
 	import JsonParser.Failures._
 	
@@ -56,12 +55,12 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failure
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse[A, BF](builder:Builder[StringOrInt, JsonValue, BF, A], chars:Iterable[Char]):ParserRetVal[A, Nothing, JsonParser.Failures, BF] = {
+	def parse[A, BF](builder:Builder[StringOrInt, JsonValue, BF, A], chars:Iterable[Char]):ParserRetVal[A, Nothing, JsonParser.Failures, BF, CharacterIndex] = {
 		this.parse(builder, new Iterator2Reader(chars.iterator))
 	}
 	
 	
-	def parse[A, BF](builder:Builder[StringOrInt, JsonValue, BF, A], chars:String):ParserRetVal[A, Nothing, JsonParser.Failures, BF] = {
+	def parse[A, BF](builder:Builder[StringOrInt, JsonValue, BF, A], chars:String):ParserRetVal[A, Nothing, JsonParser.Failures, BF, CharacterIndex] = {
 		this.parse(builder, new java.io.StringReader(chars))
 	}
 	
@@ -71,11 +70,11 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failure
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse[A, BF](builder:Builder[StringOrInt, JsonValue, BF, A], chars:Reader):ParserRetVal[A, Nothing, JsonParser.Failures, BF] = {
+	def parse[A, BF](builder:Builder[StringOrInt, JsonValue, BF, A], chars:Reader):ParserRetVal[A, Nothing, JsonParser.Failures, BF, CharacterIndex] = {
 		this.parse(builder, new CountingReader(chars))
 	}
 	
-	def parse[A, BF](builder:Builder[StringOrInt, JsonValue, BF, A], chars:CountingReader):ParserRetVal[A, Nothing, JsonParser.Failures, BF] = {
+	def parse[A, BF](builder:Builder[StringOrInt, JsonValue, BF, A], chars:CountingReader):ParserRetVal[A, Nothing, JsonParser.Failures, BF, CharacterIndex] = {
 		val startIndex = chars.index + 1
 		val retVal = try {
 			var c = chars.read()
@@ -89,13 +88,16 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failure
 			case ex:java.util.NoSuchElementException => ParserRetVal.ParserFailure(IncompleteObject)
 			case ex:java.lang.StackOverflowError => ParserRetVal.ParserFailure(TooDeeplyNested)
 		}
-		retVal.parserFailure.map{_.increaseIndex(-startIndex)}.complex.flatMap{builder.finish _}
+		retVal
+			.parserFailure.map{_.increaseIndex(-startIndex)}
+			.builderFailure.map{(b,x) => ((b, x - startIndex))}
+			.complex.flatMap{builder.finish(chars.index - startIndex)}
 		
 	}
 	
 	/** Read an object value. Do not include the first `'{'` in `r` */
 	@scala.annotation.tailrec
-	private[this] def parseObjectValue[BF](builder:Builder[StringOrInt, JsonValue, BF, _])(soFar:builder.Middle, endObjectAllowed:Boolean)(r:CountingReader):ParserRetVal[builder.Middle, Nothing, JsonParser.Failures, BF] = {
+	private[this] def parseObjectValue[BF](builder:Builder[StringOrInt, JsonValue, BF, _])(soFar:builder.Middle, endObjectAllowed:Boolean)(r:CountingReader):ParserRetVal[builder.Middle, Nothing, JsonParser.Failures, BF, CharacterIndex] = {
 		var c = r.read()
 		while (c.isWhitespace) {c = r.read()}
 		val keyOpt : JsonParser.MidObjectParseValue[String, Nothing] = c match {
@@ -125,21 +127,21 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failure
 				case '"' => {
 					parseString(r).fold(
 						{err => JsonParser.Failure(err)},
-						{str => builder.apply(soFar, key, JsonValue(str), identityParser).fold(
+						{str => builder.apply(soFar, key, JsonValue(str), identityParser, ()).fold(
 							{succ => JsonParser.WithAddedValue(succ)},
 							{x:Nothing => x},
 							{x:Nothing => x},
-							{bf => JsonParser.BuilderFailure(startCharIndex, bf)}
+							{(bf, ex:Unit) => JsonParser.BuilderFailure(bf, startCharIndex)}
 						)}
 					)
 				}
 				case '[' | '{' => {
 					r.goBackOne()
-					builder.apply(soFar, key, r, JsonParser.this).fold(
+					builder.apply(soFar, key, r, JsonParser.this, r.index).fold(
 						{x => JsonParser.WithAddedValue(x)},
 						{x:Nothing => x},
 						{pf => JsonParser.Failure(pf.increaseIndex(startCharIndex))},
-						{bf => JsonParser.BuilderFailure(startCharIndex, bf)}
+						{(bf, ex) => JsonParser.BuilderFailure(bf, ex + startCharIndex)}
 					)
 				}
 				case '.' => {
@@ -149,11 +151,11 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failure
 					r.goBackOne()
 					parseNumber(r).fold(
 						{err => JsonParser.Failure(err)},
-						{int => builder.apply(soFar, key, int, identityParser).fold(
+						{int => builder.apply(soFar, key, int, identityParser, ()).fold(
 							{succ => JsonParser.WithAddedValue(succ)},
 							{x:Nothing => x},
 							{x:Nothing => x},
-							{bf => JsonParser.BuilderFailure(startCharIndex, bf)}
+							{(bf, ex:Unit) => JsonParser.BuilderFailure(bf, startCharIndex)}
 						)}
 					)
 				}
@@ -161,11 +163,11 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failure
 					r.goBackOne()
 					parseKeyword(r).fold(
 						{err => JsonParser.Failure(err)},
-						{word => builder.apply(soFar, key, word, identityParser).fold(
+						{word => builder.apply(soFar, key, word, identityParser, ()).fold(
 							{succ => JsonParser.WithAddedValue(succ)},
 							{x:Nothing => x},
 							{x:Nothing => x},
-							{bf => JsonParser.BuilderFailure(startCharIndex, bf)}
+							{(bf, ex:Unit) => JsonParser.BuilderFailure(bf, startCharIndex)}
 						)}
 					)
 				}
@@ -178,7 +180,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failure
 		newSoFarOpt match {
 			case JsonParser.ReturnSuccess => ParserRetVal.Complex(soFar)
 			case JsonParser.Failure(err) => ParserRetVal.ParserFailure(err)
-			case JsonParser.BuilderFailure(idx, err) => ParserRetVal.BuilderFailure(err) // TODO: idx
+			case JsonParser.BuilderFailure(err, extra) => ParserRetVal.BuilderFailure(err, extra)
 			case JsonParser.WithAddedValue(newSoFar) => {
 				c = r.read()
 				while (c.isWhitespace) {c = r.read()}
@@ -193,7 +195,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failure
 	
 	/** Read an array value. Do not include the first `'['` in `r` */
 	@scala.annotation.tailrec
-	private[this] def parseArrayValue[BF](builder:Builder[StringOrInt, JsonValue, BF, _])(soFar:builder.Middle, arrayIndex:Int)(r:CountingReader):ParserRetVal[builder.Middle, Nothing, JsonParser.Failures, BF] = {
+	private[this] def parseArrayValue[BF](builder:Builder[StringOrInt, JsonValue, BF, _])(soFar:builder.Middle, arrayIndex:Int)(r:CountingReader):ParserRetVal[builder.Middle, Nothing, JsonParser.Failures, BF, CharacterIndex] = {
 		/* true iff the next character is allowed to end the array - i.e. be a ']' */
 		val endObjectAllowed:Boolean = (arrayIndex == 0);
 		
@@ -207,21 +209,21 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failure
 			case '"' => {
 				parseString(r).fold(
 					{err => JsonParser.Failure(err)},
-					{str => builder.apply(soFar, arrayIndex, JsonValue(str), identityParser).fold(
+					{str => builder.apply(soFar, arrayIndex, JsonValue(str), identityParser, ()).fold(
 						{succ => JsonParser.WithAddedValue(succ)},
 						{x:Nothing => x},
 						{x:Nothing => x},
-						{bf => JsonParser.BuilderFailure(startCharIndex, bf)}
+						{(bf, ex:Unit) => JsonParser.BuilderFailure(bf, startCharIndex)}
 					)}
 				)
 			}
 			case '[' | '{' => {
 				r.goBackOne()
-				builder.apply(soFar, arrayIndex, r, JsonParser.this).fold(
+				builder.apply(soFar, arrayIndex, r, JsonParser.this, CharacterIndex.zero).fold(
 					{x => JsonParser.WithAddedValue(x)},
 					{x:Nothing => x},
 					{pf => JsonParser.Failure(pf.increaseIndex(startCharIndex))},
-					{bf => JsonParser.BuilderFailure(startCharIndex, bf)}
+					{(bf, ex) => JsonParser.BuilderFailure(bf, ex + startCharIndex)}
 				)
 			}
 			case '.' => {
@@ -231,11 +233,11 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failure
 				r.goBackOne()
 				parseNumber(r).fold(
 					{err => JsonParser.Failure(err)},
-					{int => builder.apply(soFar, arrayIndex, int, identityParser).fold(
+					{int => builder.apply(soFar, arrayIndex, int, identityParser, ()).fold(
 						{succ => JsonParser.WithAddedValue(succ)},
 						{x:Nothing => x},
 						{x:Nothing => x},
-						{bf => JsonParser.BuilderFailure(startCharIndex, bf)}
+						{(bf, ex:Unit) => JsonParser.BuilderFailure(bf, startCharIndex)}
 					)}
 				)
 			}
@@ -243,11 +245,11 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failure
 				r.goBackOne()
 				parseKeyword(r).fold(
 					{err => JsonParser.Failure(err)},
-					{word => builder.apply(soFar, arrayIndex, word, identityParser).fold(
+					{word => builder.apply(soFar, arrayIndex, word, identityParser, ()).fold(
 						{succ => JsonParser.WithAddedValue(succ)},
 						{x:Nothing => x},
 						{x:Nothing => x},
-						{bf => JsonParser.BuilderFailure(startCharIndex, bf)}
+						{(bf, ex:Unit) => JsonParser.BuilderFailure(bf, startCharIndex)}
 					)}
 				)
 			}
@@ -259,7 +261,7 @@ final class JsonParser extends Parser[StringOrInt, JsonValue, JsonParser.Failure
 		value match {
 			case JsonParser.ReturnSuccess => ParserRetVal.Complex(soFar)
 			case JsonParser.Failure(err) => ParserRetVal.ParserFailure(err)
-			case JsonParser.BuilderFailure(idx, err) => ParserRetVal.BuilderFailure(err) // TODO: idx
+			case JsonParser.BuilderFailure(err, extra) => ParserRetVal.BuilderFailure(err, extra)
 			case JsonParser.WithAddedValue(newSoFar) => {
 				c = r.read()
 				while (c.isWhitespace) {c = r.read()}
@@ -376,39 +378,39 @@ object JsonParser {
 	 * @since 4.0
 	 */
 	sealed trait Failures {
-		def increaseIndex(amount:Int):Failures
+		def increaseIndex(amount:CharacterIndex):Failures
 	}
 	/**
 	 * Possible failures that can occur in a JsonParser
 	 * @since 4.0
 	 */
 	object Failures {
-		final case class NotAUnicodeEscape(hexPart:String, charIdx:Int) extends Failures {
-			def increaseIndex(amount:Int):Failures = this.copy(charIdx = this.charIdx + amount)
+		final case class NotAUnicodeEscape(hexPart:String, charIdx:CharacterIndex) extends Failures {
+			def increaseIndex(amount:CharacterIndex):Failures = this.copy(charIdx = this.charIdx + amount)
 		}
-		final case class IllegalEscape(escChar:Char, charIdx:Int) extends Failures {
-			def increaseIndex(amount:Int):Failures = this.copy(charIdx = this.charIdx + amount)
+		final case class IllegalEscape(escChar:Char, charIdx:CharacterIndex) extends Failures {
+			def increaseIndex(amount:CharacterIndex):Failures = this.copy(charIdx = this.charIdx + amount)
 		}
-		final case class ControlCharInString(char:Char, charIdx:Int) extends Failures {
-			def increaseIndex(amount:Int):Failures = this.copy(charIdx = this.charIdx + amount)
+		final case class ControlCharInString(char:Char, charIdx:CharacterIndex) extends Failures {
+			def increaseIndex(amount:CharacterIndex):Failures = this.copy(charIdx = this.charIdx + amount)
 		}
-		final case class NotANumber(value:String, charIdx:Int) extends Failures {
-			def increaseIndex(amount:Int):Failures = this.copy(charIdx = this.charIdx + amount)
+		final case class NotANumber(value:String, charIdx:CharacterIndex) extends Failures {
+			def increaseIndex(amount:CharacterIndex):Failures = this.copy(charIdx = this.charIdx + amount)
 		}
-		final case class NotAKeyword(value:String, charIdx:Int) extends Failures {
-			def increaseIndex(amount:Int):Failures = this.copy(charIdx = this.charIdx + amount)
+		final case class NotAKeyword(value:String, charIdx:CharacterIndex) extends Failures {
+			def increaseIndex(amount:CharacterIndex):Failures = this.copy(charIdx = this.charIdx + amount)
 		}
-		final case class UnexpectedChar(was:Char, expecting:String, charIdx:Int) extends Failures {
-			def increaseIndex(amount:Int):Failures = this.copy(charIdx = this.charIdx + amount)
+		final case class UnexpectedChar(was:Char, expecting:String, charIdx:CharacterIndex) extends Failures {
+			def increaseIndex(amount:CharacterIndex):Failures = this.copy(charIdx = this.charIdx + amount)
 		}
-		final case class NumericValueStartedWithFullStop(charIdx:Int) extends Failures {
-			def increaseIndex(amount:Int):Failures = this.copy(charIdx = this.charIdx + amount)
+		final case class NumericValueStartedWithFullStop(charIdx:CharacterIndex) extends Failures {
+			def increaseIndex(amount:CharacterIndex):Failures = this.copy(charIdx = this.charIdx + amount)
 		}
 		object TooDeeplyNested extends Failures {
-			def increaseIndex(amount:Int):Failures = this
+			def increaseIndex(amount:CharacterIndex):Failures = this
 		}
 		object IncompleteObject extends Failures {
-			def increaseIndex(amount:Int):Failures = this
+			def increaseIndex(amount:CharacterIndex):Failures = this
 		}
 	}
 	
@@ -426,7 +428,7 @@ object JsonParser {
 	private final case class Failure(msg:Failures) extends MidObjectParseValue[Nothing, Nothing] {
 		def flatMap[AA, BBF](f:(Nothing) => MidObjectParseValue[AA, BBF]) = this
 	}
-	private final case class BuilderFailure[BF](idx:Int, msg:BF) extends MidObjectParseValue[Nothing, BF] {
+	private final case class BuilderFailure[BF](msg:BF, extra:CharacterIndex) extends MidObjectParseValue[Nothing, BF] {
 		def flatMap[AA, BBF >: BF](f:(Nothing) => MidObjectParseValue[AA, BBF]) = this
 	}
 	

@@ -52,12 +52,12 @@ import com.rayrobdod.json.builder.PiecewiseBuilder.Failures.{ExpectedPrimitive, 
 final class SeqBuilder[-Key, -Value, +Failure, Inner](childBuilder:Builder[Key, Value, Failure, Inner], onPrimitive:Failure) extends Builder[Key, Value, Failure, Seq[Inner]] {
 	override type Middle = Seq[Inner]
 	override def init:Seq[Inner] = Vector.empty[Inner]
-	override def apply[Input, PF](folding:Seq[Inner], key:Key, innerInput:Input, parser:Parser[Key, Value, PF, Input]):ParserRetVal[Seq[Inner], Nothing, PF, Failure] = {
+	override def apply[Input, PF, BE](folding:Seq[Inner], key:Key, innerInput:Input, parser:Parser[Key, Value, PF, BE, Input], extra:BE):ParserRetVal[Seq[Inner], Nothing, PF, Failure, BE] = {
 		parser.parse(childBuilder, innerInput)
 				.complex.map{x => folding :+ x}
-				.primitive.flatMap{x => BuilderFailure(onPrimitive)}
+				.primitive.flatMap{x => BuilderFailure(onPrimitive, extra)}
 	}
-	override def finish(folding:Seq[Inner]):ParserRetVal.Complex[Seq[Inner]] = ParserRetVal.Complex(folding)
+	override def finish[BE](extra:BE)(folding:Seq[Inner]):ParserRetVal.Complex[Seq[Inner]] = ParserRetVal.Complex(folding)
 }
 
 /** @since 4.0 */
@@ -91,10 +91,10 @@ object SeqBuilder {
 final class PrimitiveSeqBuilder[Value, Failure](onComplex:Failure) extends Builder[Any, Value, Failure, Seq[Value]] {
 	override type Middle = Seq[Value]
 	override def init:Seq[Value] = Vector.empty[Value]
-	override def apply[Input, PF](folding:Seq[Value], key:Any, innerInput:Input, parser:Parser[Any, Value, PF, Input]):ParserRetVal[Seq[Value], Nothing, PF, Failure] = {
+	override def apply[Input, PF, BE](folding:Seq[Value], key:Any, innerInput:Input, parser:Parser[Any, Value, PF, BE, Input], extra:BE):ParserRetVal[Seq[Value], Nothing, PF, Failure, BE] = {
 		parser.parsePrimitive(innerInput, onComplex).primitive.flatMap{x => Complex(folding :+ x)}.mergeToComplex
 	}
-	override def finish(folding:Seq[Value]):ParserRetVal.Complex[Seq[Value]] = ParserRetVal.Complex(folding)
+	override def finish[BE](extra:BE)(folding:Seq[Value]):ParserRetVal.Complex[Seq[Value]] = ParserRetVal.Complex(folding)
 }
 
 /** @since 4.0 */

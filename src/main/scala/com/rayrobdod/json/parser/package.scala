@@ -74,10 +74,11 @@ package parser {
 	 * A class that wraps a Reader and provides both a single-char buffer
 	 * and a count of how many characters have been read
 	 * @since 3.1
+	 * @version 4.0
 	 */
-	final class CountingReader(back:java.io.Reader) {
-		private[this] var _idx : Int = -1
-		def index : Int = _idx
+	final class CountingReader(back:java.io.Reader, startIdx:Int = -1) {
+		private[this] var _idx : Int = startIdx
+		def index:CharacterIndex = CharacterIndex(_idx)
 		private[this] var repeat : Boolean = false
 		private[this] var repeatedChar : Char = '\u0000'
 		
@@ -104,10 +105,19 @@ package parser {
 	}
 	
 	/**
-	 * A Failure with additional location information
+	 * A BuilderFailureExtra that provides a location in a text document
 	 * @since 4.0
 	 */
-	final case class Indexed[A](cause:A, charIndex:Int)
+	final case class CharacterIndex(charIndex:Int) {
+		def +(charDelta:Int) = this.copy(charIndex = charIndex + charDelta)
+		def -(charDelta:Int) = this.copy(charIndex = charIndex - charDelta)
+		def unary_- = this.copy(charIndex = -charIndex)
+		def +(delta:CharacterIndex) = CharacterIndex(this.charIndex + delta.charIndex)
+		def -(delta:CharacterIndex) = this + -delta
+	}
+	object CharacterIndex {
+		def zero:CharacterIndex = CharacterIndex(0)
+	}
 	
 	/**
 	 * A 'parser' that echos the value provided in its parse method
@@ -115,7 +125,7 @@ package parser {
 	 * Somewhat useful to be the 'recursed' parser in cases where the 'root' parser has already decoded a value.
 	 * @version 4.0
 	 */
-	final class IdentityParser[V] extends Parser[Nothing,V,Nothing,V] {
+	final class IdentityParser[V] extends Parser[Nothing,V,Nothing,Unit,V] {
 		/** Returns `v` wrapped in a [[com.rayrobdod.json.union.ParserRetVal.Primitive]] */
 		def parse[A,BF](b:Builder[Nothing,V,BF,A], v:V):ParserRetVal.Primitive[V] = ParserRetVal.Primitive(v)
 	}
@@ -133,7 +143,7 @@ package parser {
 	/**
 	 * A 'parser' that always returns a Failure
 	 */
-	private[json] final class FailureParser[Failure](failure:Failure) extends Parser[Nothing, Nothing, Failure, Any] {
+	private[json] final class FailureParser[Failure](failure:Failure) extends Parser[Nothing, Nothing, Failure, Unit, Any] {
 		def parse[A,BF](b:Builder[Nothing,Nothing,BF,A], v:Any):ParserRetVal.ParserFailure[Failure] = ParserRetVal.ParserFailure(failure)
 	}
 }

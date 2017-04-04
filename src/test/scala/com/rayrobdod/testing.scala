@@ -30,6 +30,11 @@ import scala.collection.immutable.{Seq => ISeq}
 
 package object testing {
 	
+	/** A singleton failure when one needs to check that the output equals an input */
+	object EnforcedFailure {
+		override def toString:String = "EnforcedFailure"
+	}
+	
 	/**
 	 * A string interpolater that hex-decodes strings into a sequence of bytes.
 	 * Any characters outside the hex character range are filtered out and ignored.

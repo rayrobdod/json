@@ -58,15 +58,14 @@ import PiecewiseParser.KeyDef
  * Create a PiecewiseParser from a set of commands
  * @param parts a sequence of key-value pairs to extract from the input
  */
-// PiecewiseParser?
 final class PiecewiseParser[+Key, +Value, -Input] (
 		parts:KeyDef[Key,Value,Input]*
-) extends Parser[Key,Value,Failures,Input] {
+) extends Parser[Key,Value,Failures,Unit,Input] {
 	
-	override def parse[Output,BF](builder:Builder[Key,Value,BF,Output], i:Input):ParserRetVal[Output, Nothing, Failures, BF] = {
-		parts.foldLeft[ParserRetVal[builder.Middle, Nothing, Failures, BF]](ParserRetVal.Complex(builder.init)){(state, part:KeyDef[Key,Value,Input]) =>
+	override def parse[Output,BF](builder:Builder[Key,Value,BF,Output], i:Input):ParserRetVal[Output, Nothing, Failures, BF, Unit] = {
+		parts.foldLeft[ParserRetVal[builder.Middle, Nothing, Failures, BF, Unit]](ParserRetVal.Complex(builder.init)){(state, part:KeyDef[Key,Value,Input]) =>
 			state.complex.flatMap{x => part.apply(builder)(i, x)}
-		}.complex.flatMap{builder.finish _}
+		}.complex.flatMap{builder.finish(())}
 	}
 }
 
@@ -85,12 +84,12 @@ object PiecewiseParser {
 	 */
 	implicit class KeyDefSyntax[K](k:K) {
 		def valueIs[K2,V,I](v:I => V)(implicit kev:K => K2):KeyDef[K2,V,I] = primitiveKeyDef[K2,V,I](kev(k), v)
-		def valueIs[K2,P,V,I](v:I => V, p:Parser[K2,P,Failures,V])(implicit kev:K => K2):KeyDef[K2,P,I] = complexKeyDef[K2,P,V,I](kev(k), v, p)
+		def valueIs[K2,P,V,I](v:I => V, p:Parser[K2,P,Failures,Unit,V])(implicit kev:K => K2):KeyDef[K2,P,I] = complexKeyDef[K2,P,V,I](kev(k), v, p)
 		
 		def valueIsOpt[K2,V,I](v:PartialFunction[I, V])(implicit kev:K => K2):KeyDef[K2,V,I] = {
 			optionalKeyDef(primitiveKeyDef[K2,V,I](kev(k), v.apply _), v.isDefinedAt _)
 		}
-		def valueIsOpt[K2,P,V,I](v:PartialFunction[I, V], p:Parser[K2,P,Failures,V])(implicit kev:K => K2):KeyDef[K2,P,I] = {
+		def valueIsOpt[K2,P,V,I](v:PartialFunction[I, V], p:Parser[K2,P,Failures,Unit,V])(implicit kev:K => K2):KeyDef[K2,P,I] = {
 			optionalKeyDef(complexKeyDef[K2,P,V,I](kev(k), v.apply _, p), v.isDefinedAt _)
 		}
 	}
@@ -104,11 +103,11 @@ object PiecewiseParser {
 	 * @version 4.0
 	 */
 	abstract class KeyDef[+Key, +Value, -Input] {
-		def apply[BF](builder:Builder[Key,Value,BF,_])(input:Input, currentOutput:builder.Middle):ParserRetVal[builder.Middle, Nothing, Failures, BF]
+		def apply[BF](builder:Builder[Key,Value,BF,_])(input:Input, currentOutput:builder.Middle):ParserRetVal[builder.Middle, Nothing, Failures, BF, Unit]
 	}
 	
 	def optionalKeyDef[Key, Value, Input](backing:KeyDef[Key, Value, Input], filter:Input => Boolean):KeyDef[Key, Value, Input] = new KeyDef[Key, Value, Input]{
-		def apply[BF](builder:Builder[Key,Value,BF,_])(input:Input, currentOutput:builder.Middle):ParserRetVal[builder.Middle, Nothing, Failures, BF] = {
+		def apply[BF](builder:Builder[Key,Value,BF,_])(input:Input, currentOutput:builder.Middle):ParserRetVal[builder.Middle, Nothing, Failures, BF, Unit] = {
 			if (filter(input)) {
 				backing.apply(builder)(input, currentOutput)
 			} else {
@@ -121,10 +120,10 @@ object PiecewiseParser {
 		complexKeyDef(key, inputToValue, new IdentityParser[Value])
 	}
 	
-	def complexKeyDef[Key, Primitive, Value, Input](key:Key, backing:Function1[Input,Value], parser:Parser[Key,Primitive,Failures,Value]):KeyDef[Key, Primitive, Input] = new KeyDef[Key,Primitive,Input]{
-		def apply[BF](builder:Builder[Key,Primitive,BF,_])(input:Input, currentOutput:builder.Middle):ParserRetVal[builder.Middle, Nothing, Failures, BF] = {
+	def complexKeyDef[Key, Primitive, Value, Input](key:Key, backing:Function1[Input,Value], parser:Parser[Key,Primitive,Failures,Unit,Value]):KeyDef[Key, Primitive, Input] = new KeyDef[Key,Primitive,Input]{
+		def apply[BF](builder:Builder[Key,Primitive,BF,_])(input:Input, currentOutput:builder.Middle):ParserRetVal[builder.Middle, Nothing, Failures, BF, Unit] = {
 			val value = backing.apply(input)
-			builder.apply(currentOutput, key, value, parser)
+			builder.apply(currentOutput, key, value, parser, ())
 		}
 	}
 	

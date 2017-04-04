@@ -31,7 +31,7 @@ import scala.collection.immutable.Map
 import com.rayrobdod.json.builder.{MapBuilder, PrettyJsonBuilder, ThrowBuilder}
 import com.rayrobdod.json.union.{StringOrInt, JsonValue}
 import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure}
-import com.rayrobdod.json.builder.BuilderTest.EnforcedFailure
+import com.rayrobdod.json.testing.EnforcedFailure
 
 class MapParserTest extends FunSpec {
 	describe("MapParser") {
@@ -49,7 +49,7 @@ class MapParserTest extends FunSpec {
 			assertResult(exp){res}
 		}
 		it ("""builder failure""") {
-			val exp = BuilderFailure(EnforcedFailure)
+			val exp = BuilderFailure(EnforcedFailure, ())
 			val src = Map("a" -> Map.empty, "b" -> Map("x" -> true, "y" -> false))
 			val res = new MapParser().parse(new ThrowBuilder(EnforcedFailure), src)
 			
@@ -59,11 +59,12 @@ class MapParserTest extends FunSpec {
 	
 	describe("MapParser + Json") {
 		val throwUnexpected = {x:Any => throw new NoSuchElementException(x.toString)}
+		val throwUnexpected2 = {(x:Any, y:Unit) => throw new NoSuchElementException(x.toString)}
 		
 		it ("""can be used with the json stuff to serialze and deserialize a map""") {
 			val src = Map(StringOrInt("a") -> JsonValue(32L), StringOrInt("b") -> JsonValue(false), StringOrInt("c") -> JsonValue("1.5"))
 			val json = new MapParser().parse(new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams), src)
-					.fold({x => x}, throwUnexpected, throwUnexpected, throwUnexpected)
+					.fold({x => x}, throwUnexpected, throwUnexpected, throwUnexpected2)
 			val res = new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], json)
 			
 			assertResult(Complex(src.mapValues{Right.apply})){res}

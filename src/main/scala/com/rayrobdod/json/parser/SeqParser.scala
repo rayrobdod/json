@@ -38,17 +38,17 @@ import com.rayrobdod.json.union.ParserRetVal.Complex
  * @constructor
  * Create a SeqParser
  */
-final class PrimitiveSeqParser[V] extends Parser[Int,V,Nothing,Seq[V]] {
+final class PrimitiveSeqParser[V] extends Parser[Int,V,Nothing,Unit,Seq[V]] {
 	/**
 	 * Decodes the input values to an object.
 	 * @param vals the sequence containing values
 	 * @return the parsed object
 	 */
-	override def parse[A, BF](topBuilder:Builder[Int,V,BF,A], vals:Seq[V]):ParserRetVal[A, Nothing, Nothing, BF] = {
-		vals.zipWithIndex.foldLeft[ParserRetVal[topBuilder.Middle, Nothing, Nothing, BF]](Complex(topBuilder.init)){(state, valueKey:(V, Int)) => 
+	override def parse[A, BF](topBuilder:Builder[Int,V,BF,A], vals:Seq[V]):ParserRetVal[A, Nothing, Nothing, BF, Unit] = {
+		vals.zipWithIndex.foldLeft[ParserRetVal[topBuilder.Middle, Nothing, Nothing, BF, Unit]](Complex(topBuilder.init)){(state, valueKey:(V, Int)) => 
 			val (value, key) = valueKey;
-			state.complex.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[V])}
-		}.complex.flatMap{topBuilder.finish _}
+			state.complex.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[V], ())}
+		}.complex.flatMap{topBuilder.finish(())}
 	}
 }
 
@@ -61,7 +61,7 @@ object PrimitiveSeqParser {
 	 */
 	def apply[BuilderKey, BuilderValue, SeqValue](
 		implicit keyMapping : Int => BuilderKey, valueMapping : SeqValue => BuilderValue
-	):Parser[BuilderKey, BuilderValue, Nothing, Seq[SeqValue]] = {
+	):Parser[BuilderKey, BuilderValue, Nothing, Unit, Seq[SeqValue]] = {
 		new PrimitiveSeqParser[SeqValue].mapKey(keyMapping).mapValue(valueMapping)
 	}
 }
@@ -78,12 +78,15 @@ object PrimitiveSeqParser {
  * @param recurse a parser for values contained in the sequence
  * @param keyMapping a mapping from integer indexies to type K.
  */
-final class SeqParser[+K,+V,PF,-Inner](recurse:Parser[K,V,PF,Inner])(implicit keyMapping:Function1[Int, K]) extends Parser[K,V,PF,Seq[Inner]] {
-	override def parse[A,BF](topBuilder:Builder[K,V,BF,A], vals:Seq[Inner]):ParserRetVal[A, Nothing, PF, BF] = {
-		vals.zipWithIndex.foldLeft[ParserRetVal[topBuilder.Middle, Nothing, PF, BF]](Complex(topBuilder.init)){(state, valueKey:(Inner, Int)) => 
+final class SeqParser[+K,+V,PF,BFE,-Inner](recurse:Parser[K,V,PF,BFE,Inner])(implicit keyMapping:Function1[Int, K], extraMapping:Function1[Unit, BFE]) extends Parser[K,V,PF,BFE,Seq[Inner]] {
+	override def parse[A,BF](topBuilder:Builder[K,V,BF,A], vals:Seq[Inner]):ParserRetVal[A, Nothing, PF, BF, BFE] = {
+		vals.zipWithIndex.foldLeft[ParserRetVal[topBuilder.Middle, Nothing, PF, BF, BFE]](Complex(topBuilder.init)){(state, valueKey:(Inner, Int)) => 
 			val (value, key2) = valueKey
 			val key = keyMapping(key2)
-			state.complex.flatMap{x => topBuilder.apply(x, key, value, recurse)}
-		}.complex.flatMap{topBuilder.finish _}
+			state.complex.flatMap{x => topBuilder.apply(x, key, value, recurse, extraMapping(()))}
+		}.complex.flatMap{topBuilder.finish(extraMapping(()))}
 	}
+}
+
+object SeqParser {
 }

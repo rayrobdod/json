@@ -49,8 +49,8 @@ package builder {
 	final class ThrowBuilder[Failure](failure:Failure) extends Builder[Any, Any, Failure, Nothing] {
 		type Middle = Any
 		override def init:Middle = "using ThrowBuilder::init"
-		override def apply[I,BF](a:Middle,k:Any,i:I,p:Parser[Any,Any,BF,I]):BuilderFailure[Failure] = BuilderFailure(failure)
-		override def finish(a:Middle):BuilderFailure[Failure] = BuilderFailure(failure)
+		override def apply[I,PF,BE](a:Middle,k:Any,i:I,p:Parser[Any,Any,PF,BE,I], be:BE):BuilderFailure[Failure, BE] = BuilderFailure(failure, be)
+		override def finish[BE](be:BE)(a:Middle):BuilderFailure[Failure, BE] = BuilderFailure(failure, be)
 	}
 	
 	/**

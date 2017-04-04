@@ -33,18 +33,18 @@ final class ParserRetValTest extends FunSpec {
 	
 	describe("ParserRetVal") {
 		describe("map") {
-			it ("is avaliable for Complex =:= Nothing") {
+			it ("is available for Complex =:= Nothing") {
 				assertResult(Primitive(6)){
 					(Primitive(3)).map{x:Int => x * 2}
 				}
 			}
-			it ("is avaliable for Primitive =:= Nothing") {
+			it ("is available for Primitive =:= Nothing") {
 				assertResult(Complex(6)){
 					(Complex(3)).map{x:Int => x * 2}
 				}
 			}
-			it ("is not avaliable if neither success param is Nothing") {
-				val x:ParserRetVal[Int, Int, Nothing, Nothing] = Complex(3)
+			it ("is not available if neither success param is Nothing") {
+				val x:ParserRetVal[Int, Int, Nothing, Nothing, Nothing] = Complex(3)
 				assertDoesNotCompile("""
 					val x:ParserRetVal[Int, Int, Nothing, Nothing] = Complex(3)
 					x.map{x => x * 2}
@@ -52,18 +52,18 @@ final class ParserRetValTest extends FunSpec {
 			}
 		}
 		describe("flatMap") {
-			it ("is avaliable for Complex =:= Nothing") {
+			it ("is available for Complex =:= Nothing") {
 				assertResult(Complex(6)){
 					(Primitive(3)).flatMap{x:Int => Complex(x * 2)}
 				}
 			}
-			it ("is avaliable for Primitive =:= Nothing") {
+			it ("is available for Primitive =:= Nothing") {
 				assertResult(Primitive(6)){
 					(Complex(3)).flatMap{x:Int => Primitive(x * 2)}
 				}
 			}
-			it ("is not avaliable if neither success param is Nothing") {
-				val x:ParserRetVal[Int, Int, Nothing, Nothing] = Complex(3)
+			it ("is not available if neither success param is Nothing") {
+				val x:ParserRetVal[Int, Int, Nothing, Nothing, Nothing] = Complex(3)
 				assertDoesNotCompile("""
 					val x:ParserRetVal[Int, Int, Nothing, Nothing] = Complex(3)
 					x.flatMap{x => x * 2}
@@ -74,7 +74,7 @@ final class ParserRetValTest extends FunSpec {
 			it ("Complex => Primitive") {
 				assertResult(Complex(6)){Primitive(6).flip}
 			}
-			it ("is avaliable for Primitive =:= Nothing") {
+			it ("is available for Primitive =:= Nothing") {
 				assertResult(Primitive(6)){Complex(6).flip}
 			}
 		}
@@ -85,13 +85,13 @@ final class ParserRetValTest extends FunSpec {
 		describe("map") {
 			it("Complex") { assertResult(Complex(12)){Complex(6).complex.map{x:Int => x * 2}} }
 			it("Primitive") { assertResult(Primitive(3)){Primitive(3).complex.map{x:Int => x * 2}} }
-			it("BuilderFailure") { assertResult(BuilderFailure("a")){BuilderFailure("a").complex.map{x:Int => x * 2}} }
+			it("BuilderFailure") { assertResult(BuilderFailure("a", "b")){BuilderFailure("a", "b").complex.map{x:Int => x * 2}} }
 			it("ParserFailure") { assertResult(ParserFailure("a")){ParserFailure("a").complex.map{x:Int => x * 2}} }
 		}
 		describe("flatmap") {
 			it("Complex") { assertResult(Primitive(12)){Complex(6).complex.flatMap{x:Int => Primitive(x * 2)}} }
 			it("Primitive") { assertResult(Primitive(3)){Primitive(3).complex.flatMap{x:Int => Primitive(x * 2)}} }
-			it("BuilderFailure") { assertResult(BuilderFailure("a")){BuilderFailure("a").complex.flatMap{x:Int => Primitive(x * 2)}} }
+			it("BuilderFailure") { assertResult(BuilderFailure("a", "b")){BuilderFailure("a", "b").complex.flatMap{x:Int => Primitive(x * 2)}} }
 			it("ParserFailure") { assertResult(ParserFailure("a")){ParserFailure("a").complex.flatMap{x:Int => Primitive(x * 2)}} }
 		}
 	}

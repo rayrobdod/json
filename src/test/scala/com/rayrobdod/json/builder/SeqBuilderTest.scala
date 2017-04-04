@@ -29,7 +29,7 @@ package com.rayrobdod.json.builder;
 import scala.collection.immutable.Seq;
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.builder.PiecewiseBuilder.Failures.{ExpectedPrimitive, ExpectedComplex}
-import com.rayrobdod.json.builder.BuilderTest.EnforcedFailure
+import com.rayrobdod.json.testing.EnforcedFailure
 import com.rayrobdod.json.parser.FailureParser
 import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.parser.SeqParser
@@ -47,7 +47,7 @@ class SeqBuilderTest extends FunSpec {
 			val myValue = new Object
 			
 			assertResult(ParserRetVal.Complex(Seq(myValue))){
-				PrimitiveSeqBuilder(ExpectedPrimitive).apply(Nil, "sdfa", myValue, new IdentityParser[Object])
+				PrimitiveSeqBuilder(ExpectedPrimitive).apply(Nil, "sdfa", myValue, new IdentityParser[Object], ())
 			}
 		}
 		it ("Appends value 2") {
@@ -55,12 +55,12 @@ class SeqBuilderTest extends FunSpec {
 			val myValue2 = new Object
 			
 			assertResult(ParserRetVal.Complex(Seq(myValue1, myValue2))){
-				PrimitiveSeqBuilder(ExpectedPrimitive).apply(Seq(myValue1), "sdfa", myValue2, new IdentityParser[Object])
+				PrimitiveSeqBuilder(ExpectedPrimitive).apply(Seq(myValue1), "sdfa", myValue2, new IdentityParser[Object], ())
 			}
 		}
 		it ("throws when builder gives it a complex value") {
-			assertResult(ParserRetVal.BuilderFailure( ExpectedPrimitive )){
-				new PrimitiveSeqBuilder[String, ExpectedPrimitive.type](ExpectedPrimitive).apply(Nil, 5, Seq("a","b","c"), new PrimitiveSeqParser[String])
+			assertResult(ParserRetVal.BuilderFailure( ExpectedPrimitive, () )){
+				new PrimitiveSeqBuilder[String, ExpectedPrimitive.type](ExpectedPrimitive).apply(Nil, 5, Seq("a","b","c"), new PrimitiveSeqParser[String], ())
 			}
 		}
 	}
@@ -68,22 +68,22 @@ class SeqBuilderTest extends FunSpec {
 		it ("fails when builder gives it a primitive value") {
 			val myValue2 = new Object
 			
-			assertResult(ParserRetVal.BuilderFailure(util.Left(ExpectedComplex))){
-				SeqBuilder(PrimitiveSeqBuilder[Object]).apply(Nil, "sdfa", myValue2, new IdentityParser[Object])
+			assertResult(ParserRetVal.BuilderFailure(util.Left(ExpectedComplex), ())){
+				SeqBuilder(PrimitiveSeqBuilder[Object]).apply(Nil, "sdfa", myValue2, new IdentityParser[Object], ())
 			}
 		}
 		it ("fails when builder gives it a failure") {
 			val myValue2 = new Object
 			
-			assertResult(ParserRetVal.BuilderFailure(util.Right(EnforcedFailure))){
-				SeqBuilder[Int, Object, EnforcedFailure.type, Nothing](new ThrowBuilder(EnforcedFailure)).apply(Nil, 12, Seq(myValue2), new SeqParser(new IdentityParser[Object]))
+			assertResult(ParserRetVal.BuilderFailure(util.Right(EnforcedFailure), ())){
+				SeqBuilder[Int, Object, EnforcedFailure.type, Nothing](new ThrowBuilder(EnforcedFailure)).apply(Nil, 12, Seq(myValue2), new SeqParser(new IdentityParser[Object]), ())
 			}
 		}
 		it ("fails when parser gives it a failure") {
 			val myValue2 = new Object
 			
 			assertResult(ParserRetVal.ParserFailure(EnforcedFailure)){
-				SeqBuilder(new PrimitiveSeqBuilder[Object, Unit]( () )).apply(Nil, "sdfa", myValue2, new FailureParser(EnforcedFailure))
+				SeqBuilder(new PrimitiveSeqBuilder[Object, Unit]( () )).apply(Nil, "sdfa", myValue2, new FailureParser(EnforcedFailure), ())
 			}
 		}
 	}
@@ -108,7 +108,7 @@ class SeqBuilderTest extends FunSpec {
 		it ("SeqBuilder + SeqParser") {
 			val exp = Seq(Seq("a", "b", "c"), Seq("d", "e", "f"), Seq("g", "h", "i"))
 			val builder = SeqBuilder(PrimitiveSeqBuilder[String])
-			val parser = new SeqParser[Int, String, Nothing, Seq[String]](new PrimitiveSeqParser[String])
+			val parser = new SeqParser[Int, String, Nothing, Unit, Seq[String]](new PrimitiveSeqParser[String])
 			
 			assertResult(Complex(exp)){parser.parse(builder, exp)}
 		}

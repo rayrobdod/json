@@ -28,25 +28,46 @@ package com.rayrobdod.json.parser
 
 import org.scalatest.FunSpec
 import com.rayrobdod.json.union.{StringOrInt, ParserRetVal}
-import com.rayrobdod.json.builder.BuilderTest.EnforcedFailure
+import com.rayrobdod.json.testing.EnforcedFailure
 import com.rayrobdod.json.builder._
 
 class CsvWithHeaderParserTest_Unhappy extends FunSpec {
+	
+	private val fieldThrowBuilder = MapBuilder[StringOrInt, String]
+			.flatMapValue{x:String => if (x == "23") {Left(EnforcedFailure)} else {Right(x)}}
+			.mapFailure{_.merge}
+	private val recordThrowBuilder = SeqBuilder(
+			  PrimitiveSeqBuilder[String, String]("inner")
+				.flatMapResult{x:Seq[String] => if (x == Seq("A", "B", "C")) {Left(EnforcedFailure)} else {Right(x)}}
+				.mapFailure{_.merge}
+			, "outer")
+	
 	describe("CsvWithHeaderParser") {
-		it ("""Throw builder immediate""") {
-			val source = "g,h,i\na,b,c\nd,e,f\n"
-			assertResult(ParserRetVal.BuilderFailure(EnforcedFailure)){  // idx == 6
-				new CsvWithHeaderParser().parse(new ThrowBuilder(EnforcedFailure), source)
-			}
+		it ("When a builder for a field throws (6)") {
+			val source = "g,h,i\n23,b,c\nd,e,f\n"
+			val exp = ParserRetVal.BuilderFailure(EnforcedFailure, CharacterIndex(6))
+			assertResult(exp){new CsvWithHeaderParser().parse(fieldThrowBuilder, source)}
 		}
-		it ("""Throw builder indirect""") {
-			val source = "g,h,i\na,b,c\nd,e,f\n"
-			assertResult(ParserRetVal.BuilderFailure(EnforcedFailure)){  // idx == 12
-				new CsvWithHeaderParser().parse(MapBuilder.apply[StringOrInt, String, EnforcedFailure.type, Any]({x:StringOrInt => x match {
-					case StringOrInt.Right(1) => new MapBuilder.MapChildBuilder[StringOrInt, String, EnforcedFailure.type, Nothing, Any](new ThrowBuilder(EnforcedFailure).mapValue[String], {x:Any => x})
-					case _ => new MapBuilder.MapChildBuilder[StringOrInt, String, EnforcedFailure.type, MapBuilder.RecursiveSubjectType[StringOrInt, String], Any](MapBuilder[StringOrInt, String], {x:Any => x})
-				}}), source)
-			}
+		it ("When a builder for a field throws (8)") {
+			val source = "g,h,i\na,23,c\nd,e,f\n"
+			val exp = ParserRetVal.BuilderFailure(EnforcedFailure, CharacterIndex(8))
+			assertResult(exp){new CsvWithHeaderParser().parse(fieldThrowBuilder, source)}
+		}
+		it ("When a builder for a field throws (14)") {
+			val source = "g,h,i\na,b,c\nd,23,f\n"
+			val exp = ParserRetVal.BuilderFailure(EnforcedFailure, CharacterIndex(14))
+			assertResult(exp){new CsvWithHeaderParser().parse(fieldThrowBuilder, source)}
+		}
+		
+		it ("When a builder for a record throws (6)") {
+			val source = "g,h,i\nA,B,C\nd,e,f\n"
+			val exp = ParserRetVal.BuilderFailure(EnforcedFailure, CharacterIndex(6))
+			assertResult(exp){new CsvWithHeaderParser().parse(recordThrowBuilder, source)}
+		}
+		it ("When a builder for a record throws (12)") {
+			val source = "g,h,i\nd,e,f\nA,B,C\n"
+			val exp = ParserRetVal.BuilderFailure(EnforcedFailure, CharacterIndex(12))
+			assertResult(exp){new CsvWithHeaderParser().parse(recordThrowBuilder, source)}
 		}
 	}
 	

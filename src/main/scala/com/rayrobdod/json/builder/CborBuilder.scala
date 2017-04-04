@@ -51,7 +51,7 @@ final class CborBuilder(forceObject:Boolean = false) extends Builder[CborValue, 
 	/** The bytes to encode a zero-length array or object  */
 	override val init:Seq[Byte] = encodeLength((if (forceObject) {MajorTypeCodes.OBJECT} else {MajorTypeCodes.ARRAY}), 0)
 	
-	override def apply[Input, PF](folding:Seq[Byte], key:CborValue, input:Input, parser:Parser[CborValue, CborValue, PF, Input]):ParserRetVal[Seq[Byte], Nothing, PF, IllegalFoldingFailure.type] = {
+	override def apply[Input, PF, BE](folding:Seq[Byte], key:CborValue, input:Input, parser:Parser[CborValue, CborValue, PF, BE, Input], extra:BE):ParserRetVal[Seq[Byte], Nothing, PF, IllegalFoldingFailure.type, BE] = {
 		val value = parser.parse[Seq[Byte], IllegalFoldingFailure.type](this, input)
 		val encodedValueOpt = value.primitive.map{encodeValue}.mergeToComplex
 		encodedValueOpt.complex.flatMap{encodedValue =>
@@ -78,8 +78,9 @@ final class CborBuilder(forceObject:Boolean = false) extends Builder[CborValue, 
 						// convert into object
 						val newBuilder = new CborBuilder(true)
 						new CborParser().parse(newBuilder, byteArray2DataInput(folding.toArray))
-								.primitive.flatMap{p => BuilderFailure(IllegalFoldingFailure)}
-								.parserFailure.flatMap{f => BuilderFailure(IllegalFoldingFailure)}
+								.primitive.flatMap{p => BuilderFailure(IllegalFoldingFailure, extra)}
+								.parserFailure.flatMap{f => BuilderFailure(IllegalFoldingFailure, extra)}
+								.builderFailure.flatMap{(f,x) => BuilderFailure(f, extra)}
 								.complex.map{convertedBytes =>
 									encodeLength(MajorTypeCodes.OBJECT, objectLength + 1) ++ convertedBytes.drop(folding.length - passData.length) ++ encodeValue(key) ++ encodedValue
 								}
@@ -90,12 +91,12 @@ final class CborBuilder(forceObject:Boolean = false) extends Builder[CborValue, 
 				Complex(encodeLength(MajorTypeCodes.OBJECT, objectLength + 1) ++ passData ++ encodeValue(key) ++ encodedValue)
 			} else {
 				
-				BuilderFailure(IllegalFoldingFailure)
+				BuilderFailure(IllegalFoldingFailure, extra)
 			}
 		}
 	}
 	
-	override def finish(folding:Seq[Byte]):ParserRetVal.Complex[Seq[Byte]] = ParserRetVal.Complex(folding)
+	override def finish[BE](extra:BE)(folding:Seq[Byte]):ParserRetVal.Complex[Seq[Byte]] = ParserRetVal.Complex(folding)
 }
 
 private object CborBuilder {

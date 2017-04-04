@@ -41,13 +41,13 @@ import scala.collection.immutable.Map
 final class MapBuilder[K, V, F, Inner](childBuilders:Function1[K, MapBuilder.MapChildBuilder[K, V, F, _, Inner]]) extends Builder[K, V, F, Map[K, Either[Inner, V]]] {
 	override type Middle = Map[K, Either[Inner, V]]
 	override val init:Map[K, Either[Inner, V]] = Map.empty
-	override def apply[Input, BF](folding:Map[K, Either[Inner, V]], key:K, innerInput:Input, parser:Parser[K, V, BF, Input]):ParserRetVal[Map[K, Either[Inner, V]], Nothing, BF, F] = {
+	override def apply[Input, BF, BE](folding:Map[K, Either[Inner, V]], key:K, innerInput:Input, parser:Parser[K, V, BF, BE, Input], extra:BE):ParserRetVal[Map[K, Either[Inner, V]], Nothing, BF, F, BE] = {
 		val childBuilder = childBuilders(key)
 		childBuilder.apply(innerInput, parser).complex.map{eitherRes =>
 			folding + (key -> eitherRes)
 		}
 	}
-	override def finish(folding:Map[K, Either[Inner, V]]):ParserRetVal.Complex[Map[K, Either[Inner, V]]] = ParserRetVal.Complex(folding)
+	override def finish[BE](extra:BE)(folding:Map[K, Either[Inner, V]]):ParserRetVal.Complex[Map[K, Either[Inner, V]]] = ParserRetVal.Complex(folding)
 }
 
 /**
@@ -73,7 +73,7 @@ object MapBuilder {
 	 * @version 4.0
 	 */
 	final class MapChildBuilder[K, V, F, A, Inner](builder:Builder[K, V, F, A], result:Function1[A, Inner]) {
-		def apply[Input, PF](innerInput:Input, parser:Parser[K, V, PF, Input]):ParserRetVal[Either[Inner, V], Nothing, PF, F] = {
+		def apply[Input, PF, BE](innerInput:Input, parser:Parser[K, V, PF, BE, Input]):ParserRetVal[Either[Inner, V], Nothing, PF, F, BE] = {
 			parser.parse(builder, innerInput)
 					.complex.map{s => Left(result(s))}
 					.primitive.map{p => Right(p)}
