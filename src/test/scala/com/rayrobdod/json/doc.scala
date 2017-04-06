@@ -36,21 +36,22 @@ final class Examples extends FunSpec {
 		it ("result is ...") {
 			val expected = ParserRetVal.Complex(
 				"""{
-  "name" : {
-    "first" : "Anon",
-    "middles" : [
-      "N",
-      "Y"
-    ],
-    "last" : "Mouse"
-  },
-  "gender" : "Undecided",
-  "isAlive" : true,
-  "interests" : [
-    "Cheese",
-    "Chess"
-  ]
-}"""
+				|  "name" : {
+				|    "first" : "Anon",
+				|    "middles" : [
+				|      "N",
+				|      "Y"
+				|    ],
+				|    "last" : "Mouse"
+				|  },
+				|  "gender" : "Undecided",
+				|  "isAlive" : true,
+				|  "interests" : [
+				|    "Cheese",
+				|    "Chess"
+				|  ]
+				|}""".stripMargin.replace("""
+				|""".stripMargin, System.lineSeparator)
 			)
 			assertResult(expected){result}
 		}
