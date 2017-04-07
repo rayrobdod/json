@@ -34,6 +34,8 @@ import com.rayrobdod.json.union.JsonValue
 import com.rayrobdod.json.union.CborValue
 import com.rayrobdod.json.union.CborValue._
 import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure, ParserFailure}
+import com.rayrobdod.json.parser.Parser
+import com.rayrobdod.json.parser.PrimitiveSeqParser
 import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.parser.FailureParser
 import com.rayrobdod.json.testing.HexArrayStringConverter
@@ -44,194 +46,152 @@ class CborBuilderTest extends FunSpec {
 	
 	
 	describe("CborBuilder") {
-		it ("inits correctly") {
-			assertResult(Seq(0x80.byteValue)){new CborBuilder().init}
-		}
-		it ("inits correctly (object)") {
-			assertResult(Seq(0xA0.byteValue)){new CborBuilder(true).init}
-		}
-		it ("Appends null to empty array") {
-			assertResult(Complex(hexSeq"81f6")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValueNull, new IdentityParser[CborValue], ())
+		describe ("init") {
+			it ("is an instance of Middle") {
+				assert(new CborBuilder.Middle() == new CborBuilder().init)
+			}
+			it ("has the same `forceobject` as the builder's constructor") {
+				assert(new CborBuilder.Middle(true) == new CborBuilder(true).init)
 			}
 		}
-		it ("Appends true") {
-			assertResult(Complex(hexSeq"81f5")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValue(true), new IdentityParser[CborValue], ())
+		describe ("apply") {
+			describe ("can append to an empty Middle (array)") {
+				def doThing[A](name:String, value:A, hexRepr:Seq[Byte], parser:Parser[CborValue, CborValue, Any, Unit, A]) {
+					it (name) {
+						val exp = new CborBuilder.Middle(false, 1, hexRepr :: Nil)
+						val res = new CborBuilder().apply[A, Any, Unit](new CborBuilder().init, 0, value, parser, ())
+						assert( Complex(exp) == res )
+					}
+				}
+				
+				doThing("null", CborValueNull, hexSeq"F6", new IdentityParser[CborValue])
+				doThing("true", CborValue(true), hexSeq"F5", new IdentityParser[CborValue])
+				doThing("false", CborValue(false), hexSeq"F4", new IdentityParser[CborValue])
+				doThing("0 as one byte", CborValue(0), hexSeq"00", new IdentityParser[CborValue])
+				doThing("small posint as one byte", CborValue(6), hexSeq"06", new IdentityParser[CborValue])
+				doThing("23 as one byte", CborValue(23), hexSeq"17", new IdentityParser[CborValue])
+				doThing("24 as two bytes", CborValue(24), hexSeq"1818", new IdentityParser[CborValue])
+				doThing("255 as two bytes", CborValue(255), hexSeq"18FF", new IdentityParser[CborValue])
+				doThing("256 as three bytes", CborValue(256), hexSeq"190100", new IdentityParser[CborValue])
+				doThing("1001 as three bytes", CborValue(1001), hexSeq"1903E9", new IdentityParser[CborValue])
+				doThing("65535 as three bytes", CborValue(65535), hexSeq"19FFFF", new IdentityParser[CborValue])
+				doThing("65536 as four bytes", CborValue(65536), hexSeq"1A00010000", new IdentityParser[CborValue])
+				doThing("1000001", CborValue(1000001), hexSeq"1A000F4241", new IdentityParser[CborValue])
+				doThing("1000000000000", CborValue(1000000000000L), hexSeq"1b000000e8d4a51000", new IdentityParser[CborValue])
+				
+				doThing("-1 as one byte", CborValue(-1), hexSeq"20", new IdentityParser[CborValue])
+				doThing("-100 as two bytes", CborValue(-100), hexSeq"3863", new IdentityParser[CborValue])
+				doThing("2**64 as BigInt", CborValue(BigInt(2).pow(64)), hexSeq"C249010000000000000000", new IdentityParser[CborValue])
+				doThing("-2**64 - 1 as BigInt", CborValue(-BigInt(2).pow(64) - 1), hexSeq"C349010000000000000000", new IdentityParser[CborValue])
+				doThing("Float", CborValue(1.5f), hexSeq"FA3FC00000", new IdentityParser[CborValue])
+				doThing("Double", CborValue(-4.1D), hexSeq"fbc010666666666666", new IdentityParser[CborValue])
+				doThing("BigDecimal", CborValue(BigDecimal("1.1")), hexSeq"C4 82 20 0B", new IdentityParser[CborValue])
+				doThing("Rational", CborValue(new Rational(1,3)), hexSeq"D81E 82 01 03", new IdentityParser[CborValue])
+				doThing("empty string", CborValue(""), hexSeq"60", new IdentityParser[CborValue])
+				doThing("\"abc\"", CborValue("abc"), hexSeq"63616263", new IdentityParser[CborValue])
+				doThing("string containing multibyte char", CborValue("\u6c34"), hexSeq"63e6b0b4", new IdentityParser[CborValue])
+				doThing("an empty byte array", CborValue(new Array[Byte](0)), hexSeq"40", new IdentityParser[CborValue])
+				doThing("a non-empty byte array", CborValue(hexArray"010203"), hexSeq"43010203", new IdentityParser[CborValue])
+				
+				doThing("an empty sequence", Seq.empty[CborValue], hexSeq"80", PrimitiveSeqParser[CborValue, CborValue, CborValue])
+				doThing("a sequence of ints", Seq[CborValue](1,2,3), hexSeq"83010203", PrimitiveSeqParser[CborValue, CborValue, CborValue])
+			}
+			it ("Appends a second value to an array") {
+				val exp = new CborBuilder.Middle(false, 2, hexSeq"6164" :: hexSeq"6161616" :: Nil)
+				val input = new CborBuilder.Middle(false, 1, hexSeq"6161616" :: Nil)
+				val res = new CborBuilder().apply(input, 1, CborValue("d"), new IdentityParser[CborValue], ())
+				assert( Complex(exp) == res )
+			}
+			it ("Appends a 24th value") {
+				val exp = new CborBuilder.Middle(false, 24, hexSeq"6164" :: hexSeq"TH3 R357" :: Nil)
+				val input = new CborBuilder.Middle(false, 23, hexSeq"TH3 R357" :: Nil)
+				val res = new CborBuilder().apply(input, 23, CborValue("d"), new IdentityParser[CborValue], ())
+				assert( Complex(exp) == res )
+			}
+			
+			
+			it ("Appends null to empty object") {
+				val exp = new CborBuilder.Middle(true, 1, hexSeq"00 F6" :: Nil)
+				val input = new CborBuilder.Middle(true, 0, Nil)
+				val res = new CborBuilder().apply(input, 0, CborValueNull, new IdentityParser[CborValue], ())
+				assert( Complex(exp) == res )
+			}
+			it ("Converts an empty array into an object when given a non-zero key (is string)") {
+				val exp = new CborBuilder.Middle(true, 1, hexSeq"60 F6" :: Nil)
+				val input = new CborBuilder.Middle(false, 0, Nil)
+				val res = new CborBuilder().apply(input, "", CborValueNull, new IdentityParser[CborValue], ())
+				assert( Complex(exp) == res )
+			}
+			it ("Converts an empty array into an object when given a non-zero key (is int)") {
+				val exp = new CborBuilder.Middle(true, 1, hexSeq"06 F6" :: Nil)
+				val input = new CborBuilder.Middle(false, 0, Nil)
+				val res = new CborBuilder().apply(input, 6, CborValueNull, new IdentityParser[CborValue], ())
+				assert( Complex(exp) == res )
+			}
+			it ("Converts a two-element array into an object when given a non-2 key") {
+				val exp = new CborBuilder.Middle(true, 3, hexSeq"05 6164" :: hexSeq"01 6162" :: hexSeq"00 6161" :: Nil)
+				val input = new CborBuilder.Middle(false, 2, hexSeq"6162" :: hexSeq"6161" :: Nil)
+				val res = new CborBuilder().apply(input, 5, CborValue("d"), new IdentityParser[CborValue], ())
+				assert( Complex(exp) == res )
+			}
+			it ("Appends a second value to an object (aka does not double convert an object)") {
+				val exp = new CborBuilder.Middle(true, 2, hexSeq"61616161" :: hexSeq"61626162" :: Nil)
+				val input = new CborBuilder.Middle(true, 1, hexSeq"61626162" :: Nil)
+				val res = new CborBuilder().apply(input, "a", CborValue("a"), new IdentityParser[CborValue], ())
+				assert( Complex(exp) == res )
+			}
+			
+			it ("When parser repcorts a failure, the failure is forwarded") {
+				val exp = ParserFailure(EnforcedFailure)
+				val input = new CborBuilder().init
+				val res = new CborBuilder().apply(input, "", "", new FailureParser(EnforcedFailure), ())
+				assert( exp == res )
 			}
 		}
-		it ("Appends false") {
-			assertResult(Complex(hexSeq"81f4")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValue(false), new IdentityParser[CborValue], ())
+		describe ("finish") {
+			describe ("Uses the correct form when encoding the array length") {
+				def doThing(count:Long, repr:Seq[Byte]) = {
+					it (s"$count") {
+						val exp = repr ++ hexSeq"CAFEBABE"
+						val input = new CborBuilder.Middle(false, count, hexSeq"BABE" :: hexSeq"CAFE" :: Nil)
+						val res = new CborBuilder().finish(())(input)
+						assert( Complex(exp) == res )
+					}
+				}
+				
+				doThing(0, hexSeq"80")
+				doThing(1, hexSeq"81")
+				doThing(2, hexSeq"82")
+				doThing(23, hexSeq"97")
+				doThing(24, hexSeq"9818")
+				doThing(255, hexSeq"98FF")
+				doThing(256, hexSeq"990100")
+				doThing(1001, hexSeq"9903E9")
+				doThing(65535, hexSeq"99FFFF")
+				doThing(65536, hexSeq"9A00010000")
+				doThing(1000001, hexSeq"9A000F4241")
 			}
-		}
-		it ("Appends 0 as one byte") {
-			assertResult(Complex(hexSeq"8100")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValue(0), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends small positive integer") {
-			assertResult(Complex(hexSeq"8106")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValue(6), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends 23 as one byte") {
-			assertResult(Complex(hexSeq"8117")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValue(23), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends 24 as two bytes") {
-			assertResult(Complex(hexSeq"811818")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValue(24), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends 255 as two bytes") {
-			assertResult(Complex(hexSeq"8118FF")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValue(255), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends 256 as three bytes") {
-			assertResult(Complex(hexSeq"81190100")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValue(256), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends -1 as one byte") {
-			assertResult(Complex(hexSeq"8120")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValue(-1), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends -100 as two bytes") {
-			assertResult(Complex(hexSeq"813863")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValue(-100), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends 2**64 as BigInt") {
-			assertResult(Complex(hexSeq"81 C249010000000000000000")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValue(BigInt(2).pow(64)), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends -2**64 - 1 as BigInt") {
-			assertResult(Complex(hexSeq"81 C349010000000000000000")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValue(-BigInt(2).pow(64) - 1), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends Float") {
-			assertResult(Complex(hexSeq"81 FA3FC00000")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValue(1.5f), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends Double") {
-			assertResult(Complex(hexSeq"81 fbc010666666666666")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValue(-4.1D), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends BigDecimal") {
-			assertResult(Complex(hexSeq"81 C4 82 20 0B")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValue(BigDecimal("1.1")), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends Rational") {
-			assertResult(Complex(hexSeq"81 D81E 82 01 03")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValue(new Rational(1,3)), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends empty string") {
-			assertResult(Complex(hexSeq"8160")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValue(""), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends \"abc\"") {
-			assertResult(Complex(hexSeq"8163616263")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValue("abc"), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends string containing multibyte char") {
-			assertResult(Complex(hexSeq"8163e6b0b4")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValue("\u6c34"), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends an empty byte array") {
-			assertResult(Complex(hexSeq"8140")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValue(new Array[Byte](0)), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends a non-empty byte array") {
-			assertResult(Complex(hexSeq"8143010203")){
-				new CborBuilder().apply(hexSeq"80", 0, CborValue(hexArray"010203"), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends a second value") {
-			assertResult(Complex(hexSeq"""83616161626164""")){
-				new CborBuilder().apply(hexSeq"""8261616162""", 2, CborValue("d"), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends a 24th value") {
-			assertResult(Complex(hexSeq"""9818 B7A8B7A8B7A8 60""")){
-				new CborBuilder().apply(hexSeq"""97 B7A8B7A8B7A8 """, 23, CborValue(""), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends a 256th value") {
-			assertResult(Complex(hexSeq"""990100 B7A8B7A8B7A8 60""")){
-				new CborBuilder().apply(hexSeq"""98FF B7A8B7A8B7A8 """, 255, CborValue(""), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends a 1001th value") {
-			assertResult(Complex(hexSeq"""9903e9 B7A8B7A8B7A8 60""")){
-				new CborBuilder().apply(hexSeq"""9903e8 B7A8B7A8B7A8 """, 1000, CborValue(""), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends a 65536th value") {
-			assertResult(Complex(hexSeq"""9A00010000 B7A8B7A8B7A8 60""")){
-				new CborBuilder().apply(hexSeq"""99FFFF B7A8B7A8B7A8 """, 65535, CborValue(""), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends a 1000001th value") {
-			assertResult(Complex(hexSeq"""9a000f4241 B7A8B7A8B7A8 60""")){
-				new CborBuilder().apply(hexSeq"""9a000f4240 B7A8B7A8B7A8 """, 1000000, CborValue(""), new IdentityParser[CborValue], ())
-			}
-		}
-		
-		
-		it ("Appends null to empty object") {
-			assertResult(Complex(hexSeq"A100f6")){
-				new CborBuilder().apply(hexSeq"A0", 0, CborValueNull, new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Converts an empty array into an object when given a non-zero key") {
-			assertResult(Complex(hexSeq"A160f6")){
-				new CborBuilder().apply(hexSeq"80", "", CborValueNull, new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Converts an empty array into an object when given a non-zero key (2)") {
-			assertResult(Complex(hexSeq"A106f6")){
-				new CborBuilder().apply(hexSeq"80", 6, CborValueNull, new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Converts a two-element array into an object when given a non-2 key") {
-			assertResult(Complex(hexSeq"""A3 006161 016162 056164""")){
-				new CborBuilder().apply(hexSeq"""8261616162""", 5, CborValue("d"), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Appends a 1001th value to an object") {
-			assertResult(Complex(hexSeq"""B903e9 B7A8B7A8B7A8 6060""")){
-				new CborBuilder().apply(hexSeq"""B903e8 B7A8B7A8B7A8 """, "", CborValue(""), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("Fails to convert an array to an object when non-array-key and illegal folding object") {
-			assertResult(BuilderFailure(IllegalFoldingFailure, ())){
-				new CborBuilder().apply(hexSeq"81FF", 6, CborValueNull, new IdentityParser[CborValue], ())
-			}
-		}
-		
-		
-		it ("Refuses to fold a non-array or non-object") {
-			assertResult(BuilderFailure(IllegalFoldingFailure, ())){
-				new CborBuilder().apply(hexSeq"""00""", "", CborValue(""), new IdentityParser[CborValue], ())
-			}
-		}
-		it ("When parser repcorts a failure, the failure is forwarded") {
-			assertResult( ParserFailure(EnforcedFailure) ){
-				new CborBuilder().apply(hexSeq"80 THEREST", "", "", new FailureParser(EnforcedFailure), ())
+			describe ("Uses the correct form when encoding the object length") {
+				def doThing(count:Long, repr:Seq[Byte]) = {
+					it (s"$count") {
+						val exp = repr ++ hexSeq"CAFEBABE"
+						val input = new CborBuilder.Middle(true, count, hexSeq"BABE" :: hexSeq"CAFE" :: Nil)
+						val res = new CborBuilder().finish(())(input)
+						assert( Complex(exp) == res )
+					}
+				}
+				
+				doThing(0, hexSeq"A0")
+				doThing(1, hexSeq"A1")
+				doThing(2, hexSeq"A2")
+				doThing(23, hexSeq"B7")
+				doThing(24, hexSeq"B818")
+				doThing(255, hexSeq"B8FF")
+				doThing(256, hexSeq"B90100")
+				doThing(1001, hexSeq"B903E9")
+				doThing(65535, hexSeq"B9FFFF")
+				doThing(65536, hexSeq"BA00010000")
+				doThing(1000001, hexSeq"BA000F4241")
 			}
 		}
 	}
@@ -316,7 +276,9 @@ class CborBuilderTest extends FunSpec {
 				val builder = new CborBuilder().mapKey[String]
 				builder.apply(builder.init, "a", CborValue(5), new IdentityParser[CborValue], ()).complex.flatMap{a:builder.Middle =>
 					builder.apply(a, "b", CborValue(false), new IdentityParser[CborValue], ()).complex.flatMap{b:builder.Middle =>
-						builder.apply(b, "c", CborValue("str"), new IdentityParser[CborValue], ())
+						builder.apply(b, "c", CborValue("str"), new IdentityParser[CborValue], ()).complex.flatMap{c:builder.Middle =>
+							builder.finish(())(c)
+						}
 					}
 				}
 			}

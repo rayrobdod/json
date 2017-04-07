@@ -113,6 +113,12 @@ class PrettyJsonBuilderTest extends FunSpec {
 					dut.apply(new Middle(false, 1, "413" :: Nil), "b",JsonValue(42), new IdentityParser[JsonValue], ())
 				}
 			}
+			it ("will throw if the folding is an array and the key is not equal to length") {
+				val dut = new PrettyJsonBuilder(MinifiedPrettyParams)
+				assertResult(BuilderFailure(ArrayKeyNotIncrementing(42, 1), ())){
+					dut.apply(new Middle(false, 1, "413" :: Nil), 42,JsonValue(42), new IdentityParser[JsonValue], ())
+				}
+			}
 			it ("will throw the first items key is a non-zero integer") {
 				val dut = new PrettyJsonBuilder(MinifiedPrettyParams)
 				assertResult(BuilderFailure(ArrayKeyNotIncrementing(42,0), ())){
@@ -158,43 +164,43 @@ class PrettyJsonBuilderTest extends FunSpec {
 			it ("one item (mini params) (array)") {
 				val exp = Complex("[123]")
 				val builder = new PrettyJsonBuilder(MinifiedPrettyParams)
-				val middle = Middle(false, 1, "123" :: Nil)
+				val middle = new Middle(false, 1, "123" :: Nil)
 				assertResultComplexStr(exp)(builder.finish(())(middle))
 			}
 			it ("one item (tab params) (array)") {
 				val exp = Complex("[\n\t123\n]")
 				val builder = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-				val middle = Middle(false, 1, "123" :: Nil)
+				val middle = new Middle(false, 1, "123" :: Nil)
 				assertResultComplexStr(exp)(builder.finish(())(middle))
 			}
 			it ("one item (tab params) (object)") {
 				val exp = Complex("{\n\t123\n}")
 				val builder = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-				val middle = Middle(true, 1, "123" :: Nil)
+				val middle = new Middle(true, 1, "123" :: Nil)
 				assertResultComplexStr(exp)(builder.finish(())(middle))
 			}
 			it ("two items (tab params) (array)") {
 				val exp = Complex("[\n\t123,\n\t456\n]")
 				val builder = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"))
-				val middle = Middle(false, 1, "456" :: "123" :: Nil)
+				val middle = new Middle(false, 1, "456" :: "123" :: Nil)
 				assertResultComplexStr(exp)(builder.finish(())(middle))
 			}
 			it ("two items (tab params) (array) (level 1)") {
 				val exp = Complex("[\n\t\t123,\n\t\t456\n\t]")
 				val builder = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"), level = 1)
-				val middle = Middle(false, 1, "456" :: "123" :: Nil)
+				val middle = new Middle(false, 1, "456" :: "123" :: Nil)
 				assertResultComplexStr(exp)(builder.finish(())(middle))
 			}
 			it ("two items (tab params) (array) (level 2)") {
 				val exp = Complex("[\n\t\t\t123,\n\t\t\t456\n\t\t]")
 				val builder = new PrettyJsonBuilder(new IndentPrettyParams("\t", "\n"), level = 2)
-				val middle = Middle(false, 1, "456" :: "123" :: Nil)
+				val middle = new Middle(false, 1, "456" :: "123" :: Nil)
 				assertResultComplexStr(exp)(builder.finish(())(middle))
 			}
 			it ("two items (space2 params) (array) (level 1)") {
 				val exp = Complex("[\n    {},\n    []\n  ]")
 				val builder = new PrettyJsonBuilder(new IndentPrettyParams("  ", "\n"), level = 1)
-				val middle = Middle(false, 1, "[]" :: "{}" :: Nil)
+				val middle = new Middle(false, 1, "[]" :: "{}" :: Nil)
 				assertResultComplexStr(exp)(builder.finish(())(middle))
 			}
 		}

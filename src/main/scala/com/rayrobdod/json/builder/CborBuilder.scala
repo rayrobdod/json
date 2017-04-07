@@ -46,60 +46,35 @@ import com.rayrobdod.json.parser.{Parser, CborParser, byteArray2DataInput}
 final class CborBuilder(forceObject:Boolean = false) extends Builder[CborValue, CborValue, IllegalFoldingFailure.type, Seq[Byte]] {
 	import CborBuilder._
 	
-	override type Middle = Seq[Byte]
+	override type Middle = CborBuilder.Middle
 	
-	/** The bytes to encode a zero-length array or object  */
-	override val init:Seq[Byte] = encodeLength((if (forceObject) {MajorTypeCodes.OBJECT} else {MajorTypeCodes.ARRAY}), 0)
+	override val init:Middle = new Middle(forceObject)
 	
-	override def apply[Input, PF, BE](folding:Seq[Byte], key:CborValue, input:Input, parser:Parser[CborValue, CborValue, PF, BE, Input], extra:BE):ParserRetVal[Seq[Byte], Nothing, PF, IllegalFoldingFailure.type, BE] = {
+	override def apply[Input, PF, BE](folding:Middle, key:CborValue, input:Input, parser:Parser[CborValue, CborValue, PF, BE, Input], extra:BE):ParserRetVal[Middle, Nothing, PF, IllegalFoldingFailure.type, BE] = {
 		val value = parser.parse[Seq[Byte], IllegalFoldingFailure.type](this, input)
 		val encodedValueOpt = value.primitive.map{encodeValue}.mergeToComplex
 		encodedValueOpt.complex.flatMap{encodedValue =>
-		
-			val headerByte:Byte = folding.head
-			val majorType = (headerByte >> 5) & 0x07
-			val additionalInfo = headerByte & 0x1F
-			val (objectLength:Long, passData:Seq[Byte]) = additionalInfo match {
-				case x if (x <= 23) => { (x.longValue, folding.tail) }
-				case 24 => { (folding(1).longValue & 0xFF, folding.tail.tail) }
-				case 25 => { (byteArray2Long(folding.drop(1).take(2)), folding.drop(3)) }
-				case 26 => { (byteArray2Long(folding.drop(1).take(4)), folding.drop(5)) }
-				case 27 => { (byteArray2Long(folding.drop(1).take(8)), folding.drop(9)) }
-				case _  => {throw new IllegalArgumentException("input `folding` had illegal length value")}
-			}
 			
-			if (majorType == MajorTypeCodes.ARRAY) {
-				key match {
-					case CborValue.CborValueNumber(r) if (r.tryToLong == Option(objectLength)) => {
-						// continue being array
-						Complex(encodeLength(MajorTypeCodes.ARRAY, objectLength + 1) ++ passData ++ encodedValue)
-					}
-					case _ => {
-						// convert into object
-						val newBuilder = new CborBuilder(true)
-						new CborParser().parse(newBuilder, byteArray2DataInput(folding.toArray))
-								.primitive.flatMap{p => BuilderFailure(IllegalFoldingFailure, extra)}
-								.parserFailure.flatMap{f => BuilderFailure(IllegalFoldingFailure, extra)}
-								.builderFailure.flatMap{(f,x) => BuilderFailure(f, extra)}
-								.complex.map{convertedBytes =>
-									encodeLength(MajorTypeCodes.OBJECT, objectLength + 1) ++ convertedBytes.drop(folding.length - passData.length) ++ encodeValue(key) ++ encodedValue
-								}
-					}
-				}
-			} else if (majorType == MajorTypeCodes.OBJECT) {
-				
-				Complex(encodeLength(MajorTypeCodes.OBJECT, objectLength + 1) ++ passData ++ encodeValue(key) ++ encodedValue)
+			val foldingIsObject = folding.isObject
+			val keyRequiresObject = key match {
+				case CborValue.CborValueNumber(x) => x != CborValue.Rational(folding.count)
+				case _ => true
+			}
+			val resultIsObject = foldingIsObject || keyRequiresObject
+			
+			
+			if (resultIsObject) {
+				Complex( folding.convertToObject.append( encodeValue(key) ++ encodedValue ) )
 			} else {
-				
-				BuilderFailure(IllegalFoldingFailure, extra)
+				Complex( folding.append(encodedValue) )
 			}
 		}
 	}
 	
-	override def finish[BE](extra:BE)(folding:Seq[Byte]):ParserRetVal.Complex[Seq[Byte]] = ParserRetVal.Complex(folding)
+	override def finish[BE](extra:BE)(folding:Middle):ParserRetVal.Complex[Seq[Byte]] = ParserRetVal.Complex(folding.finish())
 }
 
-private object CborBuilder {
+object CborBuilder {
 	import com.rayrobdod.json.union.CborValue._
 	
 	/**
@@ -176,10 +151,39 @@ private object CborBuilder {
 		case CborValueByteStr(bytes:Array[Byte]) => encodeLength(MajorTypeCodes.BYTE_ARRAY, bytes.length) ++ bytes
 	}
 	
-	private[builder] def byteArray2Long(b:Seq[Byte]):Long = {
-		b.foldLeft(0L){(x,y) => (x << 8) | (y.intValue & 0xFF)}
-	}
-	private[builder] def long2ByteArray(l:Long, count:Int = 8):Seq[Byte] = {
+	private[this] def long2ByteArray(l:Long, count:Int = 8):Seq[Byte] = {
 		(56 to 0 by -8).map{x => ((l >> x) & 0xFF).byteValue}.takeRight(count)
+	}
+	
+	/** CborBuilder's Middle type */
+	final case class Middle private[builder] (
+		  val isObject:Boolean
+		, val count:Long
+		, private val parts:List[Seq[Byte]]
+	) {
+		private[builder] def this(forceObject:Boolean = false) = this(forceObject, 0, Nil)
+		
+		private[CborBuilder] def convertToObject:Middle = {
+			if (this.isObject) {
+				this
+			} else {
+				new Middle(
+					  true
+					, this.count
+					, this.parts.reverse.zipWithIndex.map{case (value, key) => encodeValue(key) ++ value}.reverse
+				)
+			}
+		}
+		
+		private[CborBuilder] def append(x:Seq[Byte]):Middle = new Middle(
+			  this.isObject
+			, this.count + 1
+			, x :: this.parts
+		)
+		
+		private[CborBuilder] def finish():Seq[Byte] = {
+			val typeCode = if (this.isObject) {MajorTypeCodes.OBJECT} else {MajorTypeCodes.ARRAY}
+			encodeLength(typeCode, this.count) ++ this.parts.reverse.flatten
+		}
 	}
 }

@@ -58,7 +58,7 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 	/** A builder to be used when serializing any 'complex' children of the values this builder is dealing with */
 	private[this] lazy val nextLevel = new PrettyJsonBuilder(params, charset, level + 1)
 	
-	val init:Middle = new Middle(false, 0, Nil)
+	val init:Middle = new Middle()
 	
 	def apply[Input, PF, BE](folding:Middle, key:StringOrInt, innerInput:Input, parser:Parser[StringOrInt, JsonValue, PF, BE, Input], extra:BE):ParserRetVal[Middle, Nothing, PF, PrettyJsonBuilder.Failures, BE] = {
 		parser.parse(nextLevel, innerInput).primitive.map{p => serialize(p, charset)}.mergeToComplex.complex.flatMap{encodedValue =>
@@ -80,6 +80,8 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 					case StringOrInt.Right(int) => {
 						if (folding.isObject) {
 							BuilderFailure(KeyTypeChangedMidObject(key, KeyTypeChangedMidObject.ExpectingString), extra)
+						} else if (int != folding.count) {
+							BuilderFailure(ArrayKeyNotIncrementing(int, folding.count), extra)
 						} else {
 							Complex(folding.append(encodedValue))
 						}
@@ -127,18 +129,20 @@ object PrettyJsonBuilder {
 	}
 	
 	/** PrettyJsonBuilder's Middle type */
-	final case class Middle(
+	final case class Middle private[builder] (
 		  val isObject:Boolean
 		, val count:Int
-		, val parts:List[String]
+		, private val parts:List[String]
 	) {
-		def append(x:String):Middle = new Middle(
+		private[builder] def this() = this(false, 0, Nil)
+		
+		private[PrettyJsonBuilder] def append(x:String):Middle = new Middle(
 			  this.isObject
 			, this.count + 1
 			, x :: this.parts
 		)
 		
-		def finish(params:PrettyJsonBuilder.PrettyParams, level:Int):String = {
+		private[PrettyJsonBuilder] def finish(params:PrettyJsonBuilder.PrettyParams, level:Int):String = {
 			val builder = new java.lang.StringBuilder()
 			builder.append(if (isObject) {params.lbracket(level)} else {params.lbrace(level)})
 			if (this.count >= 1) {
