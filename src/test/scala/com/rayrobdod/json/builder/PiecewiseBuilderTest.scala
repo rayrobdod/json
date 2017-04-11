@@ -76,7 +76,7 @@ class PiecewiseBuilderTest extends FunSpec {
 			val age = 9001
 			assertResult(Complex(new Person("", age))){
 				new PiecewiseBuilder(new Person("", 0))
-						.addDef("age", PiecewiseBuilder.partitionedPrimitiveKeyDef[String, Int, Person, Int]({case x:Int => Complex(x)}, {(f,i) => f.copy(age = i)}))
+						.addDef("age", PiecewiseBuilder.partitionedPrimitiveKeyDef[String, Int, Person, Int]({case x:Int => x}, {(f,i) => f.copy(age = i)}))
 						.apply(new Person("", 0), "age", age, new IdentityParser[Int], ())
 			}
 		}
@@ -158,29 +158,43 @@ class PiecewiseBuilderTest extends FunSpec {
 		}
 	}
 	
-	describe("KeyDef") {
+	describe("KeyDefs") {
 		import PiecewiseBuilder._
 		
-		it ("ignoreKeyDef") {
-			assertResult(Complex("abc")){
-				ignoreKeyDef.apply("abc", null, null, "def")
+		object Folding
+		object Value
+		object Extra
+		object Out1
+		
+		
+		describe ("ignoreKeyDef") {
+			it ("echos the folding value") {
+				assert(
+					Complex(Folding) == ignoreKeyDef.apply(Folding, Value, new IdentityParser[Value.type], Extra)
+				)
 			}
 		}
-		it ("throwKeyDef") {
-			assertResult(BuilderFailure(UnknownKey, "def")){
-				throwKeyDef.apply("abc", null, null, "def")
+		describe ("throwKeyDef") {
+			it ("returns a UnknownKey builder failure") {
+				assert(
+					BuilderFailure(UnknownKey, Extra) == throwKeyDef.apply(Folding, Value, new IdentityParser[Value.type], Extra)
+				)
 			}
 		}
-		it ("partitionedPrimitiveKeyDef (isDefinedAt)") {
-			val builder = partitionedPrimitiveKeyDef[Any, String, Option[Int], Int]({case "abc" => Complex(3)}, {(a,b) => Some(b)})
-			assertResult(Complex(Some(3))){
-				builder.apply(None, "abc", new IdentityParser[String], "def")
+		describe ("partitionedPrimitiveKeyDef") {
+			
+			
+			it ("if convert.isDefinedAt, return a Complex with the mapped values") {
+				val builder = partitionedPrimitiveKeyDef[Any, String, Option[Int], Int]({case "abc" => 3}, {(a,b) => Some(b)})
+				assertResult(Complex(Some(3))){
+					builder.apply(None, "abc", new IdentityParser[String], "def")
+				}
 			}
-		}
-		it ("partitionedPrimitiveKeyDef (not isDefinedAt)") {
-			val builder = partitionedPrimitiveKeyDef[Any, String, Option[Int], Int]({case "abc" => Complex(3)}, {(a,b) => Some(b)})
-			assertResult(BuilderFailure(UnsuccessfulTypeCoercion, "def")){
-				builder.apply(None, "asdf", new IdentityParser[String], "def")
+			it ("partitionedPrimitiveKeyDef (not isDefinedAt)") {
+				val builder = partitionedPrimitiveKeyDef[Any, String, Option[Int], Int]({case "abc" => 3}, {(a,b) => Some(b)})
+				assertResult(BuilderFailure(UnsuccessfulTypeCoercion, "def")){
+					builder.apply(None, "asdf", new IdentityParser[String], "def")
+				}
 			}
 		}
 		it ("partitionedKeyDef (isDefinedAt)") {

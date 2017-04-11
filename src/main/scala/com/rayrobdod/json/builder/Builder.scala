@@ -179,7 +179,7 @@ trait Builder[-Key, -Value, +Failure, +Result] {
 	 * Change the type of failure produced by this builder
 	 * @since 4.0
 	 */
-	final def mapFailure[F2](fun:Function1[Failure,F2]):Builder[Key,Value,F2,Result] = new Builder[Key,Value,F2,Result] {
+	final def mapFailure[F2](implicit fun:Function1[Failure,F2]):Builder[Key,Value,F2,Result] = new Builder[Key,Value,F2,Result] {
 		override type Middle = Builder.this.Middle
 		override def init:Middle = Builder.this.init
 		override def finish[EX](extra:EX)(folding:Middle):ParserRetVal[Result, Nothing, Nothing, F2, EX] = {
@@ -197,7 +197,7 @@ trait Builder[-Key, -Value, +Failure, +Result] {
 	 * Change the type of result produced by this builder
 	 * @since 4.0
 	 */
-	final def mapResult[R2](fun:Function1[Result,R2]):Builder[Key,Value,Failure,R2] = new Builder[Key,Value,Failure,R2] {
+	final def mapResult[R2](implicit fun:Function1[Result,R2]):Builder[Key,Value,Failure,R2] = new Builder[Key,Value,Failure,R2] {
 		override type Middle = Builder.this.Middle
 		override def init:Middle = Builder.this.init
 		override def apply[Input, PF, EX](
@@ -277,7 +277,7 @@ trait Builder[-Key, -Value, +Failure, +Result] {
 					for {r1 <- e1.complex; r2 <- e2.complex} yield {((r1, r2))}
 				},
 				ParserRetVal.ParserFailure.apply _,
-				ParserRetVal.BuilderFailure.apply _
+				{(x:Nothing, ex) => x}
 			)
 		}
 	}

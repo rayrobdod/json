@@ -196,14 +196,14 @@ object PiecewiseBuilder {
 	 * @param fold combine the previous subject and a successful convert into a new subject.
 	 */
 	def partitionedPrimitiveKeyDef[Key, Value, Subject, MiddleType](
-		convert:PartialFunction[Value, ParserRetVal[MiddleType, Nothing, Nothing, PiecewiseBuilder.Failures, Unit]],
+		convert:PartialFunction[Value, MiddleType],
 		fold:Function2[Subject, MiddleType, Subject]
 	):KeyDef[Key, Value, Subject] = new KeyDef[Key, Value, Subject]{
 		def apply[Input, PF, BE](folding:Subject, input:Input, parser:Parser[Key, Value, PF, BE, Input], extra:BE):ParserRetVal[Subject, Nothing, PF, PiecewiseBuilder.Failures, BE] = {
 			val a:ParserRetVal[Nothing, Value, PF, ExpectedPrimitive.type, BE] = parser.parsePrimitive(input, ExpectedPrimitive)
 			val b = a.primitive.flatMap{value:Value =>
 				if (convert.isDefinedAt(value)) {
-					convert.apply(value).builderFailure.attachExtra(extra)
+					Complex(convert.apply(value))
 				} else {
 					BuilderFailure(UnsuccessfulTypeCoercion, extra)
 				}
@@ -218,7 +218,11 @@ object PiecewiseBuilder {
 	 * @version 4.0
 	 */
 	def ignoreKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
-		def apply[Input, PF, BE](s:A, i:Input, p:Parser[K,V,PF,BE,Input], extra:BE):ParserRetVal[A, Nothing, PF, PiecewiseBuilder.Failures,BE] = Complex(s)
+		def apply[Input, PF, BE](s:A, i:Input, p:Parser[K,V,PF,BE,Input], extra:BE):ParserRetVal[A, Nothing, PF, PiecewiseBuilder.Failures,BE] = {
+			val builder = new PiecewiseBuilder[K,V,A](s).ignoreUnknownKeys
+			val blackHole = p.parse(builder, i)
+			Complex(s)
+		}
 	}
 	
 	/**
@@ -227,6 +231,8 @@ object PiecewiseBuilder {
 	 * @version 4.0
 	 */
 	def throwKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
-		def apply[Input,PF,BE](s:A, i:Input, p:Parser[K,V,PF,BE,Input], extra:BE):ParserRetVal[A, Nothing, PF, PiecewiseBuilder.Failures, BE] = BuilderFailure(UnknownKey, extra)
+		def apply[Input,PF,BE](s:A, i:Input, p:Parser[K,V,PF,BE,Input], extra:BE):ParserRetVal[A, Nothing, PF, PiecewiseBuilder.Failures, BE] = {
+			BuilderFailure(UnknownKey, extra)
+		}
 	}
 }

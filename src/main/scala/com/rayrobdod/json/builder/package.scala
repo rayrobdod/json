@@ -52,10 +52,4 @@ package builder {
 		override def apply[I,PF,BE](a:Middle,k:Any,i:I,p:Parser[Any,Any,PF,BE,I], be:BE):BuilderFailure[Failure, BE] = BuilderFailure(failure, be)
 		override def finish[BE](be:BE)(a:Middle):BuilderFailure[Failure, BE] = BuilderFailure(failure, be)
 	}
-	
-	/**
-	 * Raised when Builder::apply's folding parameter is unusable; when it detectably violates the contract of (returned from Builder::init or Builder::apply)
-	 * @since 4.0
-	 */
-	object IllegalFoldingFailure
 }

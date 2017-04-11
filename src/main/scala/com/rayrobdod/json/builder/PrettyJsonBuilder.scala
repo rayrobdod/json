@@ -38,6 +38,11 @@ import com.rayrobdod.json.parser.Parser
 /**
  * A builder whose output is a json-formatted string.
  * 
+ * I imagine giving this thing enough key-value pairs will result in an
+ * OutOfMemoryError when it tries to create the string, but I have
+ * yet to go about trying to detect and fast-fail in that situation, or
+ * creating a structure that is indistinguishable from a really long Seq[Char]
+ * 
  * @since 3.0
  * @version 4.0
  * @see [[http://json.org/]]
@@ -187,12 +192,21 @@ object PrettyJsonBuilder {
 	 * @since 4.0
 	 */
 	object Failures {
+		/**
+		 * The builder is building an array and received an object key OR
+		 * the builder is building an object and received an array key
+		 * @since 4.0
+		 */
 		final case class KeyTypeChangedMidObject(recieved:StringOrInt, expecting:KeyTypeChangedMidObject.ExpectingType) extends Failures
 		object KeyTypeChangedMidObject {
 			sealed trait ExpectingType
 			object ExpectingInt extends ExpectingType
 			object ExpectingString extends ExpectingType
 		}
+		/**
+		 * The builder is building an array and recieved 
+		 * @since 4.0
+		 */
 		final case class ArrayKeyNotIncrementing(recieved:Int, expecting:Int) extends Failures
 	}
 	

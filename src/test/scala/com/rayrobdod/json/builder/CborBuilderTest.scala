@@ -150,7 +150,7 @@ class CborBuilderTest extends FunSpec {
 		}
 		describe ("finish") {
 			describe ("Uses the correct form when encoding the array length") {
-				def doThing(count:Long, repr:Seq[Byte]) = {
+				def doThing(count:Int, repr:Seq[Byte]) = {
 					it (s"$count") {
 						val exp = repr ++ hexSeq"CAFEBABE"
 						val input = new CborBuilder.Middle(false, count, hexSeq"BABE" :: hexSeq"CAFE" :: Nil)
@@ -172,7 +172,7 @@ class CborBuilderTest extends FunSpec {
 				doThing(1000001, hexSeq"9A000F4241")
 			}
 			describe ("Uses the correct form when encoding the object length") {
-				def doThing(count:Long, repr:Seq[Byte]) = {
+				def doThing(count:Int, repr:Seq[Byte]) = {
 					it (s"$count") {
 						val exp = repr ++ hexSeq"CAFEBABE"
 						val input = new CborBuilder.Middle(true, count, hexSeq"BABE" :: hexSeq"CAFE" :: Nil)

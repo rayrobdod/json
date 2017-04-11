@@ -29,7 +29,6 @@ package com.rayrobdod.json.parser;
 import java.io.DataInput
 import java.nio.charset.StandardCharsets.UTF_8;
 import com.rayrobdod.json.builder.PiecewiseBuilder.Failures.ExpectedPrimitive
-import com.rayrobdod.json.builder.IllegalFoldingFailure
 import com.rayrobdod.json.builder.{Builder, PrimitiveSeqBuilder, CborBuilder, ThrowBuilder}
 import com.rayrobdod.json.union.{CborValue, ParserRetVal}
 import com.rayrobdod.json.union.ParserRetVal.{Complex, Primitive, ParserFailure, BuilderFailure}
@@ -211,7 +210,7 @@ final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.
 			}
 			case AdditionalInfoIndeterminate() => {
 				var index:Int = 0
-				var childObject:ParseReturnValue[Seq[Byte], IllegalFoldingFailure.type] = ParseReturnValueUnknownSimple(0)
+				var childObject:ParseReturnValue[Seq[Byte], Nothing] = ParseReturnValueUnknownSimple(0)
 				while (childObject != ParseReturnValueEndOfIndeterminateObject()) {
 					childObject = this.parseDetailed(new CborBuilder(true), input)
 					

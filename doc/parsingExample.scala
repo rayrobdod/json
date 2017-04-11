@@ -53,7 +53,7 @@ val PersonBuilder = {
     ))
     // paritioned private key def
     .addDef("gender", PiecewiseBuilder.partitionedPrimitiveKeyDef[StringOrInt, JsonValue, Person, String](
-        {case x => x.ifIsString({str => Complex(str)}, {other => BuilderFailure(UnsuccessfulTypeCoercion, ())})}
+        {case JsonValue.JsonValueString(x) => x}
       , {(folding,x) => folding.copy(gender = x)}
     ))
     // raw private key def

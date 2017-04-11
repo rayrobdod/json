@@ -65,7 +65,7 @@ final class ParserRetValTest extends FunSpec {
 			it ("is not available if neither success param is Nothing") {
 				val x:ParserRetVal[Int, Int, Nothing, Nothing, Nothing] = Complex(3)
 				assertDoesNotCompile("""
-					val x:ParserRetVal[Int, Int, Nothing, Nothing] = Complex(3)
+					val x:ParserRetVal[Int, Int, Nothing, Nothing, Nothing] = Complex(3)
 					x.flatMap{x => x * 2}
 				""")
 			}
@@ -93,6 +93,27 @@ final class ParserRetValTest extends FunSpec {
 			it("Primitive") { assertResult(Primitive(3)){Primitive(3).complex.flatMap{x:Int => Primitive(x * 2)}} }
 			it("BuilderFailure") { assertResult(BuilderFailure("a", "b")){BuilderFailure("a", "b").complex.flatMap{x:Int => Primitive(x * 2)}} }
 			it("ParserFailure") { assertResult(ParserFailure("a")){ParserFailure("a").complex.flatMap{x:Int => Primitive(x * 2)}} }
+		}
+	}
+	
+	describe("BuilderFailureProjection") {
+		
+		describe("attachExtra") {
+			it ("is available for Extra =:= Nothing") {
+				assertResult(Complex(6)){
+					(Complex(6)).builderFailure.attachExtra("foo")
+				}
+			}
+			it ("is available for Extra =:= Unit") {
+				assertResult(BuilderFailure(6, "foo")){
+					(BuilderFailure(6, ())).builderFailure.attachExtra("foo")
+				}
+			}
+			it ("is not available otherwise") {
+				assertDoesNotCompile("""
+					(BuilderFailure(6, "whee")).builderFailure.attachExtra("foo")
+				""")
+			}
 		}
 	}
 }	
