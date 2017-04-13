@@ -26,6 +26,7 @@
 */
 package com.rayrobdod.json.builder;
 
+import scala.util.{Left, Right, Either}
 import com.rayrobdod.json.parser.Parser
 import com.rayrobdod.json.union.ParserRetVal
 
@@ -116,19 +117,19 @@ trait Builder[-Key, -Value, +Failure, +Result] {
 	 * @param fun a conversion function from the new key to this's key
 	 * @since 3.1
 	 */
-	final def flatMapKey[K2, Err](fun:Function1[K2,Either[Err,Key]]):Builder[K2,Value,util.Either[Err,Failure],Result] = new Builder[K2,Value,util.Either[Err,Failure],Result] {
+	final def flatMapKey[K2, Err](fun:Function1[K2,Either[Err,Key]]):Builder[K2,Value,Either[Err,Failure],Result] = new Builder[K2,Value,Either[Err,Failure],Result] {
 		override type Middle = Builder.this.Middle
 		override def init:Middle = Builder.this.init
-		override def finish[EX](extra:EX)(folding:Middle):ParserRetVal[Result, Nothing, Nothing, scala.util.Either[Nothing,Failure], EX] = {
+		override def finish[EX](extra:EX)(folding:Middle):ParserRetVal[Result, Nothing, Nothing, Either[Nothing,Failure], EX] = {
 			Builder.this.finish(extra)(folding)
-				.builderFailure.map{(failure, ex) => ((scala.util.Right(failure), ex))}
+				.builderFailure.mapLeft{new Right(_)}
 		}
 		
-		override def apply[Input, PF, EX](a:Middle, key:K2, b:Input, c:Parser[K2, Value, PF, EX, Input], extra:EX):ParserRetVal[Middle, Nothing, PF, util.Either[Err,Failure], EX] = {
+		override def apply[Input, PF, EX](a:Middle, key:K2, b:Input, c:Parser[K2, Value, PF, EX, Input], extra:EX):ParserRetVal[Middle, Nothing, PF, Either[Err,Failure], EX] = {
 			fun(key).fold(
 				{b:Err => ParserRetVal.BuilderFailure(util.Left(b), extra)},
 				{k2:Key => Builder.this.apply(a, k2, b, c.flatMapKeyWithoutDiscardingExtra(fun, extra), extra)
-					.builderFailure.map{(b,e) => (util.Right(b), e)}
+					.builderFailure.mapLeft{new Right(_)}
 					.parserFailure.flatMap{_.fold(
 						{ex => ParserRetVal.BuilderFailure(util.Left(ex._1), ex._2)},
 						ParserRetVal.ParserFailure.apply _
@@ -157,17 +158,17 @@ trait Builder[-Key, -Value, +Failure, +Result] {
 	 * Change the type of value that this builder requires, with the option of indicating an error condition
 	 * @since 3.0
 	 */
-	final def flatMapValue[V2,Err](fun:Function1[V2,Either[Err,Value]]):Builder[Key,V2,util.Either[Err,Failure],Result] = new Builder[Key,V2,util.Either[Err,Failure],Result] {
+	final def flatMapValue[V2,Err](fun:Function1[V2,Either[Err,Value]]):Builder[Key,V2,Either[Err,Failure],Result] = new Builder[Key,V2,Either[Err,Failure],Result] {
 		override type Middle = Builder.this.Middle
 		override def init:Middle = Builder.this.init
-		override def finish[EX](extra:EX)(folding:Middle):ParserRetVal[Result, Nothing, Nothing, scala.util.Either[Err,Failure], EX] = {
+		override def finish[EX](extra:EX)(folding:Middle):ParserRetVal[Result, Nothing, Nothing, Either[Err,Failure], EX] = {
 			Builder.this.finish(extra)(folding)
-				.builderFailure.map{(b, e) => (util.Right(b), e)}
+				.builderFailure.mapLeft{new Right(_)}
 		}
 		
-		override def apply[Input, PF, EX](a:Middle, key:Key, b:Input, c:Parser[Key, V2, PF, EX, Input], extra:EX):ParserRetVal[Middle, Nothing, PF, util.Either[Err,Failure], EX] = {
+		override def apply[Input, PF, EX](a:Middle, key:Key, b:Input, c:Parser[Key, V2, PF, EX, Input], extra:EX):ParserRetVal[Middle, Nothing, PF, Either[Err,Failure], EX] = {
 			Builder.this.apply(a, key, b, c.flatMapValueWithoutDiscardingExtra(fun, extra), extra)
-				.builderFailure.map{(b, e) => (util.Right(b), e)}
+				.builderFailure.mapLeft{new Right(_)}
 				.parserFailure.flatMap{_.fold(
 					{xe => ParserRetVal.BuilderFailure(util.Left(xe._1), xe._2)},
 					ParserRetVal.ParserFailure.apply _
@@ -215,17 +216,17 @@ trait Builder[-Key, -Value, +Failure, +Result] {
 	 * Change the type of result produced by this builder, with the option of indicating an error condition
 	 * @since 4.0
 	 */
-	final def flatMapResult[R2,Err](fun:Function1[Result,Either[Err,R2]]):Builder[Key,Value,util.Either[Err,Failure],R2] = new Builder[Key,Value,util.Either[Err,Failure],R2] {
+	final def flatMapResult[R2,Err](fun:Function1[Result,Either[Err,R2]]):Builder[Key,Value,Either[Err,Failure],R2] = new Builder[Key,Value,Either[Err,Failure],R2] {
 		override type Middle = Builder.this.Middle
 		override def init:Middle = Builder.this.init
-		override def apply[Input, PF, EX](a:Middle, key:Key, b:Input, c:Parser[Key, Value, PF, EX, Input], extra:EX):ParserRetVal[Middle, Nothing, PF, util.Either[Err,Failure], EX] = {
+		override def apply[Input, PF, EX](a:Middle, key:Key, b:Input, c:Parser[Key, Value, PF, EX, Input], extra:EX):ParserRetVal[Middle, Nothing, PF, Either[Err,Failure], EX] = {
 			Builder.this.apply(a, key, b, c, extra)
-				.builderFailure.mapLeft(util.Right.apply _)
+				.builderFailure.mapLeft(Right.apply _)
 		}
 		
-		override def finish[EX](extra:EX)(folding:Middle):ParserRetVal[R2, Nothing, Nothing, util.Either[Err,Failure], EX] = {
+		override def finish[EX](extra:EX)(folding:Middle):ParserRetVal[R2, Nothing, Nothing, Either[Err,Failure], EX] = {
 			Builder.this.finish(extra)(folding)
-				.builderFailure.mapLeft(util.Right.apply _)
+				.builderFailure.mapLeft(Right.apply _)
 				.complex.flatMap{x => fun(x).fold(
 					{x => ParserRetVal.BuilderFailure(util.Left(x), extra)},
 					ParserRetVal.Complex.apply _
