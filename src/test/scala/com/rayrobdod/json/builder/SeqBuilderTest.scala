@@ -95,7 +95,7 @@ class SeqBuilderTest extends FunSpec {
 		it ("PrimitiveSeqBuilder + JsonParser + primitive") {
 			assertResult(Complex(Seq("a", "b", "c").map{JsonValue(_)})){
 				new JsonParser().parse(
-					new PrimitiveSeqBuilder[JsonValue, Unit]( () ).mapKey[StringOrInt]{StringOrInt.unwrapToString},
+					new PrimitiveSeqBuilder[JsonValue, Unit]( () ).mapKey[StringOrInt]{x => x.fold({y => y}, {_.toString})},
 					"""["a", "b", "c"]"""
 				)
 			}

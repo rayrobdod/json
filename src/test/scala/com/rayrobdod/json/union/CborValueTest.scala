@@ -46,7 +46,15 @@ class CborValueTest extends FunSpec {
 			{x => x.integerToEither{s => Right(s)}},
 			{x => x.booleanToEither{s => Right(s)}}
 		)
+		val ifisFuns = Seq[CborValue => Boolean](
+			{x => x.ifIsString({t => true}, {e => false})},
+			{x => x.ifIsByteArray({t => true}, {e => false})},
+			{x => x.ifIsNumber({t => true}, {e => false})},
+			{x => x.ifIsInteger({t => true}, {e => false})},
+			{x => x.ifIsBoolean({t => true}, {e => false})}
+		)
 		val names = Seq("stringToEither", "byteArrayToEither", "numberToEither", "integerToEither", "booleanToEither", "nullToEither")
+		val names2 = Seq("ifIsString", "ifIsByteArray", "ifIsNumber", "ifIsInteger", "ifIsBoolean", "ifIsNull")
 		val foldResults = Seq(0, 1, 2, 2, 3, 4)
 		
 		for (
@@ -57,6 +65,17 @@ class CborValueTest extends FunSpec {
 			
 			it (s"""${v}.${names(fi)}(Right.apply) is ${if (rightExpected) {"right"} else {"left"}}""") {
 				assertResult(rightExpected){f(v).isRight}
+			}
+		}
+		
+		for (
+			(v, vi) <- values.zipWithIndex;
+			(f, fi) <- ifisFuns.zipWithIndex
+		) {
+			val rightExpected = (vi == fi) || (vi == 3 && fi == 2)
+			
+			it (s"""${v}.${names2(fi)} calls the ${if (rightExpected) {"first"} else {"second"}} function""") {
+				assertResult(rightExpected){f(v)}
 			}
 		}
 		

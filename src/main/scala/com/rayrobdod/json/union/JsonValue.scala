@@ -54,6 +54,7 @@ sealed trait JsonValue {
 	}
 	
 	/**
+	 * Executes `then(this.s)` if this is a JsonValueString; otherwise executes `else(this)`
 	 * @since 4.0
 	 */
 	final def ifIsString[A](`then`:String => A, `else`:JsonValue => A):A = this match {
@@ -69,6 +70,7 @@ sealed trait JsonValue {
 	}
 	
 	/**
+	 * Executes `then(this.s)` if this is a JsonValueNumber containing an Int; otherwise executes `else(this)`
 	 * @since 4.0
 	 */
 	final def ifIsInteger[A](`then`:Int => A, `else`:JsonValue => A):A = this match {
@@ -90,6 +92,7 @@ sealed trait JsonValue {
 	}
 	
 	/**
+	 * Executes `then(this.s)` if this is a JsonValueNumber; otherwise executes `else(this)`
 	 * @since 4.0
 	 */
 	final def ifIsNumber[A](`then`:BigDecimal => A, `else`:JsonValue => A):A = this match {
@@ -105,6 +108,7 @@ sealed trait JsonValue {
 	}
 	
 	/**
+	 * Executes `then(this.s)` if this is a JsonValueBoolean; otherwise executes `else(this)`
 	 * @since 4.0
 	 */
 	final def ifIsBoolean[A](`then`:Boolean => A, `else`:JsonValue => A):A = this match {

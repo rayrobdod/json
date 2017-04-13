@@ -58,6 +58,15 @@ sealed trait CborValue {
 	}
 	
 	/**
+	 * Executes `then(this.s)` if this is a CborValueString; otherwise executes `else(this)`
+	 * @since 4.0
+	 */
+	final def ifIsString[A](`then`:String => A, `else`:CborValue => A):A = this match {
+		case CborValueString(s) => `then`(s)
+		case v => `else`(v)
+	}
+	
+	/**
 	 * Executes and returns `fs(this.s)` if this is a CborValueString, else return a Left with an error message
 	 */
 	final def stringToEither[A](fs:String => Either[Failures, A]):Either[Failures, A] = {
@@ -66,11 +75,35 @@ sealed trait CborValue {
 	}
 	
 	/**
+	 * Executes `then(this.s)` if this is a CborValueByteStr; otherwise executes `else(this)`
+	 * @since 4.0
+	 */
+	final def ifIsByteArray[A](`then`:Array[Byte] => A, `else`:CborValue => A):A = this match {
+		case CborValueByteStr(s) => `then`(s)
+		case v => `else`(v)
+	}
+	
+	/**
 	 * Executes and returns `fs(this.s)` if this is a CborValueByteStr, else return a Left with an error message
 	 */
 	final def byteArrayToEither[A](fs:Array[Byte] => Either[Failures, A]):Either[Failures, A] = {
 		val unexpected = new ReturnLeft("Byte String")
 		this.fold(unexpected, fs, unexpected, unexpected, unexpected)
+	}
+	
+	/**
+	 * Executes `then(this.s)` if this is a CborValueNumber containing an Int; otherwise executes `else(this)`
+	 * @since 4.0
+	 */
+	final def ifIsInteger[A](`then`:Int => A, `else`:CborValue => A):A = this match {
+		case CborValueNumber(n) => {
+			n.tryToInt.fold(
+				`else`( CborValueNumber(n) )
+			){intValue =>
+				`then`(intValue)
+			}
+		}
+		case v => `else`(v)
 	}
 	
 	/**
@@ -83,11 +116,29 @@ sealed trait CborValue {
 	}
 	
 	/**
+	 * Executes `then(this.s)` if this is a CborValueNumber; otherwise executes `else(this)`
+	 * @since 4.0
+	 */
+	final def ifIsNumber[A](`then`:Rational => A, `else`:CborValue => A):A = this match {
+		case CborValueNumber(n) => `then`(n)
+		case v => `else`(v)
+	}
+	
+	/**
 	 * Executes and returns `fn(this.i)` if this is a CborValueNumber, else return a Left with an error message.
 	 */
 	final def numberToEither[A](fn:Rational => Either[Failures, A]):Either[Failures, A] = {
 		val unexpected = new ReturnLeft("Rational")
 		this.fold(unexpected, unexpected, fn, unexpected, unexpected)
+	}
+	
+	/**
+	 * Executes `then(this.s)` if this is a CborValueBoolean; otherwise executes `else(this)`
+	 * @since 4.0
+	 */
+	final def ifIsBoolean[A](`then`:Boolean => A, `else`:CborValue => A):A = this match {
+		case CborValueBoolean(b) => `then`(b)
+		case v => `else`(v)
 	}
 	
 	/**

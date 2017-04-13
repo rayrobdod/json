@@ -73,9 +73,5 @@ class StringOrIntTest extends FunSpec {
 				assertResult(StringOrInt.Right(234)){res}
 			}
 		}
-		describe("unwrapToString") {
-			it ("String") {assertResult("abc"){unwrapToString(StringOrInt("abc"))}}
-			it ("Int") {assertResult("123"){unwrapToString(StringOrInt(123))}}
-		}
 	}
 }

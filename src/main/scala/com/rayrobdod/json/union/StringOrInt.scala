@@ -55,8 +55,4 @@ object StringOrInt {
 	implicit def apply(s:String):StringOrInt = Left(s)
 	/** Convert an Int to a StringOrInt */
 	implicit def apply(i:Int):StringOrInt = Right(i)
-	
-	
-	
-	def unwrapToString(x:StringOrInt):String = x.fold({s => s}, {i => i.toString})
 }
