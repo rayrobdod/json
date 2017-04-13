@@ -59,35 +59,41 @@ sealed trait ParserRetVal[+Complex, +Primitive, +ParserFailure, +BuilderFailure,
 	):Out
 	
 	/** projects this ParserRetVal as a primitive
+	 * @group Projection
 	 * @version 4.0
 	 */
 	def primitive:PrimitiveProjection[Complex,Primitive,ParserFailure,BuilderFailure,BuilderFailureExtra] = new PrimitiveProjection(this)
 	/** projects this ParserRetVal as a complex
+	 * @group Projection
 	 * @version 4.0
 	 */
 	def complex:ComplexProjection[Complex,Primitive,ParserFailure,BuilderFailure,BuilderFailureExtra] = new ComplexProjection(this)
 	/** projects this ParserRetVal as a parserFailure
+	 * @group Projection
 	 * @since 4.0
 	 */
 	def parserFailure:ParserFailureProjection[Complex,Primitive,ParserFailure,BuilderFailure,BuilderFailureExtra] = new ParserFailureProjection(this)
 	/** projects this ParserRetVal as a parserFailure
+	 * @group Projection
 	 * @since 4.0
 	 */
 	def builderFailure:BuilderFailureProjection[Complex,Primitive,ParserFailure,BuilderFailure,BuilderFailureExtra] = new BuilderFailureProjection(this)
 	
 	/**
+	 * Put the value of either success type into a Complex
 	 * @since 4.0
 	 */
-	def mergeToComplex[A](implicit ev1:Primitive <:< A, ev2:Complex <:< A):ParserRetVal[A,Nothing,ParserFailure,BuilderFailure,BuilderFailureExtra] = {
+	def mergeToComplex[A](implicit ev1:Complex <:< A, ev2:Primitive <:< A):ParserRetVal[A,Nothing,ParserFailure,BuilderFailure,BuilderFailureExtra] = {
 		this.fold(
-			{c => ParserRetVal.Complex(ev2(c))},
-			{p => ParserRetVal.Complex(ev1(p))},
+			{c => ParserRetVal.Complex(ev1(c))},
+			{p => ParserRetVal.Complex(ev2(p))},
 			{f => ParserRetVal.ParserFailure(f)},
 			{(b,e) => ParserRetVal.BuilderFailure(b,e)}
 		)
 	}
 	
 	/**
+	 * Change a Complex into a Primitive or a Primitive into a Complex 
 	 * @since 4.0
 	 */
 	def flip:ParserRetVal[Primitive, Complex, ParserFailure, BuilderFailure, BuilderFailureExtra] = this match {
@@ -98,7 +104,7 @@ sealed trait ParserRetVal[+Complex, +Primitive, +ParserFailure, +BuilderFailure,
 	}
 	
 	/**
-	 * Map Complex to a new type. Only avaliable if Primitive is Nothing
+	 * Map Complex to a new type. Only available if Primitive is Nothing
 	 * @since 4.0
 	 */
 	def map[A](fun : Complex => A)(implicit ev:Primitive <:< Nothing):ParserRetVal[A,Primitive,ParserFailure,BuilderFailure,BuilderFailureExtra] = this match {
@@ -109,7 +115,7 @@ sealed trait ParserRetVal[+Complex, +Primitive, +ParserFailure, +BuilderFailure,
 	}
 	
 	/**
-	 * Map Primtive to a new type. Only avaliable if Complex is Nothing
+	 * Map Primtive to a new type. Only available if Complex is Nothing
 	 * @since 4.0
 	 */
 	def map[A](fun : Primitive => A)(implicit ev:Complex <:< Nothing, ev2: Int =:= Int):ParserRetVal[Complex,A,ParserFailure,BuilderFailure,BuilderFailureExtra] = this match {
@@ -120,7 +126,7 @@ sealed trait ParserRetVal[+Complex, +Primitive, +ParserFailure, +BuilderFailure,
 	}
 	
 	/**
-	 * Flatmap Complex to a new type. Only avaliable if Primitive is Nothing
+	 * Flatmap Complex to a new type. Only available if Primitive is Nothing
 	 * @since 4.0
 	 */
 	def flatMap[XX, PP, FF >: ParserFailure, BB >: BuilderFailure, BFEE >: BuilderFailureExtra](fun : Complex => ParserRetVal[XX, PP, FF, BB, BFEE])(implicit ev:Primitive <:< Nothing):ParserRetVal[XX, PP, FF, BB, BFEE] = this match {
@@ -131,7 +137,7 @@ sealed trait ParserRetVal[+Complex, +Primitive, +ParserFailure, +BuilderFailure,
 	}
 	
 	/**
-	 * Flatmap Primtive to a new type. Only avaliable if Complex is Nothing
+	 * Flatmap Primtive to a new type. Only available if Complex is Nothing
 	 * @since 4.0
 	 */
 	def flatMap[CC, XX, FF >: ParserFailure, BB >: BuilderFailure, BFEE >: BuilderFailureExtra](fun : Primitive => ParserRetVal[CC, XX, FF, BB, BFEE])(implicit ev:Complex <:< Nothing, ev2: Int =:= Int):ParserRetVal[CC, XX, FF, BB, BFEE] = this match {
@@ -146,15 +152,24 @@ sealed trait ParserRetVal[+Complex, +Primitive, +ParserFailure, +BuilderFailure,
  * A container for the types of [[ParserRetVal]]s
  * @since 3.0
  * @version 4.0
+ * 
+ * @groupprio Subclass 100
+ * @groupprio Projection 200
  */
 object ParserRetVal {
 	
-	/** Represents a value that was produced by the parser without builder consultation */
+	/**
+	 * Represents a value that was produced by the parser without builder consultation
+	 * @group Subclass
+	 */
 	final case class Primitive[+P](x:P) extends ParserRetVal[Nothing, P, Nothing, Nothing, Nothing]{
 		def fold[Out](c:Function1[Nothing,Out], p:Function1[P,Out], f:Function1[Nothing,Out], b:Function2[Nothing,Nothing,Out]):Out = p(x)
 	}
 	
-	/** Represents a value that was produced via consultation of a builder */
+	/**
+	 * Represents a value that was produced via consultation of a builder
+	 * @group Subclass
+	 */
 	final case class Complex[+C](x:C) extends ParserRetVal[C, Nothing, Nothing, Nothing, Nothing] {
 		def fold[Out](c:Function1[C,Out], p:Function1[Nothing,Out], f:Function1[Nothing,Out], b:Function2[Nothing,Nothing,Out]):Out = c(x)
 	}
@@ -162,6 +177,7 @@ object ParserRetVal {
 	/**
 	 * Represents an attempt at parsing that was unsuccessful
 	 * @since 4.0
+	 * @group Subclass
 	 */
 	final case class ParserFailure[+F](x:F) extends ParserRetVal[Nothing, Nothing, F, Nothing, Nothing] {
 		def fold[Out](c:Function1[Nothing,Out], p:Function1[Nothing,Out], f:Function1[F,Out], b:Function2[Nothing,Nothing,Out]):Out = f(x)
@@ -170,13 +186,17 @@ object ParserRetVal {
 	/**
 	 * Represents an attempt at parsing that was unsuccessful
 	 * @since 4.0
+	 * @group Subclass
 	 */
 	final case class BuilderFailure[+B, +E](x:B, extra:E) extends ParserRetVal[Nothing, Nothing, Nothing, B, E] {
 		def fold[Out](c:Function1[Nothing,Out], p:Function1[Nothing,Out], f:Function1[Nothing,Out], b:Function2[B,E,Out]):Out = b(x, extra)
 	}
 	
 	
-	/** A projection as if the ParserRetVal were a primitive */
+	/**
+	 * A projection as if the ParserRetVal were a primitive
+	 * @group Projection
+	 */
 	final class PrimitiveProjection[+C,+P,+F,+B,+E](backing:ParserRetVal[C,P,F,B,E]) {
 		
 		/** Map the backing value if the backing value is a Primitive, else return the backing value */
@@ -196,7 +216,10 @@ object ParserRetVal {
 		}
 	}
 	
-	/** A projection as if the ParserRetVal were a Complex */
+	/**
+	 * A projection as if the ParserRetVal were a Complex
+	 * @group Projection
+	 */
 	final class ComplexProjection[+C,+P,+F,+B,+E](backing:ParserRetVal[C,P,F,B,E]) {
 		
 		/** Map the backing value if the backing value is a Complex, else return the backing value */
@@ -219,11 +242,12 @@ object ParserRetVal {
 	}
 	
 	/** A projection as if the ParserRetVal were a ParserFailure
+	 * @group Projection
 	 * @since 4.0
 	 */
 	final class ParserFailureProjection[+C,+P,+F,+B,+E](backing:ParserRetVal[C,P,F,B,E]) {
 		
-		/** Map the backing value if the backing value is a Failure, else return the backing value */
+		/** Map the backing value if the backing value is a ParserFailure, else return the backing value */
 		def map[X](fun:F => X):ParserRetVal[C,P,X,B,E] = backing match {
 			case c:Complex[C] => c
 			case p:Primitive[P] => p
@@ -241,11 +265,12 @@ object ParserRetVal {
 	}
 	
 	/** A projection as if the ParserRetVal were a BuilderFailure
+	 * @group Projection
 	 * @since 4.0
 	 */
 	final class BuilderFailureProjection[+C,+P,+F,+B,+E](backing:ParserRetVal[C,P,F,B,E]) {
 		
-		/** Map the backing value if the backing value is a Failure, else return the backing value */
+		/** Map the backing value if the backing value is a BuilderFailure, else return the backing value */
 		def map[X,Y](fun:(B,E) => (X, Y)):ParserRetVal[C,P,F,X,Y] = backing match {
 			case c:Complex[C] => c
 			case p:Primitive[P] => p
@@ -264,6 +289,7 @@ object ParserRetVal {
 			case BuilderFailure(x, y) => fun(x, y)
 		}
 		
+		/** Map the "main" part of the backing value if the backing value is a BuilderFailure, else return the backing value */
 		def mapLeft[X](fun:B => X):ParserRetVal[C,P,F,X,E] = backing match {
 			case c:Complex[C] => c
 			case p:Primitive[P] => p
@@ -271,11 +297,15 @@ object ParserRetVal {
 			case BuilderFailure(x, e) => BuilderFailure(fun(x), e)
 		}
 		
+		/**
+		 * Change the "extra" part of the backing value to `newExtra` if the backing value is a BuilderFailure.
+		 * Only available if the "extra" part is currently Unit
+		 */
 		def attachExtra[X](newExtra:X)(implicit ev: E <:< Unit):ParserRetVal[C,P,F,B,X] = backing match {
 			case c:Complex[C] => c
 			case p:Primitive[P] => p
 			case f:ParserFailure[F] => f
-			case BuilderFailure(b, e:Unit) => BuilderFailure(b, newExtra)
+			case BuilderFailure(b, _) => BuilderFailure(b, newExtra)
 		}
 	}
 	

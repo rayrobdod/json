@@ -171,7 +171,39 @@ object JsonValue {
 	}
 	
 	/** 
-	 * Convert a CborValue into a JsonValue if there is an equivalent JsonValue; else return a UnsuccessfulTypeCoercion.
+	 * Convert a CborValue into a JsonValue if there is an equivalent JsonValue; otherwise return a Left containing the incompatible value
+	 * 
+	 * @example
+	 * {{{
+	 * // With attempts to convert the incompatible values to something that will fit into a JsonValue
+	 * import java.nio.charset.StandardCharsets.US_ASCII;
+	 * val cbor:CborValue = ???
+	 * val json:JsonValue = JsonValue.cborValue2JsonValueEither(cbor).fold(
+	 * 	{_.fold(
+	 * 		// in this example, base64-encode any ByteStrings
+	 * 		{x => JsonValueString(new String(java.util.Base64.getEncoder.encode(x), US_ASCII))},
+	 * 		// in this example, convert infinite values and nan to null, and round any other value
+	 * 		{x => x match {
+	 * 			case Rational.NaN => JsonValueNull
+	 * 			case Rational.PositiveInfinity => JsonValueNull
+	 * 			case Rational.NegativeInfinity => JsonValueNull
+	 * 			case x => x.toDouble
+	 * 		}}
+	 * 	)},
+	 * 	{x => x}
+	 * )
+	 * }}}
+	 * 
+	 * @example
+	 * {{{
+	 * // Declaring the failure to convert, with no attempts to post-fix
+	 * val cbor:CborValue = ???
+	 * val jsonEither = JsonValue.cborValue2JsonValueEither(cbor).fold(
+	 * 	{x => BuilderFailure(TypeCoercionFailure, ())},
+	 * 	{x => Complex(x)}
+	 * )
+	 * }}}
+	 * 
 	 * @since 3.1
 	 */
 	def cborValue2JsonValueEither(x:CborValue):Either[Either[Array[Byte], CborValue.Rational], JsonValue] = x match {

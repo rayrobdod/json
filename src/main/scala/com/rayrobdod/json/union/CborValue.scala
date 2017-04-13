@@ -213,7 +213,7 @@ object CborValue {
 	
 	
 	/**
-	 * A value represeting a whole number divided by another whole number
+	 * A value representing a whole number divided by another whole number
 	 * @since 3.1
 	 */
 	final case class Rational(val num:BigInt, val denom:BigInt) {
