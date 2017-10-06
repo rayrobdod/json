@@ -40,7 +40,7 @@
  <check level="warning" class="org.scalastyle.scalariform.SpacesAfterPlusChecker" enabled="true"></check>
  <check level="warning" class="org.scalastyle.file.WhitespaceEndOfLineChecker" enabled="false"></check>
  <check level="warning" class="org.scalastyle.scalariform.SpacesBeforePlusChecker" enabled="true"></check>
- <check level="warning" class="org.scalastyle.file.FileLineLengthChecker" enabled="true">
+ <check level="warning" class="org.scalastyle.file.FileLineLengthChecker" enabled="false">
   <parameters>
    <parameter name="maxLineLength"><![CDATA[160]]></parameter>
    <parameter name="tabSize"><![CDATA[4]]></parameter>
@@ -100,7 +100,7 @@
    <parameter name="maximum"><![CDATA[10]]></parameter>
   </parameters>
  </check>
- <check level="warning" class="org.scalastyle.scalariform.UppercaseLChecker" enabled="true"></check>
+ <check level="warning" class="org.scalastyle.scalariform.UppercaseLChecker" enabled="true" />
  <check level="warning" class="org.scalastyle.scalariform.SimplifyBooleanExpressionChecker" enabled="true"></check>
  <check level="warning" class="org.scalastyle.scalariform.IfBraceChecker" enabled="true">
   <parameters>
@@ -115,12 +115,13 @@
  </check>
  <check level="warning" class="org.scalastyle.scalariform.MethodNamesChecker" enabled="true">
   <parameters>
-   <parameter name="regex"><![CDATA[^[a-z][A-Za-z0-9]*$]]></parameter>
+   <parameter name="regex"><![CDATA[^[a-z][A-Za-z0-9]*$|^\+$|^\-$|^unary_\-$]]></parameter>
   </parameters>
  </check>
  <check level="warning" class="org.scalastyle.scalariform.FieldNamesChecker" enabled="true">
   <parameters>
    <parameter name="regex"><![CDATA[^[a-z][A-Za-z0-9]*|[A-Z]*$]]></parameter>
+   <parameter name="objectFieldRegex"><![CDATA[^[a-z][A-Za-z0-9]*|[A-Z]*$]]></parameter>
   </parameters>
  </check>
  <check level="warning" class="org.scalastyle.scalariform.NumberOfMethodsInTypeChecker" enabled="true">
@@ -137,4 +138,29 @@
    <parameter type="string" name="words">TODO|FIXME</parameter>
   </parameters>
  </check>
+ <check level="warning" class="org.scalastyle.scalariform.WhileChecker" enabled="false"></check>
+ <check level="warning" class="org.scalastyle.scalariform.VarFieldChecker" enabled="true"></check>
+ <check level="warning" class="org.scalastyle.scalariform.VarLocalChecker" enabled="false"></check>
+ <check level="warning" class="org.scalastyle.scalariform.RedundantIfChecker" enabled="true"></check>
+ <check level="warning" class="org.scalastyle.scalariform.TokenChecker" enabled="false">
+  <parameters>
+   <parameter name="regex"><![CDATA[println]]></parameter>
+  </parameters>
+ </check>
+ <check level="warning" class="org.scalastyle.scalariform.DeprecatedJavaChecker" enabled="true"></check>
+ <check level="warning" class="org.scalastyle.scalariform.EmptyClassChecker" enabled="false"></check>
+ <check level="warning" class="org.scalastyle.scalariform.ClassTypeParameterChecker" enabled="false">
+  <parameters>
+   <parameter name="regex"><![CDATA[^[A-Z_]$|^[\+\-]?[A-Z][A-Za-z]+$]]]></parameter>
+  </parameters>
+ </check>
+ <check level="warning" class="org.scalastyle.scalariform.UnderscoreImportChecker" enabled="true"></check>
+ <check level="warning" class="org.scalastyle.scalariform.LowercasePatternMatchChecker" enabled="false"></check>
+ <check level="warning" class="org.scalastyle.scalariform.MultipleStringLiteralsChecker" enabled="true">
+  <parameters>
+   <parameter name="allowed"><![CDATA[2]]></parameter>
+   <parameter name="ignoreRegex"><![CDATA[^""$]]></parameter>
+  </parameters>
+ </check>
+ <check level="warning" class="org.scalastyle.scalariform.ImportGroupingChecker" enabled="false"></check>
 </scalastyle>
