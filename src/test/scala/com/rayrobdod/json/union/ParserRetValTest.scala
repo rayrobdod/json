@@ -24,37 +24,28 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json.parser
+package com.rayrobdod.json.union
 
 import org.scalatest.FunSpec
-import com.rayrobdod.json.union.ParserRetVal
-import com.rayrobdod.json.builder._
+import com.rayrobdod.json.union.ParserRetVal._
 
-class CsvParserTest_Unhappy extends FunSpec {
-	describe("CsvParser") {
-		it ("""Throw builder immediate""") {
-			val source = "a,b,c\nd,e,f\n"
-			assertFailureParse("",0){
-				new CsvParser().parse(new ThrowBuilder[Int, String], source)
-			}
+final class ParserRetValTest extends FunSpec {
+	
+	describe("ComplexProjection") {
+		describe("map") {
+			it("Complex") { assertResult(Complex(12)){Complex(6).complex.map{x:Int => x * 2}} }
+			it("Primitive") { assertResult(Primitive(3)){Primitive(3).complex.map{x:Int => x * 2}} }
+			it("Failure") { assertResult(Failure("a", 23)){Failure("a", 23).complex.map{x:Int => x * 2}} }
 		}
-		it ("""Throw builder indirect""") {
-			val source = "a,b,c\nd,e,f\n"
-			assertFailureParse("",6){
-				new CsvParser().parse(MapBuilder.apply[Int, String, Any]({x:Int => x match {
-					case 1 => new MapBuilder.MapChildBuilder[Int, String, Any, Any](new ThrowBuilder[Int, String].mapValue[String], {x:Any => x})
-					case _ => new MapBuilder.MapChildBuilder[Int, String, MapBuilder.RecursiveSubjectType[Int,String], Any](MapBuilder[Int, String], {x:Any => x})
-				}}), source)
-			}
+		describe("flatmap") {
+			it("Complex") { assertResult(Primitive(12)){Complex(6).complex.flatMap{x:Int => Primitive(x * 2)}} }
+			it("Primitive") { assertResult(Primitive(3)){Primitive(3).complex.flatMap{x:Int => Primitive(x * 2)}} }
+			it("Failure") { assertResult(Failure("a", 23)){Failure("a", 23).complex.flatMap{x:Int => Primitive(x * 2)}} }
+		}
+		describe("toEither") {
+			it("Complex") { assertResult(Right(6)){Complex(6).complex.toEither} }
+			it("Primitive") { assertResult(Left(("Expected complex value", 0))){Primitive(3).complex.toEither} }
+			it("Failure") { assertResult(Left(("a", 23))){Failure("a", 23).complex.toEither} }
 		}
 	}
-	
-	
-	def assertFailureParse(msg:String, idx:Int)(result:ParserRetVal[_,_]):Unit = result match {
-		case ParserRetVal.Failure(msg2, idx2) => {
-	//		assertResult(msg){msg2}
-			assertResult(idx){idx2}
-		}
-		case x => fail("Not a Failure: " + x)
-	}
-}
+}	

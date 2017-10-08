@@ -2,9 +2,6 @@
 // Easiest way to run the interpreter with this library in the class path is probably to run "sbt console" in this project's root directory
 
 
-// other imports
-import scala.util.{Either, Left, Right}
-
 // imports from this library;
 import com.rayrobdod.json.parser.{Parser, PiecewiseParser, IdentityParser, PrimitiveSeqParser}
 import com.rayrobdod.json.builder.{Builder, PrettyJsonBuilder}
@@ -22,9 +19,9 @@ object NameParser extends Parser[StringOrInt, JsonValue, Name] {
   override def parse[A](builder:Builder[StringOrInt, JsonValue, A], input:Name):ParserRetVal[A, JsonValue] = {
     val a = builder.init
     val e = for (
-      b <- builder.apply(a, "first", input.given, new IdentityParser[String].mapValue[JsonValue]).right;
-      c <- builder.apply(b, "middles", input.middles, new PrimitiveSeqParser[String].mapValue[JsonValue].mapKey[StringOrInt]).right;
-      d <- builder.apply(c, "last", input.family, new IdentityParser[String].mapValue[JsonValue]).right
+      b <- builder.apply(a, "first", input.given, IdentityParser[JsonValue, String]).right;
+      c <- builder.apply(b, "middles", input.middles, PrimitiveSeqParser[StringOrInt, JsonValue, String]).right;
+      d <- builder.apply(c, "last", input.family, IdentityParser[JsonValue, String]).right
     ) yield {
       d
     }
@@ -36,14 +33,16 @@ object NameParser extends Parser[StringOrInt, JsonValue, Name] {
 }
 
 // Example with PiecewiseParser
+import PiecewiseParser.KeyDefSyntax
 val PersonParser = new PiecewiseParser[StringOrInt, JsonValue, Person](
-    PiecewiseParser.complexKeyDef("name", {x:Person => x.n}, NameParser)
-  , PiecewiseParser.primitiveKeyDef("gender", {x:Person => x.gender})
-  , PiecewiseParser.primitiveKeyDef("isAlive", {x:Person => ! x.isDead})
-  , PiecewiseParser.complexKeyDef("interests", {x:Person => x.interests}, new PrimitiveSeqParser[String].mapValue[JsonValue].mapKey[StringOrInt])
+    "name" valueIs ({x:Person => x.n}, NameParser)
+  , "gender" valueIs {x => x.gender}
+  , "isAlive" valueIs {x => ! x.isDead}
+  , "interests" valueIs ({x => x.interests}, PrimitiveSeqParser[StringOrInt, JsonValue, String])
 )
 
-val builder = new PrettyJsonBuilder(new PrettyJsonBuilder.IndentPrettyParams("  ", "\n"))
+// val builder = new PrettyJsonBuilder(new PrettyJsonBuilder.IndentPrettyParams("  ", "\n"))
+val builder = PrettyJsonBuilder.space2()
 
 val result = PersonParser.parse(builder, data)
 

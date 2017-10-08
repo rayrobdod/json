@@ -31,6 +31,7 @@ import scala.language.implicitConversions
 /**
  * A union type representing primitive types in Json objects
  * @since 3.0
+ * @version 3.1
  */
 sealed trait JsonValue {
 	import JsonValue._
@@ -43,7 +44,7 @@ sealed trait JsonValue {
 	 * @param fz the function to apply if `this` is a JsonValueNull
 	 * @return the results of applying the corresponding function
 	 */
-	final def fold[A](fs:String => A, fn:Number => A, fb:Boolean => A, fz:Function0[A]):A = this match {
+	final def fold[A](fs:String => A, fn:BigDecimal => A, fb:Boolean => A, fz:Function0[A]):A = this match {
 		case JsonValueString(s) => fs(s)
 		case JsonValueNumber(n) => fn(n)
 		case JsonValueBoolean(b) => fb(b)
@@ -60,11 +61,15 @@ sealed trait JsonValue {
 	
 	/**
 	 * Executes and returns `fi(this.i)` if this is a JsonValueNumber which holds an number convertible to integer, else return a Left with an error message.
-	 * 
-	 * I somewhat doubt this method's ability to deal with numbers more precise than doubles can handle, but there is no Number -> BigFloat function. 
 	 */
 	final def integerToEither[A](fi:Int => Either[(String, Int),A]):Either[(String, Int),A] = {
-		val number = {n:Number => if (n.intValue.doubleValue == n.doubleValue) {fi(n.intValue)} else {Left("Expected integral number", 0)}} 
+		val number = {n:BigDecimal =>
+			if (n.isValidInt) {
+				fi(n.intValue)
+			} else {
+				Left(("Expected Int: " + n, 0))
+			}
+		}
 		val unexpected = new ReturnLeft("Expected integral number")
 		this.fold(unexpected, number, unexpected, unexpected)
 	}
@@ -72,7 +77,7 @@ sealed trait JsonValue {
 	/**
 	 * Executes and returns `fn(this.i)` if this is a JsonValueNumber, else return a Left with an error message.
 	 */
-	final def numberToEither[A](fn:Number => Either[(String, Int),A]):Either[(String, Int),A] = {
+	final def numberToEither[A](fn:BigDecimal => Either[(String, Int),A]):Either[(String, Int),A] = {
 		val unexpected = new ReturnLeft("Expected number")
 		this.fold(unexpected, fn, unexpected, unexpected)
 	}
@@ -92,16 +97,22 @@ sealed trait JsonValue {
  */
 object JsonValue {
 	final case class JsonValueString(s:String) extends JsonValue
-	final case class JsonValueNumber(i:Number) extends JsonValue
+	final case class JsonValueNumber(value:BigDecimal) extends JsonValue {
+	}
 	final case class JsonValueBoolean(b:Boolean) extends JsonValue
 	object JsonValueNull extends JsonValue {
-		override def toString = "JsonValueNull"
+		override def toString:String = "JsonValueNull"
 	}
 	
 	implicit def apply(s:String):JsonValue = JsonValueString(s)
 	implicit def apply(b:Boolean):JsonValue = JsonValueBoolean(b)
-	implicit def apply(i:Number):JsonValue = JsonValueNumber(i)
+	implicit def apply(i:BigDecimal):JsonValue = JsonValueNumber(i)
 	
+	/**
+	 * Allows implicit conversions from Int or Double directly to JsonValue
+	 * @since 3.1
+	 */
+	implicit def implicitlyBigDecimal2JsonValue[A](a:A)(implicit ev:A => BigDecimal):JsonValue = JsonValueNumber(ev(a))
 	
 	
 	/** Convert a StringOrInt value into a JsonValue */
@@ -115,14 +126,27 @@ object JsonValue {
 	 * Convert a CborValue into a JsonValue, where ByteStrs are instead converted into
 	 * hexencoded strings.
 	 */
+	@deprecated("doesn't handle incompatible numbers; use cborValue2JsonValueEither then fold that method's return value", "3.1")
 	def cborValueHexencodeByteStr(x:CborValue):JsonValue = x match {
 		case CborValue.CborValueString(s) => JsonValueString(s)
 		case CborValue.CborValueBoolean(b) => JsonValueBoolean(b)
-		case CborValue.CborValueNumber(b) => JsonValueNumber(b)
+		case CborValue.CborValueNumber(r) => JsonValueNumber(r.tryToBigDecimal.get)
 		case CborValue.CborValueByteStr(s) => JsonValueString(new String(
 			s.flatMap{byte => ("00" + (0xFF & byte.intValue).toHexString).takeRight(2)}
 		))
 		case CborValue.CborValueNull => JsonValueNull
+	}
+	
+	/** 
+	 * Convert a CborValue into a JsonValue if there is an equivalent JsonValue; else return a UnsuccessfulTypeCoersion.
+	 * @since 3.1
+	 */
+	def cborValue2JsonValueEither(x:CborValue):Either[Either[Array[Byte], CborValue.Rational], JsonValue] = x match {
+		case CborValue.CborValueString(s) => Right(JsonValueString(s))
+		case CborValue.CborValueBoolean(b) => Right(JsonValueBoolean(b))
+		case CborValue.CborValueNumber(r) => r.tryToBigDecimal.fold[Either[Either[Array[Byte], CborValue.Rational], JsonValue]](Left(Right(r))){x => Right(JsonValueNumber(x))}
+		case CborValue.CborValueByteStr(s) => Left(Left(s))
+		case CborValue.CborValueNull => Right(JsonValueNull)
 	}
 	
 	private class ReturnLeft(msg:String) extends Function1[Any, Either[(String, Int), Nothing]] with Function0[Either[(String, Int), Nothing]] {

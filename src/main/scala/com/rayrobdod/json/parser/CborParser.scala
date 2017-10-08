@@ -30,23 +30,28 @@ import java.io.DataInput
 import java.nio.charset.StandardCharsets.UTF_8;
 import com.rayrobdod.json.builder.{Builder, PrimitiveSeqBuilder, CborBuilder, ThrowBuilder}
 import com.rayrobdod.json.union.{CborValue, ParserRetVal}
+import com.rayrobdod.json.union.CborValue.Rational
 
 /**
  * A parser that will decode cbor data.
  * 
  * This does not support
    - complex values in map keys
-   - halffloats
-   - any tags
+   - most tags
  * 
- * @version 3.0
+ * tags are handled via the `tagMatcher` constructor parameter. By default, it can handle tags (2,3,4,5,30,55799).
+ * 
+ * @version 3.1
  * @see [[http://tools.ietf.org/html/rfc7049]]
  * 
  * @constructor
  * Creates a CborParser instance.
+ * @param tagMatcher tag support
  */
-final class CborParser extends Parser[CborValue, CborValue, DataInput] {
+final class CborParser(tagMatcher:CborParser.TagMatcher = CborParser.TagMatcher.allBuiltIn) extends Parser[CborValue, CborValue, DataInput] {
 	import CborParser._
+	// used in a match statement; therefore identifier needs to be uppercase
+	private[this] val UpperCaseTagMatcher = tagMatcher
 	
 	override def parse[ComplexOutput](builder:Builder[CborValue, CborValue, ComplexOutput], i:DataInput):ParserRetVal[ComplexOutput, CborValue] = {
 		import ParserRetVal.{Primitive, Complex, Failure}
@@ -71,7 +76,7 @@ final class CborParser extends Parser[CborValue, CborValue, DataInput] {
 			case x if (x <= 23) => { Right(AdditionalInfoDeterminate(x)) }
 			case 24 => { Right(AdditionalInfoDeterminate(input.readUnsignedByte())) }
 			case 25 => { Right(AdditionalInfoDeterminate(input.readUnsignedShort())) }
-			case 26 => { Right(AdditionalInfoDeterminate(input.readInt())) } //todo unsigned int
+			case 26 => { Right(AdditionalInfoDeterminate(input.readInt().longValue & 0x00000000FFFFFFFFL)) }
 			case 27 => { Right(AdditionalInfoDeterminate(input.readLong())) } // todo unsigned long (?)
 			case 31 => { Right(AdditionalInfoIndeterminate()) }
 			case _  => { Left("Illegal `additionalInfo` field", 0) }
@@ -113,7 +118,10 @@ final class CborParser extends Parser[CborValue, CborValue, DataInput] {
 				}
 				// tags
 				case MajorTypeCodes.TAG => additionalInfoData match {
-					case AdditionalInfoDeterminate(value) => new ParseReturnValueTaggedValue(value, this.parseDetailed(topBuilder, input))
+					case AdditionalInfoDeterminate(value) => value match {
+						case UpperCaseTagMatcher(fun) => fun.apply(topBuilder, input)
+						case _ => new ParseReturnValueTaggedValue(value, this.parseDetailed(topBuilder, input))
+					}
 					case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate tag value", 0)
 				}
 				// floats/simple
@@ -121,19 +129,22 @@ final class CborParser extends Parser[CborValue, CborValue, DataInput] {
 					case SimpleValueCodes.FALSE => ParseReturnValueSimple(CborValue( false ))
 					case SimpleValueCodes.TRUE  => ParseReturnValueSimple(CborValue( true ))
 					case SimpleValueCodes.NULL => ParseReturnValueSimple(CborValue.CborValueNull)
-					case SimpleValueCodes.HALF_FLOAT => ParseReturnValueFailure("Half float", 0)
+					case SimpleValueCodes.HALF_FLOAT => additionalInfoData match {
+						case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(CborValue(Rational.fromHalfFloat(value.shortValue)))
+						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate special value", 0)
+					}
 					case SimpleValueCodes.FLOAT => additionalInfoData match {
 						case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(CborValue( java.lang.Float.intBitsToFloat(value.intValue)))
-						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate tag value", 0)
+						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate special value", 0)
 					}
 					case SimpleValueCodes.DOUBLE => additionalInfoData match {
 						case AdditionalInfoDeterminate(value) => ParseReturnValueSimple(CborValue( java.lang.Double.longBitsToDouble(value.longValue)))
-						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate tag value", 0)
+						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate special value", 0)
 					}
 					case SimpleValueCodes.END_OF_LIST => new ParseReturnValueEndOfIndeterminateObject
 					case _  => additionalInfoData match {
 						case AdditionalInfoDeterminate(value) => ParseReturnValueUnknownSimple(value.byteValue)
-						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate tag value", 0)
+						case x:AdditionalInfoIndeterminate => ParseReturnValueFailure("Indeterminate special value", 0)
 					}
 				}
 				// `whatver & 7` can only be a value between 0 through 7 inclusive, but
@@ -164,9 +175,13 @@ final class CborParser extends Parser[CborValue, CborValue, DataInput] {
 					Right(stream.toByteArray())
 				}
 				case AdditionalInfoDeterminate(len:Long) => {
-					val bytes = new Array[Byte](len.intValue)
-					input.readFully(bytes)
-					Right(bytes)
+					if (len.isValidInt) {
+						val bytes = new Array[Byte](len.intValue)
+						input.readFully(bytes)
+						Right(bytes)
+					} else {
+						Left(s"Array length is greater than Integer.MAX_VALUE: $len", 0)
+					}
 				}
 			}
 		} catch {
@@ -180,7 +195,7 @@ final class CborParser extends Parser[CborValue, CborValue, DataInput] {
 		
 		aid match {
 			case AdditionalInfoDeterminate(len:Long) => {
-				(0 until len.intValue).foreach{index =>
+				(0L until len).foreach{index =>
 					retVal = retVal.right.flatMap{x => topBuilder.apply[DataInput](x, CborValue(index), input, this)}
 				}
 			}
@@ -212,7 +227,7 @@ final class CborParser extends Parser[CborValue, CborValue, DataInput] {
 		
 		aid match {
 			case AdditionalInfoDeterminate(len:Long) => {
-				(0 until len.intValue).foreach{index =>
+				(0L until len).foreach{index =>
 					val keyTry:Either[(String, Int), CborValue] = this.parseDetailed(new ThrowBuilder, input) match {
 						case ParseReturnValueSimple(x) => Right(x)
 						case ParseReturnValueFailure(msg,idx) => Left((msg,idx))
@@ -262,11 +277,128 @@ object CborParser {
 	 * Unless you're trying to see this value, you shouldn't see this value.
 	 */
 	final case class ParseReturnValueEndOfIndeterminateObject() extends ParseReturnValue[Nothing]
-	/** A tagged value */
+	/** An unknown tagged value */
 	final case class ParseReturnValueTaggedValue[A](tag:Long, x:ParseReturnValue[A]) extends ParseReturnValue[A]
 	/** A simple value other than the known ones */
 	final case class ParseReturnValueUnknownSimple(value:Byte) extends ParseReturnValue[Nothing]
 	final case class ParseReturnValueFailure(msg:String, idx:Int) extends ParseReturnValue[Nothing]
+	
+	/**
+	 * A function that is parameterized at the function level instead of the class level
+	 * @since 3.1
+	 */
+	trait TagFunction {
+		def apply[A](b:Builder[CborValue, CborValue, A], i:DataInput):ParseReturnValue[A] 
+	}
+	
+	/**
+	 * A partial function that takes a Cbor tag number and returns a function that builds the value described by the tags
+	 * @since 3.1
+	 */
+	trait TagMatcher {
+		def unapply(tag:Long):Option[TagFunction]
+		
+		/**
+		 * Composes this partial function with a fallback partial function which gets applied where this partial function is not defined. 
+		 */
+		final def orElse(rhs:TagMatcher):TagMatcher = new TagMatcher {
+			override def unapply(tag:Long):Option[TagFunction] = {
+				TagMatcher.this.unapply(tag).orElse(rhs.unapply(tag))
+			}
+		}
+	}
+	
+	/**
+	 * Built-in TagMatchers
+	 * @since 3.1
+	 */
+	object TagMatcher {
+		
+		/** a TagMatcher that maches no tags (and thus always returns None) */
+		val empty:TagMatcher = new TagMatcher {
+			def unapply(tag:Long):Option[Nothing] = None
+		}
+		
+		
+		/** The self-describe tag (55799) */
+		val selfDescribe:TagMatcher = new TagMatcher {
+			def unapply(tag:Long):Option[TagFunction] = tag match {
+				case TagCodes.SELF_DESCRIBE => Some(new TagFunction{override def apply[A](b:Builder[CborValue, CborValue, A], i:DataInput) = {
+					new CborParser().parseDetailed(b, i)
+				}})
+				case _ => None
+			}
+		}
+		
+		import CborValue._
+		import scala.math.{BigDecimal, BigInt}
+		/** the tags indicating extended number formats; (2, 3, 4, 5, 30) */
+		val numbers:TagMatcher = new TagMatcher {
+			def unapply(tag:Long):Option[TagFunction] = tag match {
+				case TagCodes.POS_BIG_INT => Some(new TagFunction{override def apply[A](b:Builder[CborValue, CborValue, A], i:DataInput) = {
+					val bsOpt = new CborParser().parsePrimitive(i)
+					bsOpt.right.flatMap{_ match {
+						case CborValueByteStr(bs)=> Right(CborValueNumber(Rational(bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))})))
+						case _ => Left("Tag 2 contained non-byte-string value", 0)
+					}}.fold({x => ParseReturnValueFailure(x._1, x._2)}, {x => ParseReturnValueSimple(x)})
+				}})
+				case TagCodes.NEG_BIG_INT => Some(new TagFunction{override def apply[A](b:Builder[CborValue, CborValue, A], i:DataInput) = {
+					val bsOpt = new CborParser().parsePrimitive(i)
+					bsOpt.right.flatMap{_ match {
+						case CborValueByteStr(bs)=> Right(CborValueNumber(Rational((-1:BigInt) - bs.foldLeft(0:BigInt){(a,b) => (a * 0x100) + ((b:Int) & (0xFF))})))
+						case _ => Left("Tag 3 contained non-byte-string value", 0)
+					}}.fold({x => ParseReturnValueFailure(x._1, x._2)}, {x => ParseReturnValueSimple(x)})
+				}})
+				case TagCodes.BIG_DECIMAL => Some(new TagFunction{override def apply[A](b:Builder[CborValue, CborValue, A], i:DataInput) = {
+					new CborParser().parse(new PairBigIntBuilder("Tag 4"), i).fold(
+						{x => val (exp,mant) = x; ParseReturnValueSimple(CborValueNumber(Rational(BigDecimal(mant) * BigDecimal(10).pow(exp.intValue))))},
+						{x => ParseReturnValueFailure("Tag 4 contained primitive", 0)},
+						{(s,i) => ParseReturnValueFailure(s,i)}
+					)
+				}})
+				case TagCodes.BIG_FLOAT => Some(new TagFunction{override def apply[A](b:Builder[CborValue, CborValue, A], i:DataInput) = {
+					new CborParser().parse(new PairBigIntBuilder("Tag 5"), i).fold(
+						{x => val (exp,mant) = x; ParseReturnValueSimple(CborValueNumber(Rational(BigDecimal(mant) * BigDecimal(2).pow(exp.intValue))))},
+						{x => ParseReturnValueFailure("Tag 5 contained primitive", 0)},
+						{(s,i) => ParseReturnValueFailure(s,i)}
+					)
+				}})
+				case TagCodes.RATIONAL => Some(new TagFunction{override def apply[A](b:Builder[CborValue, CborValue, A], i:DataInput) = {
+					new CborParser().parse(new PairBigIntBuilder("Tag 30"), i).fold(
+						{x => val (a,b) = x; ParseReturnValueSimple(new Rational(a,b))},
+						{x => ParseReturnValueFailure("Tag 30 contained primitive", 0)},
+						{(s,i) => ParseReturnValueFailure(s,i)}
+					)
+				}})
+				case _ => None
+			}
+		}
+		
+		private[this] class PairBigIntBuilder(tagNumber:String) extends Builder[CborValue, CborValue, (BigInt, BigInt)] {
+			private[this] def nonIntError:String = tagNumber + " array contained a non-integer value"
+			private[this] def keyError:String = tagNumber + " array key not 0 or 1"
+			
+			override def init:(BigInt, BigInt) = ((BigInt(1), BigInt(1)))
+			final def apply[Input](folding:(BigInt, BigInt), key:CborValue, input:Input, parser:Parser[CborValue, CborValue, Input]):Either[(String, Int), (BigInt, BigInt)] = {
+				parser.parsePrimitive(input).right.flatMap{_ match {
+					case CborValueNumber(x) => x.tryToBigInt.fold[Either[(String, Int),BigInt]](Left(nonIntError, 0)){x => Right(x)}
+					case _ => Left(nonIntError, 0)
+				}}.right.flatMap{value =>
+					key match {
+						case CborValueNumber(x) => x.tryToInt match {
+							case Some(0) => Right(folding.copy(_1 = value))
+							case Some(1) => Right(folding.copy(_2 = value))
+							case _ => Left(keyError, 0)
+						}
+						case _ => Left(keyError, 0)
+					}
+				}
+			}
+		}
+		
+		/** Combines the other tag matchers  */
+		val allBuiltIn:TagMatcher = selfDescribe.orElse(numbers)
+	}
 	
 	
 	/**
@@ -296,6 +428,19 @@ object CborParser {
 		final val FLOAT:Byte  = 26
 		final val DOUBLE:Byte = 27
 		final val END_OF_LIST:Byte = 31
+	}
+	
+	/**
+	 * Known tag codes.
+	 * Because magic numbers are bad.
+	 */
+	private[json] object TagCodes {
+		final val POS_BIG_INT:Byte = 2
+		final val NEG_BIG_INT:Byte = 3
+		final val BIG_DECIMAL:Byte = 4
+		final val BIG_FLOAT:Byte = 5
+		final val RATIONAL:Byte = 30
+		final val SELF_DESCRIBE:Int = 55799
 	}
 	
 }

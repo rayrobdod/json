@@ -35,7 +35,7 @@ import com.rayrobdod.json.union.ParserRetVal
  * This parser is lenient, in that it ignores trailing delimiters
  * 
  * A CSV file is always two levels deep - a two dimensional array.
- * @version 3.0.1
+ * @version 3.1
  * 
  * @constructor
  * Creates a CsvParser instance.
@@ -43,8 +43,7 @@ import com.rayrobdod.json.union.ParserRetVal
  */
 final class CsvParser(
 		meaningfulCharacters:CsvParser.CharacterMeanings = CsvParser.csvCharacterMeanings
-) extends Parser[Int, String, Iterable[Char]] {
-	import CsvParser.State
+) extends Parser[Int, String, CountingReader] {
 	private[this] val lineParser = new CsvParser.LineParser(meaningfulCharacters)
 	
 	/**
@@ -55,37 +54,7 @@ final class CsvParser(
 	 * @return the parsed object
 	 */
 	def parse[A](builder:Builder[Int, String, A], chars:Iterable[Char]):ParserRetVal[A,Nothing] = {
-		val endState = chars.zipWithIndex.foldLeft(State(Right(builder.init), 0, "", "", false, false)){(state, ci) => 
-			val (char, index) = ci
-			
-			if (state.escaped) {
-				state.appendChar(char).copy(escaped = false)
-			} else if (state.quoted) {
-				val isQuote = meaningfulCharacters.stringDelimeter contains char;
-				state.appendChar(char).copy(quoted = !isQuote)
-			} else if (meaningfulCharacters.escape contains char) {
-				state.appendChar(char).copy(escaped = true)
-			} else if (meaningfulCharacters.stringDelimeter contains char) {
-				state.appendChar(char).copy(quoted = true)
-			} else if (meaningfulCharacters.recordDelimeter contains char) {
-				new State(
-					value = state.value.right.flatMap{x => builder.apply(x, state.innerIndex, state.innerInput, lineParser).left.map{x => ((x._1, x._2 + index))}},
-					innerIndex = state.innerIndex + 1,
-					innerInput = "",
-					endingWhitespace = "",
-					quoted = false,
-					escaped = false
-				)
-			} else {
-				state.appendChar(char)
-			}
-		}
-		
-		ParserRetVal.eitherToComplex(if (endState.innerInput.isEmpty) {
-			endState.value
-		} else {
-			endState.value.right.flatMap{x => builder.apply(x, endState.innerIndex, endState.innerInput, lineParser)}
-		})
+		this.parse(builder, new Iterator2Reader(chars.iterator))
 	}
 	
 	/**
@@ -95,7 +64,34 @@ final class CsvParser(
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse[A](builder:Builder[Int, String, A], chars:java.io.Reader):ParserRetVal[A,String] = this.parse(builder, new Reader2Iterable(chars))
+	def parse[A](builder:Builder[Int, String, A], chars:java.io.Reader):ParserRetVal[A,Nothing] = {
+		this.parse(builder, new CountingReader(chars))
+	}
+	
+	def parse[A](builder:Builder[Int, String, A], chars:CountingReader):ParserRetVal[A,Nothing] = {
+		// I am almost certain that I couldn't write a less idiomatic method if I tried
+		var folding:Either[(String, Int), A] = Right(builder.init)
+		var rowIdx:Int = 0
+		
+		try {
+			while (folding.isRight) {
+				// check that there are more characters to read; throw if no such characters
+				// I have to do this as readers don't have a hasNext or similar method
+				chars.read()
+				chars.goBackOne()
+				val rowStartCharIndex = chars.index + 1
+				
+				folding = builder.apply(folding.right.get, rowIdx, chars, lineParser).left.map{x => ((x._1, x._2 + rowStartCharIndex))}
+				rowIdx = rowIdx + 1
+			}
+		} catch {
+			case ex:java.util.NoSuchElementException => {
+				// Readers don't have a hasNext
+			}
+		}
+		
+		ParserRetVal.eitherToComplex(folding)
+	}
 }
 
 /**
@@ -164,6 +160,7 @@ object CsvParser {
 	 */
 	private[parser] final case class State[A] (
 		value:Either[(String,Int),A],
+		fieldStartIndex:Int,
 		innerIndex:Int,
 		innerInput:String,
 		endingWhitespace:String,
@@ -175,45 +172,59 @@ object CsvParser {
 	
 	
 	/** Splits a CSV record (i.e. one line) into fields */
-	private[parser] final class LineParser(meaningfulCharacters:CsvParser.CharacterMeanings) extends Parser[Int, String, String] {
-		def parse[A](builder:Builder[Int, String, A], chars:String):ParserRetVal[A,Nothing] = {
-			val endState = chars.zipWithIndex.foldLeft(State(Right(builder.init), 0, "", "", false, false)){(state, ci) =>
-				val (char, index) = ci
+	private[parser] final class LineParser(meaningfulCharacters:CsvParser.CharacterMeanings) extends Parser[Int, String, CountingReader] {
+		def parse[A](builder:Builder[Int, String, A], chars:CountingReader):ParserRetVal[A,Nothing] = {
+			val rowStartIndex = chars.index
+			var state = State(Right(builder.init), rowStartIndex, 0, "", "", false, false)
+			try {
+				var char = chars.read()
 				
-				if (state.escaped) {
-					state.appendChar(char).copy(escaped = false)
-				} else if (state.quoted) {
-					val isQuote = meaningfulCharacters.stringDelimeter contains char;
-					if (isQuote) {state.copy(quoted = false)}
-					else {state.appendChar(char)}
-				} else if (meaningfulCharacters.ignorable contains char) {
-					if (state.innerInput == "") {
-						state
+				while (!(meaningfulCharacters.recordDelimeter contains char)) {
+					state = if (state.escaped) {
+						state.appendChar(char).copy(escaped = false)
+					} else if (state.quoted) {
+						val isQuote = meaningfulCharacters.stringDelimeter contains char;
+						if (isQuote) {state.copy(quoted = false)}
+						else {state.appendChar(char)}
+					} else if (meaningfulCharacters.ignorable contains char) {
+						if (state.innerInput == "") {
+							state
+						} else {
+							state.copy(endingWhitespace = state.endingWhitespace + char)
+						}
+					} else if (meaningfulCharacters.escape contains char) {
+						state.copy(escaped = true)
+					} else if (meaningfulCharacters.stringDelimeter contains char) {
+						state.copy(quoted = true)
+					} else if (meaningfulCharacters.fieldDelimeter contains char) {
+						new State(
+							value = state.value.right.flatMap{x => builder.apply(x, state.innerIndex, state.innerInput, new IdentityParser[String]).left.map{x => ((x._1, x._2 - rowStartIndex + state.fieldStartIndex))}},
+							fieldStartIndex = chars.index,
+							innerIndex = state.innerIndex + 1,
+							innerInput = "",
+							endingWhitespace = "",
+							quoted = false,
+							escaped = false
+						)
 					} else {
-						state.copy(endingWhitespace = state.endingWhitespace + char)
+						state.appendChar(char)
 					}
-				} else if (meaningfulCharacters.escape contains char) {
-					state.copy(escaped = true)
-				} else if (meaningfulCharacters.stringDelimeter contains char) {
-					state.copy(quoted = true)
-				} else if (meaningfulCharacters.fieldDelimeter contains char) {
-					new State(
-						value = state.value.right.flatMap{x => builder.apply(x, state.innerIndex, state.innerInput, new IdentityParser[String]).left.map{x => ((x._1, x._2 + index))}},
-						innerIndex = state.innerIndex + 1,
-						innerInput = "",
-						endingWhitespace = "",
-						quoted = false,
-						escaped = false
-					)
-				} else {
-					state.appendChar(char)
+					
+					char = chars.read()
+				}
+			} catch {
+				case ex:java.util.NoSuchElementException => {
+					// Readers don't have a hasNext
 				}
 			}
 			
-			ParserRetVal.eitherToComplex(if (endState.innerInput.isEmpty) {
-				endState.value
+			ParserRetVal.eitherToComplex(if (state.innerInput.isEmpty) {
+				state.value
 			} else {
-				endState.value.right.flatMap{x => builder.apply(x, endState.innerIndex, endState.innerInput, new IdentityParser[String])}
+				state.value.right.flatMap{x => 
+					builder.apply(x, state.innerIndex, state.innerInput, new IdentityParser[String])
+						.left.map{x => ((x._1, x._2 - rowStartIndex + state.fieldStartIndex))}
+				}
 			})
 		}
 	}

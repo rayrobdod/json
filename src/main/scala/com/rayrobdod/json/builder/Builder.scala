@@ -76,6 +76,18 @@ trait Builder[-Key, -Value, Subject] {
 	}
 	
 	/**
+	 * Change the type of key that this builder requires, with the option of indicating an error condition
+	 * @param fun a conversion function from the new key to this's key
+	 * @since 3.1
+	 */
+	final def flatMapKey[K2](fun:Function1[K2,Either[(String,Int),Key]]):Builder[K2,Value,Subject] = new Builder[K2,Value,Subject] {
+		override def init:Subject = Builder.this.init
+		override def apply[Input](a:Subject, key:K2, b:Input, c:Parser[K2, Value, Input]):Either[(String, Int), Subject] = {
+			fun(key).right.flatMap{k2 => Builder.this.apply(a, k2, b, c.flatMapKey(fun))}
+		}
+	}
+	
+	/**
 	 * Change the type of value that this builder requires
 	 * @param fun a conversion function from the new value to this's value
 	 * @since 3.0
@@ -95,6 +107,43 @@ trait Builder[-Key, -Value, Subject] {
 		override def init:Subject = Builder.this.init
 		override def apply[Input](a:Subject, key:Key, b:Input, c:Parser[Key, V2, Input]):Either[(String, Int), Subject] = {
 			Builder.this.apply(a, key, b, c.flatMapValue(fun))
+		}
+	}
+	
+	/**
+	 * Create a Builder which builds two items from the same input. The first
+	 * item built being the one that `this` would build, and the second item
+	 * built being the one that `that` would build.
+	 * 
+	 * Most useful if the Parser input is neither stable nor resendable - say a network stream.
+	 * 
+	 * @param that the other builder
+	 * @since 3.1
+	 */
+	final def zip[K2, V2, S2](that:Builder[K2, V2, S2])(implicit evk: K2 <:< Key, evv: V2 <:< Value):Builder[K2,V2,(Subject, S2)] = new Builder[K2,V2,(Subject, S2)] {
+		private[this] val astBuilder = MapBuilder.apply[K2, V2]
+		private[this] val ast2Parser = new com.rayrobdod.json.parser.RecursiveMapParser[K2, V2]
+		private[this] val ident2Parser = new com.rayrobdod.json.parser.IdentityParser[V2]
+		private[this] val ast1Parser = ast2Parser.mapKey(evk).mapValue(evv)
+		private[this] val ident1Parser = ident2Parser.mapValue(evv)
+		
+		override def init:(Subject, S2) = ((Builder.this.init, that.init))
+		override def apply[Input](a:(Subject, S2), key:K2, b:Input, c:Parser[K2, V2, Input]):Either[(String, Int), (Subject, S2)] = {
+			// `b` might be mutable, so `c.parse(…, c)` can only be called once;
+			// `ast` or `value` however are not, so those may be parsed multiple times 
+			c.parse(astBuilder, b).fold(
+				{ast:Map[K2, Either[MapBuilder.RecursiveSubject[K2, V2], V2]] =>
+					val e1 = Builder.this.apply(a._1, key, ast, ast1Parser)
+					val e2 = that.apply(a._2, key, ast, ast2Parser)
+					for {r1 <- e1.right; r2 <- e2.right} yield {((r1, r2))}
+				},
+				{value:V2 => 
+					val e1 = Builder.this.apply(a._1, key, value, ident1Parser)
+					val e2 = that.apply(a._2, key, value, ident2Parser)
+					for {r1 <- e1.right; r2 <- e2.right} yield {((r1, r2))}
+				},
+				{(s,i) => Left(s,i)}
+			)
 		}
 	}
 	

@@ -31,270 +31,110 @@ import com.rayrobdod.json.union.{JsonValue, StringOrInt, ParserRetVal}
 import com.rayrobdod.json.builder._
 
 class JsonParserTest_Unhappy extends FunSpec {
-	describe("JsonParser") {
-		it ("""errors when object is incomplete""") {
-			val source = """{"""
-			assertFailureParse("",1){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors when array is incomplete""") {
-			val source = """ ["""
-			assertFailureParse("",2){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors when string starts with non-space characters""") {
-			val source = """abc"""
-			assertFailureParse("",0){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors when string ends with non-space characters""") {
-			val source = """[]abc"""
-			assertFailureParse("",2){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors when map key is not a string""") {
-			val source = """{2:3}"""
-			assertFailureParse("",1){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors when map key is more than just a string""") {
-			val source = """{"fd" null}"""
-			assertFailureParse("",6){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors when map value is more than just a string""") {
-			val source = """{" ":"hello" "world"}"""
-			assertFailureParse("",13){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors when array value is more than just a string""") {
-			val source = """["hello" "world"]"""
-			assertFailureParse("",9){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors when object value is not alphanumeric""") {
-			val source = """{"fd":%%%}"""
-			assertFailureParse("",6){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors when array value is not alphanumeric""") {
-			val source = """[%%%]"""
-			assertFailureParse("",1){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors when array value is not a keyword""") {
-			val source = """[nothing]"""
-			assertFailureParse("",8){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors when number starts with a decimal point (array)""") {
-			val source = """[.5]"""
-			assertFailureParse("",1){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors when number starts with a decimal point (object)""") {
-			val source = """{"":.5}"""
-			assertFailureParse("",4){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors when number starts with an exponent indicator (array)""") {
-			val source = """[e5]"""
-			assertFailureParse("",3){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors when number starts with a exponent indicator (object)""") {
-			val source = """{"":e5}"""
-			assertFailureParse("",6){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors when number starts with a plus sign (array)""") {
-			val source = """[+5]"""
-			assertFailureParse("",1){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors when number starts with a plus sign (object)""") {
-			val source = """{"":+5}"""
-			assertFailureParse("",4){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""number format""") {
-			val source = """{"":51sfd}"""
-			assertFailureParse("",9){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		
-		
-		it ("""errors on control character inside string""") {
-			('\u0000' until ' ').foreach{c =>
-				val source = Seq('[', '"', c, '"', ']') 
-				assertFailureParse("",2){
-					new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-				}
-			}
-		}
-		it ("""errors on illegal escape character inside string""") {
-			val source = """["\a"]"""
-			assertFailureParse("",3){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors on illegal character in unicode escape""") {
-			val source = "[\"\\u1y34\"]"
-			assertFailureParse("",5){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors on illegal character in unicode escape 2""") {
-			val source = "[\"\\u1Y4\"]"
-			assertFailureParse("",5){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors on illegal character in unicode escape 3""") {
-			val source = "[\"\\u1 4\"]"
-			assertFailureParse("",5){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors on illegal character in unicode escape 4""") {
-			val source = "[\"\\u1=4\"]"
-			assertFailureParse("",5){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors on trailing comma (array)""") {
-			val source = """[1,2,3,]"""
-			assertFailureParse("",7){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors on empty value (array)""") {
-			val source = """[1,,3]"""
-			assertFailureParse("",3){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors on empty value 2 (array)""") {
-			val source = """[,]"""
-			assertFailureParse("",1){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors on trailing comma (object)""") {
-			val source = """{"a":2,}"""
-			assertFailureParse("",7){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors on empty value (object)""") {
-			val source = """{"":0,,}"""
-			assertFailureParse("",6){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""errors on empty value 2 (object)""") {
-			val source = """{,}"""
-			assertFailureParse("",1){
-				new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""provides a correct index in a nested value (array, array)""") {
-			val source = """[[,]]"""
-			assertFailureParse("",2){
-				new JsonParser().parse(new SeqBuilder(new PrimitiveSeqBuilder[JsonValue]), source)
-			}
-		}
-		it ("""provides a correct index in a nested value (array, object)""") {
-			val source = """[{},{,}]"""
-			assertFailureParse("",5){
-				new JsonParser().parse(new SeqBuilder(new PrimitiveSeqBuilder[JsonValue]), source)
-			}
-		}
-		it ("""provides a correct index in a nested value (object, array)""") {
-			val source = """{"":[,]}"""
-			assertFailureParse("",5){
-				new JsonParser().parse(new SeqBuilder(new PrimitiveSeqBuilder[JsonValue]), source)
-			}
-		}
-		it ("""provides a correct index in a nested value (object, object)""") {
-			val source = """{"" : {,}}"""
-			assertFailureParse("",7){
-				new JsonParser().parse(new SeqBuilder(new PrimitiveSeqBuilder[JsonValue]), source)
-			}
-		}
-		it ("""Throwbuilder (array of string)""") {
-			val source = """["ab"]"""
-			assertFailureParse("",1){
-				new JsonParser().parse(new ThrowBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""Throwbuilder (array of int -2)""") {
-			val source = """[-2]"""
-			assertFailureParse("",1){
-				new JsonParser().parse(new ThrowBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""Throwbuilder (array of int 5.5)""") {
-			val source = """[5.5]"""
-			assertFailureParse("",1){
-				new JsonParser().parse(new ThrowBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""Throwbuilder (array of true)""") {
-			val source = """[true]"""
-			assertFailureParse("",1){
-				new JsonParser().parse(new ThrowBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""Throwbuilder (object of string)""") {
-			val source = """{"":"ab"}"""
-			assertFailureParse("",4){
-				new JsonParser().parse(new ThrowBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""Throwbuilder (object of int -2)""") {
-			val source = """{"":-2}"""
-			assertFailureParse("",4){
-				new JsonParser().parse(new ThrowBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""Throwbuilder (object of int 5.5)""") {
-			val source = """{"":5.5}"""
-			assertFailureParse("",4){
-				new JsonParser().parse(new ThrowBuilder[StringOrInt, JsonValue], source)
-			}
-		}
-		it ("""Throwbuilder (object of true)""") {
-			val source = """{"":true}"""
-			assertFailureParse("",4){
-				new JsonParser().parse(new ThrowBuilder[StringOrInt, JsonValue], source)
-			}
+	
+	/**
+	 * This is a wrapper required to put builders with different subjects in the same array.
+	 * The only reason erasing the subject is remotely acceptable is because the tests assume a failure (and thus fail on a successful parse) 
+	 */
+	final class SubjectAsAnyBuilder[K,V,S](backing:Builder[K,V,S]) extends Builder[K,V,Any] {
+		override def init:Any = backing.init
+		override def apply[Input](folding:Any, key:K, input:Input, parser:Parser[K, V, Input]):Either[(String, Int), Any] = {
+			val folding2:S = folding.asInstanceOf[S]
+			backing.apply[Input](folding2, key, input, parser)
 		}
 	}
 	
-	def assertFailureParse(msg:String, idx:Int)(result:ParserRetVal[_,_]):Unit = result match {
-		case ParserRetVal.Failure(msg2, idx2) => {
-	//		assertResult(msg){msg2}
-			assertResult(idx){idx2}
+	private val parser = new JsonParser()
+	private val mapBuilder = new SubjectAsAnyBuilder(MapBuilder[StringOrInt, JsonValue])
+	private val seq2Builder = new SubjectAsAnyBuilder(new SeqBuilder(new PrimitiveSeqBuilder[JsonValue]))
+	private val throwBuilder = new SubjectAsAnyBuilder(new ThrowBuilder[StringOrInt, JsonValue])
+	
+	private val failureCases:Seq[(String, Iterable[Char], Builder[StringOrInt, JsonValue, Any], Option[String], Option[Int])] = Seq(
+		  ("errors when object is incomplete", """{""", mapBuilder, None, Option(1))
+		, ("errors when array is incomplete", "[", mapBuilder, None, Option(1))
+		, ("error idx includes insignificant whitespace", " [", mapBuilder, None, Option(2))
+		, ("errors when string starts with non-space characters", "abc", mapBuilder, None, Option(0))
+		, ("errors when map key is not a string", "{2:3}", mapBuilder, None, Option(1))
+		, ("errors when map key is invalid string", """{"\u0001":3}""", mapBuilder, None, Option(2))
+		, ("errors when map key is more than just a string", """{"fd" null}""", mapBuilder, None, Option(6))
+		, ("errors when map value is more than just a string", """{" ":"hello" "world"}""", mapBuilder, None, Option(13))
+		, ("errors when array value is more than just a string", """["hello" "world"]""", mapBuilder, None, Option(9))
+		, ("errors when object value is not alphanumeric", """{"fd":%%%}""", mapBuilder, None, Option(6))
+		, ("errors when array value is not alphanumeric", """[%%%]""", mapBuilder, None, Option(1))
+		, ("errors when array value is not a keyword", """[nothing]""", mapBuilder, Some("Unexpected keyword: nothing"), Option(1))
+		, ("errors when number starts with a decimal point (array)", """[.5]""", mapBuilder, Some("Numeric value may not begin with a '.'"), Option(1))
+		, ("errors when number starts with a decimal point (object)", """{"":.5}""", mapBuilder, Some("Numeric value may not begin with a '.'"), Option(4))
+		, ("errors when number starts with an exponent indicator (array)", """[e5]""", mapBuilder, Some("Unexpected keyword: e5"), Option(1))
+		, ("errors when number starts with a exponent indicator (object)", """{"":e5}""", mapBuilder, Some("Unexpected keyword: e5"), Option(4))
+		, ("errors when number starts with a plus sign (array)", """[+5]""", mapBuilder, Some("Expecting start of value; found +"), Option(1))
+		, ("errors when number starts with a plus sign (object)", """{"":+5}""", mapBuilder, Some("Expecting start of value; found +"), Option(4))
+		, ("number format", """{"":51sfd}""", mapBuilder, Some("Not a number: 51sfd"), Option(4))
+		, ("numbers cannot end with a dot", """{"":2.}""", mapBuilder, Some("Not a number: 2."), Option(4))
+		, ("numbers cannot end with an e", """{"":2e}""", mapBuilder, Some("Not a number: 2e"), Option(4))
+		, ("numbers cannot be just a hypen-minus", """{"":-}""", mapBuilder, Some("Not a number: -"), Option(4))
+		, ("numbers must have digits between '.' and 'e'", """{"":9.e+1}""", mapBuilder, Some("Not a number: 9.e+1"), Option(4))
+		, ("numbers cannot contain a leading zero", """{"":012}""", mapBuilder, Some("Not a number: 012"), Option(4))
+		, ("numbers cannot contain a leading zero, even with a leading hyphen-minus", """{"":-012}""", mapBuilder, Some("Not a number: -012"), Option(4))
+		, ("'True' is not a keyword", """{"":True}""", mapBuilder, Some("Expecting start of value; found T"), Option(4))
+		, ("'NaN' is not a keyword", """{"":NaN}""", mapBuilder, Some("Expecting start of value; found N"), Option(4))
+		
+		, ("errors on illegal escape character inside string", """["\a"]""", mapBuilder, None, Option(3))
+		, ("errors on illegal character in unicode escape", "[\"\\u1y34\"]", mapBuilder, None, Option(3))
+		, ("errors on illegal character in unicode escape 2", "[\"\\u1Y4\"]", mapBuilder, None, Option(3))
+		, ("errors on illegal character in unicode escape 3", "[\"\\u1 4\"]", mapBuilder, None, Option(3))
+		, ("errors on illegal character in unicode escape 4", "[\"\\u1=4\"]", mapBuilder, None, Option(3))
+		, ("errors on infinitely nested arrays", new Iterable[Char]{def iterator = Iterator.continually('[')}, mapBuilder, Option("too-deeply nested object"), None)
+		
+		, ("errors on trailing comma (array)", """[1,2,3,]""", mapBuilder, None, Option(7))
+		, ("errors on empty value (array)", """[1,,3]""", mapBuilder, None, Option(3))
+		, ("errors on empty value 2 (array)", """[,]""", mapBuilder, None, Option(1))
+		, ("errors on trailing comma (object)", """{"a":2,}""", mapBuilder, None, Option(7))
+		, ("errors on empty value (object)", """{"":0,,}""", mapBuilder, None, Option(6))
+		, ("errors on empty value 2 (object)", """{,}""", mapBuilder, None, Option(1))
+		
+		, ("provides a correct index in a nested value (array, array)", """[[,]]""", seq2Builder, None, Option(2))
+		, ("provides a correct index in a nested value (array, object)", """[{},{,}]""", seq2Builder, None, Option(5))
+		, ("provides a correct index in a nested value (object, array)", """{"":[,]}""", seq2Builder, None, Option(5))
+		, ("provides a correct index in a nested value (object, object)", """{"" : {,}}""", seq2Builder, None, Option(7))
+		
+		, ("Throwbuilder (array of string)", """["ab"]""", throwBuilder, None, Option(1))
+		, ("Throwbuilder (array of int -2)", """[-2]""", throwBuilder, None, Option(1))
+		, ("Throwbuilder (array of int 5.5)", """[5.5]""", throwBuilder, None, Option(1))
+		, ("Throwbuilder (array of true)", """[true]""", throwBuilder, None, Option(1))
+		, ("Throwbuilder (object of string)", """{"":"ab"}""", throwBuilder, None, Option(4))
+		, ("Throwbuilder (object of int -2)", """{"":-2}""", throwBuilder, None, Option(4))
+		, ("Throwbuilder (object of int 5.5)", """{"":5.5}""", throwBuilder, None, Option(4))
+		, ("Throwbuilder (object of true)", """{"":true}""", throwBuilder, None, Option(4))
+	)
+	
+	
+	describe("JsonParser") {
+		failureCases.foreach{abcde =>
+			val (name, source, builder, expectedMsg, expectedIdx) = abcde
+			
+			it (name) {
+				parser.parse(builder, source) match {
+					case ParserRetVal.Failure(msg, idx) => {
+						expectedMsg.foreach{x => assertResult(x){msg}}
+						expectedIdx.foreach{x => assertResult(x){idx}}
+					}
+					case x => fail(s"Not a failure: $x")
+				}
+			}
 		}
-		case x => fail("Not a Failure: " + x)
+		
+		it ("""errors on control character inside string""") {
+			('\u0000' until ' ').foreach{c =>
+				val source = Seq('[', '"', c, '"', ']')
+				
+				parser.parse(mapBuilder, source) match {
+					case ParserRetVal.Failure(msg, idx) => {
+						assertResult("Control chars not allowed in strings"){msg}
+						assertResult(2){idx}
+					}
+					case x => fail(s"Not a failure: $x")
+				}
+			}
+		}
 	}
 }

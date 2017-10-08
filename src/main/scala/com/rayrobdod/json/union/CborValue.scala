@@ -26,11 +26,13 @@
 */
 package com.rayrobdod.json.union
 
+import java.math.MathContext.UNLIMITED
 import scala.language.implicitConversions
 
 /**
  * A union type representing primitive types in Cbor objects
  * @since 3.0
+ * @version 3.1
  */
 sealed trait CborValue {
 	import CborValue._
@@ -44,7 +46,7 @@ sealed trait CborValue {
 	 * @param fz the function to apply if `this` is a CborValueNull
 	 * @return the results of applying the corresponding function
 	 */
-	final def fold[A](fs:String => A, fbs:Array[Byte] => A, fn:Number => A, fb:Boolean => A, fz:Function0[A]):A = this match {
+	final def fold[A](fs:String => A, fbs:Array[Byte] => A, fn:Rational => A, fb:Boolean => A, fz:Function0[A]):A = this match {
 		case CborValueString(s) => fs(s)
 		case CborValueByteStr(bs) => fbs(bs)
 		case CborValueNumber(n) => fn(n)
@@ -70,11 +72,9 @@ sealed trait CborValue {
 	
 	/**
 	 * Executes and returns `fi(this.i)` if this is a CborValueNumber which holds an number convertible to integer, else return a Left with an error message.
-	 * 
-	 * I somewhat doubt this method's ability to deal with numbers more precise than doubles can handle, but there is no Number -> BigFloat function. 
 	 */
 	final def integerToEither[A](fi:Int => Either[(String, Int),A]):Either[(String, Int),A] = {
-		val number = {n:Number => if (n.intValue.doubleValue == n.doubleValue) {fi(n.intValue)} else {Left("Expected integral number", 0)}} 
+		val number = {n:Rational => n.tryToInt.fold[Either[(String, Int), A]](Left(("Expected integral number", 0))){fi}}
 		val unexpected = new ReturnLeft("Expected integral number")
 		this.fold(unexpected, unexpected, number, unexpected, unexpected)
 	}
@@ -82,7 +82,7 @@ sealed trait CborValue {
 	/**
 	 * Executes and returns `fn(this.i)` if this is a CborValueNumber, else return a Left with an error message.
 	 */
-	final def numberToEither[A](fn:Number => Either[(String, Int),A]):Either[(String, Int),A] = {
+	final def numberToEither[A](fn:Rational => Either[(String, Int),A]):Either[(String, Int),A] = {
 		val unexpected = new ReturnLeft("Expected number")
 		this.fold(unexpected, unexpected, fn, unexpected, unexpected)
 	}
@@ -100,10 +100,12 @@ sealed trait CborValue {
 /**
  * The cases of CborValue and methods to convert other things into CborValues.
  * @since 3.0
+ * @version 3.1
  */
 object CborValue {
 	final case class CborValueString(s:String) extends CborValue
-	final case class CborValueNumber(i:Number) extends CborValue
+	final case class CborValueNumber(value:Rational) extends CborValue {
+	}
 	final case class CborValueBoolean(b:Boolean) extends CborValue
 	object CborValueNull extends CborValue
 	final class CborValueByteStr(s3:Array[Byte]) extends CborValue {
@@ -125,21 +127,27 @@ object CborValue {
 	implicit def apply(s:String):CborValue = CborValueString(s)
 	implicit def apply(b:Boolean):CborValue = CborValueBoolean(b)
 	implicit def apply(s:Array[Byte]):CborValue = CborValueByteStr(s)
-	implicit def apply(i:Number):CborValue = CborValueNumber(i)
+	implicit def apply(i:Rational):CborValue = CborValueNumber(i)
+	
+	/**
+	 * Allows implicit conversions from Int or Double directly to CborValue
+	 * @since 3.1
+	 */
+	implicit def implicitlyRational2CborValue[A](a:A)(implicit ev:A => Rational):CborValue = CborValueNumber(ev(a))
 	
 	
-	/** Convert a StringOrInt value intoa CborValue */
+	/** Convert a StringOrInt value into a CborValue */
 	// Can't be called 'apply' as otherwise `CborValue(x:Int)` confuses the compiler
 	implicit def stringOrInt2CborValue(s:StringOrInt):CborValue = s match {
 		case StringOrInt.Left(s) => CborValueString(s)
-		case StringOrInt.Right(i) => CborValueNumber(i)
+		case StringOrInt.Right(i) => CborValueNumber(Rational(i))
 	}
 	
 	/** Convert a JsonValue value into a CborValue */
 	// Can't be called 'apply' as otherwise `CborValue(x:Int)` confuses the compiler
 	implicit def jsonValue2CborValue(s:JsonValue):CborValue = s match {
 		case JsonValue.JsonValueString(s) => CborValue.CborValueString(s)
-		case JsonValue.JsonValueNumber(s) => CborValue.CborValueNumber(s)
+		case JsonValue.JsonValueNumber(n) => CborValue.CborValueNumber(Rational(n))
 		case JsonValue.JsonValueBoolean(s) => CborValue.CborValueBoolean(s)
 		case JsonValue.JsonValueNull => CborValue.CborValueNull
 	}
@@ -148,4 +156,227 @@ object CborValue {
 		def apply():Either[(String, Int), Nothing] = Left(msg, 0)
 		def apply(x:Any):Either[(String, Int), Nothing] = Left(msg, 0)
 	}
+	
+	
+	/**
+	 * A value represeting a whole number divided by another whole number
+	 * @since 3.1
+	 */
+	final case class Rational(val num:BigInt, val denom:BigInt) {
+		def isNaN:Boolean = denom == 0 && num == 0
+		def isPosInfinity:Boolean = denom == 0 && num > 0
+		def isNegInfinity:Boolean = denom == 0 && num < 0
+		def isWhole:Boolean = denom != 0 && (num mod denom.abs) == BigInt(0)
+		
+		/**  */
+		def tryToBigDecimal:Option[BigDecimal] = {
+			try {
+				Option(BigDecimal(num, UNLIMITED) / BigDecimal(denom, UNLIMITED))
+			} catch {
+				case e:java.lang.ArithmeticException => None
+			}
+		}
+		def tryToBigInt:Option[BigInt] = {
+			if (isWhole) {Option(num / denom)} else {None}
+		}
+		def tryToDouble:Option[Double] = {
+			     if (this.isPosInfinity) {Option(Double.PositiveInfinity)}
+			else if (this.isNegInfinity) {Option(Double.NegativeInfinity)}
+			else if (this.isNaN) {Option(Double.NaN)}
+			else {
+				// I want exact representations of the double with none of this rounding "new BigDecimal(double.toString)" stuff that scala thinks I want 
+				this.tryToBigDecimal.collect{case a if (scala.math.BigDecimal(new java.math.BigDecimal(a.doubleValue, UNLIMITED)) == a) => a.doubleValue}
+			}
+		}
+		def tryToFloat:Option[Float] = this.tryToDouble.collect{
+			case x if (x.isNaN) => Float.NaN
+			case x if (x == x.floatValue.doubleValue) => x.floatValue
+		}
+		def tryToLong:Option[Long] = {
+			this.tryToBigInt.collect{case a if (Long.MinValue <= a && a <= Long.MaxValue) => a.longValue}
+		}
+		def tryToInt:Option[Int] = {
+			this.tryToBigInt.collect{case a if (Int.MinValue <= a && a <= Int.MaxValue) => a.intValue}
+		}
+		
+		/** Returns a double that might kinda resemble the value of this Rational */
+		def toDouble:Double = {
+			     if (this.isPosInfinity) {Double.PositiveInfinity}
+			else if (this.isNegInfinity) {Double.NegativeInfinity}
+			else if (this.isNaN) {Double.NaN}
+			else {
+				num.toDouble / denom.toDouble
+			}
+		}
+		
+		private[this] def signum = this.num.signum * this.denom.signum
+		
+		/**  */
+		def reduce:Rational = {
+			if (this.isNaN) {Rational.NaN} else
+			if (this.isPosInfinity) {Rational.PositiveInfinity} else
+			if (this.isNegInfinity) {Rational.NegativeInfinity} else
+			{
+				val divisor = this.num.abs gcd this.denom.abs
+				new Rational(
+					this.signum * this.num.abs / divisor,
+					this.denom.abs / divisor
+				)
+			}
+		}
+		
+		override def toString:String = this.num.toString + "/" + this.denom.toString
+		override def equals(other2:Any):Boolean = other2 match {
+			case other:Rational => {
+				// NaN doesn't equal NaN for either Float type; so also not doing so here
+				if (this.isNaN) { false }
+				else if (other.isNaN) { false }
+				else if (this.isPosInfinity) { other.isPosInfinity }
+				else if (other.isPosInfinity) { false }
+				else if (this.isNegInfinity) { other.isNegInfinity }
+				else if (other.isNegInfinity) { false }
+				else if (this.num == (0:scala.math.BigInt)) { other.num == (0:scala.math.BigInt) }
+				else if (other.num == (0:scala.math.BigInt)) { false }
+				else {
+					this.num * other.denom == this.denom * other.num
+				}
+			}
+			case _ => false
+		}
+		override def hashCode:Int = {
+			if (denom == 0) {
+				num.signum.hashCode
+			} else {
+				val (a, b) = num.abs /% denom.abs
+				val c = if (b == 0) {0} else {denom.abs / b}
+				a.hashCode * 31 + c.hashCode
+			}
+			
+		}
+	}
+	
+	/**
+	 * Factory methods for Rational
+	 * @since 3.1
+	 */
+	object Rational {
+		val NaN:Rational = new Rational(0, 0)
+		val NegativeInfinity:Rational = new Rational(-1, 0)
+		val PositiveInfinity:Rational = new Rational(1, 0)
+		
+		implicit def apply(i:Int):Rational = new Rational(i, 1)
+		implicit def apply(i:Long):Rational = new Rational(i, 1)
+		implicit def apply(i:BigInt):Rational = new Rational(i, 1)
+		implicit def apply(i:java.math.BigInteger):Rational = new Rational(i, 1)
+		
+		implicit def apply(a:BigDecimal):Rational = {
+			val ulp = a.ulp
+			if (ulp > 1) {
+				new Rational(a.toBigInt, 1)
+			} else {
+				new Rational((a / ulp).toBigInt, (1 / ulp).toBigInt)
+			}
+		}
+		
+		implicit def apply(a:Float):Rational = {
+			if ((a:java.lang.Float).isNaN) {Rational.NaN}
+			else if ((a:scala.runtime.RichFloat).isPosInfinity) {Rational.PositiveInfinity}
+			else if ((a:scala.runtime.RichFloat).isNegInfinity) {Rational.NegativeInfinity}
+			else {
+				val zeroExponent:Short = -127
+				val significandBitCount:Byte = 23
+				val parts:(Byte, Short, Long) = {
+					val bits = java.lang.Float.floatToIntBits(a)
+					val signBitRaw = bits & 0x80000000
+					val exponentBitsRaw = bits & 0x7F800000
+					val significandBitsRaw = bits & 0x007FFFFF
+					val sign:Byte = if (signBitRaw == 0) {0} else {-1}
+					val exponentBits:Short =  (exponentBitsRaw >> 23).shortValue
+					val exponent = (exponentBits - 127).shortValue
+					val significandBits = significandBitsRaw | 0x00800000
+					(sign, exponent, significandBits)
+				}
+				this.fromIeeeFloat(parts, zeroExponent, significandBitCount)
+			}
+		}
+		
+		implicit def apply(a:Double):Rational = {
+			if ((a:java.lang.Double).isNaN) {Rational.NaN}
+			else if ((a:scala.runtime.RichDouble).isPosInfinity) {Rational.PositiveInfinity}
+			else if ((a:scala.runtime.RichDouble).isNegInfinity) {Rational.NegativeInfinity}
+			else {
+				val zeroExponent:Short = -1023
+				val significandBitCount:Byte = 52
+				val parts:(Byte, Short, Long) = {
+					val bits = java.lang.Double.doubleToLongBits(a)
+					val signBitRaw = bits & 0x8000000000000000L
+					val exponentBitsRaw = bits & 0x7FF0000000000000L
+					val significandBitsRaw = bits & 0x000FFFFFFFFFFFFFL
+					val sign:Byte = if (signBitRaw == 0) {0} else {-1}
+					val exponentBits:Short =  (exponentBitsRaw >> significandBitCount).shortValue
+					val exponent = (exponentBits - 1023).shortValue
+					val significandBits = significandBitsRaw | 0x0010000000000000L
+					(sign, exponent, significandBits)
+				}
+				this.fromIeeeFloat(parts, zeroExponent, significandBitCount)
+			}
+		}
+		
+		def fromHalfFloat(bits:Short):Rational = {
+			if (bits == 0x7C00) {Rational.PositiveInfinity}
+			else if (bits == 0xFC00.shortValue) {Rational.NegativeInfinity}
+			else if ((bits & 0x7C00) == 0x7C00) {Rational.NaN}
+			else {
+				val zeroExponent:Short = -15
+				val significandBitCount:Byte = 10
+				val parts:(Byte, Short, Long) = {
+					val signBitRaw = bits & 0x8000
+					val exponentBitsRaw = bits & 0x7C00
+					val significandBitsRaw = bits & 0x03FF
+					val sign:Byte = if (signBitRaw == 0) {0} else {-1}
+					val exponentBits:Short =  (exponentBitsRaw >> significandBitCount).shortValue
+					val exponent = (exponentBits - 15).shortValue
+					val significandBits = significandBitsRaw | 0x0400
+					(sign, exponent, significandBits)
+				}
+				this.fromIeeeFloat(parts, zeroExponent, significandBitCount)
+			}
+		}
+		
+		
+		// Going through all the effort to deconstruct then reconstruct the floats
+		// as neither BigDecimal.apply nor BigDecimal.valueOf gave the result I wanted
+		// (an as-precise-as-possible translation)
+		/** Build a Rational from the parts of an IEEE floating point number. Assumes not NaN nor Infinity. */
+		private[this] def fromIeeeFloat(floatParts:(Byte, Short, Long), zeroExponent:Short, significandBitCount:Byte):Rational = {
+			val (sign, exponent, significand) = floatParts
+			if (exponent == zeroExponent) {
+				if (significand == (1L << significandBitCount)) {
+					new Rational(0, 1)
+				} else {
+					new Rational(
+						BigInt(significand - (1L << significandBitCount))
+							* (if (sign < 0) {-1} else {1}),
+						BigInt(2).pow(-zeroExponent - 1 + significandBitCount)
+					)
+				}
+			} else {(
+				if (exponent > 0) {
+					new Rational(
+						BigInt(significand)
+							* (if (sign < 0) {-1} else {1})
+							* BigInt(2).pow(exponent),
+						BigInt(2).pow(significandBitCount)
+					)
+				} else {
+					new Rational(
+						BigInt(significand)
+							* (if (sign < 0) {-1} else {1}),
+						BigInt(2).pow(significandBitCount - exponent)
+					)
+				}
+			)}
+		}
+	}
+	
 }

@@ -95,14 +95,25 @@ class JsonParserTest_Happy extends FunSpec {
 		("string containing escape codes (tab)", """["\t"]""", Map(SIRight(0) -> Right(JsonValue("\t")))),
 		("string containing escape codes (backslash)", """["\\"]""", Map(SIRight(0) -> Right(JsonValue("\\")))),
 		("string containing escape codes (other)", """["\"\/\b\f\r"]""", Map(SIRight(0) -> Right(JsonValue("\"/\b\f\r")))),
+		("string containing unescaped DEL", """["\u00FF"]""", Map(SIRight(0) -> Right(JsonValue("\u00FF")))),
+		("string containing escaped NUL", """["\""" + """u0000"]""", Map(SIRight(0) -> Right(JsonValue("\u0000")))),
 		// that time where I have to perform a 'bobby tables' to force the thing to put unicode escapes into a JSON Parser 
+		("string containing unpaired UTF16 surrogate", """["\""" + """uD800"]""", Map(SIRight(0) -> Right(JsonValue("\uD800")))),
 		("string containing escape codes (unicode)", "[\"\\" + "u0123\"]", Map(SIRight(0) -> Right(JsonValue("ģ")))),
 		("string containing escape codes (unicode) 2", "[\"\\" + "u221E\"]", Map(SIRight(0) -> Right(JsonValue("\u221E")))),
 		("string containing escape codes (unicode) 3", "[\"\\" + "u0041A\"]", Map(SIRight(0) -> Right(JsonValue("AA")))),
+		("string containing 'comment' characters", """["a/*b*/c/*d//e"]""", Map(SIRight(0) -> Right("""a/*b*/c/*d//e"""))),
+		
 		("array containing keyword (true)", """[true]""", Map(SIRight(0) -> Right(JsonValue(true)))),
 		("array containing keyword (false)", """[false]""", Map(SIRight(0) -> Right(JsonValue(false)))),
 		("array containing keyword (null)", """[null]""", Map(SIRight(0) -> Right(JsonValue.JsonValueNull))),
 		("array containing keyword (null) (whitespace)", """[ null ]""", Map(SIRight(0) -> Right(JsonValue.JsonValueNull)))
+		
+		, ("the number 0e1", """[0e1]""", Map(SIRight(0) -> Right(JsonValue(0))))
+		, ("the number 0e+1", """[0e+1]""", Map(SIRight(0) -> Right(JsonValue(0))))
+		, ("the number 0", """[0]""", Map(SIRight(0) -> Right(JsonValue(0))))
+		, ("the number -0", """[-0]""", Map(SIRight(0) -> Right(JsonValue(0))))
+		, ("the number 1e01 (with leading zero)", """[1e01]""", Map(SIRight(0) -> Right(JsonValue(10))))
 		
 		, ("array with nesting and '[' strings", """[[["[["]]]""", Map(SIRight(0) -> Left(MBRS(Map(SIRight(0) -> Left(MBRS(Map(SIRight(0) -> Right(JsonValue("[["))))))))))
 		, ("array with nesting and '{' strings", """[[["{{"]]]""", Map(SIRight(0) -> Left(MBRS(Map(SIRight(0) -> Left(MBRS(Map(SIRight(0) -> Right(JsonValue("{{"))))))))))
@@ -136,6 +147,11 @@ class JsonParserTest_Happy extends FunSpec {
 			}
 			it (name + " (reader)") {
 				val source = new java.io.StringReader(source2)
+				val result = new JsonParser().parse(parser, source).fold({x => x},{x => x},{(a,b) => a})
+				assertResult(expected){result}
+			}
+			it (name + " (iterable)") {
+				val source = source2.to[List]
 				val result = new JsonParser().parse(parser, source).fold({x => x},{x => x},{(a,b) => a})
 				assertResult(expected){result}
 			}

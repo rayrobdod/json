@@ -53,6 +53,12 @@ final class MapBuilder[K, V, Inner](childBuilders:Function1[K, MapBuilder.MapChi
  */
 object MapBuilder {
 	type RecursiveSubjectType[K,V] = Map[K, Either[RecursiveSubject[K, V], V]]
+	private[json] def RecursiveSubjectType[K,V](
+		vals:Tuple2[K, Either[RecursiveSubject[K, V], V]]*
+	):Map[K, Either[RecursiveSubject[K, V], V]] = {
+		Map.apply(vals:_*)
+	}
+	
 	/** Types cannot be recursive without some kind of 'real' type in there somewhere */
 	final case class RecursiveSubject[K,V](val value:Map[K, Either[RecursiveSubject[K, V], V]])
 	
@@ -78,6 +84,6 @@ object MapBuilder {
 	def apply[K,V,Inner](cbs:Function1[K, Builder[K,V,Inner]]):MapBuilder[K,V,Inner] = new MapBuilder({x => new MapChildBuilder(cbs(x), {x:Inner => x})}) 
 	
 	/** Creates a MapBuilder which uses the specified key-to-MapChildBuilder function to create children */
-	/* different name because type erasure */
-	def apply2[K,V,Inner](cbs:Function1[K, MapChildBuilder[K,V,_,Inner]]):MapBuilder[K,V,Inner] = new MapBuilder(cbs) 
+	/* trivially true evidence because otherwise type erasure prevents this and other #apply(Function[_,_]):MapBuilder[_,_,_] from having the same name */
+	def apply[K,V,Inner](cbs:Function1[K, MapChildBuilder[K,V,_,Inner]])(implicit ev: Int =:= Int ):MapBuilder[K,V,Inner] = new MapBuilder(cbs) 
 }

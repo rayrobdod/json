@@ -8,21 +8,26 @@ homepage := Some(new URL("http://rayrobdod.name/programming/libraries/java/json/
 
 apiURL := Some(url(s"http://doc.rayrobdod.name/json/${version.value}/"))
 
-version := "3.0.1"
+version := "3.1"
 
 scalaVersion := "2.10.6"
 
-crossScalaVersions := Seq("2.10.6", "2.11.8", "2.12.1")
+crossScalaVersions := Seq("2.10.6", "2.11.11", "2.12.3")
+
+resolvers += "Sonatype OSS Staging" at "https://oss.sonatype.org/content/repositories/staging/"
 
 compileOrder := CompileOrder.JavaThenScala
 
 javacOptions in Compile ++= Seq("-Xlint:deprecation", "-Xlint:unchecked", "-source", "1.7", "-target", "1.7")
 
-scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-target:jvm-1.7")
+scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 
-scalacOptions ++= (if (scalaVersion.value.split("\\.").apply(1).toInt <= 10) {Nil} else {Seq("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint:_", "-Xlint:-adapted-args")})
-
-libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
+scalacOptions ++= (scalaBinaryVersion.value match {
+	case "2.10" => Seq("-target:jvm-1.7")
+	case "2.11" => Seq("-target:jvm-1.7", "-Ywarn-unused-import", "-Ywarn-unused", "-Xlint:_", "-Xlint:-adapted-args", "-Xfuture", "-Xcheckinit")
+	case "2.12" => Seq("-target:jvm-1.8", "-Ywarn-unused-import", "-Ywarn-unused", "-Xlint:_", "-Xlint:-adapted-args", "-Xfuture", "-Xcheckinit")
+	case _ => Nil
+})
 
 scalacOptions in doc in Compile ++= Seq(
 		"-doc-title", name.value,
@@ -59,7 +64,7 @@ mappings in (Compile, packageBin) ++= readableNoteMappings.value
 scalastyleConfig := baseDirectory.value / "project" / "scalastyle-config.xml"
 
 
-//scapegoatVersion := "1.3.0"
+//scapegoatVersion := "1.3.3"
 
 // scalaTest
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.0" % "test"
@@ -84,3 +89,15 @@ makeDocCompilable in Test := {
 }
 
 sourceGenerators in Test += (makeDocCompilable in Test).taskValue
+
+/// benchmarks
+/*
+enablePlugins(net.tixxit.sbt.benchmark.BenchmarkPlugin)
+
+libraryDependencies += "org.mdedetrich" %% "scala-json-ast" % "1.0.0-M7" % "benchmark-precompile"
+libraryDependencies += "org.spire-math" %% "jawn-parser" % "0.10.4" % "benchmark-precompile"
+libraryDependencies += "org.spire-math" %% "jawn-ast" % "0.10.4" % "benchmark-precompile"
+*/
+
+mimaPreviousArtifacts := Set(organization.value %% name.value % "3.0.1")
+

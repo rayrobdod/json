@@ -27,36 +27,41 @@
 package com.rayrobdod.json.parser
 
 import org.scalatest.FunSpec
-import scala.collection.immutable.Map
-import com.rayrobdod.json.builder.{MapBuilder, CaseClassBuilder, PrettyJsonBuilder}
-import com.rayrobdod.json.union.StringOrInt
-import com.rayrobdod.json.union.JsonValue
 
-@deprecated("CaseClassParser is deprecated; using to suppress warnings tests related to that class", "3.0")
-class CaseClassParserTest extends FunSpec {
-	private implicit def fooClass = classOf[Foo]
-	private case class Foo(hello:Long, world:String, bazz:Boolean)
-	
-	describe("CaseClassParser") {
-		it ("""recreates an arbitrary case class""") {
-			val exp = Map("hello" -> 43L, "world" -> "world", "bazz" -> true)
-			val src = Foo(43L, "world", true)
-			val res = new CaseClassParser().parse(MapBuilder.apply, src).fold({x => x}, {x => x}, {(s,i) => Foo(i, s, false)})
-			
-			assertResult(exp.mapValues{x => Right(x)}){res}
+class packageTest extends FunSpec {
+	describe("Iterator2Reader") {
+		it ("full read") {
+			val buf = new Array[Char](8)
+			val count = new Iterator2Reader("12345".iterator).read(buf)
+			assertResult(Array('1', '2', '3', '4', '5', '\u0000', '\u0000', '\u0000')){buf}
+			assertResult(5){count}
+		}
+		it ("partial read") {
+			val buf = new Array[Char](8)
+			val count = new Iterator2Reader("12345".iterator).read(buf, 2, 3)
+			assertResult(Array('\u0000', '\u0000', '1', '2', '3', '\u0000', '\u0000', '\u0000')){buf}
+			assertResult(3){count}
+		}
+		it ("close") {
+			new Iterator2Reader("12345".iterator).close()
 		}
 	}
-	describe("CaseClassParser + Json") {
-		it ("""can be used with the json stuff to serialize and deserialize a case class""") {
-			val src = Foo(-5, "asdf", true)
-			val json = new CaseClassParser().parse(new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams).mapKey[String].mapValue[Any]{_ match {
-						case x:Long => JsonValue(x)
-						case x:Boolean => JsonValue(x)
-						case x:String => JsonValue(x)
-					}}, src).fold({x => x}, {x => x}, {(s,i) => "{}"})
-			val res = new JsonParser().parse(new CaseClassBuilder(Foo(0,"",false)).mapKey[StringOrInt]{StringOrInt.unwrapToString _}.mapValue[JsonValue]{_.fold[Any]({x => x}, {x => x},{x => x},null)}, json).fold({x => x}, {x => x}, {(s,i) => Foo(i, s, false)})
-			
-			assertResult(src){res}
+	describe("CountingReader") {
+		describe ("goBackOne") {
+			it ("throws if called twice consecutively") {
+				intercept[IllegalStateException] {
+					val dut = new CountingReader(new java.io.StringReader("adf"))
+					dut.read()
+					dut.goBackOne()
+					dut.goBackOne()
+				}
+			}
+			it ("causes the previously read character to be output upon the next read") {
+				val dut = new CountingReader(new java.io.StringReader("adf"))
+				assertResult('a'){dut.read()}
+				dut.goBackOne()
+				assertResult('a'){dut.read()}
+			}
 		}
 	}
 }

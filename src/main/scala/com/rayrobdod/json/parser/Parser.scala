@@ -76,6 +76,15 @@ trait Parser[+Key, +Value, -Input] {
 		}
 	}
 	
+	/** Change the type of key that this builder requires, with the option of indicating an error condition
+	 * @since 3.1
+	 */
+	final def flatMapKey[K2](fun:Function1[Key,Either[(String,Int),K2]]):Parser[K2,Value,Input] = new Parser[K2,Value,Input] {
+		override def parse[Output](builder:Builder[K2,Value,Output], i:Input):ParserRetVal[Output, Value] = {
+			Parser.this.parse(builder.flatMapKey[Key](fun), i)
+		}
+	}
+	
 	/** Change the type of value that this builder requires */
 	final def mapValue[V2](implicit fun:Function1[Value,V2]):Parser[Key,V2,Input] = new Parser[Key,V2,Input] {
 		override def parse[Output](builder:Builder[Key,V2,Output], i:Input):ParserRetVal[Output, V2] = {

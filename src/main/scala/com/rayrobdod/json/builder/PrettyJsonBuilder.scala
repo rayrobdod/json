@@ -96,7 +96,7 @@ final class PrettyJsonBuilder(params:PrettyJsonBuilder.PrettyParams, charset:Cha
 object PrettyJsonBuilder {
 	
 	/** Encode a JsonValue as a serialized json value */
-	private[builder] def serialize(value:JsonValue, charset:Charset):String = value match {
+	private def serialize(value:JsonValue, charset:Charset):String = value match {
 		case JsonValue.JsonValueNumber(x) => x.toString
 		case JsonValue.JsonValueBoolean(x) => x.toString
 		case JsonValue.JsonValueNull => "null"
@@ -104,7 +104,7 @@ object PrettyJsonBuilder {
 	}
 	
 	/** Encode a string as a serialized json value */
-	private[builder] def strToJsonStr(s:String, charset:Charset):String = "\"" + s.flatMap{_ match {
+	private def strToJsonStr(s:String, charset:Charset):String = "\"" + s.flatMap{_ match {
 		case '"'  => "\\\""
 		case '\\' => """\\"""
 		case '\b' => "\\b"
@@ -123,6 +123,27 @@ object PrettyJsonBuilder {
 		"\\u" + ("0000" + c.intValue.toHexString).takeRight(4)
 	}
 	
+	
+	/**
+	 * Shorthand for a PrettyJsonBuilder using a MinifiedPrettyParams
+	 * @since 3.1
+	 */
+	def minified(charset:Charset = UTF_8):Builder[StringOrInt, JsonValue, String] = new PrettyJsonBuilder(MinifiedPrettyParams, charset)
+	/**
+	 * Shorthand for a PrettyJsonBuilder using an IndentPrettyParams using two spaces for the indent
+	 * @since 3.1
+	 */
+	def space2(charset:Charset = UTF_8):Builder[StringOrInt, JsonValue, String] = new PrettyJsonBuilder(new IndentPrettyParams("  "), charset)
+	/**
+	 * Shorthand for a PrettyJsonBuilder using an IndentPrettyParams using four spaces for the indent
+	 * @since 3.1
+	 */
+	def space4(charset:Charset = UTF_8):Builder[StringOrInt, JsonValue, String] = new PrettyJsonBuilder(new IndentPrettyParams("    "), charset)
+	/**
+	 * Shorthand for a PrettyJsonBuilder using an IndentPrettyParams using a tab for the indent
+	 * @since 3.1
+	 */
+	def tabbed(charset:Charset = UTF_8):Builder[StringOrInt, JsonValue, String] = new PrettyJsonBuilder(new IndentPrettyParams(), charset)
 	
 	
 	/**
