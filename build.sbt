@@ -8,7 +8,7 @@ homepage := Some(new URL("http://rayrobdod.name/programming/libraries/java/json/
 
 apiURL := Some(url(s"http://doc.rayrobdod.name/json/${version.value}/"))
 
-version := "3.1-SNAPSHOT"
+version := "3.1.1-SNAPSHOT"
 
 scalaVersion := "2.10.6"
 
@@ -99,5 +99,5 @@ libraryDependencies += "org.spire-math" %% "jawn-parser" % "0.10.4" % "benchmark
 libraryDependencies += "org.spire-math" %% "jawn-ast" % "0.10.4" % "benchmark-precompile"
 */
 
-mimaPreviousArtifacts := Set(organization.value %% name.value % "3.0.1")
+mimaPreviousArtifacts := Set(organization.value %% name.value % "3.1")
 
