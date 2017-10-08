@@ -100,5 +100,5 @@ libraryDependencies += "org.spire-math" %% "jawn-parser" % "0.10.4" % "benchmark
 libraryDependencies += "org.spire-math" %% "jawn-ast" % "0.10.4" % "benchmark-precompile"
 */
 
-mimaPreviousArtifacts := Set(organization.value %% name.value % "3.0.1")
+mimaPreviousArtifacts := Set(organization.value %% name.value % "4.0-RC1")
 
