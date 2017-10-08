@@ -28,6 +28,7 @@ package com.rayrobdod.json.parser
 
 import org.scalatest.FunSpec
 import com.rayrobdod.json.builder.MapBuilder
+import com.rayrobdod.json.union.ParserRetVal.Complex
 
 class RecursiveMapParserTest extends FunSpec {
 	
@@ -43,8 +44,7 @@ class RecursiveMapParserTest extends FunSpec {
 				"third" -> Right("asdffsd")
 			)
 			val res = new RecursiveMapParser[String, String].parse(MapBuilder[String, String], exp)
-						.fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
-			assertResult(exp){res}
+			assertResult(Complex(exp)){res}
 		}
 	}
 }

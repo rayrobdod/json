@@ -1,3 +1,14 @@
+## 4.0
+* Represent failures within the type system
+  * Add a type parameter to Parser to represent ways that the Parser can fail
+  * Add a type parameter to Builder to represent ways that the Builder can fail
+  * Add a type parameter to Parser to represent parser-related information about Builder failures
+  * Replace `Failure` with `ParserFailure` and `BuilderFailure`
+  * Add two type parameters to ParserRetVal (one for ParserFailure and one for BuilderFailure)
+  * Make methods that used to return `Either[(String,Int),A]` return `ParserRetVal[A,Nothing,PF,BF]`
+* Make easier to use `ParserRetVal` when one of the "success" values is `Nothing`
+
+
 ## 3.1
 * Remove deprecated builders and parsers
   - BeanBuilder, CaseClassBuilder, CborObjectBuilder, CborArrayBuilder,

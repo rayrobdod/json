@@ -29,28 +29,34 @@ package com.rayrobdod.json.parser
 import org.scalatest.FunSpec
 import scala.collection.immutable.Seq
 import com.rayrobdod.json.builder.{SeqBuilder, PrettyJsonBuilder, ThrowBuilder, PrimitiveSeqBuilder}
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures.ExpectedComplex
 import com.rayrobdod.json.union.JsonValue
+import com.rayrobdod.json.union.ParserRetVal.BuilderFailure
+import com.rayrobdod.json.testing.EnforcedFailure
 
 class SeqParserTest extends FunSpec {
 	describe("SeqParser") {
 		it ("""builder failure""") {
-			val exp = ("using ThrowBuilder::apply", 0)
+			val exp = BuilderFailure(EnforcedFailure, ())
 			val src = Seq(Seq.empty, Seq(true, false))
-			val res = new SeqParser(new PrimitiveSeqParser[Boolean]).parse(new ThrowBuilder[Int, Boolean], src).fold({x => throw new IllegalArgumentException()}, {x => throw new IllegalArgumentException()}, {(a,b) => (a,b)})
+			val res = new SeqParser(new PrimitiveSeqParser[Boolean]).parse(new ThrowBuilder(EnforcedFailure), src)
 			
 			assertResult(exp){res}
 		}
 	}
 	
 	describe("SeqParser + Json") {
+		val throwUnexpected = {x:Any => throw new NoSuchElementException(x.toString)}
+		val throwUnexpected2 = {(x:Any, y:Any) => throw new NoSuchElementException(x.toString + y.toString)}
+		
 		it ("""can be used with the json stuff to serialze and deserialize a Seq""") {
 			val src = Seq(Seq.empty, Seq(JsonValue(true), JsonValue(12.5)))
 			val json = new SeqParser(new PrimitiveSeqParser[JsonValue])
 					.parse(new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams).mapKey[Int], src)
-					.fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
+					.fold({x => x}, throwUnexpected, throwUnexpected, throwUnexpected2)
 			val res = new JsonParser()
-					.parse(new SeqBuilder(new PrimitiveSeqBuilder[JsonValue]), json)
-					.fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
+					.parse(new SeqBuilder(PrimitiveSeqBuilder.apply[JsonValue], ExpectedComplex), json)
+					.fold({x => x}, throwUnexpected, throwUnexpected, throwUnexpected2)
 			
 			assertResult(src){res}
 		}

@@ -24,54 +24,60 @@
 	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package com.rayrobdod.json.union
+package com.rayrobdod.json.doc
 
 import org.scalatest.FunSpec
-import com.rayrobdod.json.union.StringOrInt._
+import com.rayrobdod.json.union.ParserRetVal
 
-class StringOrIntTest extends FunSpec {
-	
-	describe("StringOrInt.Left") {
-		describe ("fold") {
-			it ("uses the result of the left function") {
-				assertResult("Left"){StringOrInt.Left("ASDF").fold({x => "Left"}, {x => "Right"})}
-			}
-			it ("provides the left's value to the function") {
-				assertResult("ASDF Left"){StringOrInt.Left("ASDF").fold({x => x + " Left"}, {x => x + " Right"})}
-			}
+final class Examples extends FunSpec {
+	describe ("serializeExample") {
+		import serializeExample._
+		
+		it ("result is ...") {
+			val expected = ParserRetVal.Complex(
+				"""{
+				|  "name" : {
+				|    "first" : "Anon",
+				|    "middles" : [
+				|      "N",
+				|      "Y"
+				|    ],
+				|    "last" : "Mouse"
+				|  },
+				|  "gender" : "Undecided",
+				|  "isAlive" : true,
+				|  "interests" : [
+				|    "Cheese",
+				|    "Chess"
+				|  ]
+				|}""".stripMargin.replace("""
+				|""".stripMargin, System.lineSeparator)
+			)
+			assertResult(expected){result}
 		}
 	}
-	describe("StringOrInt.Right") {
-		describe ("fold") {
-			it ("uses the result of the right function") {
-				assertResult("Right"){StringOrInt.Right(1234).fold({x => "Left"}, {x => "Right"})}
-			}
-			it ("provides the left's value to the function") {
-				assertResult("1234 Right"){StringOrInt.Right(1234).fold({x => x + " Left"}, {x => x + " Right"})}
-			}
-		}
-	}
-	
-	describe("StringOrInt$") {
-		describe("Implicits") {
-			it ("""String to StringOrInt""") {
-				val res:StringOrInt = "abx"
-				assertResult(StringOrInt.Left("abx")){res}
-			}
-			it ("""StringOrInt.Right to JsonValue""") {
-				val res:StringOrInt = 234
-				assertResult(StringOrInt.Right(234)){res}
-			}
-		}
-		describe("apply mehod") {
-			it ("""String to StringOrInt""") {
-				val res:StringOrInt = StringOrInt("abx")
-				assertResult(StringOrInt.Left("abx")){res}
-			}
-			it ("""StringOrInt.Right to JsonValue""") {
-				val res:StringOrInt = StringOrInt(234)
-				assertResult(StringOrInt.Right(234)){res}
-			}
+	describe ("parsingExample") {
+		import parsingExample._
+		
+		it ("result is ...") {
+			val expected = ParserRetVal.Complex(
+				Person(
+					Name(
+						"Raymond",
+						"Robert",
+						"Dodge"
+					),
+					"male",
+					false,
+					Seq(
+						"bowling",
+						"tennis",
+						"programming",
+						"twitch plays pokémon"
+					)
+				)
+			)
+			assertResult(expected){result}
 		}
 	}
 }

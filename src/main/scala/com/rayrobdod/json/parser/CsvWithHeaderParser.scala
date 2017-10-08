@@ -27,8 +27,9 @@
 package com.rayrobdod.json.parser;
 
 import scala.collection.immutable.Seq
-import com.rayrobdod.json.builder._
+import com.rayrobdod.json.builder.{Builder, PrimitiveSeqBuilder}
 import com.rayrobdod.json.union.{StringOrInt, ParserRetVal}
+import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure}
 
 /**
  * A streaming decoder for csv data, where the first line of the csv data is a header row.
@@ -36,7 +37,7 @@ import com.rayrobdod.json.union.{StringOrInt, ParserRetVal}
  * This parser is lenient, in that it ignores trailing delimiters
  * 
  * A CSV file is always two levels deep, an array of key-value mappings.
- * @version 3.1
+ * @version 4.0
  * 
  * @constructor
  * Creates a CsvParser instance.
@@ -44,57 +45,74 @@ import com.rayrobdod.json.union.{StringOrInt, ParserRetVal}
  */
 final class CsvWithHeaderParser(
 		meaningfulCharacters:CsvParser.CharacterMeanings = CsvParser.csvCharacterMeanings
-) extends Parser[StringOrInt, String, Iterable[Char]] {
+) extends Parser[StringOrInt, String, Nothing, CharacterIndex, Iterable[Char]] {
 	private[this] val lineParser = new CsvParser.LineParser(meaningfulCharacters)
 	
 	/**
 	 * Decodes the input values to an object.
-	 * @tparam A the type of object to create
+	 * @tparam Result the type of object to create
 	 * @param builder the builder to use to construct the object
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse[A](builder:Builder[StringOrInt, String, A], chars:Iterable[Char]):ParserRetVal[A,Nothing] = {
+	def parse[Result, BF](builder:Builder[StringOrInt, String, BF, Result], chars:Iterable[Char]):ParserRetVal[Result,Nothing, Nothing, BF, CharacterIndex] = {
 		this.parse(builder, new Iterator2Reader(chars.iterator))
 	}
 	
 	/**
 	 * Decodes the input values to an object.
-	 * @tparam A the type of object to create
+	 * @tparam Result the type of object to create
 	 * @param builder the builder to use to construct the object
 	 * @param chars the serialized json object or array
 	 * @return the parsed object
 	 */
-	def parse[A](builder:Builder[StringOrInt, String, A], chars:java.io.Reader):ParserRetVal[A,Nothing] = {
+	def parse[Result, BF](builder:Builder[StringOrInt, String, BF, Result], chars:java.io.Reader):ParserRetVal[Result,Nothing, Nothing, BF, CharacterIndex] = {
 		this.parse(builder, new CountingReader(chars))
 	}
 	
-	def parse[A](builder:Builder[StringOrInt, String, A], chars:CountingReader):ParserRetVal[A,Nothing] = {
-		var folding:Either[(String, Int), A] = Right(builder.init)
-		var rowIdx:Int = 0
+	def parse[Result, BF](builder:Builder[StringOrInt, String, BF, Result], chars:CountingReader):ParserRetVal[Result,Nothing, Nothing, BF, CharacterIndex] = {
+		val startIndex = chars.index + 1
 		
-		val keys:Seq[String] = lineParser.parse(new PrimitiveSeqBuilder[String], chars).fold({x => x}, {x:Nothing => x}, {(s,i) => Nil})
+		val keys:Seq[String] = lineParser.parse(new PrimitiveSeqBuilder[String, Any](123), chars)
+				.fold({x => x}, {x => x:Nothing}, {x => x:Nothing}, {(b,ex) => Nil})
 		val myLineParser = lineParser.mapKey[StringOrInt]{i =>
 			if (keys.isDefinedAt(i)) {StringOrInt(keys(i))} else {StringOrInt(i)}
 		}
 		
-		try {
-			while (folding.isRight) {
+		@scala.annotation.tailrec
+		def dothing(rowIdx:Int, folding:builder.Middle):ParserRetVal[builder.Middle, Nothing, Nothing, BF, CharacterIndex] = {
+			sealed trait ThingToDo
+			final case class Recurse(nextFolding:builder.Middle) extends ThingToDo
+			object ReturnFolding extends ThingToDo
+			final case class ReturnFailure(err:BF, extra:CharacterIndex) extends ThingToDo
+			
+			val thingToDo = try {
 				// check that there are more characters to read; throw if no such characters
 				// I have to do this as readers don't have a hasNext or similar method
 				chars.read()
 				chars.goBackOne()
 				val rowStartCharIndex = chars.index + 1
 				
-				folding = builder.apply(folding.right.get, StringOrInt(rowIdx), chars, myLineParser).left.map{x => ((x._1, x._2 + rowStartCharIndex))}
-				rowIdx = rowIdx + 1
-			}
-		} catch {
-			case ex:java.util.NoSuchElementException => {
+				builder.apply(folding, StringOrInt(rowIdx), chars, myLineParser, CharacterIndex.zero) match {
+					case Complex(nextFolding) => Recurse(nextFolding)
+					case BuilderFailure(bf, ex) => ReturnFailure(bf, ex + rowStartCharIndex)
+					case ParserRetVal.ParserFailure(pf) => pf:Nothing
+					case ParserRetVal.Primitive(x) => x:Nothing
+				}
+			} catch {
 				// Readers don't have a hasNext
+				case ex:java.util.NoSuchElementException => ReturnFolding
+			}
+			
+			thingToDo match {
+				case Recurse(nextFolding) => dothing(rowIdx + 1, nextFolding)
+				case ReturnFolding => Complex(folding)
+				case ReturnFailure(x, ex) => BuilderFailure(x, ex)
 			}
 		}
 		
-		ParserRetVal.eitherToComplex(folding)
+		dothing(0, builder.init)
+			.builderFailure.map{(b,x) => ((b, x - startIndex))}
+			.complex.flatMap{builder.finish(chars.index - startIndex)}
 	}
 }

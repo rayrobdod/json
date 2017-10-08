@@ -30,6 +30,7 @@ import java.io.DataInput
 import java.nio.charset.StandardCharsets.UTF_8;
 import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.union.{CborValue, ParserRetVal}
+import com.rayrobdod.json.union.ParserRetVal.{Complex, ParserFailure}
 
 /**
  * A streaming parser for Bson values
@@ -38,80 +39,99 @@ import com.rayrobdod.json.union.{CborValue, ParserRetVal}
  * 4 (Array), 8 (Boolean), 10 (Null), 16 (Int32) and 18 (Int64).
  * Other types are unsupported.
  * 
- * @version 3.0
+ * @version 4.0
  * @see [[http://bsonspec.org/]]
  *
  * @constructor
  * Creates a BsonParser instance.
  */
-final class BsonParser extends Parser[String, CborValue, DataInput] {
+// TODO: location annotation
+final class BsonParser extends Parser[String, CborValue, BsonParser.Failures, Unit, DataInput] {
 	import BsonParser.{readCString, TypeCodes}
+	import BsonParser.Failures._
 	
-	def parse[A](builder:Builder[String, CborValue, A], input:DataInput):ParserRetVal[A,Nothing] = {
+	def parse[A,BF](builder:Builder[String, CborValue, BF, A], input:DataInput):ParserRetVal[A, Nothing, BsonParser.Failures, BF, Unit] = {
 		try {
 			// We don't really care about the document length.
 			/* val length = */ Integer.reverseBytes( input.readInt() );
 			
-			var result:Either[(String,Int),A] = Right(builder.init)
+			var result:ParserRetVal[builder.Middle, Nothing, BsonParser.Failures, BF, Unit] = Complex(builder.init)
 			var valueType:Byte = input.readByte();
-			while (valueType != TypeCodes.END_OF_DOCUMENT && result.isRight) {
+			while (valueType != TypeCodes.END_OF_DOCUMENT && result.isInstanceOf[Complex[_]]) {
 				val key:String = readCString(input)
-				result = result.right.flatMap{result2 => valueType match {
+				result = result.complex.flatMap{result2 => valueType match {
 					case TypeCodes.FLOAT => {
 						val value = java.lang.Double.longBitsToDouble(
 							java.lang.Long.reverseBytes( input.readLong() )
 						)
-						// CHEATING
-						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
+						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue], ())
 					}
 					case TypeCodes.STRING => {
 						val len = Integer.reverseBytes( input.readInt() );
 						val bytes = new Array[Byte](len);
 						input.readFully(bytes);
 						if (bytes(len - 1) != 0) {
-							Left("Incorrect string length", 0)
+							ParserFailure(IllegalStringLength(len, bytes(len - 1)))
 						} else {
 							val value = new String(bytes, 0, len - 1, UTF_8)
-							builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
+							builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue], ())
 						}
 					}
 					case TypeCodes.DOCUMENT => {
-						builder.apply(result2, key, input, this)
+						builder.apply(result2, key, input, this, ())
 					}
 					case TypeCodes.ARRAY => {
-						builder.apply(result2, key, input, this)
+						builder.apply(result2, key, input, this, ())
 					}
 					case TypeCodes.BOOLEAN => {
 						val readValue = input.readByte()
 						val value = (readValue != 0)
-						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
+						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue], ())
 					}
 					case TypeCodes.NULL => {
-						builder.apply(result2, key, CborValue.CborValueNull, new IdentityParser[CborValue])
+						builder.apply(result2, key, CborValue.CborValueNull, new IdentityParser[CborValue], ())
 					}
 					case TypeCodes.INTEGER => {
 						val value = Integer.reverseBytes( input.readInt() );
-						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
+						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue], ())
 					}
 					case TypeCodes.LONG => {
 						val value = java.lang.Long.reverseBytes( input.readLong() );
-						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue])
+						builder.apply(result2, key, CborValue(value), new IdentityParser[CborValue], ())
 					}
-					case _ => Left("Unknown data type: " + valueType,0)
+					case _ => ParserFailure(UnknownDataType(valueType))
 				}}
 				
 				valueType = input.readByte();
 			}
 			
-			result.fold({case (s,i) => ParserRetVal.Failure(s,i)},{x => ParserRetVal.Complex(x)})
+			result
+				.complex.flatMap{builder.finish(())}
 		} catch {
-			case ex:java.io.EOFException => ParserRetVal.Failure("Incomplete object (EOF reached)", 0)
+			case ex:java.io.EOFException => ParserFailure(ReachedEof)
 		}
 	}
 }
 
 
-private object BsonParser {
+object BsonParser {
+	
+	/**
+	 * Possible failures that can occur in a BsonParser
+	 * @since 4.0
+	 */
+	sealed trait Failures
+	/**
+	 * Possible failures that can occur in a PrettyJsonBuilder
+	 * @since 4.0
+	 */
+	object Failures {
+		object ReachedEof extends Failures
+		final case class UnknownDataType(code:Byte) extends Failures
+		final case class IllegalStringLength(len:Int, byteAt:Byte) extends Failures
+	}
+	
+	
 	/**
 	 * Reads a c-style string from the DataInput.
 	 * Basically, reads things until it reaches a '0x00' and then throws what it read into a String.
@@ -131,7 +151,7 @@ private object BsonParser {
 	
 	
 	/** because magic numbers are bad */
-	object TypeCodes {
+	private object TypeCodes {
 		val END_OF_DOCUMENT = 0
 		val FLOAT = 1
 		val STRING = 2

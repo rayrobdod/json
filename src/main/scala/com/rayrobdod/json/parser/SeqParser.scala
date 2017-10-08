@@ -28,27 +28,27 @@ package com.rayrobdod.json.parser
 
 import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.union.ParserRetVal
+import com.rayrobdod.json.union.ParserRetVal.Complex
 
 /**
  * A parser that reads each Value and its index from a Seq
- * @version 3.0
+ * @version 4.0
  * 
  * @tparam V the type of values contained in the Seq
  * @constructor
  * Create a SeqParser
  */
-final class PrimitiveSeqParser[V] extends Parser[Int,V,Seq[V]] {
+final class PrimitiveSeqParser[V] extends Parser[Int,V,Nothing,Unit,Seq[V]] {
 	/**
 	 * Decodes the input values to an object.
 	 * @param vals the sequence containing values
 	 * @return the parsed object
 	 */
-	def parse[A](topBuilder:Builder[Int,V,A], vals:Seq[V]):ParserRetVal[A,Nothing] = {
-		val a = vals.zipWithIndex.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], valueKey:(V, Int)) => 
+	override def parse[A, BF](topBuilder:Builder[Int,V,BF,A], vals:Seq[V]):ParserRetVal[A, Nothing, Nothing, BF, Unit] = {
+		vals.zipWithIndex.foldLeft[ParserRetVal[topBuilder.Middle, Nothing, Nothing, BF, Unit]](Complex(topBuilder.init)){(state, valueKey:(V, Int)) => 
 			val (value, key) = valueKey;
-			state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[V])}
-		}
-		ParserRetVal.eitherToComplex(a)
+			state.complex.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[V], ())}
+		}.complex.flatMap{topBuilder.finish(())}
 	}
 }
 
@@ -61,14 +61,14 @@ object PrimitiveSeqParser {
 	 */
 	def apply[BuilderKey, BuilderValue, SeqValue](
 		implicit keyMapping : Int => BuilderKey, valueMapping : SeqValue => BuilderValue
-	):Parser[BuilderKey, BuilderValue, Seq[SeqValue]] = {
+	):Parser[BuilderKey, BuilderValue, Nothing, Unit, Seq[SeqValue]] = {
 		new PrimitiveSeqParser[SeqValue].mapKey(keyMapping).mapValue(valueMapping)
 	}
 }
 
 /**
  * A parser that reads and parses each Value and its index from a Seq
- * @version 3.0
+ * @version 4.0
  * 
  * @tparam K the type of key used by recurse
  * @tparam V the type of primitiveValue used by recurse
@@ -78,13 +78,15 @@ object PrimitiveSeqParser {
  * @param recurse a parser for values contained in the sequence
  * @param keyMapping a mapping from integer indexies to type K.
  */
-final class SeqParser[+K,+V,-Inner](recurse:Parser[K,V,Inner])(implicit keyMapping:Function1[Int, K]) extends Parser[K,V,Seq[Inner]] {
-	def parse[A](topBuilder:Builder[K,V,A], vals:Seq[Inner]):ParserRetVal[A,V] = {
-		val a = vals.zipWithIndex.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], valueKey:(Inner, Int)) => 
+final class SeqParser[+K,+V,PF,BFE,-Inner](recurse:Parser[K,V,PF,BFE,Inner])(implicit keyMapping:Function1[Int, K], extraMapping:Function1[Unit, BFE]) extends Parser[K,V,PF,BFE,Seq[Inner]] {
+	override def parse[A,BF](topBuilder:Builder[K,V,BF,A], vals:Seq[Inner]):ParserRetVal[A, Nothing, PF, BF, BFE] = {
+		vals.zipWithIndex.foldLeft[ParserRetVal[topBuilder.Middle, Nothing, PF, BF, BFE]](Complex(topBuilder.init)){(state, valueKey:(Inner, Int)) => 
 			val (value, key2) = valueKey
 			val key = keyMapping(key2)
-			state.right.flatMap{x => topBuilder.apply(x, key, value, recurse)}
-		}
-		ParserRetVal.eitherToComplex(a)
+			state.complex.flatMap{x => topBuilder.apply(x, key, value, recurse, extraMapping(()))}
+		}.complex.flatMap{topBuilder.finish(extraMapping(()))}
 	}
+}
+
+object SeqParser {
 }

@@ -15,20 +15,16 @@ case class Person(n:Name, gender:String, isDead:Boolean, interests:Seq[String])
 val data = Person(Name("Anon", Seq("N", "Y"), "Mouse"), "Undecided", false, Seq("Cheese", "Chess"))
 
 // Example directly subclassing Parser
-object NameParser extends Parser[StringOrInt, JsonValue, Name] {
-  override def parse[A](builder:Builder[StringOrInt, JsonValue, A], input:Name):ParserRetVal[A, JsonValue] = {
+object NameParser extends Parser[StringOrInt, JsonValue, Nothing, Unit, Name] {
+  override def parse[A, BF](builder:Builder[StringOrInt, JsonValue, BF, A], input:Name):ParserRetVal[A, Nothing, Nothing, BF, Unit] = {
     val a = builder.init
-    val e = for (
-      b <- builder.apply(a, "first", input.given, IdentityParser[JsonValue, String]).right;
-      c <- builder.apply(b, "middles", input.middles, PrimitiveSeqParser[StringOrInt, JsonValue, String]).right;
-      d <- builder.apply(c, "last", input.family, IdentityParser[JsonValue, String]).right
+    (for (
+      b <- builder.apply(a, "first", input.given, IdentityParser[JsonValue, String], ()).complex;
+      c <- builder.apply(b, "middles", input.middles, PrimitiveSeqParser[StringOrInt, JsonValue, String], ()).complex;
+      d <- builder.apply(c, "last", input.family, IdentityParser[JsonValue, String], ()).complex
     ) yield {
       d
-    }
-    e.fold(
-      {si => ParserRetVal.Failure(si._1, si._2)},
-      {res => ParserRetVal.Complex(res)}
-    )
+    }).complex.flatMap{builder.finish(())}
   }
 }
 
@@ -52,6 +48,8 @@ result.fold({json =>
   System.out.println(json)
 },{x =>
   System.out.println("Parsed primitive: " + x)
-},{(msg, idx) =>
-  System.out.println(s"Parse error at char $idx: $msg")
+},{x =>
+  System.out.println(s"Error $x")
+},{(x, extra:Unit) =>
+  System.out.println(s"Error $x")
 })

@@ -27,11 +27,13 @@
 package com.rayrobdod.json.union
 
 import scala.language.implicitConversions
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures.UnsuccessfulTypeCoercion
 
 /**
  * A union type representing primitive types in Json objects
  * @since 3.0
- * @version 3.1
+ * @version 4.0
  */
 sealed trait JsonValue {
 	import JsonValue._
@@ -52,42 +54,73 @@ sealed trait JsonValue {
 	}
 	
 	/**
+	 * Executes `then(this.s)` if this is a JsonValueString; otherwise executes `else(this)`
+	 * @since 4.0
+	 */
+	final def ifIsString[A](`then`:String => A, `else`:JsonValue => A):A = this match {
+		case JsonValueString(s) => `then`(s)
+		case v => `else`(v)
+	}
+	
+	/**
 	 * Executes and returns `fs(this.s)` if this is a JsonValueString, else return a Left with an error message
 	 */
-	final def stringToEither[A](fs:String => Either[(String, Int),A]):Either[(String, Int),A] = {
-		val unexpected = new ReturnLeft("Expected string")
-		this.fold(fs, unexpected, unexpected, unexpected)
+	final def stringToEither[A](fs:String => Either[Failures, A]):Either[Failures, A] = {
+		this.ifIsString(fs, {x => Left(UnsuccessfulTypeCoercion)})
+	}
+	
+	/**
+	 * Executes `then(this.s)` if this is a JsonValueNumber containing an Int; otherwise executes `else(this)`
+	 * @since 4.0
+	 */
+	final def ifIsInteger[A](`then`:Int => A, `else`:JsonValue => A):A = this match {
+		case JsonValueNumber(n) => {
+			if (n.isValidInt) {
+				`then`(n.intValue)
+			} else {
+				`else`( JsonValueNumber(n) )
+			}
+		}
+		case v => `else`(v)
 	}
 	
 	/**
 	 * Executes and returns `fi(this.i)` if this is a JsonValueNumber which holds an number convertible to integer, else return a Left with an error message.
 	 */
-	final def integerToEither[A](fi:Int => Either[(String, Int),A]):Either[(String, Int),A] = {
-		val number = {n:BigDecimal =>
-			if (n.isValidInt) {
-				fi(n.intValue)
-			} else {
-				Left(("Expected Int: " + n, 0))
-			}
-		}
-		val unexpected = new ReturnLeft("Expected integral number")
-		this.fold(unexpected, number, unexpected, unexpected)
+	final def integerToEither[A](fi:Int => Either[Failures, A]):Either[Failures, A] = {
+		this.ifIsInteger(fi, {x => Left(UnsuccessfulTypeCoercion)})
+	}
+	
+	/**
+	 * Executes `then(this.s)` if this is a JsonValueNumber; otherwise executes `else(this)`
+	 * @since 4.0
+	 */
+	final def ifIsNumber[A](`then`:BigDecimal => A, `else`:JsonValue => A):A = this match {
+		case JsonValueNumber(n) => `then`(n)
+		case v => `else`(v)
 	}
 	
 	/**
 	 * Executes and returns `fn(this.i)` if this is a JsonValueNumber, else return a Left with an error message.
 	 */
-	final def numberToEither[A](fn:BigDecimal => Either[(String, Int),A]):Either[(String, Int),A] = {
-		val unexpected = new ReturnLeft("Expected number")
-		this.fold(unexpected, fn, unexpected, unexpected)
+	final def numberToEither[A](fn:BigDecimal => Either[Failures, A]):Either[Failures, A] = {
+		this.ifIsNumber(fn, {x => Left(UnsuccessfulTypeCoercion)})
+	}
+	
+	/**
+	 * Executes `then(this.s)` if this is a JsonValueBoolean; otherwise executes `else(this)`
+	 * @since 4.0
+	 */
+	final def ifIsBoolean[A](`then`:Boolean => A, `else`:JsonValue => A):A = this match {
+		case JsonValueBoolean(b) => `then`(b)
+		case v => `else`(v)
 	}
 	
 	/**
 	 * Executes and returns `fb(this.b)` if this is a JsonValueBoolean, else return a Left with an error message
 	 */
-	final def booleanToEither[A](fb:Boolean => Either[(String, Int),A]):Either[(String, Int),A] = {
-		val unexpected = new ReturnLeft("Expected boolean")
-		this.fold(unexpected, unexpected, fb, unexpected)
+	final def booleanToEither[A](fb:Boolean => Either[Failures, A]):Either[Failures, A] = {
+		this.ifIsBoolean(fb, {x => Left(UnsuccessfulTypeCoercion)})
 	}
 }
 
@@ -138,7 +171,39 @@ object JsonValue {
 	}
 	
 	/** 
-	 * Convert a CborValue into a JsonValue if there is an equivalent JsonValue; else return a UnsuccessfulTypeCoersion.
+	 * Convert a CborValue into a JsonValue if there is an equivalent JsonValue; otherwise return a Left containing the incompatible value
+	 * 
+	 * @example
+	 * {{{
+	 * // With attempts to convert the incompatible values to something that will fit into a JsonValue
+	 * import java.nio.charset.StandardCharsets.US_ASCII;
+	 * val cbor:CborValue = ???
+	 * val json:JsonValue = JsonValue.cborValue2JsonValueEither(cbor).fold(
+	 * 	{_.fold(
+	 * 		// in this example, base64-encode any ByteStrings
+	 * 		{x => JsonValueString(new String(java.util.Base64.getEncoder.encode(x), US_ASCII))},
+	 * 		// in this example, convert infinite values and nan to null, and round any other value
+	 * 		{x => x match {
+	 * 			case Rational.NaN => JsonValueNull
+	 * 			case Rational.PositiveInfinity => JsonValueNull
+	 * 			case Rational.NegativeInfinity => JsonValueNull
+	 * 			case x => x.toDouble
+	 * 		}}
+	 * 	)},
+	 * 	{x => x}
+	 * )
+	 * }}}
+	 * 
+	 * @example
+	 * {{{
+	 * // Declaring the failure to convert, with no attempts to post-fix
+	 * val cbor:CborValue = ???
+	 * val jsonEither = JsonValue.cborValue2JsonValueEither(cbor).fold(
+	 * 	{x => BuilderFailure(TypeCoercionFailure, ())},
+	 * 	{x => Complex(x)}
+	 * )
+	 * }}}
+	 * 
 	 * @since 3.1
 	 */
 	def cborValue2JsonValueEither(x:CborValue):Either[Either[Array[Byte], CborValue.Rational], JsonValue] = x match {
@@ -149,8 +214,4 @@ object JsonValue {
 		case CborValue.CborValueNull => Right(JsonValueNull)
 	}
 	
-	private class ReturnLeft(msg:String) extends Function1[Any, Either[(String, Int), Nothing]] with Function0[Either[(String, Int), Nothing]] {
-		def apply():Either[(String, Int), Nothing] = Left(msg, 0)
-		def apply(x:Any):Either[(String, Int), Nothing] = Left(msg, 0)
-	}
 }

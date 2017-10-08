@@ -26,8 +26,8 @@
 */
 package com.rayrobdod.json
 
-import scala.util.Left
 import com.rayrobdod.json.parser.Parser
+import com.rayrobdod.json.union.ParserRetVal.BuilderFailure
 
 /**
  * Contains the various built-in builders.
@@ -41,11 +41,15 @@ package object builder {
 
 package builder {
 	/**
-	 * A Builder that will always return a failure on call to apply
-	 * @since 3.0
+	 * A Builder that will always return a failure on call to apply or finish
+	 * 
+	 * Mostly useful when a function wants a builder even though you 'know' the result must be primitive
+	 * @since 4.0
 	 */
-	private[json] final class ThrowBuilder[K,V] extends Builder[K,V,Any] {
-		override def init:Any = "using ThrowBuilder::init"
-		override def apply[I](a:Any,k:K,i:I,p:Parser[K,V,I]):Left[(String, Int), Any] = Left("using ThrowBuilder::apply", 0)
+	final class ThrowBuilder[Failure](failure:Failure) extends Builder[Any, Any, Failure, Nothing] {
+		type Middle = Any
+		override def init:Middle = "using ThrowBuilder::init"
+		override def apply[I,PF,BE](a:Middle,k:Any,i:I,p:Parser[Any,Any,PF,BE,I], be:BE):BuilderFailure[Failure, BE] = BuilderFailure(failure, be)
+		override def finish[BE](be:BE)(a:Middle):BuilderFailure[Failure, BE] = BuilderFailure(failure, be)
 	}
 }

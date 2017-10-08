@@ -26,8 +26,12 @@
 */
 package com.rayrobdod.json.builder;
 
+import scala.collection.immutable.Seq
 import com.rayrobdod.json.parser.Parser
-import scala.collection.immutable.Seq;
+import com.rayrobdod.json.union.ParserRetVal
+import com.rayrobdod.json.union.ParserRetVal.{Complex, BuilderFailure}
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures.{ExpectedPrimitive, ExpectedComplex}
 
 /** 
  * A Builder that will build a Vector of values, where each inner value is produced by the parameter builder.
@@ -36,19 +40,39 @@ import scala.collection.immutable.Seq;
  * 
  * [[#apply]] will return a left if the value is a primitive value.
  * 
- * @version 3.0
+ * @version 4.0
  * @tparam Key the type of keys encountered
  * @tparam Value the type of primitive values encountered
  * @tparam Inner the type of complex values produced by the childBuilder
  * @constructor
  * A builder that will create seqs of values built with the specified child builder
  * @param childBuilder a builder that this will use to produce child elements
+ * @param onPrimitive the failure to use when this builder encounters a primitive value
  */
-final class SeqBuilder[-Key, -Value, Inner](childBuilder:Builder[Key, Value, Inner]) extends Builder[Key, Value, Seq[Inner]] {
+final class SeqBuilder[-Key, -Value, +Failure, Inner](childBuilder:Builder[Key, Value, Failure, Inner], onPrimitive:Failure) extends Builder[Key, Value, Failure, Seq[Inner]] {
+	override type Middle = Seq[Inner]
 	override def init:Seq[Inner] = Vector.empty[Inner]
-	override def apply[Input](folding:Seq[Inner], key:Key, innerInput:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Seq[Inner]] = {
-		parser.parse(childBuilder, innerInput).complex.map{x => folding :+ x}.complex.toEither
+	override def apply[Input, PF, BE](folding:Seq[Inner], key:Key, innerInput:Input, parser:Parser[Key, Value, PF, BE, Input], extra:BE):ParserRetVal[Seq[Inner], Nothing, PF, Failure, BE] = {
+		parser.parse(childBuilder, innerInput)
+				.complex.map{x => folding :+ x}
+				.primitive.flatMap{x => BuilderFailure(onPrimitive, extra)}
 	}
+	override def finish[BE](extra:BE)(folding:Seq[Inner]):ParserRetVal.Complex[Seq[Inner]] = ParserRetVal.Complex(folding)
+}
+
+/** @since 4.0 */
+object SeqBuilder {
+	
+	/** @since 4.0 */
+	def apply[Key, Value, Failure, Inner](childBuilder:Builder[Key, Value, Failure, Inner]) = {
+		new SeqBuilder(childBuilder.mapFailure{Right.apply _}, Left(ExpectedComplex)) 
+	}
+	
+	/** @since 4.0 */
+	def apply[Key, Value, Failure, Inner](childBuilder:Builder[Key, Value, Failure, Inner], onPrimitive:Failure) = {
+		new SeqBuilder(childBuilder, onPrimitive)
+	}
+	
 }
 
 /**
@@ -59,11 +83,31 @@ final class SeqBuilder[-Key, -Value, Inner](childBuilder:Builder[Key, Value, Inn
  * [[#apply]] will return a left if the value is a complex value. 
  * 
  * @since 3.0
+ * @version 4.0
  * @tparam Value the type of primitive values encountered
+ * @tparam Failure the type of failure to return if this encounters a complex value
+ * @param onComplex the failure to return if this encounters a complex value
  */
-final class PrimitiveSeqBuilder[Value] extends Builder[Any, Value, Seq[Value]] {
+final class PrimitiveSeqBuilder[Value, Failure](onComplex:Failure) extends Builder[Any, Value, Failure, Seq[Value]] {
+	override type Middle = Seq[Value]
 	override def init:Seq[Value] = Vector.empty[Value]
-	override def apply[Input](folding:Seq[Value], key:Any, innerInput:Input, parser:Parser[Any, Value, Input]):Either[(String, Int), Seq[Value]] = {
-		parser.parsePrimitive(innerInput).right.map{x => folding :+ x}
+	override def apply[Input, PF, BE](folding:Seq[Value], key:Any, innerInput:Input, parser:Parser[Any, Value, PF, BE, Input], extra:BE):ParserRetVal[Seq[Value], Nothing, PF, Failure, BE] = {
+		parser.parsePrimitive(innerInput, onComplex).primitive.flatMap{x => Complex(folding :+ x)}.mergeToComplex
 	}
+	override def finish[BE](extra:BE)(folding:Seq[Value]):ParserRetVal.Complex[Seq[Value]] = ParserRetVal.Complex(folding)
+}
+
+/** @since 4.0 */
+object PrimitiveSeqBuilder {
+	
+	/** @since 4.0 */
+	def apply[Value]:PrimitiveSeqBuilder[Value, Failures] = {
+		new PrimitiveSeqBuilder[Value, Failures](ExpectedPrimitive)
+	}
+	
+	/** @since 4.0 */
+	def apply[Value, Failure](onComplex:Failure):PrimitiveSeqBuilder[Value, Failure] = {
+		new PrimitiveSeqBuilder[Value, Failure](onComplex)
+	}
+	
 }

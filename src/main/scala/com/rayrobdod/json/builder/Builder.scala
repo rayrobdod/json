@@ -26,25 +26,34 @@
 */
 package com.rayrobdod.json.builder;
 
-import scala.util.Either
+import scala.util.{Left, Right, Either}
 import com.rayrobdod.json.parser.Parser
+import com.rayrobdod.json.union.ParserRetVal
 
 /**
  * An object which takes a series of key-value pairs and combines them into an object using
  * a series of fold-left style method calls.
  * 
- * @version 3.0
+ * @version 4.0
  * @see [[com.rayrobdod.json.parser.Parser]]
  * @tparam Key the type of keys used by the Parser that this Builder will be used by
  * @tparam Value the type of primitive value types used by the Parser that this Builder will be used by
- * @tparam Subject the type of object built by this Builder
+ * @tparam Failure possible ways this builder can fail
+ * @tparam Result the type of object built by this Builder
  */
-trait Builder[-Key, -Value, Subject] {
+trait Builder[-Key, -Value, +Failure, +Result] {
+	/**
+	 * The type of object while folding.
+	 * If `Builder` weren't so whitebox, this would be a hidden implementation detail.
+	 * @since 4.0
+	 */
+	type Middle
+	
 	/**
 	 * An 'empty' object. Can be thought of as either the value used at the
 	 * start of a fold-left operation, or as an object filled with default values.
 	 */
-	def init:Subject
+	def init:Middle
 	
 	/**
 	 * Add a key-value pair to `folding`
@@ -56,22 +65,50 @@ trait Builder[-Key, -Value, Subject] {
 	 * @param key the key of a key-value pair
 	 * @param parser a parser for turning input into a value
 	 * @param input the input to a parser
-	 * @return 
-	 *   - A [[scala.util.Right]] containing the built value, or
-	 *   - A [[scala.util.Left]] indicating an error message and error index
+	 * @param bfe extra data that this parser provides to Builder Failures
+	 * @return either a built value or an error value
 	 */
-	def apply[Input](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject]
+	def apply[Input, ParserFailure, BuilderFailureExtra](
+			  folding:Middle
+			, key:Key
+			, input:Input
+			, parser:Parser[Key, Value, ParserFailure, BuilderFailureExtra, Input]
+			, bfe:BuilderFailureExtra
+	):ParserRetVal[Middle, Nothing, ParserFailure, Failure, BuilderFailureExtra]
 	
+	/**
+	 * A function to be called after the folding to produce a result
+	 *
+	 * Taking advantage of this method might be useful if either `Middle` is
+	 * mutable for performance reasons and `Result` should be immutable or
+	 * if the builder needs to use multiple key-value pairs fromt the source
+	 * to produce some value in the domain object.
+	 *
+	 * If there is no need to take advantage of this, the implementation of this
+	 * method can be
+	 * 
+	 * {{{
+	 * override def finish[BFE](bfe:BFE)(x:Middle) = ParserRetVal.Complex(x)
+	 * }}}
+	 * 
+	 * @since 4.0
+	 * @param folding the object to be converted. Must be either the return value of [[init]] or the return value of [[apply]]
+	 * @return either a built value or an error value
+	 */
+	def finish[BuilderFailureExtra](bfe:BuilderFailureExtra)(folding:Middle):ParserRetVal[Result, Nothing, Nothing, Failure, BuilderFailureExtra]
 	
 	/**
 	 * Change the type of key that this builder requires
 	 * @param fun a conversion function from the new key to this's key
 	 * @since 3.0
 	 */
-	final def mapKey[K2](implicit fun:Function1[K2,Key]):Builder[K2,Value,Subject] = new Builder[K2,Value,Subject] {
-		override def init:Subject = Builder.this.init
-		override def apply[Input](a:Subject, key:K2, b:Input, c:Parser[K2, Value, Input]):Either[(String, Int), Subject] = {
-			Builder.this.apply(a, fun(key), b, c.mapKey(fun))
+	final def mapKey[K2](implicit fun:Function1[K2,Key]):Builder[K2,Value,Failure,Result] = new Builder[K2,Value,Failure,Result] {
+		override type Middle = Builder.this.Middle
+		override def init:Middle = Builder.this.init
+		override def finish[EX](extra:EX)(folding:Middle):ParserRetVal[Result, Nothing, Nothing, Failure, EX] = Builder.this.finish(extra)(folding)
+		
+		override def apply[Input, PF, EX](a:Middle, key:K2, b:Input, c:Parser[K2, Value, PF, EX, Input], extra:EX):ParserRetVal[Middle, Nothing, PF, Failure, EX] = {
+			Builder.this.apply(a, fun(key), b, c.mapKey(fun), extra)
 		}
 	}
 	
@@ -80,10 +117,25 @@ trait Builder[-Key, -Value, Subject] {
 	 * @param fun a conversion function from the new key to this's key
 	 * @since 3.1
 	 */
-	final def flatMapKey[K2](fun:Function1[K2,Either[(String,Int),Key]]):Builder[K2,Value,Subject] = new Builder[K2,Value,Subject] {
-		override def init:Subject = Builder.this.init
-		override def apply[Input](a:Subject, key:K2, b:Input, c:Parser[K2, Value, Input]):Either[(String, Int), Subject] = {
-			fun(key).right.flatMap{k2 => Builder.this.apply(a, k2, b, c.flatMapKey(fun))}
+	final def flatMapKey[K2, Err](fun:Function1[K2,Either[Err,Key]]):Builder[K2,Value,Either[Err,Failure],Result] = new Builder[K2,Value,Either[Err,Failure],Result] {
+		override type Middle = Builder.this.Middle
+		override def init:Middle = Builder.this.init
+		override def finish[EX](extra:EX)(folding:Middle):ParserRetVal[Result, Nothing, Nothing, Either[Nothing,Failure], EX] = {
+			Builder.this.finish(extra)(folding)
+				.builderFailure.mapLeft{new Right(_)}
+		}
+		
+		override def apply[Input, PF, EX](a:Middle, key:K2, b:Input, c:Parser[K2, Value, PF, EX, Input], extra:EX):ParserRetVal[Middle, Nothing, PF, Either[Err,Failure], EX] = {
+			fun(key).fold(
+				{b:Err => ParserRetVal.BuilderFailure(util.Left(b), extra)},
+				{k2:Key => Builder.this.apply(a, k2, b, c.flatMapKeyWithoutDiscardingExtra(fun, extra), extra)
+					.builderFailure.mapLeft{new Right(_)}
+					.parserFailure.flatMap{_.fold(
+						{ex => ParserRetVal.BuilderFailure(util.Left(ex._1), ex._2)},
+						ParserRetVal.ParserFailure.apply _
+					)}
+				}
+			)
 		}
 	}
 	
@@ -92,10 +144,13 @@ trait Builder[-Key, -Value, Subject] {
 	 * @param fun a conversion function from the new value to this's value
 	 * @since 3.0
 	 */
-	final def mapValue[V2](implicit fun:Function1[V2,Value]):Builder[Key,V2,Subject] = new Builder[Key,V2,Subject] {
-		override def init:Subject = Builder.this.init
-		override def apply[Input](a:Subject, key:Key, b:Input, c:Parser[Key, V2, Input]):Either[(String, Int), Subject] = {
-			Builder.this.apply(a, key, b, c.mapValue(fun))
+	final def mapValue[V2](implicit fun:Function1[V2,Value]):Builder[Key,V2,Failure,Result] = new Builder[Key,V2,Failure,Result] {
+		override type Middle = Builder.this.Middle
+		override def init:Middle = Builder.this.init
+		override def finish[EX](extra:EX)(folding:Middle):ParserRetVal[Result, Nothing, Nothing, Failure, EX] = Builder.this.finish(extra)(folding)
+		
+		override def apply[Input, PF, EX](a:Middle, key:Key, b:Input, c:Parser[Key, V2, PF, EX, Input], extra:EX):ParserRetVal[Middle, Nothing, PF, Failure, EX] = {
+			Builder.this.apply(a, key, b, c.mapValue(fun), extra)
 		}
 	}
 	
@@ -103,10 +158,79 @@ trait Builder[-Key, -Value, Subject] {
 	 * Change the type of value that this builder requires, with the option of indicating an error condition
 	 * @since 3.0
 	 */
-	final def flatMapValue[V2](fun:Function1[V2,Either[(String,Int),Value]]):Builder[Key,V2,Subject] = new Builder[Key,V2,Subject] {
-		override def init:Subject = Builder.this.init
-		override def apply[Input](a:Subject, key:Key, b:Input, c:Parser[Key, V2, Input]):Either[(String, Int), Subject] = {
-			Builder.this.apply(a, key, b, c.flatMapValue(fun))
+	final def flatMapValue[V2,Err](fun:Function1[V2,Either[Err,Value]]):Builder[Key,V2,Either[Err,Failure],Result] = new Builder[Key,V2,Either[Err,Failure],Result] {
+		override type Middle = Builder.this.Middle
+		override def init:Middle = Builder.this.init
+		override def finish[EX](extra:EX)(folding:Middle):ParserRetVal[Result, Nothing, Nothing, Either[Err,Failure], EX] = {
+			Builder.this.finish(extra)(folding)
+				.builderFailure.mapLeft{new Right(_)}
+		}
+		
+		override def apply[Input, PF, EX](a:Middle, key:Key, b:Input, c:Parser[Key, V2, PF, EX, Input], extra:EX):ParserRetVal[Middle, Nothing, PF, Either[Err,Failure], EX] = {
+			Builder.this.apply(a, key, b, c.flatMapValueWithoutDiscardingExtra(fun, extra), extra)
+				.builderFailure.mapLeft{new Right(_)}
+				.parserFailure.flatMap{_.fold(
+					{xe => ParserRetVal.BuilderFailure(util.Left(xe._1), xe._2)},
+					ParserRetVal.ParserFailure.apply _
+				)}
+		}
+	}
+	
+	/**
+	 * Change the type of failure produced by this builder
+	 * @since 4.0
+	 */
+	final def mapFailure[F2](implicit fun:Function1[Failure,F2]):Builder[Key,Value,F2,Result] = new Builder[Key,Value,F2,Result] {
+		override type Middle = Builder.this.Middle
+		override def init:Middle = Builder.this.init
+		override def finish[EX](extra:EX)(folding:Middle):ParserRetVal[Result, Nothing, Nothing, F2, EX] = {
+			Builder.this.finish(extra)(folding)
+				.builderFailure.mapLeft(fun)
+		}
+		
+		override def apply[Input, PF, EX](a:Middle, key:Key, b:Input, c:Parser[Key, Value, PF, EX, Input], extra:EX):ParserRetVal[Middle, Nothing, PF, F2, EX] = {
+			Builder.this.apply(a, key, b, c, extra)
+				.builderFailure.mapLeft(fun)
+		}
+	}
+	
+	/**
+	 * Change the type of result produced by this builder
+	 * @since 4.0
+	 */
+	final def mapResult[R2](implicit fun:Function1[Result,R2]):Builder[Key,Value,Failure,R2] = new Builder[Key,Value,Failure,R2] {
+		override type Middle = Builder.this.Middle
+		override def init:Middle = Builder.this.init
+		override def apply[Input, PF, EX](
+				a:Middle, key:Key, b:Input, c:Parser[Key, Value, PF, EX, Input], extra:EX
+		):ParserRetVal[Middle, Nothing, PF, Failure, EX] = {
+			Builder.this.apply(a, key, b, c, extra)
+		}
+		
+		override def finish[EX](extra:EX)(folding:Middle):ParserRetVal[R2, Nothing, Nothing, Failure, EX] = {
+			Builder.this.finish(extra)(folding).complex.map(fun)
+		}
+	}
+	
+	/**
+	 * Change the type of result produced by this builder, with the option of indicating an error condition
+	 * @since 4.0
+	 */
+	final def flatMapResult[R2,Err](fun:Function1[Result,Either[Err,R2]]):Builder[Key,Value,Either[Err,Failure],R2] = new Builder[Key,Value,Either[Err,Failure],R2] {
+		override type Middle = Builder.this.Middle
+		override def init:Middle = Builder.this.init
+		override def apply[Input, PF, EX](a:Middle, key:Key, b:Input, c:Parser[Key, Value, PF, EX, Input], extra:EX):ParserRetVal[Middle, Nothing, PF, Either[Err,Failure], EX] = {
+			Builder.this.apply(a, key, b, c, extra)
+				.builderFailure.mapLeft(Right.apply _)
+		}
+		
+		override def finish[EX](extra:EX)(folding:Middle):ParserRetVal[R2, Nothing, Nothing, Either[Err,Failure], EX] = {
+			Builder.this.finish(extra)(folding)
+				.builderFailure.mapLeft(Right.apply _)
+				.complex.flatMap{x => fun(x).fold(
+					{x => ParserRetVal.BuilderFailure(util.Left(x), extra)},
+					ParserRetVal.Complex.apply _
+				)}
 		}
 	}
 	
@@ -120,29 +244,41 @@ trait Builder[-Key, -Value, Subject] {
 	 * @param that the other builder
 	 * @since 3.1
 	 */
-	final def zip[K2, V2, S2](that:Builder[K2, V2, S2])(implicit evk: K2 <:< Key, evv: V2 <:< Value):Builder[K2,V2,(Subject, S2)] = new Builder[K2,V2,(Subject, S2)] {
+	final def zip[K2, V2, F2, R2](that:Builder[K2, V2, F2, R2])(implicit evk: K2 <:< Key, evv: V2 <:< Value, evf: Failure <:< F2):Builder[K2,V2,F2,(Result, R2)] = new Builder[K2,V2,F2,(Result,R2)] {
 		private[this] val astBuilder = MapBuilder.apply[K2, V2]
 		private[this] val ast2Parser = new com.rayrobdod.json.parser.RecursiveMapParser[K2, V2]
 		private[this] val ident2Parser = new com.rayrobdod.json.parser.IdentityParser[V2]
 		private[this] val ast1Parser = ast2Parser.mapKey(evk).mapValue(evv)
 		private[this] val ident1Parser = ident2Parser.mapValue(evv)
 		
-		override def init:(Subject, S2) = ((Builder.this.init, that.init))
-		override def apply[Input](a:(Subject, S2), key:K2, b:Input, c:Parser[K2, V2, Input]):Either[(String, Int), (Subject, S2)] = {
+		override type Middle = ((Builder.this.Middle, that.Middle))
+		override def init:Middle = ((Builder.this.init, that.init))
+		
+		override def finish[EX](extra:EX)(folding:Middle):ParserRetVal[(Result, R2), Nothing, Nothing, F2, EX] = {
+			for (
+				left <- Builder.this.finish(extra)(folding._1).builderFailure.mapLeft(evf).complex;
+				right <- that.finish(extra)(folding._2).complex
+			) yield {
+				((left, right))
+			}
+		}
+		
+		override def apply[Input, PF, EX](a:Middle, key:K2, b:Input, c:Parser[K2, V2, PF, EX, Input], extra:EX):ParserRetVal[Middle, Nothing, PF, F2, EX] = {
 			// `b` might be mutable, so `c.parse(…, c)` can only be called once;
 			// `ast` or `value` however are not, so those may be parsed multiple times 
 			c.parse(astBuilder, b).fold(
 				{ast:Map[K2, Either[MapBuilder.RecursiveSubject[K2, V2], V2]] =>
-					val e1 = Builder.this.apply(a._1, key, ast, ast1Parser)
-					val e2 = that.apply(a._2, key, ast, ast2Parser)
-					for {r1 <- e1.right; r2 <- e2.right} yield {((r1, r2))}
+					val e1:ParserRetVal[Builder.this.Middle, Nothing, PF, F2, EX] = Builder.this.apply(a._1, key, ast, ast1Parser, ()).builderFailure.map{(b, e:Unit) => (evf(b), extra)}
+					val e2:ParserRetVal[that.Middle, Nothing, PF, F2, EX] = that.apply(a._2, key, ast, ast2Parser, ()).builderFailure.map{(b, e:Unit) => (b, extra)}
+					for {r1 <- e1.complex; r2 <- e2.complex} yield {((r1, r2))}
 				},
 				{value:V2 => 
-					val e1 = Builder.this.apply(a._1, key, value, ident1Parser)
-					val e2 = that.apply(a._2, key, value, ident2Parser)
-					for {r1 <- e1.right; r2 <- e2.right} yield {((r1, r2))}
+					val e1 = Builder.this.apply(a._1, key, value, ident1Parser, ()).builderFailure.map{(b, e:Unit) => (evf(b), extra)}
+					val e2 = that.apply(a._2, key, value, ident2Parser, ()).builderFailure.map{(b, e:Unit) => (b, extra)}
+					for {r1 <- e1.complex; r2 <- e2.complex} yield {((r1, r2))}
 				},
-				{(s,i) => Left(s,i)}
+				ParserRetVal.ParserFailure.apply _,
+				{(x:Nothing, ex) => x}
 			)
 		}
 	}

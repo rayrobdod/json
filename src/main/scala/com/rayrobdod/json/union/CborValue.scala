@@ -28,6 +28,9 @@ package com.rayrobdod.json.union
 
 import java.math.MathContext.UNLIMITED
 import scala.language.implicitConversions
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures
+import com.rayrobdod.json.builder.PiecewiseBuilder.Failures.UnsuccessfulTypeCoercion
+
 
 /**
  * A union type representing primitive types in Cbor objects
@@ -55,43 +58,94 @@ sealed trait CborValue {
 	}
 	
 	/**
+	 * Executes `then(this.s)` if this is a CborValueString; otherwise executes `else(this)`
+	 * @since 4.0
+	 */
+	final def ifIsString[A](`then`:String => A, `else`:CborValue => A):A = this match {
+		case CborValueString(s) => `then`(s)
+		case v => `else`(v)
+	}
+	
+	/**
 	 * Executes and returns `fs(this.s)` if this is a CborValueString, else return a Left with an error message
 	 */
-	final def stringToEither[A](fs:String => Either[(String, Int),A]):Either[(String, Int),A] = {
-		val unexpected = new ReturnLeft("Expected string")
+	final def stringToEither[A](fs:String => Either[Failures, A]):Either[Failures, A] = {
+		val unexpected = new ReturnLeft("String")
 		this.fold(fs, unexpected, unexpected, unexpected, unexpected)
+	}
+	
+	/**
+	 * Executes `then(this.s)` if this is a CborValueByteStr; otherwise executes `else(this)`
+	 * @since 4.0
+	 */
+	final def ifIsByteArray[A](`then`:Array[Byte] => A, `else`:CborValue => A):A = this match {
+		case CborValueByteStr(s) => `then`(s)
+		case v => `else`(v)
 	}
 	
 	/**
 	 * Executes and returns `fs(this.s)` if this is a CborValueByteStr, else return a Left with an error message
 	 */
-	final def byteArrayToEither[A](fs:Array[Byte] => Either[(String, Int),A]):Either[(String, Int),A] = {
-		val unexpected = new ReturnLeft("Expected string")
+	final def byteArrayToEither[A](fs:Array[Byte] => Either[Failures, A]):Either[Failures, A] = {
+		val unexpected = new ReturnLeft("Byte String")
 		this.fold(unexpected, fs, unexpected, unexpected, unexpected)
+	}
+	
+	/**
+	 * Executes `then(this.s)` if this is a CborValueNumber containing an Int; otherwise executes `else(this)`
+	 * @since 4.0
+	 */
+	final def ifIsInteger[A](`then`:Int => A, `else`:CborValue => A):A = this match {
+		case CborValueNumber(n) => {
+			n.tryToInt.fold(
+				`else`( CborValueNumber(n) )
+			){intValue =>
+				`then`(intValue)
+			}
+		}
+		case v => `else`(v)
 	}
 	
 	/**
 	 * Executes and returns `fi(this.i)` if this is a CborValueNumber which holds an number convertible to integer, else return a Left with an error message.
 	 */
-	final def integerToEither[A](fi:Int => Either[(String, Int),A]):Either[(String, Int),A] = {
-		val number = {n:Rational => n.tryToInt.fold[Either[(String, Int), A]](Left(("Expected integral number", 0))){fi}}
-		val unexpected = new ReturnLeft("Expected integral number")
+	final def integerToEither[A](fi:Int => Either[Failures, A]):Either[Failures, A] = {
+		val unexpected = new ReturnLeft("Int")
+		val number = {n:Rational => n.tryToInt.fold[Either[Failures, A]](unexpected(n)){fi}}
 		this.fold(unexpected, unexpected, number, unexpected, unexpected)
+	}
+	
+	/**
+	 * Executes `then(this.s)` if this is a CborValueNumber; otherwise executes `else(this)`
+	 * @since 4.0
+	 */
+	final def ifIsNumber[A](`then`:Rational => A, `else`:CborValue => A):A = this match {
+		case CborValueNumber(n) => `then`(n)
+		case v => `else`(v)
 	}
 	
 	/**
 	 * Executes and returns `fn(this.i)` if this is a CborValueNumber, else return a Left with an error message.
 	 */
-	final def numberToEither[A](fn:Rational => Either[(String, Int),A]):Either[(String, Int),A] = {
-		val unexpected = new ReturnLeft("Expected number")
+	final def numberToEither[A](fn:Rational => Either[Failures, A]):Either[Failures, A] = {
+		val unexpected = new ReturnLeft("Rational")
 		this.fold(unexpected, unexpected, fn, unexpected, unexpected)
+	}
+	
+	/**
+	 * Executes `then(this.s)` if this is a CborValueBoolean; otherwise executes `else(this)`
+	 * @since 4.0
+	 */
+	final def ifIsBoolean[A](`then`:Boolean => A, `else`:CborValue => A):A = this match {
+		case CborValueBoolean(b) => `then`(b)
+		case v => `else`(v)
 	}
 	
 	/**
 	 * Executes and returns `fb(this.b)` if this is a CborValueBoolean, else return a Left with an error message
 	 */
-	final def booleanToEither[A](fb:Boolean => Either[(String, Int),A]):Either[(String, Int),A] = {
-		val unexpected = new ReturnLeft("Expected boolean")
+	final def booleanToEither[A](fb:Boolean => Either[Failures,A]):Either[Failures,A] = {
+		val unexpected = new ReturnLeft("Boolean")
 		this.fold(unexpected, unexpected, unexpected, fb, unexpected)
 	}
 }
@@ -152,14 +206,14 @@ object CborValue {
 		case JsonValue.JsonValueNull => CborValue.CborValueNull
 	}
 	
-	private class ReturnLeft(msg:String) extends Function1[Any, Either[(String, Int), Nothing]] with Function0[Either[(String, Int), Nothing]] {
-		def apply():Either[(String, Int), Nothing] = Left(msg, 0)
-		def apply(x:Any):Either[(String, Int), Nothing] = Left(msg, 0)
+	private class ReturnLeft(toType:String) extends Function1[Any, Either[UnsuccessfulTypeCoercion.type, Nothing]] with Function0[Either[UnsuccessfulTypeCoercion.type, Nothing]] {
+		def apply():Either[UnsuccessfulTypeCoercion.type, Nothing] = Left(UnsuccessfulTypeCoercion)
+		def apply(x:Any):Either[UnsuccessfulTypeCoercion.type, Nothing] = Left(UnsuccessfulTypeCoercion)
 	}
 	
 	
 	/**
-	 * A value represeting a whole number divided by another whole number
+	 * A value representing a whole number divided by another whole number
 	 * @since 3.1
 	 */
 	final case class Rational(val num:BigInt, val denom:BigInt) {

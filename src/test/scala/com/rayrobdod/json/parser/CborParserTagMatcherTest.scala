@@ -75,11 +75,11 @@ class CborParserTagMatcherTest extends FunSpec {
 				}
 				it ("fails when given a posint") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(2).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"11" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"11" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 				it ("fails when given an array") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(2).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"8400010203" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"8400010203" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 			}
 			describe("unapply(3) neg bigint") {
@@ -92,11 +92,11 @@ class CborParserTagMatcherTest extends FunSpec {
 				}
 				it ("fails when given a posint") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(3).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"11" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"11" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 				it ("fails when given an array") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(3).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"8400010203" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"8400010203" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 			}
 			describe("unapply(4) decimal bigfloat") {
@@ -113,27 +113,27 @@ class CborParserTagMatcherTest extends FunSpec {
 				}
 				it ("fails when given a posint") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(4).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"11" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"11" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 				ignore ("fails when given a single-element array") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(4).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"8104" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"8104" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 				it ("fails when given a three-element array") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(4).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"83010203" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"83010203" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 				it ("fails when given a string array") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(4).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"824040" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"824040" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 				it ("fails when given a float array") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(4).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"82 FA3FC00000 FA3FC00000" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"82 FA3FC00000 FA3FC00000" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 				it ("fails when given a map") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(4).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"A2 4121 01 4222 02" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"A2 4121 01 4222 02" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 			}
 			describe("unapply(5) binary bigfloat") {
@@ -150,27 +150,27 @@ class CborParserTagMatcherTest extends FunSpec {
 				}
 				it ("fails when given a posint") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(5).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"11" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"11" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 				ignore ("fails when given a single-element array") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(5).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"8104" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"8104" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 				it ("fails when given a three-element array") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(5).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"83010203" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"83010203" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 				it ("fails when given a string array") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(5).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"824040" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"824040" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 				it ("fails when given a float array") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(5).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"82 FA3FC00000 FA3FC00000" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"82 FA3FC00000 FA3FC00000" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 				it ("fails when given a map") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(5).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"A2 4121 01 4222 02" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"A2 4121 01 4222 02" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 			}
 			describe("unapply(30) decimal bigfloat") {
@@ -187,27 +187,27 @@ class CborParserTagMatcherTest extends FunSpec {
 				}
 				it ("fails when given a posint") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(30).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"11" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"11" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 				ignore ("fails when given a single-element array") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(30).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"8104" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"8104" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 				it ("fails when given a three-element array") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(30).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"83010203" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"83010203" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 				it ("fails when given a string array") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(30).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"824040" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"824040" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 				it ("fails when given a float array") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(30).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"82 FA3FC00000 FA3FC00000" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"82 FA3FC00000 FA3FC00000" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 				it ("fails when given a map") {
 					val tagFun = CborParser.TagMatcher.numbers.unapply(30).get
-					assert( tagFun.apply( MapBuilder.apply, hexArray"A2 4121 01 4222 02" ).isInstanceOf[ParseReturnValueFailure] )
+					assert( tagFun.apply( MapBuilder.apply, hexArray"A2 4121 01 4222 02" ).isInstanceOf[ParseReturnValueParserFailure] )
 				}
 			}
 			it ("unapply returns none for any other value") {

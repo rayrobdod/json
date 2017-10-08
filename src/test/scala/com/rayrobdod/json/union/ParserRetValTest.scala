@@ -31,21 +31,89 @@ import com.rayrobdod.json.union.ParserRetVal._
 
 final class ParserRetValTest extends FunSpec {
 	
+	describe("ParserRetVal") {
+		describe("map") {
+			it ("is available for Complex =:= Nothing") {
+				assertResult(Primitive(6)){
+					(Primitive(3)).map{x:Int => x * 2}
+				}
+			}
+			it ("is available for Primitive =:= Nothing") {
+				assertResult(Complex(6)){
+					(Complex(3)).map{x:Int => x * 2}
+				}
+			}
+			it ("is not available if neither success param is Nothing") {
+				val x:ParserRetVal[Int, Int, Nothing, Nothing, Nothing] = Complex(3)
+				assertDoesNotCompile("""
+					val x:ParserRetVal[Int, Int, Nothing, Nothing] = Complex(3)
+					x.map{x => x * 2}
+				""")
+			}
+		}
+		describe("flatMap") {
+			it ("is available for Complex =:= Nothing") {
+				assertResult(Complex(6)){
+					(Primitive(3)).flatMap{x:Int => Complex(x * 2)}
+				}
+			}
+			it ("is available for Primitive =:= Nothing") {
+				assertResult(Primitive(6)){
+					(Complex(3)).flatMap{x:Int => Primitive(x * 2)}
+				}
+			}
+			it ("is not available if neither success param is Nothing") {
+				val x:ParserRetVal[Int, Int, Nothing, Nothing, Nothing] = Complex(3)
+				assertDoesNotCompile("""
+					val x:ParserRetVal[Int, Int, Nothing, Nothing, Nothing] = Complex(3)
+					x.flatMap{x => x * 2}
+				""")
+			}
+		}
+		describe("flip") {
+			it ("Complex => Primitive") {
+				assertResult(Complex(6)){Primitive(6).flip}
+			}
+			it ("is available for Primitive =:= Nothing") {
+				assertResult(Primitive(6)){Complex(6).flip}
+			}
+		}
+		
+	}
+	
 	describe("ComplexProjection") {
 		describe("map") {
 			it("Complex") { assertResult(Complex(12)){Complex(6).complex.map{x:Int => x * 2}} }
 			it("Primitive") { assertResult(Primitive(3)){Primitive(3).complex.map{x:Int => x * 2}} }
-			it("Failure") { assertResult(Failure("a", 23)){Failure("a", 23).complex.map{x:Int => x * 2}} }
+			it("BuilderFailure") { assertResult(BuilderFailure("a", "b")){BuilderFailure("a", "b").complex.map{x:Int => x * 2}} }
+			it("ParserFailure") { assertResult(ParserFailure("a")){ParserFailure("a").complex.map{x:Int => x * 2}} }
 		}
 		describe("flatmap") {
 			it("Complex") { assertResult(Primitive(12)){Complex(6).complex.flatMap{x:Int => Primitive(x * 2)}} }
 			it("Primitive") { assertResult(Primitive(3)){Primitive(3).complex.flatMap{x:Int => Primitive(x * 2)}} }
-			it("Failure") { assertResult(Failure("a", 23)){Failure("a", 23).complex.flatMap{x:Int => Primitive(x * 2)}} }
+			it("BuilderFailure") { assertResult(BuilderFailure("a", "b")){BuilderFailure("a", "b").complex.flatMap{x:Int => Primitive(x * 2)}} }
+			it("ParserFailure") { assertResult(ParserFailure("a")){ParserFailure("a").complex.flatMap{x:Int => Primitive(x * 2)}} }
 		}
-		describe("toEither") {
-			it("Complex") { assertResult(Right(6)){Complex(6).complex.toEither} }
-			it("Primitive") { assertResult(Left(("Expected complex value", 0))){Primitive(3).complex.toEither} }
-			it("Failure") { assertResult(Left(("a", 23))){Failure("a", 23).complex.toEither} }
+	}
+	
+	describe("BuilderFailureProjection") {
+		
+		describe("attachExtra") {
+			it ("is available for Extra =:= Nothing") {
+				assertResult(Complex(6)){
+					(Complex(6)).builderFailure.attachExtra("foo")
+				}
+			}
+			it ("is available for Extra =:= Unit") {
+				assertResult(BuilderFailure(6, "foo")){
+					(BuilderFailure(6, ())).builderFailure.attachExtra("foo")
+				}
+			}
+			it ("is not available otherwise") {
+				assertDoesNotCompile("""
+					(BuilderFailure(6, "whee")).builderFailure.attachExtra("foo")
+				""")
+			}
 		}
 	}
 }	

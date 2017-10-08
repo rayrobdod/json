@@ -8,7 +8,7 @@ homepage := Some(new URL("http://rayrobdod.name/programming/libraries/java/json/
 
 apiURL := Some(url(s"http://doc.rayrobdod.name/json/${version.value}/"))
 
-version := "3.1"
+version := "4.0-RC1"
 
 scalaVersion := "2.10.6"
 
@@ -34,6 +34,7 @@ scalacOptions in doc in Compile ++= Seq(
 		"-doc-version", version.value,
 		"-doc-root-content", ((scalaSource in Compile).value / "rootdoc.txt").toString,
 		"-diagrams",
+		"-groups",
 		"-sourcepath", baseDirectory.value.toString,
 		"-doc-source-url", "https://github.com/rayrobdod/json/tree/" + version.value + "€{FILE_PATH}.scala"
 )

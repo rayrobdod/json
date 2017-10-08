@@ -28,38 +28,39 @@ package com.rayrobdod.json.parser
 
 import com.rayrobdod.json.builder.Builder
 import com.rayrobdod.json.union.ParserRetVal
+import com.rayrobdod.json.union.ParserRetVal.Complex
 
 /**
  * A parser that reads each key-value pair from a Map
- * @version 3.0
+ * @version 4.0
  * 
  * @tparam K the type of keys contained in the Map
  * @tparam V the type of values contained in the Map
  * @constructor
  * Create a MapParser
  */
-final class MapParser[K,V] extends Parser[K,V,Map[K,V]] {
+final class MapParser[K,V] extends Parser[K,V,Nothing,Unit,Map[K,V]] {
 	/**
 	 * Decodes the input values to an object.
 	 * @param vals the sequence containing values
 	 * @return the parsed object
 	 */
-	def parse[A](topBuilder:Builder[K,V,A], vals:Map[K, V]):ParserRetVal[A,V] = {
-		val a = vals.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], keyValue:(K, V)) => 
+	def parse[A,BF](topBuilder:Builder[K,V,BF,A], vals:Map[K, V]):ParserRetVal[A, Nothing, Nothing, BF, Unit] = {
+		vals.foldLeft[ParserRetVal[topBuilder.Middle, Nothing, Nothing, BF, Unit]](Complex(topBuilder.init)){(state, keyValue:(K, V)) => 
 			val (key, value) = keyValue;
-			state.right.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[V])}
-		}
-		ParserRetVal.eitherToComplex(a)
+			state.complex.flatMap{x => topBuilder.apply(x, key, value, new IdentityParser[V], ())}
+		}.complex.flatMap{topBuilder.finish(())}
 	}
 }
 
 /**
  * A parser that can parse the results of recursive MapBuilder builds
+ * @version 4.0
  * @tparam K the type of keys contained in the Map
  * @tparam V the primitive values contained in the Map
  * @since 3.1
  */
-final class RecursiveMapParser[K,V] extends Parser[K, V, com.rayrobdod.json.builder.MapBuilder.RecursiveSubjectType[K,V]] {
+final class RecursiveMapParser[K,V] extends Parser[K, V, Nothing, Unit, com.rayrobdod.json.builder.MapBuilder.RecursiveSubjectType[K,V]] {
 	import com.rayrobdod.json.builder.MapBuilder
 	type RecursiveSubjectTupleType[K,V] = Tuple2[K, Either[MapBuilder.RecursiveSubject[K, V], V]]
 	
@@ -68,17 +69,16 @@ final class RecursiveMapParser[K,V] extends Parser[K, V, com.rayrobdod.json.buil
 	 * @param vals the sequence containing values
 	 * @return the parsed object
 	 */
-	def parse[A](topBuilder:Builder[K,V,A], vals:MapBuilder.RecursiveSubjectType[K,V]):ParserRetVal[A,V] = {
-		val a = vals.foldLeft[Either[(String,Int),A]](Right(topBuilder.init)){(state:Either[(String,Int),A], keyValue:RecursiveSubjectTupleType[K,V]) => 
+	def parse[A,BF](topBuilder:Builder[K,V,BF,A], vals:MapBuilder.RecursiveSubjectType[K,V]):ParserRetVal[A, Nothing, Nothing, BF, Unit] = {
+		vals.foldLeft[ParserRetVal[topBuilder.Middle, Nothing, Nothing, BF, Unit]](Complex(topBuilder.init)){(state, keyValue:RecursiveSubjectTupleType[K,V]) => 
 			val (key, value) = keyValue;
-			state.right.flatMap{folding =>
+			state.complex.flatMap{folding =>
 				value.fold({complex:MapBuilder.RecursiveSubject[K,V] =>
-					topBuilder.apply(folding, key, complex.value, RecursiveMapParser.this)
+					topBuilder.apply(folding, key, complex.value, RecursiveMapParser.this, ())
 				}, {simple =>
-					topBuilder.apply(folding, key, simple, new IdentityParser[V])
+					topBuilder.apply(folding, key, simple, new IdentityParser[V], ())
 				})
 			}
-		}
-		ParserRetVal.eitherToComplex(a)
+		}.complex.flatMap{topBuilder.finish(())}
 	}
 }

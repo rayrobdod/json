@@ -29,6 +29,7 @@ package com.rayrobdod.json.builder;
 import scala.collection.immutable.Map
 import com.rayrobdod.json.parser.Parser
 import com.rayrobdod.json.union.ParserRetVal
+import com.rayrobdod.json.union.ParserRetVal.{Complex, Primitive, BuilderFailure, ParserFailure}
 
 /**
  * A Builder which can be built piecewise.
@@ -50,6 +51,7 @@ import com.rayrobdod.json.union.ParserRetVal
  * }}}
  * 
  * @since 3.0
+ * @version 4.0
  * @see Inspired by [[https://github.com/scopt/scopt/]]
  * 
  * @tparam Key the key types
@@ -64,7 +66,7 @@ final class PiecewiseBuilder[Key, Value, Subject](
 		val init:Subject,
 		defaultKeyDef:PiecewiseBuilder.KeyDef[Key, Value, Subject] = PiecewiseBuilder.throwKeyDef[Key, Value, Subject],
 		keyDefs:Map[Key, PiecewiseBuilder.KeyDef[Key, Value, Subject]] = Map.empty[Key, PiecewiseBuilder.KeyDef[Key, Value, Subject]]
-) extends Builder[Key, Value, Subject] {
+) extends Builder[Key, Value, PiecewiseBuilder.Failures, Subject] {
 	
 	/** add a KeyDef that will be used upon receiving the given key */
 	def addDef(key:Key, fun:PiecewiseBuilder.KeyDef[Key, Value, Subject]):PiecewiseBuilder[Key, Value, Subject] = {
@@ -75,48 +77,88 @@ final class PiecewiseBuilder[Key, Value, Subject](
 		new PiecewiseBuilder(init, PiecewiseBuilder.ignoreKeyDef[Key, Value, Subject], keyDefs)
 	}
 	
+	override type Middle = Subject
 	
-	override def apply[Input](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject] = {
-		keyDefs.getOrElse(key, defaultKeyDef).apply(folding, input, parser)
+	override def apply[Input, PF, BE](folding:Subject, key:Key, input:Input, parser:Parser[Key, Value, PF, BE, Input], extra:BE):ParserRetVal[Subject, Nothing, PF, PiecewiseBuilder.Failures, BE] = {
+		keyDefs.getOrElse(key, defaultKeyDef).apply(folding, input, parser, extra)
 	}
+	
+	override def finish[BE](extra:BE)(folding:Subject):ParserRetVal.Complex[Subject] = ParserRetVal.Complex(folding)
 }
 
 /**
  * KeyDef and several implementations
  * @since 3.0
+ * @version 4.0
  */
-object PiecewiseBuilder{
-	private[this] val unexpectedValueErrorMessage:Function1[Any, Left[(String, Int), Nothing]] = {x => Left("Unexpected value: " + x, 0)}
+object PiecewiseBuilder {
+	import Failures._
+	
+	/**
+	 * Possible failures that can occur in a PiecewiseBuilder
+	 * @since 4.0
+	 */
+	sealed trait Failures
+	/**
+	 * Possible failures that can occur in a PiecewiseBuilder
+	 * @since 4.0
+	 */
+	object Failures {
+		object UnsuccessfulTypeCoercion extends Failures
+		object ExpectedComplex extends Failures
+		object ExpectedPrimitive extends Failures
+		object UnknownKey extends Failures
+	}
+	
 	
 	/**
 	 * A three-input function that accepts an object to build upon, and a input-parser pair that indicates a new value
 	 * @since 3.0
+	 * @version 4.0
 	 */
 	abstract class KeyDef[Key, Value, Subject] {
 		/** add a key-value pair to `s`; where `p.parse(someBuilder, i)` is the value, and the key is hard-coded. */
-		def apply[Input](s:Subject, i:Input, p:Parser[Key, Value, Input]):Either[(String, Int), Subject]
+		def apply[Input, PF, BE](s:Subject, i:Input, p:Parser[Key, Value, PF, BE, Input], extra:BE):ParserRetVal[Subject, Nothing, PF, PiecewiseBuilder.Failures, BE]
 	}
 	
 	/**
 	 * A KeyDef that is partitioned into a set of component functions
 	 * 
 	 * @since 3.0
-	 * @param builder the builder that handles input.
+	 * @version 4.0
+	 * @param builder the builder that handles input.                                                            
 	 * @param convert convert a builder result into a value usable by fold. This is a partial function;
 	 *       anything not defined by this function is turned into an error value.
 	 * @param fold combine the previous subject and a successful convert into a new subject.
 	 */
 	def partitionedKeyDef[Key, Value, Subject, BuilderResult, MiddleType](
-		builder:Builder[Key, Value, BuilderResult],
-		convert:PartialFunction[ParserRetVal[BuilderResult, Value], Either[(String, Int), MiddleType]],
+		builder:Builder[Key, Value, PiecewiseBuilder.Failures, BuilderResult],
+		convert:PartialFunction[ParserRetVal[BuilderResult, Value, Nothing, Nothing, Nothing], ParserRetVal[MiddleType, Nothing, Nothing, PiecewiseBuilder.Failures, Unit]],
 		fold:Function2[Subject, MiddleType, Subject]
 	):KeyDef[Key, Value, Subject] = new KeyDef[Key, Value, Subject]{
-		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject] = {
+		def apply[Input, PF, BE](folding:Subject, input:Input, parser:Parser[Key, Value, PF, BE, Input], extra:BE):ParserRetVal[Subject, Nothing, PF, PiecewiseBuilder.Failures, BE] = {
 			val parserRetVal = parser.parse(builder, input)
-			if (convert.isDefinedAt(parserRetVal)) {
-				convert(parserRetVal).right.map{x:MiddleType => fold(folding, x)}
-			} else {
-				parserRetVal.fold(unexpectedValueErrorMessage, unexpectedValueErrorMessage, {(s, i) => Left(s,i)})
+			parserRetVal match {
+				case c:Complex[BuilderResult] => {
+					if (convert.isDefinedAt(c)) {
+						convert(c)
+							.complex.map{x:MiddleType => fold(folding, x)}
+							.builderFailure.attachExtra(extra)
+					} else {
+						BuilderFailure(UnsuccessfulTypeCoercion, extra)
+					}
+				}
+				case p:Primitive[Value] => {
+					if (convert.isDefinedAt(p)) {
+						convert(p)
+							.complex.map{x:MiddleType => fold(folding, x)}
+							.builderFailure.attachExtra(extra)
+					} else {
+						BuilderFailure(UnsuccessfulTypeCoercion, extra)
+					}
+				}
+				case p:ParserFailure[PF] => p
+				case b:BuilderFailure[PiecewiseBuilder.Failures, BE] => b
 			}
 		}
 	}
@@ -125,21 +167,22 @@ object PiecewiseBuilder{
 	 * A KeyDef that is partitioned into a set of component functions with the expectation of complex values
 	 * 
 	 * @since 3.0
+	 * @version 4.0
 	 * @param builder the builder that handles input.
 	 * @param fold combine the previous subject and a successful convert into a new subject.
 	 */
 	def partitionedComplexKeyDef[Key, Value, Subject, BuilderResult](
-		builder:Builder[Key, Value, BuilderResult],
-		fold:Function2[Subject, BuilderResult, Either[(String, Int), Subject]]
+		builder:Builder[Key, Value, PiecewiseBuilder.Failures, BuilderResult],
+		fold:Function2[Subject, BuilderResult, ParserRetVal[Subject, Nothing, Nothing, PiecewiseBuilder.Failures, Unit]]
 	):KeyDef[Key, Value, Subject] = new KeyDef[Key, Value, Subject]{
-		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject] = {
+		def apply[Input, PF, BE](folding:Subject, input:Input, parser:Parser[Key, Value, PF, BE, Input], extra:BE):ParserRetVal[Subject, Nothing, PF, PiecewiseBuilder.Failures, BE] = {
 			parser.parse(builder, input)
 				.fold(
-					{x => Right(x)},
-					unexpectedValueErrorMessage,
-					{(s,i) => Left(s,i)}
+					{c => fold(folding, c).builderFailure.attachExtra(extra)},
+					{p => BuilderFailure(ExpectedComplex, extra)},
+					{f => ParserFailure(f)},
+					{(b, e) => BuilderFailure(b, e)}
 				)
-				.right.flatMap{x:BuilderResult => fold(folding, x)}
 		}
 	}
 	
@@ -147,34 +190,49 @@ object PiecewiseBuilder{
 	 * A KeyDef that is partitioned into a set of component functions with the expectation of primitive values
 	 * 
 	 * @since 3.0
+	 * @version 4.0
 	 * @param convert convert a builder result into a value usable by fold. This is a partial function;
 	 *       anything not defined by this function is turned into an error value.
 	 * @param fold combine the previous subject and a successful convert into a new subject.
 	 */
 	def partitionedPrimitiveKeyDef[Key, Value, Subject, MiddleType](
-		convert:PartialFunction[Value, Either[(String, Int), MiddleType]],
+		convert:PartialFunction[Value, MiddleType],
 		fold:Function2[Subject, MiddleType, Subject]
 	):KeyDef[Key, Value, Subject] = new KeyDef[Key, Value, Subject]{
-		def apply[Input](folding:Subject, input:Input, parser:Parser[Key, Value, Input]):Either[(String, Int), Subject] = {
-			parser.parsePrimitive(input)
-				.right.flatMap{value => (if (convert.isDefinedAt(value)) { convert.apply(value) } else { unexpectedValueErrorMessage(value) } )}
-				.right.map{x:MiddleType => fold(folding, x)}
+		def apply[Input, PF, BE](folding:Subject, input:Input, parser:Parser[Key, Value, PF, BE, Input], extra:BE):ParserRetVal[Subject, Nothing, PF, PiecewiseBuilder.Failures, BE] = {
+			val a:ParserRetVal[Nothing, Value, PF, ExpectedPrimitive.type, BE] = parser.parsePrimitive(input, ExpectedPrimitive)
+			val b = a.primitive.flatMap{value:Value =>
+				if (convert.isDefinedAt(value)) {
+					Complex(convert.apply(value))
+				} else {
+					BuilderFailure(UnsuccessfulTypeCoercion, extra)
+				}
+			}
+			b.complex.map{x:MiddleType => fold(folding, x)}
 		}
 	}
 	
 	/** 
 	 * A KeyDef that returns the folding value unchanged
 	 * @since 3.0
+	 * @version 4.0
 	 */
 	def ignoreKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
-		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):Either[(String, Int), A] = Right(s)
+		def apply[Input, PF, BE](s:A, i:Input, p:Parser[K,V,PF,BE,Input], extra:BE):ParserRetVal[A, Nothing, PF, PiecewiseBuilder.Failures,BE] = {
+			val builder = new PiecewiseBuilder[K,V,A](s).ignoreUnknownKeys
+			val blackHole = p.parse(builder, i)
+			Complex(s)
+		}
 	}
 	
 	/**
 	 * A KeyDef that returns an error message
 	 * @since 3.0
+	 * @version 4.0
 	 */
 	def throwKeyDef[K,V,A]:KeyDef[K,V,A] = new KeyDef[K,V,A]{
-		def apply[Input](s:A, i:Input, p:Parser[K,V,Input]):Either[(String, Int), A] = Left("PiecewiseBuilder has no KeyDef for given key", 0)
+		def apply[Input,PF,BE](s:A, i:Input, p:Parser[K,V,PF,BE,Input], extra:BE):ParserRetVal[A, Nothing, PF, PiecewiseBuilder.Failures, BE] = {
+			BuilderFailure(UnknownKey, extra)
+		}
 	}
 }

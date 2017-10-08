@@ -27,11 +27,12 @@
 package com.rayrobdod.json.builder;
 
 import scala.collection.immutable.Map;
-import scala.util.{Either, Right, Left}
+import scala.util.Right
 import org.scalatest.FunSpec;
 import com.rayrobdod.json.parser.IdentityParser
 import com.rayrobdod.json.union.StringOrInt
 import com.rayrobdod.json.union.JsonValue
+import com.rayrobdod.json.union.ParserRetVal.Complex
 
 class MapBuilderTest extends FunSpec {
 	
@@ -42,16 +43,16 @@ class MapBuilderTest extends FunSpec {
 		it ("Appends value") {
 			val myValue = new Object
 			
-			assertResult(Right(Map("sdfa" -> Right(myValue)))){
-				MapBuilder.apply[String, Object].apply(Map.empty, "sdfa", myValue, new IdentityParser[Object])
+			assertResult(Complex(Map("sdfa" -> Right(myValue)))){
+				MapBuilder.apply[String, Object].apply(Map.empty, "sdfa", myValue, new IdentityParser[Object], ())
 			}
 		}
 		it ("Appends value 2") {
 			val myValue1 = new Object
 			val myValue2 = new Object
 			
-			assertResult(Right(Map("a" -> Right(myValue1), "b" -> Right(myValue2)))){
-				MapBuilder.apply[String, Object].apply(Map("a" -> Right(myValue1)), "b", myValue2, new IdentityParser[Object])
+			assertResult(Complex(Map("a" -> Right(myValue1), "b" -> Right(myValue2)))){
+				MapBuilder.apply[String, Object].apply(Map("a" -> Right(myValue1)), "b", myValue2, new IdentityParser[Object], ())
 			}
 		}
 	}
@@ -61,11 +62,11 @@ class MapBuilderTest extends FunSpec {
 		import com.rayrobdod.json.parser.JsonParser
 		
 		it ("MapBuilder + JsonParser + primitive") {
-			assertResult(Map("a" -> 61, "b" -> 62, "c" -> 63).map{x => ((StringOrInt(x._1), Right(JsonValue(x._2))))}){
+			assertResult(Complex(Map("a" -> 61, "b" -> 62, "c" -> 63).map{x => ((StringOrInt(x._1), Right(JsonValue(x._2))))})){
 				new JsonParser().parse(
 					MapBuilder[StringOrInt, JsonValue],
 					"""{"a":61, "b":62, "c":63}"""
-				).fold({x => x}, {x => x}, {(s,i) => ((s,i))})
+				)
 			}
 		}
 	}
