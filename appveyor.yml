@@ -1,28 +1,10 @@
 version: '3.1.{build}'
 os: Windows Server 2012
 install:
-  - ps: |
-      Add-Type -AssemblyName System.IO.Compression.FileSystem
-      if (!(Test-Path -Path "C:\sbt" )) {
-        (new-object System.Net.WebClient).DownloadFile(
-          'https://dl.bintray.com/sbt/native-packages/sbt/0.13.12/sbt-0.13.12.zip',
-          'C:\sbt-bin.zip'
-        )
-        [System.IO.Compression.ZipFile]::ExtractToDirectory("C:\sbt-bin.zip", "C:\sbt")
-      }
-  - ps: |
-      Add-Type -AssemblyName System.IO.Compression.FileSystem
-      if (!(Test-Path -Path "C:\graphviz" )) {
-        (new-object System.Net.WebClient).DownloadFile(
-          'http://graphviz.org/pub/graphviz/stable/windows/graphviz-2.38.zip',
-          'C:\graphviz-bin.zip'
-        )
-        [System.IO.Compression.ZipFile]::ExtractToDirectory("C:\graphviz-bin.zip", "C:\graphviz")
-      }
-      
-  - cmd: SET SBT_HOME=C:\sbt\sbt\bin
-  - cmd: SET SBT_OPTS=-Xmx512M -XX:MaxPermSize=256m
-  - cmd: SET SBT_CMD="%JAVA_HOME%\bin\java.exe" %SBT_OPTS% -cp "%SBT_HOME%\sbt-launch.jar" xsbt.boot.Boot
+  - cmd: choco install sbt
+  - cmd: C:\cygwin64\setup-x86_64.exe --no-admin -q -P graphviz
+  - cmd: refreshenv
+  - cmd: sbt update
 environment:
   matrix:
   - SCALA_VERSION: 2.10.6
@@ -35,10 +17,10 @@ environment:
     JAVA_HOME: C:\Program Files (x86)\Java\jdk1.8.0
     SBT_CROSS_TARGET: scala-2.12
 build_script:
-  - '%SBT_CMD% "set scalacOptions in doc in Compile ++= Seq(""-diagrams-dot-path"", ""C:/graphviz/release/bin/dot.exe"")" "set publishTo := Some(Resolver.file(""file"", baseDirectory.value / ""publish""))" ++%SCALA_VERSION% compile publish'
+  - 'sbt "set scalacOptions in doc in Compile ++= Seq(""-diagrams-dot-path"", ""C:/cygwin64/bin/dot.exe"")" "set publishTo := Some(Resolver.file(""file"", baseDirectory.value / ""publish""))" ++%SCALA_VERSION% compile publish'
 test_script:
   # primary purpose is to package, but might as well test too, I guess.
-  - cmd: '%SBT_CMD% ++%SCALA_VERSION% test'
+  - cmd: 'sbt ++%SCALA_VERSION% test'
   - ps: |
       $wc = New-Object 'System.Net.WebClient'
       $files=get-childitem .\target\$($env:SBT_CROSS_TARGET)\test-results-junit
