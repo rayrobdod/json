@@ -10,9 +10,9 @@ apiURL := Some(url(s"http://doc.rayrobdod.name/json/${version.value}/"))
 
 version := "3.1.1-SNAPSHOT"
 
-scalaVersion := "2.10.6"
+scalaVersion := "2.10.7"
 
-crossScalaVersions := Seq("2.10.6", "2.11.11", "2.12.3")
+crossScalaVersions := Seq("2.10.7", "2.11.12", "2.12.6")
 
 resolvers += "Sonatype OSS Staging" at "https://oss.sonatype.org/content/repositories/staging/"
 

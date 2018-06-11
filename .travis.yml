@@ -1,18 +1,21 @@
 language: scala
 
 scala:
-   - 2.10.6
-   - 2.11.11
+   - 2.10.7
+   - 2.11.12
+   - 2.12.6
 
 jdk: 
-   - oraclejdk8
-   - oraclejdk7
-   - openjdk7
+   - openjdk8
+   - openjdk10
+   - openjdk11
 
 matrix:
    include:
-      - scala: 2.12.3
-        jdk: oraclejdk8
+      - scala: 2.10.7
+        jdk: openjdk7
+      - scala: 2.11.12
+        jdk: openjdk7
 
 install:
    - sbt update
