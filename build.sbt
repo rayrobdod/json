@@ -23,10 +23,13 @@ javacOptions in Compile ++= Seq("-Xlint:deprecation", "-Xlint:unchecked", "-sour
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 
 scalacOptions ++= (scalaBinaryVersion.value match {
-	case "2.10" => Seq("-target:jvm-1.7")
-	case "2.11" => Seq("-target:jvm-1.7", "-Ywarn-unused-import", "-Ywarn-unused", "-Xlint:_", "-Xlint:-adapted-args", "-Xfuture", "-Xcheckinit")
-	case "2.12" => Seq("-target:jvm-1.8", "-Ywarn-unused-import", "-Ywarn-unused", "-Xlint:_", "-Xlint:-adapted-args", "-Xfuture", "-Xcheckinit")
-	case _ => Nil
+	case "2.10" | "2.11" => Seq("-target:jvm-1.7")
+	case _ => Seq("-target:jvm-1.8")
+})
+
+scalacOptions ++= (scalaBinaryVersion.value match {
+	case "2.10" => Seq()
+	case _ => Seq("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint:_", "-Xlint:-adapted-args", "-Xfuture", "-Xcheckinit")
 })
 
 scalacOptions in doc in Compile ++= Seq(
