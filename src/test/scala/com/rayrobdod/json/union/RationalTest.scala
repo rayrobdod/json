@@ -74,7 +74,7 @@ class CborValueRationalTest extends FunSpec {
 			it ("NegInf != Real") {
 				for (
 					a <- 1 to 30;
-					b <- -2.0 to 2.0 by 0.25
+					b <- (-8 to 8).map{_ * 0.25}
 				) {
 					assert(new Rational(-a, 0) != Rational(b))
 				}
@@ -82,7 +82,7 @@ class CborValueRationalTest extends FunSpec {
 			it ("PosInf != Real") {
 				for (
 					a <- 1 to 30;
-					b <- -2.0 to 2.0 by 0.25
+					b <- (-8 to 8).map{_ * 0.25}
 				) {
 					assert(new Rational(a, 0) != Rational(b))
 				}
@@ -90,7 +90,7 @@ class CborValueRationalTest extends FunSpec {
 			it ("Real != NegInf") {
 				for (
 					a <- 1 to 30;
-					b <- -2.0 to 2.0 by 0.25
+					b <- (-8 to 8).map{_ * 0.25}
 				) {
 					assert(Rational(b) != new Rational(-a, 0))
 				}
@@ -98,7 +98,7 @@ class CborValueRationalTest extends FunSpec {
 			it ("Real != PosInf") {
 				for (
 					a <- 1 to 30;
-					b <- -2.0 to 2.0 by 0.25
+					b <- (-8 to 8).map{_ * 0.25}
 				) {
 					assert(Rational(b) != new Rational(a, 0))
 				}

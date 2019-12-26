@@ -151,7 +151,7 @@ class JsonParserTest_Happy extends FunSpec {
 				assertResult(expected){result}
 			}
 			it (name + " (iterable)") {
-				val source = source2.to[List]
+				val source = source2.toList
 				val result = new JsonParser().parse(parser, source).fold({x => x},{x => x},{(a,b) => a})
 				assertResult(expected){result}
 			}

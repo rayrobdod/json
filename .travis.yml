@@ -3,11 +3,11 @@ language: scala
 scala:
    - 2.10.7
    - 2.11.12
-   - 2.12.6
+   - 2.12.10
+   - 2.13.1
 
 jdk: 
    - openjdk8
-   - openjdk10
    - openjdk11
 
 matrix:
@@ -21,7 +21,7 @@ install:
    - sbt update
 
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION coverage test
+   - sbt ++$TRAVIS_SCALA_VERSION coverage test
 
 after_success:
   - sbt ++$TRAVIS_SCALA_VERSION coverageReport coveralls

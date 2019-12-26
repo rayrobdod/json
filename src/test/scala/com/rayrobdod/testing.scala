@@ -47,7 +47,7 @@ package object testing {
 				.grouped(2)
 				.map{x => Integer.parseInt(x, 16)}
 				.map{_.byteValue}
-				.to[ISeq]
+				.toVector
 		}
 		def hexArray(args: Nothing*):Array[Byte] = {
 			hexSeq(args:_*).toArray

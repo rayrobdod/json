@@ -5,27 +5,32 @@ install:
   - cmd: C:\cygwin64\setup-x86_64.exe --no-admin -q -P graphviz
   - cmd: refreshenv
   - cmd: sbt update
+  - ps: |+
+     Write-Output "
+     Compile / doc / scalacOptions ++= Seq(""-diagrams-dot-path"", ""C:/cygwin64/bin/dot.exe"")
+     publishTo := Some(Resolver.file(""file"", baseDirectory.value / ""publish""))
+     Global / crossPaths := false
+     " | Out-File -Encoding ascii -LiteralPath dot.sbt
 environment:
   matrix:
   - SCALA_VERSION: 2.10.7
     JAVA_HOME: C:\Program Files (x86)\Java\jdk1.7.0
-    SBT_CROSS_TARGET: scala-2.10
   - SCALA_VERSION: 2.11.12
     JAVA_HOME: C:\Program Files (x86)\Java\jdk1.7.0
-    SBT_CROSS_TARGET: scala-2.11
-  - SCALA_VERSION: 2.12.6
+  - SCALA_VERSION: 2.12.10
     JAVA_HOME: C:\Program Files (x86)\Java\jdk1.8.0
-    SBT_CROSS_TARGET: scala-2.12
+  - SCALA_VERSION: 2.13.1
+    JAVA_HOME: C:\Program Files (x86)\Java\jdk1.8.0
 build_script:
-  - 'sbt "set scalacOptions in doc in Compile ++= Seq(""-diagrams-dot-path"", ""C:/cygwin64/bin/dot.exe"")" "set publishTo := Some(Resolver.file(""file"", baseDirectory.value / ""publish""))" ++%SCALA_VERSION% compile publish'
+  - 'sbt ++%SCALA_VERSION% compile publish'
 test_script:
   # primary purpose is to package, but might as well test too, I guess.
   - cmd: 'sbt ++%SCALA_VERSION% test'
   - ps: |
       $wc = New-Object 'System.Net.WebClient'
-      $files=get-childitem .\target\$($env:SBT_CROSS_TARGET)\test-results-junit
+      $files=get-childitem .\target\test-results-junit
       foreach ($file in $files) {
-        $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\target\$($env:SBT_CROSS_TARGET)\test-results-junit\$file))
+        $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\target\test-results-junit\$file))
       }
 artifacts:
   - path: publish

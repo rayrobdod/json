@@ -114,7 +114,7 @@ object PrettyJsonBuilder {
 		case '\t' => "\\t"
 		case x if (x < ' ') => toUnicodeEscape(x)
 		case x if (! charset.newEncoder.canEncode(x)) => toUnicodeEscape(x)
-		case x => Seq(x)
+		case x => x.toString
 	}} + "\""
 	
 	/** Convert a character into a string representing a unicode escape */

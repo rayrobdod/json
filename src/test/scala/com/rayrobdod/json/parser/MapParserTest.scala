@@ -37,7 +37,7 @@ class MapParserTest extends FunSpec {
 			val src = Map[String, Any]("a" -> 32, "b" -> Some(false), "c" -> MapBuilder.apply)
 			val res = new MapParser().parse(MapBuilder[String,Any], src).fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
 			
-			assertResult(src.mapValues{Right.apply}){res}
+			assertResult(src.mapValues{Right.apply}.toMap){res}
 		}
 		it ("""recreates an arbitrary map with nesting""") {
 			val exp = Map("a" -> Right(Map.empty), "b" -> Right(Map("x" -> true, "y" -> false)))
@@ -61,7 +61,7 @@ class MapParserTest extends FunSpec {
 			val json = new MapParser().parse(new PrettyJsonBuilder(PrettyJsonBuilder.MinifiedPrettyParams), src).fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
 			val res = new JsonParser().parse(MapBuilder[StringOrInt, JsonValue], json).fold({x => x}, {x => throw new IllegalArgumentException()}, {(a,b) => throw new IllegalArgumentException()})
 			
-			assertResult(src.mapValues{Right.apply}){res}
+			assertResult(src.mapValues{Right.apply}.toMap){res}
 		}
 	}
 }

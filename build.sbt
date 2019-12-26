@@ -12,7 +12,7 @@ version := "3.1.1-SNAPSHOT"
 
 scalaVersion := "2.10.7"
 
-crossScalaVersions := Seq("2.10.7", "2.11.12", "2.12.6")
+crossScalaVersions := Seq("2.10.7", "2.11.12", "2.12.10", "2.13.1")
 
 resolvers += "Sonatype OSS Staging" at "https://oss.sonatype.org/content/repositories/staging/"
 
@@ -29,7 +29,8 @@ scalacOptions ++= (scalaBinaryVersion.value match {
 
 scalacOptions ++= (scalaBinaryVersion.value match {
 	case "2.10" => Seq()
-	case _ => Seq("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint:_", "-Xlint:-adapted-args", "-Xfuture", "-Xcheckinit")
+	case "2.11" | "2.12" => Seq("-Ywarn-unused-import", "-Ywarn-unused", "-Xlint:_", "-Xlint:-adapted-args", "-Xfuture", "-Xcheckinit")
+	case _ => Seq("-Ywarn-unused", "-Xlint:_", "-Xlint:-adapted-args", "-Xcheckinit")
 })
 
 scalacOptions in doc in Compile ++= Seq(
@@ -70,7 +71,7 @@ scalastyleConfig := baseDirectory.value / "project" / "scalastyle-config.xml"
 //scapegoatVersion := "1.3.3"
 
 // scalaTest
-libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.0" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.8" % "test"
 
 testOptions in Test += Tests.Argument("-oS", "-u", s"${crossTarget.value}/test-results-junit" /*, "-h", s"${crossTarget.value}/test-results-html" */)
 
